@@ -19,11 +19,12 @@ gitignored/
 *.sh
 
 # Sphinx files
-*.pickle
-*.css
-*.js
-*.doctree
 *.buildinfo
+*.css
+*.doctree
+*.inv
+*.js
+*.pickle
 
 # R local files
 *.Rproj.user*
