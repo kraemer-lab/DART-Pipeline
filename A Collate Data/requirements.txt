@@ -1,0 +1,5 @@
+cdsapi==0.6.1
+lxml==4.9.3
+pandas==2.1.2
+passpy==1.0.2
+Requests==2.31.0
