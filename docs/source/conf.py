@@ -4,8 +4,9 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 import pathlib
 import sys
-sys.path.insert(-1, pathlib.Path(__file__).parents[2].resolve().as_posix())
-path = pathlib.Path('../../DART-Pipeline').resolve().as_posix()
+path = pathlib.Path(__file__).parents[2].resolve().as_posix()
+sys.path.insert(-1, path)
+path = pathlib.Path(path, 'A Collate Data').resolve().as_posix()
 sys.path.insert(-1, path)
 
 # -- Project information -----------------------------------------------------
@@ -19,7 +20,13 @@ release = 'v0.1'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = []
+extensions = [
+    'sphinx.ext.duration',
+    'sphinx.ext.doctest',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.napoleon'
+]
 
 templates_path = ['_templates']
 exclude_patterns = []
@@ -27,6 +34,8 @@ latex_elements = {
     'papersize': 'a4paper',
     'extraclassoptions': 'openany',
     'preamble': r'''
+\usepackage{pmboxdraw} % Needed for box-drawing characters
+\usepackage{tikz} %draw figures, flowcharts, etc
 '''
 }
 today_fmt = '%Y-%m-%d'

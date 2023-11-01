@@ -1,47 +1,59 @@
 """
-Collate data.
+Collate raw data.
 
-See "DART dataset summarisation.xls"
+See "DART dataset summarisation.xls" for information about the data fields
+to be collated.
 
-$ python3.12 -m pip install pipreqs
-$ pipreqs '.' --force
+This documentation assumes Python 3.12 is being used. Other versions have not
+been tested.
 
-```
-python3.12 -m pip install requests
-python3.12 -m pip install lxml
-python3.12 -m pip install cdsapi
-python3.12 -m pip install setuptools
-python3.12 -m pip install pandas
-```
+Package requirements for this script are listed in `requirements.txt` as
+created with `pipreqs`:
 
-Password management: gnupg (aka gnupg2, gnupg@2.4, gpg, gpg2)
+.. code-block::
 
-Ubuntu:
-```bash
-$ python3.12 -m pip install passpy
-$ sudo apt-get install gnupg2 -y
-$ gpg --gen-key
-$ gpg --list-keys
-$ sudo apt install pass
-$ export PASSWORD_STORE_DIR=$PWD/.password-store
-$ pass init <your GPG public key>
-$ passpy insert "APHRODITE Daily mean temperature product (V1808)"
-$ passpy show "APHRODITE Daily mean temperature product (V1808)"
-```
+    $ python3.12 -m pip install pipreqs
+    $ pipreqs '.' --force
 
-macOS:
-```bash
-$ python3.12 -m pip install passpy
-$ brew install gnupg
-$ brew install pass
-$ export PASSWORD_STORE_DIR=$PWD/.password-store
-$ pass init <your GPG public key>
-```
+These can be installed from the terminal via the following:
 
-```python
-store = passpy.Store(store_dir='.password-store', gpg_bin='gpg')
-store.set_key("APHRODITE Daily accumulated precipitation (V1901)", 'c4KfKXrO')
-```
+.. code-block::
+
+    $ python3.12 -m pip install requests
+    $ python3.12 -m pip install lxml
+    $ python3.12 -m pip install cdsapi
+    $ python3.12 -m pip install setuptools
+    $ python3.12 -m pip install pandas
+
+Password management is done with gnupg (aka gnupg2, gnupg@2.4, gpg, gpg2):
+
+- Setup on Ubuntu:
+
+.. code-block::
+
+    $ python3.12 -m pip install passpy
+    $ sudo apt-get install gnupg2 -y
+    $ gpg --gen-key
+    $ gpg --list-keys
+    $ sudo apt install pass
+    $ export PASSWORD_STORE_DIR=$PWD/.password-store
+    $ pass init <your GPG public key>
+    $ passpy insert "name for password"
+    $ passpy show "name for password"
+
+- Setup on macOS:
+
+.. code-block::
+
+    $ python3.12 -m pip install passpy
+    $ brew install gnupg
+    $ gpg --gen-key
+    $ gpg --list-keys
+    $ brew install pass
+    $ export PASSWORD_STORE_DIR=$PWD/.password-store
+    $ pass init <your GPG public key>
+    $ passpy insert "name for password"
+    $ passpy show "name for password"
 
 If you see `OSError: Unable to run gpg (gpg2) - it may not be available.` then
 it might mean you haven't installed gpg or it might mean that macOS can't find
@@ -66,8 +78,8 @@ def walk(trunk_url, branch_url, username=None, password=None):
     ----------
     dry_run : bool
         If True, the data will be downloaded. If False, no data will be
-        downloaded but, instead, TXT files will be created in the output folder
-        with a naming system matching that of a wet run.
+        downloaded but, instead, empty files will be created in the output
+        folder with a naming system matching that of a wet run.
     only_one : bool
         If True, only one file from each folder on the remote server will be
         downloaded (or, if `dry_run=True`, have a TXT file created to represent
@@ -98,12 +110,6 @@ def walk(trunk_url, branch_url, username=None, password=None):
                 sub_dirs.append(link_leaf)
         else:
             files.append(link_leaf)
-    # print(sorters)
-    # print(sub_dirs)
-    # print(parent_dirs)
-    # print(files)
-    # print(out_dir)
-    # print(trunk_url + branch_url)
     if only_one:
         files = files[:1]
     for file in files:
@@ -135,6 +141,25 @@ def walk(trunk_url, branch_url, username=None, password=None):
 
 
 def download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2):
+    """
+    Download data from www.worldpop.org.
+
+    A summary of all the available data can be downloaded by running
+    `collate_data.py`.
+
+    Parameters
+    ----------
+    out_dir : str or path object
+        Path to the folder to where the data will be downloaded.
+    alias_1 : str
+        The macro data type's 'alias' as used by the World Pop website.
+    name_1 : str
+        The macro data type's 'name' as used by the World Pop website.
+    alias_2 : str
+        The mico data type's 'alias' as used by the World Pop website.
+    name_2 : str
+        The mico data type's 'name' as used by the World Pop website.
+    """
     root_url = 'https://www.worldpop.org/rest/data'
     page = requests.get(root_url + '/' + alias_1 + '/' + alias_2)
     content = page.json()
@@ -216,25 +241,38 @@ os.makedirs(out_dir, exist_ok=True)
 # Set parameters
 dry_run = True
 only_one = True
-# Login credentials
-username = 'rowan.nicholls@dtc.ox.ac.uk'
-# Check what OS you are using
-if platform.system() == 'Linux':
-    # GnuPG was installed via:
-    # $ sudo apt-get install gnupg2 -y
-    store = passpy.Store(store_dir='.password-store')
-elif platform.system() == 'Darwin':  # macOS
-    # GnuPG was installed via:
-    # $ brew install gnupg
-    store = passpy.Store(store_dir='.password-store', gpg_bin='gpg')
-password = store.get_key(field)
-password = password[:-1]
-# URLs should be str, not urllib URL objects, because requests expects str
-trunk_url = 'http://aphrodite.st.hirosaki-u.ac.jp'
-branch_url = '/product/APHRO_V1808_TEMP'
 if False:
+    # Login credentials
+    username = 'rowan.nicholls@dtc.ox.ac.uk'
+    # Check what OS you are using
+    if platform.system() == 'Linux':
+        # GnuPG was installed via:
+        # $ sudo apt-get install gnupg2 -y
+        store = passpy.Store(store_dir='.password-store')
+    elif platform.system() == 'Darwin':  # macOS
+        # GnuPG was installed via:
+        # $ brew install gnupg
+        store = passpy.Store(store_dir='.password-store', gpg_bin='gpg')
+    password = store.get_key(field)
+    password = password[:-1]
+    # URLs should be str, not urllib URL objects, because requests expects str
+    trunk_url = 'http://aphrodite.st.hirosaki-u.ac.jp'
+    # Dictionary of branch URLs for each resolution
+    branch_urls = {
+        '0.05 degree': '/product/APHRO_V1808_TEMP/APHRO_MA/005deg',
+        '0.05 degree nc': '/product/APHRO_V1808_TEMP/APHRO_MA/005deg_nc',
+        '0.25 degree': '/product/APHRO_V1808_TEMP/APHRO_MA/025deg',
+        '0.25 degree nc': '/product/APHRO_V1808_TEMP/APHRO_MA/025deg_nc',
+        '0.50 degree': '/product/APHRO_V1808_TEMP/APHRO_MA/050deg',
+        '0.50 degree nc': '/product/APHRO_V1808_TEMP/APHRO_MA/050deg_nc',
+    }
     # Walk through the folder structure
-    walk(trunk_url, branch_url, username, password)
+    walk(trunk_url, branch_urls['0.05 degree'], username, password)
+    walk(trunk_url, branch_urls['0.05 degree nc'], username, password)
+    walk(trunk_url, branch_urls['0.25 degree'], username, password)
+    walk(trunk_url, branch_urls['0.25 degree nc'], username, password)
+    walk(trunk_url, branch_urls['0.50 degree'], username, password)
+    walk(trunk_url, branch_urls['0.50 degree nc'], username, password)
 
 """
 APHRODITE Daily accumulated precipitation (V1901)
@@ -252,25 +290,36 @@ os.makedirs(out_dir, exist_ok=True)
 # Set parameters
 dry_run = True
 only_one = True
-# Login credentials
-username = 'rowan.nicholls@dtc.ox.ac.uk'
-# Check what OS you are using
-if platform.system() == 'Linux':
-    # GnuPG was installed via:
-    # $ sudo apt-get install gnupg2 -y
-    store = passpy.Store(store_dir='.password-store')
-elif platform.system() == 'Darwin':  # macOS
-    # GnuPG was installed via:
-    # $ brew install gnupg
-    store = passpy.Store(store_dir='.password-store', gpg_bin='gpg')
-password = store.get_key(field)
-password = password[:-1]
-# URLs should be str, not urllib URL objects, because requests expects str
-trunk_url = 'http://aphrodite.st.hirosaki-u.ac.jp'
-branch_url = '/product/APHRO_V1901'
 if False:
+    # Login credentials
+    username = 'rowan.nicholls@dtc.ox.ac.uk'
+    # Check what OS you are using
+    if platform.system() == 'Linux':
+        # GnuPG was installed via:
+        # $ sudo apt-get install gnupg2 -y
+        store = passpy.Store(store_dir='.password-store')
+    elif platform.system() == 'Darwin':  # macOS
+        # GnuPG was installed via:
+        # $ brew install gnupg
+        store = passpy.Store(store_dir='.password-store', gpg_bin='gpg')
+    password = store.get_key(field)
+    password = password[:-1]
+    # URLs should be str, not urllib URL objects, because requests expects str
+    trunk_url = 'http://aphrodite.st.hirosaki-u.ac.jp'
+    # Dictionary of branch URLs for each resolution
+    branch_urls = {
+        '0.05 degree': '/product/APHRO_V1901/APHRO_MA/005deg',
+        '0.25 degree': '/product/APHRO_V1901/APHRO_MA/025deg',
+        '0.25 degree nc': '/product/APHRO_V1901/APHRO_MA/025deg_nc',
+        '0.50 degree': '/product/APHRO_V1901/APHRO_MA/050deg',
+        '0.50 degree nc': '/product/APHRO_V1901/APHRO_MA/050deg_nc',
+    }
     # Walk through the folder structure
-    walk(trunk_url, branch_url, username, password)
+    walk(trunk_url, branch_urls['0.05 degree'], username, password)
+    walk(trunk_url, branch_urls['0.25 degree'], username, password)
+    walk(trunk_url, branch_urls['0.25 degree nc'], username, password)
+    walk(trunk_url, branch_urls['0.50 degree'], username, password)
+    walk(trunk_url, branch_urls['0.50 degree nc'], username, password)
 
 """
 CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations
@@ -439,13 +488,6 @@ if False:
 
 """
 GADM administrative map
-
-Administrative levels available (depends on the country):
-
-- level 0: country
-- level 1: state (province)
-- level 2: county (district)
-- level 3: commune/ward (and equivalents)
 """
 # Create output directory
 field = 'GADM administrative map'
@@ -457,8 +499,23 @@ def download_gadm_data(file_format, out_dir, iso3='VNM', level=None):
     """
     Download from GADM.
 
-    List of ISO 3166 country codes:
-    https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes
+    Parameters
+    ----------
+    file_format : {'Geopackage', 'Shapefile', 'GeoJSON'}
+        The format of the raw data to be downloaded.
+    out_dir : str or path object
+        Folder path to where the files will be downloaded.
+    iso3 : str, default 'VNM',
+        Alpha-3 country code as per ISO 3166 for the desired country. List of
+        country codes:
+        https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes
+    level : {'level0', 'level1', 'level2', 'level3', None}, default None
+        Administrative levels available (depends on the country):
+
+        - level 0: country
+        - level 1: state (province)
+        - level 2: county (district)
+        - level 3: commune/ward (and equivalents)
     """
     root_url = 'https://geodata.ucdavis.edu/gadm/gadm4.1/'
     if file_format == 'Geopackage':

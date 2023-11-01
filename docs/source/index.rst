@@ -6,3 +6,29 @@
 .. toctree::
 
 .. include:: ../../README.rst
+
+Usage
+=====
+This section details the usage of all scripts, modules and functions in the pipeline.
+
+A Collate Data
+--------------
+
+collate_data.py
+^^^^^^^^^^^^^^^
+.. automodule:: collate_data
+
+____
+
+.. autofunction:: collate_data.walk
+
+____
+
+.. autofunction:: collate_data.download_worldpop_data
+
+____
+
+.. autofunction:: collate_data.download_gadm_data
+
+B Process Data
+--------------
