@@ -1,12 +1,22 @@
 """
 Process data.
 
-$ python3.11 -m pip install shapely
-$ python3.11 -m pip install --upgrade pip
-$ python3.11 -m pip install geopandas$ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-$ brew --version
-$ brew install gdal
-$ ogr2ogr --version
+Pre-requisites:
+
+.. code-block::
+
+    $ python3.12 -m pip install matplotlib
+    $ python3.12 -m pip install seaborn
+    $ python3.12 -m pip install shapely
+    $ python3.12 -m pip install geopandas
+    $ python3.12 -m pip install rasterio
+    $ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    $ brew --version
+    $ brew install gdal
+    $ ogr2ogr --version
+
+Use `EPSG:9217 <https://epsg.io/9217>`_
+
 """
 from pathlib import Path
 import pandas as pd
@@ -18,6 +28,8 @@ import numpy as np
 import json
 from shapely.geometry import Point, Polygon
 import geopandas as gpd
+import rasterio
+from rasterio.warp import calculate_default_transform
 
 
 def plot_pop_density(df, folderpath, filename):
@@ -57,162 +69,275 @@ def plot_pop_density(df, folderpath, filename):
 
 
 #
+# Geospatial data
+#
+
+"""
+GADM administrative map
+"""
+if False:
+    filenames = [
+        'gadm41_VNM_0.shp', 'gadm41_VNM_1.shp', 'gadm41_VNM_2.shp',
+        'gadm41_VNM_3.shp'
+    ]
+    for filename in filenames:
+        # Import the shape file
+        filename = Path(filename)
+        branch_path = Path(
+            'Geospatial data', 'GADM administrative map', 'gadm41_VNM_shp',
+        )
+        path = Path('..', 'A Collate Data', branch_path, filename)
+        gdf = gpd.read_file(path)
+        # print(gdf.head())
+        # print(gdf['geometry'][0])
+        # Plot
+        fig = plt.figure(figsize=(10, 10))
+        ax = plt.axes()
+        gdf.plot(ax=ax)
+        plt.title(filename)
+        plt.xlabel('Longitude')
+        plt.ylabel('Latitude')
+        # Export
+        os.makedirs(branch_path, exist_ok=True)
+        path = Path(branch_path, filename.stem)
+        plt.savefig(path)
+
+#
 # Socio-demographic data
 #
 
 """
 WorldPop population density
 """
-# Create the output folder
-out_folder = Path(
-    '02 Processed Data', 'Socio-Demographic Data',
-    'WorldPop population density'
-)
-os.makedirs(out_folder, exist_ok=True)
+# Label the location of each coordinate
+# (takes approx 685.0s - 11:25 min - to download)
+out_dir = Path('Socio-Demographic Data', 'WorldPop population density')
+if False:
+    # Create the output folder
+    os.makedirs(out_dir, exist_ok=True)
 
-# # Import the population density data for Vietnam
-# path = Path(
-#     '01 Collated Data', 'Socio-Demographic Data',
-#     'WorldPop population density', 'Population Density',
-#     'Unconstrained individual countries UN adjusted (1km resolution)',
-#     'Vietnam', 'vnm_pd_2020_1km_UNadj_ASCII_XYZ.zip'
-# )
-# df = pd.read_csv(path)
+    # Import the population density data for Vietnam
+    path = Path(
+        '..', 'A Collate Data', 'Socio-Demographic Data',
+        'WorldPop population density', 'Population Density',
+        'Unconstrained individual countries UN adjusted (1km resolution)',
+        'Vietnam', 'vnm_pd_2020_1km_UNadj_ASCII_XYZ.zip'
+    )
+    df = pd.read_csv(path)
 
-# Import the coordinates of the borders of Vietnam's regions
-path = Path('01 Collated Data', 'VNM_ADM_2.geojson')
-with open(path) as file:
-    geojson = json.load(file)
+    # Import the coordinates of the borders of Vietnam's regions
+    path = Path('..', 'A Collate Data', 'Archive', 'VNM_ADM_2.geojson')
+    with open(path) as file:
+        geojson = json.load(file)
 
-# # Classify the location of each coordinate
-# df['Country'] = None
-# df['Admin 2'] = None
-# df['Admin 3'] = None
-# # Pre-construct the polygons
-# polygons = []
-# regions = []
-# for feature in geojson['features']:
-#     polygon = Polygon(feature['geometry']['coordinates'][0][0])
-#     print(polygon)
-#     polygons.append(polygon)
-#     region = (
-#         feature['properties']['COUNTRY'],
-#         feature['properties']['NAME_1'],
-#         feature['properties']['NAME_2']
-#     )
-#     regions.append(region)
-# # Iterate over the coordinates
-# for i, row in df.iterrows():
-#     # Update the user
-#     if i % 100 == 0:
-#         print(f'{i} / {len(df)}')
-#     point = Point(df.loc[i, 'X'], df.loc[i, 'Y'])
-#     for j, polygon in enumerate(polygons):
-#         # Check if the coordinate is in this region
-#         if point.within(polygon):
-#             # We have found the region this coordinate is in
-#             df.loc[i, 'Country'] = regions[j][0]
-#             df.loc[i, 'Admin 2'] = regions[j][1]
-#             df.loc[i, 'Admin 3'] = regions[j][2]
-#             # Move to the next line of the data frame
-#             break
-# # Export
-# path = Path(out_folder, 'Vietnam.csv')
-# df.to_csv(path, index=False)
-# Import
-path = Path(out_folder, 'Vietnam.csv')
-df = pd.read_csv(path)
+    # Classify the location of each coordinate
+    df['Country'] = None
+    df['Admin 2'] = None
+    df['Admin 3'] = None
+    # Pre-construct the polygons
+    polygons = []
+    regions = []
+    for feature in geojson['features']:
+        polygon = Polygon(feature['geometry']['coordinates'][0][0])
+        # print(polygon)
+        polygons.append(polygon)
+        region = (
+            feature['properties']['COUNTRY'],
+            feature['properties']['NAME_1'],
+            feature['properties']['NAME_2']
+        )
+        regions.append(region)
+    # Iterate over the coordinates
+    for i, row in df.iterrows():
+        # Update the user
+        if i % 100 == 0:
+            print(f'{i} / {len(df)}')
+        point = Point(df.loc[i, 'X'], df.loc[i, 'Y'])
+        for j, polygon in enumerate(polygons):
+            # Check if the coordinate is in this region
+            if point.within(polygon):
+                # We have found the region this coordinate is in
+                df.loc[i, 'Country'] = regions[j][0]
+                df.loc[i, 'Admin 2'] = regions[j][1]
+                df.loc[i, 'Admin 3'] = regions[j][2]
+                # Move to the next line of the data frame
+                break
+    # Export
+    path = Path(out_dir, 'Vietnam.csv')
+    df.to_csv(path, index=False)
 
-# Plot whole country
-plot_pop_density(df, out_folder, 'Vietnam.png')
+if False:
+    # Import the labelled data
+    path = Path(out_dir, 'Vietnam.csv')
+    df = pd.read_csv(path)
 
-# # Initialise output dictionaries
-# dct_admin_2 = {}
-# dct_admin_3 = {}
+    # Plot whole country
+    plot_pop_density(df, out_dir, 'Vietnam.png')
 
-# # Create the output folders
-# path = Path(out_folder, 'Admin 2')
-# os.makedirs(path, exist_ok=True)
+    # Initialise output dictionaries
+    dct_admin_2 = {}
+    dct_admin_3 = {}
 
-# # Analyse each province/city
-# for admin_2 in df['Admin 2'].unique():
-#     if admin_2 is not np.nan:
-#         subset = df[df['Admin 2'] == admin_2].copy()
-#         print(admin_2)
-#         # plot_pop_density(subset, path, f'{admin_2}.png')
-#         dct_admin_2[admin_2] = subset['Z'].mean()
-#         for admin_3 in subset['Admin 3'].unique():
-#             if admin_3 is not np.nan:
-#                 ssubset = subset[subset['Admin 3'] == admin_3].copy()
-#                 dct_admin_3[admin_3] = ssubset['Z'].mean()
-# # Export
-# path = Path(out_folder, 'WorldPop population density - Admin 2.json')
-# with open(path, 'w') as file:
-#     json.dump(dct_admin_2, file)
-# path = Path(out_folder, 'WorldPop population density - Admin 3.json')
-# with open(path, 'w') as file:
-#     json.dump(dct_admin_3, file)
+    # Create the output folders
+    path = Path(out_dir, 'Admin 2')
+    os.makedirs(path, exist_ok=True)
 
-#
-# Plot using a shape file
-#
+    # Analyse each province/city
+    for admin_2 in df['Admin 2'].unique():
+        if admin_2 is not np.nan:
+            subset = df[df['Admin 2'] == admin_2].copy()
+            print(admin_2)
+            plot_pop_density(subset, path, f'{admin_2}.png')
+            dct_admin_2[admin_2] = subset['Z'].mean()
+            for admin_3 in subset['Admin 3'].unique():
+                if admin_3 is not np.nan:
+                    ssubset = subset[subset['Admin 3'] == admin_3].copy()
+                    dct_admin_3[admin_3] = ssubset['Z'].mean()
+    # Export
+    path = Path(out_dir, 'WorldPop population density - Admin 2.json')
+    with open(path, 'w') as file:
+        json.dump(dct_admin_2, file)
+    path = Path(out_dir, 'WorldPop population density - Admin 3.json')
+    with open(path, 'w') as file:
+        json.dump(dct_admin_3, file)
 
-# Set SHAPE_RESTORE_SHX to YES
-os.environ['SHAPE_RESTORE_SHX'] = 'YES'
+"""
+WorldPop population count
+"""
+if True:
+    print('Processing WorldPop population count')
+    # Import
+    filename = Path('VNM_ppp_v2b_2020_UNadj.tif')
+    branch_path = Path(
+        'Socio-Demographic Data', 'WorldPop population count',
+        'Population Counts', 'Individual countries', 'Vietnam',
+        'Viet_Nam_100m_Population'
+    )
+    path = Path('..', 'A Collate Data', branch_path, filename)
+    print(path)
 
-# Import the shape file
-path = Path('01 Collated Data', 'vietnam_adm3.shp')
-gdf = gpd.read_file(path)
-print(gdf.head())
-print(gdf['geometry'][0])
+    # Re-project the data
+    with rasterio.open(path) as src:
+        # Access metadata
+        print(f'Width: {src.width}')
+        print(f'Height: {src.height}')
+        print(f'Number of bands: {src.count}')
+        print(f'Coordinate reference system (CRS): {src.crs}')
+        source_meta = src.meta.copy()
+        # Read data from band 1
+        source_data = src.read(1)
+        # Define the source and target CRS
+        idx = str(src.crs).index(':')
+        source_crs = rasterio.crs.CRS.from_epsg(str(src.crs)[idx + 1:])
+        target_crs = rasterio.crs.CRS.from_epsg(9217)
+        # Calculate the transform and dimensions of the output raster
+        transform, width, height = calculate_default_transform(
+            source_crs, target_crs, source_meta['width'],
+            source_meta['height'], *src.bounds
+        )
+        # Update the metadata for the output raster
+        source_meta.update({
+            'crs': target_crs,
+            'transform': transform,
+            'width': width,
+            'height': height
+        })
+        # Create the output raster file and reproject the data
+        os.makedirs(branch_path, exist_ok=True)
+        filename = Path('VNM_ppp_v2b_2020_UNadj_EPSG_9217.tif')
+        path = Path(branch_path, filename)
+        print(f'Exporting to "{path}"')
+        with rasterio.open(filename, 'w', **source_meta) as dst:
+            rasterio.warp.reproject(
+                source_data,
+                dst,
+                src_transform=src.transform,
+                src_crs=source_crs,
+                dst_transform=transform,
+                dst_crs=target_crs,
+                resampling=rasterio.warp.Resampling.bilinear
+            )
 
-# gdf = gpd.read_file('file.geojson')
-# gdf.to_file('file.shp')
+    # Plot the data
+    with rasterio.open(path) as src:
+        # Access metadata
+        print(f'Width: {src.width}')
+        print(f'Height: {src.height}')
+        print(f'Number of bands: {src.count}')
+        print(f'Coordinate reference system (CRS): {src.crs}')
+        # Read data from band 1
+        source_data = src.read(1)
 
-# Get the names of the regions
-geojson_data = []
-for feature in geojson['features']:
-    polygon = Polygon(feature['geometry']['coordinates'][0][0])
-    country = feature['properties']['COUNTRY']
-    admin_2 = feature['properties']['NAME_1']
-    admin_3 = feature['properties']['NAME_2']
-    geojson_data.append((polygon, country, admin_2, admin_3))
+        # # Take a subset
+        # source_data = [
+        #     row[1000:2000 + 1] for row in source_data[1000:2000 + 1]
+        # ]
 
-gdf['Admin 2'] = None
-gdf['Admin 3'] = None
-for i, row in gdf[:2].iterrows():
-    polygon_1 = row['geometry']
-    overlaps = []
-    for data in geojson_data:
-        polygon_2 = data[0]
-        overlap = polygon_1.intersection(polygon_2)
-        overlaps.append(overlap.area)
-        print(data[3], overlap.area)
-    max_overlap = geojson_data[np.argmax(overlaps)]
-    gdf.loc[i, 'Admin 2'] = max_overlap[2]
-    gdf.loc[i, 'Admin 3'] = max_overlap[3]
-print(gdf.head())
+        # # Replace placeholder numbers with 0
+        # source_data = [
+        #     [0 if cell == -3.4028234663852886e+38 else cell for cell in row]
+        #     for row in source_data
+        # ]
+        # # Sanity check: calculate the total population
+        # # Google says that Vietnam's population is 97.47 million (2021)
+        # flattened_list = [cell for row in source_data for cell in row]
+        # no_nones = [x for x in flattened_list if x is not None]
+        # total_sum = sum(no_nones)
+        # print(total_sum)  # 96,354,999.48083077 (2020)
 
-# # Define a dictionary to map polygon identifiers to colors
-# color_mapping = {
-#     0: 'red',
-#     1: 'green',
-#     2: 'blue',
-#     # Add more polygons and colors as needed
-# }
-# # Create a custom color column in the GeoDataFrame
-# gdf['custom_color'] = gdf.index.map(color_mapping)
-# gdf['custom_color'] = gdf['custom_color'].fillna('black')
-# print(gdf.head())
+        # Plot
+        plt.imshow(source_data, cmap='GnBu')
+        plt.title('GeoTIFF Band 1')
+        plt.colorbar()
+        # Export
+        os.makedirs(branch_path, exist_ok=True)
+        path = Path(branch_path, filename.stem)
+        plt.savefig(path)
 
-# # Plot
-# A = 3  # We want figures to be A3
-# figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
-# fig = plt.figure(figsize=figsize, dpi=300)
-# ax = plt.axes()
-# # Plot the polygons with custom colors
-# gdf.plot(ax=ax, color=gdf['custom_color'])
-# # Customize the plot
-# ax.set_title('Population Density')
-# # Export
-# plt.savefig('Shape.png')
+    # # Get the names of the regions
+    # geojson_data = []
+    # for feature in geojson['features']:
+    #     polygon = Polygon(feature['geometry']['coordinates'][0][0])
+    #     country = feature['properties']['COUNTRY']
+    #     admin_2 = feature['properties']['NAME_1']
+    #     admin_3 = feature['properties']['NAME_2']
+    #     geojson_data.append((polygon, country, admin_2, admin_3))
+
+    # gdf['Admin 2'] = None
+    # gdf['Admin 3'] = None
+    # for i, row in gdf[:2].iterrows():
+    #     polygon_1 = row['geometry']
+    #     overlaps = []
+    #     for data in geojson_data:
+    #         polygon_2 = data[0]
+    #         overlap = polygon_1.intersection(polygon_2)
+    #         overlaps.append(overlap.area)
+    #         print(data[3], overlap.area)
+    #     max_overlap = geojson_data[np.argmax(overlaps)]
+    #     gdf.loc[i, 'Admin 2'] = max_overlap[2]
+    #     gdf.loc[i, 'Admin 3'] = max_overlap[3]
+    # print(gdf.head())
+
+    # # Define a dictionary to map polygon identifiers to colors
+    # color_mapping = {
+    #     0: 'red',
+    #     1: 'green',
+    #     2: 'blue',
+    #     # Add more polygons and colors as needed
+    # }
+    # # Create a custom color column in the GeoDataFrame
+    # gdf['custom_color'] = gdf.index.map(color_mapping)
+    # gdf['custom_color'] = gdf['custom_color'].fillna('black')
+    # print(gdf.head())
+
+    # # Plot
+    # A = 3  # We want figures to be A3
+    # figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+    # fig = plt.figure(figsize=figsize, dpi=300)
+    # ax = plt.axes()
+    # # Plot the polygons with custom colors
+    # gdf.plot(ax=ax, color=gdf['custom_color'])
+    # # Customize the plot
+    # ax.set_title('Population Density')
+    # # Export
+    # plt.savefig('Shape.png')

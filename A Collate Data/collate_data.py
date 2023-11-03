@@ -24,6 +24,7 @@ These can be installed from the terminal via the following:
     $ python3.12 -m pip install cdsapi
     $ python3.12 -m pip install setuptools
     $ python3.12 -m pip install pandas
+    $ python3.12 -m pip install py7zr
 
 Password management is done with gnupg (aka gnupg2, gnupg@2.4, gpg, gpg2):
 
@@ -62,6 +63,8 @@ it. My solution is to use it from within Python, not from the Terminal.
 import requests
 from lxml import html
 import os
+import shutil
+import py7zr
 from pathlib import Path
 import passpy
 import cdsapi
@@ -206,16 +209,23 @@ def download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2):
                     df = pd.concat([df, new_row], ignore_index=True)
                     # Download data files
                     for file in datapoint['files']:
+                        fn = file.split('/')[-1]
+                        path = Path(out_dir, name_1, name_2, country, fn)
+                        # Make a request for the data
                         r = requests.get(file)
                         # 401: Unauthorized
                         # 200: OK
                         if r.status_code == 200:
-                            fn = file.split('/')[-1]
-                            path = Path(out_dir, name_1, name_2, country, fn)
-                            print(f'Downloading {file}')
-                            print(f'to {path}')
+                            print(f'Downloading "{file}"')
+                            print(f'to "{path}"')
                             with open(path, 'wb') as out:
                                 out.write(r.content)
+                        # Unzip data
+                        print(f'Unpacking "{path}"')
+                        foldername = str(path).removesuffix('.7z')
+                        # Extract the 7z file
+                        with py7zr.SevenZipFile(path, mode='r') as archive:
+                            archive.extractall(foldername)
                 # Export summary of available data
                 path = Path(out_dir, name_1, name_2, country, f'{country}.csv')
                 df.to_csv(path, index=False)
@@ -543,6 +553,11 @@ def download_gadm_data(file_format, out_dir, iso3='VNM', level=None):
         print(f'to {out_dir}')
         with open(path, 'wb') as out:
             out.write(r.content)
+
+    # Unpack shape files
+    if file_format == 'Shapefile':
+        print(f'Unpacking {path}')
+        shutil.unpack_archive(path, str(path).removesuffix('.zip'))
 
 
 if False:

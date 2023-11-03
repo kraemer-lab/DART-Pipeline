@@ -10,13 +10,15 @@ gitignored/
 *.geojson
 *.gpg
 *.gpkg
+*.json
+*.kmz
 *.nc
 *.prj
+*.sh
 *.shp
 *.shx
+*.tfw
 *.tif
-*.json
-*.sh
 
 # Sphinx files
 *.buildinfo
