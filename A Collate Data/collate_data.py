@@ -234,14 +234,14 @@ $ pass insert "APHRODITE Daily mean temperature product (V1808)"
 $ pass "APHRODITE Daily mean temperature product (V1808)"
 ```
 """
-# Create output directory
-field = 'APHRODITE Daily mean temperature product (V1808)'
-out_dir = Path('Meteorological Data', field)
-os.makedirs(out_dir, exist_ok=True)
-# Set parameters
-dry_run = True
-only_one = True
 if False:
+    # Create output directory
+    field = 'APHRODITE Daily mean temperature product (V1808)'
+    out_dir = Path('Meteorological Data', field)
+    os.makedirs(out_dir, exist_ok=True)
+    # Set parameters
+    dry_run = True
+    only_one = True
     # Login credentials
     username = 'rowan.nicholls@dtc.ox.ac.uk'
     # Check what OS you are using
@@ -283,14 +283,14 @@ $ pass insert "APHRODITE Daily accumulated precipitation (V1901)"
 $ pass "APHRODITE Daily accumulated precipitation (V1901)"
 ```
 """
-# Create output directory
-field = 'APHRODITE Daily accumulated precipitation (V1901)'
-out_dir = Path('Meteorological Data', field)
-os.makedirs(out_dir, exist_ok=True)
-# Set parameters
-dry_run = True
-only_one = True
 if False:
+    # Create output directory
+    field = 'APHRODITE Daily accumulated precipitation (V1901)'
+    out_dir = Path('Meteorological Data', field)
+    os.makedirs(out_dir, exist_ok=True)
+    # Set parameters
+    dry_run = True
+    only_one = True
     # Login credentials
     username = 'rowan.nicholls@dtc.ox.ac.uk'
     # Check what OS you are using
@@ -324,17 +324,18 @@ if False:
 """
 CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations
 """
-# Create output directory
-f = 'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite Observations'
-out_dir = Path('Meteorological Data', f)
-os.makedirs(out_dir, exist_ok=True)
-# Set parameters
-dry_run = True
-only_one = True
-# URLs should be str, not urllib URL objects, because requests expects str
-trunk_url = 'https://data.chc.ucsb.edu'
-branch_url = '/products/CHIRPS-2.0/'
 if False:
+    # Create output directory
+    f = 'CHIRPS - ' + \
+        'Rainfall Estimates from Rain Gauge and Satellite Observations'
+    out_dir = Path('Meteorological Data', f)
+    os.makedirs(out_dir, exist_ok=True)
+    # Set parameters
+    dry_run = True
+    only_one = True
+    # URLs should be str, not urllib URL objects, because requests expects str
+    trunk_url = 'https://data.chc.ucsb.edu'
+    branch_url = '/products/CHIRPS-2.0/'
     # Walk through the folder structure
     walk(trunk_url, branch_url)
 
@@ -342,17 +343,17 @@ if False:
 TerraClimate gridded temperature, precipitation, and other water balance
 variables
 """
-# Create output directory
-f = 'TerraClimate gridded temperature, precipitation, and other'
-out_dir = Path('Meteorological Data', f)
-os.makedirs(out_dir, exist_ok=True)
-# Set parameters
-dry_run = True
-only_one = False
-# URLs should be str, not urllib URL objects, because requests expects str
-trunk_url = 'https://climate.northwestknowledge.net'
-branch_url = '/TERRACLIMATE-DATA'
 if False:
+    # Create output directory
+    f = 'TerraClimate gridded temperature, precipitation, and other'
+    out_dir = Path('Meteorological Data', f)
+    os.makedirs(out_dir, exist_ok=True)
+    # Set parameters
+    dry_run = True
+    only_one = False
+    # URLs should be str, not urllib URL objects, because requests expects str
+    trunk_url = 'https://climate.northwestknowledge.net'
+    branch_url = '/TERRACLIMATE-DATA'
     # Walk through the folder structure
     walk(trunk_url, branch_url)
 
@@ -368,38 +369,38 @@ $ pass insert "ERA5 atmospheric reanalysis"
 $ pass "ERA5 atmospheric reanalysis"
 ```
 """
-# Create output directory
-f = 'ERA5 atmospheric reanalysis'
-out_dir = Path('Meteorological Data', f)
-os.makedirs(out_dir, exist_ok=True)
-# Use the Climate Data Store (CDS) Application Program Interface (API)
-# https://pypi.org/project/cdsapi/
-c = cdsapi.Client()
-request = {
-    'date': '2013-01-01',  # The hyphens can be omitted
-    # 1 is top level, 137 the lowest model level in ERA5. Use '/' to
-    # separate values.
-    'levelist': '1/10/100/137',
-    'levtype': 'ml',
-    # Full information at https://apps.ecmwf.int/codes/grib/param-db/
-    # The native representation for temperature is spherical harmonics
-    'param': '130',
-    # Denotes ERA5. Ensemble members are selected by 'enda'
-    'stream': 'oper',
-    # You can drop :00:00 and use MARS short-hand notation, instead of
-    # '00/06/12/18'
-    'time': '00/to/23/by/6',
-    'type': 'an',
-    # North, West, South, East. Default: global
-    'area': '80/-50/-25/0',
-    # Latitude/longitude. Default: spherical harmonics or reduced Gaussian
-    # grid
-    'grid': '1.0/1.0',
-    # Output needs to be regular lat-lon, so only works in combination
-    # with 'grid'!
-    'format': 'netcdf',
-}
 if False:
+    # Create output directory
+    f = 'ERA5 atmospheric reanalysis'
+    out_dir = Path('Meteorological Data', f)
+    os.makedirs(out_dir, exist_ok=True)
+    # Use the Climate Data Store (CDS) Application Program Interface (API)
+    # https://pypi.org/project/cdsapi/
+    c = cdsapi.Client()
+    request = {
+        'date': '2013-01-01',  # The hyphens can be omitted
+        # 1 is top level, 137 the lowest model level in ERA5. Use '/' to
+        # separate values.
+        'levelist': '1/10/100/137',
+        'levtype': 'ml',
+        # Full information at https://apps.ecmwf.int/codes/grib/param-db/
+        # The native representation for temperature is spherical harmonics
+        'param': '130',
+        # Denotes ERA5. Ensemble members are selected by 'enda'
+        'stream': 'oper',
+        # You can drop :00:00 and use MARS short-hand notation, instead of
+        # '00/06/12/18'
+        'time': '00/to/23/by/6',
+        'type': 'an',
+        # North, West, South, East. Default: global
+        'area': '80/-50/-25/0',
+        # Latitude/longitude. Default: spherical harmonics or reduced Gaussian
+        # grid
+        'grid': '1.0/1.0',
+        # Output needs to be regular lat-lon, so only works in combination
+        # with 'grid'!
+        'format': 'netcdf',
+    }
     c.retrieve(
         # Requests follow MARS syntax
         # Keywords 'expver' and 'class' can be dropped. They are obsolete
@@ -417,13 +418,13 @@ if False:
 """
 WorldPop population density
 """
-# Create output directory
-field = 'WorldPop population density'
-out_dir = Path('Socio-Demographic Data', field)
-os.makedirs(out_dir, exist_ok=True)
-
-# Get overviews of all the data that is available
 if False:
+    # Create output directory
+    field = 'WorldPop population density'
+    out_dir = Path('Socio-Demographic Data', field)
+    os.makedirs(out_dir, exist_ok=True)
+
+    # Get overviews of all the data that is available
     root_url = 'https://www.worldpop.org/rest/data'
     page = requests.get(root_url)
     content = page.json()
@@ -450,36 +451,35 @@ if False:
     filepath = Path(out_dir, 'Available Datasets.csv')
     df.to_csv(filepath, index=False)
 
-# Get the population density data
-alias_1 = 'pop_density'
-name_1 = 'Population Density'
-alias_2 = 'pd_ic_1km'
-name_2 = 'Unconstrained individual countries (1km resolution)'
 if False:
+    # Get the population density data
+    alias_1 = 'pop_density'
+    name_1 = 'Population Density'
+    alias_2 = 'pd_ic_1km'
+    name_2 = 'Unconstrained individual countries (1km resolution)'
     download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2)
-alias_2 = 'pd_ic_1km_unadj'
-name_2 = 'Unconstrained individual countries UN adjusted (1km resolution)'
 if False:
+    alias_2 = 'pd_ic_1km_unadj'
+    name_2 = 'Unconstrained individual countries UN adjusted (1km resolution)'
     download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2)
 
 """
 WorldPop population count
 """
-# Create output directory
-field = 'WorldPop population count'
-out_dir = Path('Socio-Demographic Data', field)
-os.makedirs(out_dir, exist_ok=True)
+if False:
+    # Create output directory
+    field = 'WorldPop population count'
+    out_dir = Path('Socio-Demographic Data', field)
+    os.makedirs(out_dir, exist_ok=True)
 
-# Get the population count data
-alias_1 = 'pop'
-name_1 = 'Population Counts'
-alias_2 = 'pic'
-name_2 = 'Individual countries'
-if False:
+    # Get the population count data
+    alias_1 = 'pop'
+    name_1 = 'Population Counts'
+    alias_2 = 'pic'
+    name_2 = 'Individual countries'
     download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2)
-alias_2 = 'wpgp1km'
-name_2 = 'Unconstrained global mosaics 2000-2020 (1km resolution)'
-if False:
+    alias_2 = 'wpgp1km'
+    name_2 = 'Unconstrained global mosaics 2000-2020 (1km resolution)'
     download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2)
 
 #
@@ -489,10 +489,6 @@ if False:
 """
 GADM administrative map
 """
-# Create output directory
-field = 'GADM administrative map'
-out_dir = Path('Geospatial data', field)
-os.makedirs(out_dir, exist_ok=True)
 
 
 def download_gadm_data(file_format, out_dir, iso3='VNM', level=None):
@@ -550,6 +546,11 @@ def download_gadm_data(file_format, out_dir, iso3='VNM', level=None):
 
 
 if False:
+    # Create output directory
+    field = 'GADM administrative map'
+    out_dir = Path('Geospatial data', field)
+    os.makedirs(out_dir, exist_ok=True)
+
     download_gadm_data('Geopackage', out_dir, iso3='VNM')
     download_gadm_data('Shapefile', out_dir, iso3='VNM')
     download_gadm_data('GeoJSON', out_dir, iso3='VNM', level='level0')
