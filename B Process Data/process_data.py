@@ -6,7 +6,6 @@ Pre-requisites:
 .. code-block::
 
     $ python3.12 -m pip install matplotlib
-    $ python3.12 -m pip install seaborn
     $ python3.12 -m pip install shapely
     $ python3.12 -m pip install geopandas
     $ python3.12 -m pip install rasterio
@@ -20,7 +19,6 @@ Use `EPSG:9217 <https://epsg.io/9217>`_
 """
 from pathlib import Path
 import pandas as pd
-import seaborn as sns
 from matplotlib import pyplot as plt
 import matplotlib.ticker as mticker
 import os
@@ -29,7 +27,6 @@ import json
 from shapely.geometry import Point, Polygon
 import geopandas as gpd
 import rasterio
-from rasterio.warp import calculate_default_transform
 from rasterio.features import geometry_mask
 
 
@@ -380,7 +377,7 @@ if True:
         """
         # print(population_data.sum().sum())
 
-        # Create a mask for each polygon in the GeoDataFrame 
+        # Create a mask for each polygon in the GeoDataFrame
         masks = []
         for index, row in gdf.iterrows():
             region_name = gdf['COUNTRY']
