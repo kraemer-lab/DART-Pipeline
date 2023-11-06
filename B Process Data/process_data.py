@@ -30,6 +30,7 @@ from shapely.geometry import Point, Polygon
 import geopandas as gpd
 import rasterio
 from rasterio.warp import calculate_default_transform
+from rasterio.features import geometry_mask
 
 
 def plot_pop_density(df, folderpath, filename):
@@ -88,8 +89,6 @@ if False:
         )
         path = Path('..', 'A Collate Data', branch_path, filename)
         gdf = gpd.read_file(path)
-        # print(gdf.head())
-        # print(gdf['geometry'][0])
         # Plot
         fig = plt.figure(figsize=(10, 10))
         ax = plt.axes()
@@ -217,10 +216,13 @@ def pixel_to_latlon(x, y, transform, crs):
     return lat, lon
 
 
-if True:
+# filename = Path('VNM_pph_v2b_2020.tif')
+# filename = Path('VNM_pph_v2b_2020_UNadj.tif')
+# filename = Path('VNM_ppp_v2b_2020.tif')
+filename = Path('VNM_ppp_v2b_2020_UNadj.tif')
+if False:
     print('Processing WorldPop population count')
     # Import
-    filename = Path('VNM_ppp_v2b_2020_UNadj.tif')
     branch_path = Path(
         'Socio-Demographic Data', 'WorldPop population count',
         'Population Counts', 'Individual countries', 'Vietnam',
@@ -266,9 +268,23 @@ if True:
     # (-3.4e+38 is the smallest single-precision floating-point number)
     df = pd.DataFrame(source_data)
     source_data = df[df != -3.4028234663852886e+38]
-    # Sanity check: calculate the total population
-    # Google says that Vietnam's population is 97.47 million (2021)
-    print(source_data.sum().sum())  # 96,355,000 (2020)
+    """
+    Sanity check: calculate the total population
+    Google says that Vietnam's population was 96.65 million (2020)
+
+    VNM_pph_v2b_2020.tif
+    90,049,150 (2020)
+
+    VNM_pph_v2b_2020_UNadj.tif
+    96,355,010 (2020)
+
+    VNM_ppp_v2b_2020.tif
+    90,008,170 (2020)
+
+    VNM_ppp_v2b_2020_UNadj.tif
+    96,355,000 (2020)
+    """
+    print(source_data.sum().sum())
 
     # Plot - no normalisation
     plt.imshow(source_data, cmap='GnBu')
@@ -307,7 +323,83 @@ if True:
     # plt.savefig(path)
     # plt.close()
 
-    # # Get the names of the regions
+#
+# Geospatial and Socio-demographic data
+#
+
+"""
+WorldPop population count
+"""
+if True:
+    filenames = [
+        'gadm41_VNM_0.shp',
+        # 'gadm41_VNM_1.shp', 'gadm41_VNM_2.shp',
+        # 'gadm41_VNM_3.shp'
+    ]
+    for filename in filenames:
+        # Import the shape file
+        trunk_path = Path('..', 'A Collate Data')
+        branch_path = Path(
+            'Geospatial data', 'GADM administrative map', 'gadm41_VNM_shp',
+        )
+        leaf_path = Path(filename)
+        path = Path(trunk_path, branch_path, leaf_path)
+        gdf = gpd.read_file(path)
+
+        # Import the TIFF file
+        trunk_path = Path('..', 'A Collate Data')
+        branch_path = Path(
+            'Socio-Demographic Data', 'WorldPop population count',
+            'Population Counts', 'Individual countries', 'Vietnam',
+            'Viet_Nam_100m_Population'
+        )
+        leaf_path = Path('VNM_ppp_v2b_2020_UNadj.tif')
+        path = Path(trunk_path, branch_path, leaf_path)
+        with rasterio.open(path) as src:
+            population_data = src.read(1)
+
+        # Replace placeholder numbers with 0
+        # (-3.4e+38 is the smallest single-precision floating-point number)
+        df = pd.DataFrame(population_data)
+        population_data = df[df != -3.4028234663852886e+38]
+        """
+        Sanity check: calculate the total population
+        Google says that Vietnam's population was 96.65 million (2020)
+
+        VNM_pph_v2b_2020.tif
+        90,049,150 (2020)
+
+        VNM_pph_v2b_2020_UNadj.tif
+        96,355,010 (2020)
+
+        VNM_ppp_v2b_2020.tif
+        90,008,170 (2020)
+
+        VNM_ppp_v2b_2020_UNadj.tif
+        96,355,000 (2020)
+        """
+        # print(population_data.sum().sum())
+
+        # Create a mask for each polygon in the GeoDataFrame 
+        masks = []
+        for index, row in gdf.iterrows():
+            region_name = gdf['COUNTRY']
+            geom = row['geometry']
+            mask = geometry_mask(
+                [geom], out_shape=population_data.shape,
+                transform=src.transform, invert=False
+            )
+            masks.append(mask)
+
+        # Compute population values for each region
+        region_populations = []
+        for mask in masks:
+            population_values = population_data[mask]
+            total_population = population_values.sum()
+            region_populations.append(total_population)
+        print(region_populations)
+
+    # Get the names of the regions
     # geojson_data = []
     # for feature in geojson['features']:
     #     polygon = Polygon(feature['geometry']['coordinates'][0][0])
