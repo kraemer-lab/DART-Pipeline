@@ -203,7 +203,20 @@ if False:
 
 """
 WorldPop population count
+
+- EPSG:9217: https://epsg.io/9217
+- EPSG = European Petroleum Survey Group
 """
+
+
+def pixel_to_latlon(x, y, transform, crs):
+    """Convert pixel coordinates to latitude and longitude."""
+    x, y = np.meshgrid(x, y)
+    lon, lat = transform * (x, y)
+
+    return lat, lon
+
+
 if True:
     print('Processing WorldPop population count')
     # Import
@@ -216,83 +229,83 @@ if True:
     path = Path('..', 'A Collate Data', branch_path, filename)
     print(path)
 
-    # Re-project the data
+    # Load the data
     with rasterio.open(path) as src:
         # Access metadata
         print(f'Width: {src.width}')
         print(f'Height: {src.height}')
         print(f'Number of bands: {src.count}')
         print(f'Coordinate reference system (CRS): {src.crs}')
-        source_meta = src.meta.copy()
+        print(f'Transform:\n{src.transform}')
         # Read data from band 1
         source_data = src.read(1)
-        # Define the source and target CRS
-        idx = str(src.crs).index(':')
-        source_crs = rasterio.crs.CRS.from_epsg(str(src.crs)[idx + 1:])
-        target_crs = rasterio.crs.CRS.from_epsg(9217)
-        # Calculate the transform and dimensions of the output raster
-        transform, width, height = calculate_default_transform(
-            source_crs, target_crs, source_meta['width'],
-            source_meta['height'], *src.bounds
-        )
-        # Update the metadata for the output raster
-        source_meta.update({
-            'crs': target_crs,
-            'transform': transform,
-            'width': width,
-            'height': height
-        })
-        # Create the output raster file and reproject the data
-        os.makedirs(branch_path, exist_ok=True)
-        filename = Path('VNM_ppp_v2b_2020_UNadj_EPSG_9217.tif')
-        path = Path(branch_path, filename)
-        print(f'Exporting to "{path}"')
-        with rasterio.open(filename, 'w', **source_meta) as dst:
-            rasterio.warp.reproject(
-                source_data,
-                dst,
-                src_transform=src.transform,
-                src_crs=source_crs,
-                dst_transform=transform,
-                dst_crs=target_crs,
-                resampling=rasterio.warp.Resampling.bilinear
-            )
+        # Get the geospatial information
+        width = src.width
+        height = src.height
+        transform = src.transform
+        crs = src.crs
 
-    # Plot the data
-    with rasterio.open(path) as src:
-        # Access metadata
-        print(f'Width: {src.width}')
-        print(f'Height: {src.height}')
-        print(f'Number of bands: {src.count}')
-        print(f'Coordinate reference system (CRS): {src.crs}')
-        # Read data from band 1
-        source_data = src.read(1)
+    # Naive plot
+    plt.imshow(source_data, cmap='GnBu')
+    plt.title('GeoTIFF Band 1')
+    plt.colorbar()
+    # Export
+    os.makedirs(branch_path, exist_ok=True)
+    path = Path(branch_path, filename.stem + ' - Naive')
+    plt.savefig(path)
+    # Save the tick details for the next plot
+    ylocs, ylabels = plt.yticks()
+    xlocs, xlabels = plt.xticks()
+    # Trim
+    ylocs = ylocs[1:-1]
+    xlocs = xlocs[1:-1]
+    # Finish
+    plt.close()
 
-        # # Take a subset
-        # source_data = [
-        #     row[1000:2000 + 1] for row in source_data[1000:2000 + 1]
-        # ]
+    # Replace placeholder numbers with 0
+    # (-3.4e+38 is the smallest single-precision floating-point number)
+    df = pd.DataFrame(source_data)
+    source_data = df[df != -3.4028234663852886e+38]
+    # Sanity check: calculate the total population
+    # Google says that Vietnam's population is 97.47 million (2021)
+    print(source_data.sum().sum())  # 96,355,000 (2020)
 
-        # # Replace placeholder numbers with 0
-        # source_data = [
-        #     [0 if cell == -3.4028234663852886e+38 else cell for cell in row]
-        #     for row in source_data
-        # ]
-        # # Sanity check: calculate the total population
-        # # Google says that Vietnam's population is 97.47 million (2021)
-        # flattened_list = [cell for row in source_data for cell in row]
-        # no_nones = [x for x in flattened_list if x is not None]
-        # total_sum = sum(no_nones)
-        # print(total_sum)  # 96,354,999.48083077 (2020)
+    # Plot - no normalisation
+    plt.imshow(source_data, cmap='GnBu')
+    plt.title('GeoTIFF Band 1')
+    plt.colorbar()
+    # Convert pixel coordinates to latitude and longitude
+    lat, lon = pixel_to_latlon(xlocs, ylocs, transform, crs)
+    # Flatten into a list
+    lat = [str(round(x[0], 1)) for x in lat]
+    lon = [str(round(x, 1)) for x in lon[0]]
+    # Convert the axis ticks from pixels into latitude and longitude
+    plt.yticks(ylocs, lat)
+    plt.xticks(xlocs, lon)
+    # Export
+    os.makedirs(branch_path, exist_ok=True)
+    path = Path(branch_path, filename.stem)
+    plt.savefig(path)
+    plt.close()
 
-        # Plot
-        plt.imshow(source_data, cmap='GnBu')
-        plt.title('GeoTIFF Band 1')
-        plt.colorbar()
-        # Export
-        os.makedirs(branch_path, exist_ok=True)
-        path = Path(branch_path, filename.stem)
-        plt.savefig(path)
+    # # Plot - log transformed
+    # source_data = np.log(source_data)
+    # plt.imshow(source_data, cmap='GnBu')
+    # plt.title('GeoTIFF Band 1')
+    # plt.colorbar()
+    # # Convert pixel coordinates to latitude and longitude
+    # lat, lon = pixel_to_latlon(xlocs, ylocs, transform, crs)
+    # # Flatten into a list
+    # lat = [str(round(x[0], 1)) for x in lat]
+    # lon = [str(round(x, 1)) for x in lon[0]]
+    # # Convert the axis ticks from pixels into latitude and longitude
+    # plt.yticks(ylocs, lat)
+    # plt.xticks(xlocs, lon)
+    # # Export
+    # os.makedirs(branch_path, exist_ok=True)
+    # path = Path(branch_path, filename.stem + ' - Log Scale')
+    # plt.savefig(path)
+    # plt.close()
 
     # # Get the names of the regions
     # geojson_data = []

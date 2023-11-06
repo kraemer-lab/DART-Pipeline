@@ -25,6 +25,7 @@ These can be installed from the terminal via the following:
     $ python3.12 -m pip install setuptools
     $ python3.12 -m pip install pandas
     $ python3.12 -m pip install py7zr
+    $ python3.12 -m pip install passpy
 
 Password management is done with gnupg (aka gnupg2, gnupg@2.4, gpg, gpg2):
 
@@ -476,7 +477,7 @@ if False:
 """
 WorldPop population count
 """
-if False:
+if False:  # This block takes 406.2s to run
     # Create output directory
     field = 'WorldPop population count'
     out_dir = Path('Socio-Demographic Data', field)
@@ -560,7 +561,7 @@ def download_gadm_data(file_format, out_dir, iso3='VNM', level=None):
         shutil.unpack_archive(path, str(path).removesuffix('.zip'))
 
 
-if False:
+if False:  # This block takes 87.3s to run
     # Create output directory
     field = 'GADM administrative map'
     out_dir = Path('Geospatial data', field)
