@@ -25,6 +25,7 @@ import os
 import numpy as np
 import json
 from shapely.geometry import Point, Polygon
+from shapely.affinity import scale
 import geopandas as gpd
 import rasterio
 from rasterio.features import geometry_mask
@@ -321,7 +322,7 @@ if False:
     # plt.close()
 
 #
-# Geospatial and Socio-demographic data
+# Geospatial and Socio-Demographic Data
 #
 
 """
@@ -329,11 +330,18 @@ WorldPop population count
 """
 if True:
     filenames = [
-        'gadm41_VNM_0.shp',
-        # 'gadm41_VNM_1.shp', 'gadm41_VNM_2.shp',
-        # 'gadm41_VNM_3.shp'
+        # 'gadm41_VNM_0.shp',  # Takes 2.8s
+        'gadm41_VNM_1.shp',  # Takes 187.2s
+        # 'gadm41_VNM_2.shp',
+        # 'gadm41_VNM_3.shp',
     ]
     for filename in filenames:
+        out_dir = Path(
+            'Geospatial and Socio-Demographic Data', 'Population',
+            Path(filename).stem
+        )
+        os.makedirs(out_dir, exist_ok=True)
+
         # Import the shape file
         trunk_path = Path('..', 'A Collate Data')
         branch_path = Path(
@@ -352,94 +360,111 @@ if True:
         )
         leaf_path = Path('VNM_ppp_v2b_2020_UNadj.tif')
         path = Path(trunk_path, branch_path, leaf_path)
-        with rasterio.open(path) as src:
-            population_data = src.read(1)
+        src = rasterio.open(path)
+        # Read data from band 1
+        population_data = src.read(1)
 
         # Replace placeholder numbers with 0
-        # (-3.4e+38 is the smallest single-precision floating-point number)
-        df = pd.DataFrame(population_data)
-        population_data = df[df != -3.4028234663852886e+38]
-        """
-        Sanity check: calculate the total population
-        Google says that Vietnam's population was 96.65 million (2020)
+        mask = population_data == -3.4028234663852886e+38
+        population_data[mask] = 0
 
-        VNM_pph_v2b_2020.tif
-        90,049,150 (2020)
-
-        VNM_pph_v2b_2020_UNadj.tif
-        96,355,010 (2020)
-
-        VNM_ppp_v2b_2020.tif
-        90,008,170 (2020)
-
-        VNM_ppp_v2b_2020_UNadj.tif
-        96,355,000 (2020)
-        """
-        # print(population_data.sum().sum())
-
-        # Create a mask for each polygon in the GeoDataFrame
-        masks = []
-        for index, row in gdf.iterrows():
-            region_name = gdf['COUNTRY']
-            geom = row['geometry']
+        # Initialise output data frame
+        output = pd.DataFrame()
+        # Iterate over the regions in the shape file
+        total_pop = 0
+        for i, row in gdf.iterrows():
+            # Initialise new row
+            new_row = {}
+            # Populate the new row
+            new_row['country'] = row['COUNTRY']
+            title = row['COUNTRY']
+            if 'NAME_1' in list(gdf):
+                new_row['name_1'] = row['NAME_1']
+                title = row['NAME_1']
+            if 'NAME_2' in list(gdf):
+                new_row['name_2'] = row['NAME_2']
+                title = row['NAME_2']
+            if 'NAME_3' in list(gdf):
+                new_row['name_3'] = row['NAME_3']
+                title = row['NAME_3']
+            # Create a mask for the main landmass
             mask = geometry_mask(
-                [geom], out_shape=population_data.shape,
-                transform=src.transform, invert=False
+                [row['geometry']], out_shape=population_data.shape,
+                transform=src.transform, invert=True
             )
-            masks.append(mask)
+            # Use the mask to extract the region
+            region_population_data = population_data * mask
+            # Sum the pixel values to get the population for the region
+            region_population = region_population_data.sum()
+            print(title, region_population)
+            total_pop += region_population
+            # Add to output data frame
+            new_row['population'] = region_population
+            new_row_df = pd.DataFrame(new_row, index=[1])
+            output = pd.concat([output, new_row_df], ignore_index=True)
 
-        # Compute population values for each region
-        region_populations = []
-        for mask in masks:
-            population_values = population_data[mask]
-            total_population = population_values.sum()
-            region_populations.append(total_population)
-        print(region_populations)
+            # Don't create a plot for the whole country
+            if title == 'Vietnam':
+                break
 
-    # Get the names of the regions
-    # geojson_data = []
-    # for feature in geojson['features']:
-    #     polygon = Polygon(feature['geometry']['coordinates'][0][0])
-    #     country = feature['properties']['COUNTRY']
-    #     admin_2 = feature['properties']['NAME_1']
-    #     admin_3 = feature['properties']['NAME_2']
-    #     geojson_data.append((polygon, country, admin_2, admin_3))
+            # Plot
+            fig = plt.figure(figsize=(10, 10))
+            ax = plt.axes()
+            df = pd.DataFrame(region_population_data)
+            df = df.replace(0, np.nan)
+            df = df.dropna(how='all', axis=0)
+            df = df.dropna(how='all', axis=1)
+            # df = df[df != 0]
+            # df = np.log(df)
+            img = ax.imshow(df, cmap='GnBu')
+            plt.colorbar(img, label='Population')
 
-    # gdf['Admin 2'] = None
-    # gdf['Admin 3'] = None
-    # for i, row in gdf[:2].iterrows():
-    #     polygon_1 = row['geometry']
-    #     overlaps = []
-    #     for data in geojson_data:
-    #         polygon_2 = data[0]
-    #         overlap = polygon_1.intersection(polygon_2)
-    #         overlaps.append(overlap.area)
-    #         print(data[3], overlap.area)
-    #     max_overlap = geojson_data[np.argmax(overlaps)]
-    #     gdf.loc[i, 'Admin 2'] = max_overlap[2]
-    #     gdf.loc[i, 'Admin 3'] = max_overlap[3]
-    # print(gdf.head())
+            # Define the desired bounds (xmin, ymin, xmax, ymax)
+            desired_bounds = (0, df.shape[0], df.shape[1], 0)
+            polygon = row['geometry']
+            if polygon.geom_type == 'MultiPolygon':
+                for sub_polygon in polygon.geoms:
+                    # Calculate scaling factors for the x and y dimensions
+                    x_scale = (desired_bounds[2] - desired_bounds[0]) / (sub_polygon.bounds[2] - sub_polygon.bounds[0])
+                    y_scale = (desired_bounds[3] - desired_bounds[1]) / (sub_polygon.bounds[3] - sub_polygon.bounds[1])
+                    # Scale the polygon using the calculated factors
+                    scaled_polygon = Polygon([(
+                        x * x_scale + desired_bounds[0] - (sub_polygon.bounds[0] * x_scale),
+                        y * y_scale + desired_bounds[1] - (sub_polygon.bounds[1] * y_scale)
+                    ) for x, y in sub_polygon.exterior.coords])
+                    # Plot the scaled polygon
+                    gpd.GeoSeries([scaled_polygon]).plot(
+                        ax=ax, facecolor='none', edgecolor='k', linewidth=1
+                    )
+            else:
+                # Calculate scaling factors for the x and y dimensions
+                x_scale = (desired_bounds[2] - desired_bounds[0]) / (polygon.bounds[2] - polygon.bounds[0])
+                y_scale = (desired_bounds[3] - desired_bounds[1]) / (polygon.bounds[3] - polygon.bounds[1])
+                # Scale the polygon using the calculated factors
+                scaled_polygon = Polygon([(
+                    x * x_scale + desired_bounds[0] - (polygon.bounds[0] * x_scale),
+                    y * y_scale + desired_bounds[1] - (polygon.bounds[1] * y_scale)
+                ) for x, y in polygon.exterior.coords])
+                # Plot the scaled polygon
+                gpd.GeoSeries([scaled_polygon]).plot(
+                    ax=ax, facecolor='none', edgecolor='k', linewidth=1
+                )
+            ax.set_title(title)
+            # Export
+            path = Path(out_dir, title)
+            plt.savefig(path)
+            plt.close()
 
-    # # Define a dictionary to map polygon identifiers to colors
-    # color_mapping = {
-    #     0: 'red',
-    #     1: 'green',
-    #     2: 'blue',
-    #     # Add more polygons and colors as needed
-    # }
-    # # Create a custom color column in the GeoDataFrame
-    # gdf['custom_color'] = gdf.index.map(color_mapping)
-    # gdf['custom_color'] = gdf['custom_color'].fillna('black')
-    # print(gdf.head())
+        # Export
+        print(total_pop)
+        path = Path(out_dir, Path(filename).stem + '.csv')
+        output.to_csv(path, index=False)
 
-    # # Plot
-    # A = 3  # We want figures to be A3
-    # figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
-    # fig = plt.figure(figsize=figsize, dpi=300)
-    # ax = plt.axes()
-    # # Plot the polygons with custom colors
-    # gdf.plot(ax=ax, color=gdf['custom_color'])
-    # # Customize the plot
-    # ax.set_title('Population Density')
-    # # Export
-    # plt.savefig('Shape.png')
+"""
+Sanity checking:
+
+print(region_populations)
+[('Vietnam', 96355304.0)]
+print(population_data.sum())
+96355090.0
+"""
