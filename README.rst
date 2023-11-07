@@ -16,6 +16,10 @@ Admin2 aggregation of RWI scores
 
 ![rwi_admin2_plot](https://github.com/kraemer-lab/DART-Pipeline/blob/assets/rwi_weight_admin2.png)
 
+Admin3 aggregation of RWI scores
+
+![rwi_admin3_plot](https://github.com/kraemer-lab/DART-Pipeline/blob/assets/rwi_weight_admin3.png)
+
 Project Manifest
 ================
 
