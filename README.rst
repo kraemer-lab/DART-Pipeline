@@ -12,6 +12,10 @@ The python script takes as input the csv file containing relative wealth index d
 
 ![rwi_plot](https://github.com/kraemer-lab/DART-Pipeline/assets/113349869/b2573e3f-2c85-4245-a2f6-d6702670aadc)
 
+Admin2 aggregation of RWI scores
+
+![rwi_admin2_plot](https://github.com/kraemer-lab/DART-Pipeline/blob/assets/rwi_weight_admin2.png)
+
 Project Manifest
 ================
 
