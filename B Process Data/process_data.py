@@ -330,8 +330,8 @@ WorldPop population count
 """
 if True:
     filenames = [
-        # 'gadm41_VNM_0.shp',  # Takes 2.8s
-        'gadm41_VNM_1.shp',  # Takes 187.2s
+        'gadm41_VNM_0.shp',  # Takes 2.8s
+        # 'gadm41_VNM_1.shp',  # Takes 187.2s
         # 'gadm41_VNM_2.shp',
         # 'gadm41_VNM_3.shp',
     ]
@@ -350,6 +350,9 @@ if True:
         leaf_path = Path(filename)
         path = Path(trunk_path, branch_path, leaf_path)
         gdf = gpd.read_file(path)
+        # Get the coordinate reference system (CRS) of the GeoDataFrame
+        crs = gdf.crs
+        print('Coordinate Reference System (CRS) of the shapefile:', crs)
 
         # Import the TIFF file
         trunk_path = Path('..', 'A Collate Data')
@@ -361,12 +364,28 @@ if True:
         leaf_path = Path('VNM_ppp_v2b_2020_UNadj.tif')
         path = Path(trunk_path, branch_path, leaf_path)
         src = rasterio.open(path)
+        # Get the coordinate reference system (CRS) of the GeoTIFF
+        crs = src.crs
+        print('Coordinate Reference System (CRS) of the GeoTIFF file:', crs)
         # Read data from band 1
         population_data = src.read(1)
 
         # Replace placeholder numbers with 0
         mask = population_data == -3.4028234663852886e+38
         population_data[mask] = 0
+        # Sanity checking
+        # print(population_data.sum())  # 96,355,090.0
+        print(population_data[0])
+
+        # Get the affine transformation coefficients
+        transform = src.transform
+        # Get the grid of pixel coordinates
+        rows, cols = np.indices(population_data.shape)
+        # Convert pixel coordinates to latitude and longitude
+        lon, lat = rasterio.transform.xy(
+            transform, rows.flatten(), cols.flatten()
+        )
+        print(lat)
 
         # Initialise output data frame
         output = pd.DataFrame()
@@ -387,17 +406,39 @@ if True:
             if 'NAME_3' in list(gdf):
                 new_row['name_3'] = row['NAME_3']
                 title = row['NAME_3']
-            # Create a mask for the main landmass
+            # Look at the polygons in the shapefile
+
+            # if row['geometry'].geom_type == 'MultiPolygon':
+            #     # If the geometry is a MultiPolygon, iterate over its
+            #     # individual polygons
+            #     print(title, 'MultiPolygon')
+            #     for polygon in row['geometry'].geoms:
+            #         # Create a mask for this landmass
+            #         mask = geometry_mask(
+            #             [polygon], out_shape=population_data.shape,
+            #             transform=src.transform, invert=True
+            #         )
+            #         # Use the mask to extract the region
+            #         region_population_data = population_data * mask
+            #         # Sum the pixel values to get the population for the region
+            #         region_population = region_population_data.sum()
+            #         print(title, region_population)
+            #         total_pop += region_population
+
             mask = geometry_mask(
                 [row['geometry']], out_shape=population_data.shape,
                 transform=src.transform, invert=True
             )
+            # invert=False: 52,646.171875
+            # invert=True: 96,302,128.0
+
             # Use the mask to extract the region
             region_population_data = population_data * mask
             # Sum the pixel values to get the population for the region
             region_population = region_population_data.sum()
-            print(title, region_population)
             total_pop += region_population
+
+        print(total_pop)  # 96,302,085.58067432
             # Add to output data frame
             new_row['population'] = region_population
             new_row_df = pd.DataFrame(new_row, index=[1])
