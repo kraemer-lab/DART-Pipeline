@@ -21,6 +21,7 @@ from pathlib import Path
 import pandas as pd
 from matplotlib import pyplot as plt
 import matplotlib.ticker as mticker
+import seaborn as sns
 import os
 import numpy as np
 import json
@@ -330,8 +331,8 @@ WorldPop population count
 """
 if True:
     filenames = [
-        'gadm41_VNM_0.shp',  # Takes 2.8s
-        # 'gadm41_VNM_1.shp',  # Takes 187.2s
+        # 'gadm41_VNM_0.shp',  # Takes 24.2s
+        'gadm41_VNM_1.shp',  # Takes 187.2s
         # 'gadm41_VNM_2.shp',
         # 'gadm41_VNM_3.shp',
     ]
@@ -367,25 +368,45 @@ if True:
         # Get the coordinate reference system (CRS) of the GeoTIFF
         crs = src.crs
         print('Coordinate Reference System (CRS) of the GeoTIFF file:', crs)
+
         # Read data from band 1
         population_data = src.read(1)
-
         # Replace placeholder numbers with 0
         mask = population_data == -3.4028234663852886e+38
         population_data[mask] = 0
         # Sanity checking
-        # print(population_data.sum())  # 96,355,090.0
-        print(population_data[0])
+        if filename == 'gadm41_VNM_0.shp':
+            assert population_data.sum() == 96355088.0, \
+                f'{population_data.sum()} != 96355088.0' # 96,355,088
+            # # Plot
+            # tmp = np.log(population_data)
+            # plt.imshow(tmp, cmap='GnBu')
+            # plt.title('VNM_ppp_v2b_2020_UNadj')
+            # plt.colorbar()
+            # path = Path(
+            #     'Geospatial and Socio-Demographic Data', 'Population',
+            #     'VNM_ppp_v2b_2020_UNadj'
+            # )
+            # plt.savefig(path)
 
         # Get the affine transformation coefficients
         transform = src.transform
-        # Get the grid of pixel coordinates
-        rows, cols = np.indices(population_data.shape)
-        # Convert pixel coordinates to latitude and longitude
-        lon, lat = rasterio.transform.xy(
-            transform, rows.flatten(), cols.flatten()
-        )
-        print(lat)
+
+        # # Convert pixel coordinates to latitude and longitude
+        # cols = np.arange(population_data.shape[1])
+        # lon, _ = rasterio.transform.xy(transform, (1,), cols)
+        # rows = np.arange(population_data.shape[0])
+        # _, lat = rasterio.transform.xy(transform, rows, (1,))
+        # # Create a DataFrame with latitude, longitude, and pixel values
+        # df = pd.DataFrame(population_data, index=lat, columns=lon)
+        # # Sanity checking
+        # if filename == 'gadm41_VNM_0.shp':
+        #     assert df.to_numpy().sum() == 96355088.0  # 96,355,088.0
+        # # Plot
+        # df = np.log(df)
+        # plt.imshow(df, cmap='GnBu')
+        # plt.colorbar()
+        # plt.savefig('tmp.png')
 
         # Initialise output data frame
         output = pd.DataFrame()
@@ -407,105 +428,94 @@ if True:
                 new_row['name_3'] = row['NAME_3']
                 title = row['NAME_3']
             # Look at the polygons in the shapefile
-
-            # if row['geometry'].geom_type == 'MultiPolygon':
-            #     # If the geometry is a MultiPolygon, iterate over its
-            #     # individual polygons
-            #     print(title, 'MultiPolygon')
-            #     for polygon in row['geometry'].geoms:
-            #         # Create a mask for this landmass
-            #         mask = geometry_mask(
-            #             [polygon], out_shape=population_data.shape,
-            #             transform=src.transform, invert=True
-            #         )
-            #         # Use the mask to extract the region
-            #         region_population_data = population_data * mask
-            #         # Sum the pixel values to get the population for the region
-            #         region_population = region_population_data.sum()
-            #         print(title, region_population)
-            #         total_pop += region_population
-
             mask = geometry_mask(
                 [row['geometry']], out_shape=population_data.shape,
                 transform=src.transform, invert=True
             )
-            # invert=False: 52,646.171875
-            # invert=True: 96,302,128.0
-
             # Use the mask to extract the region
             region_population_data = population_data * mask
             # Sum the pixel values to get the population for the region
             region_population = region_population_data.sum()
-            total_pop += region_population
-
-        print(total_pop)  # 96,302,085.58067432
+            print(title, region_population)
             # Add to output data frame
             new_row['population'] = region_population
             new_row_df = pd.DataFrame(new_row, index=[1])
             output = pd.concat([output, new_row_df], ignore_index=True)
+            # Add to running count
+            total_pop += region_population
 
-            # Don't create a plot for the whole country
+            # invert=False:
+            # - total_pop: 52,646.171875
+            # - first region: 160,355.66
+            # invert=True:
+            # - total_pop: 96,302,128.0 or 96,302,085.58067432
+            # - first region: 96,194,376
+
             if title == 'Vietnam':
-                break
-
-            # Plot
-            fig = plt.figure(figsize=(10, 10))
-            ax = plt.axes()
-            df = pd.DataFrame(region_population_data)
-            df = df.replace(0, np.nan)
-            df = df.dropna(how='all', axis=0)
-            df = df.dropna(how='all', axis=1)
-            # df = df[df != 0]
-            # df = np.log(df)
-            img = ax.imshow(df, cmap='GnBu')
-            plt.colorbar(img, label='Population')
+                # Plot
+                fig = plt.figure(figsize=(10, 10))
+                ax = plt.axes()
+                arr = region_population_data
+                arr[arr == 0] = np.nan
+                img = ax.imshow(arr, cmap='GnBu')
+                plt.colorbar(img, label='Population')
+            else:
+                # Plot
+                fig = plt.figure(figsize=(10, 10))
+                ax = plt.axes()
+                df = pd.DataFrame(region_population_data)
+                df = df.replace(0, np.nan)
+                df = df.dropna(how='all', axis=0)
+                df = df.dropna(how='all', axis=1)
+                # df = df[df != 0]
+                # df = np.log(df)
+                img = ax.imshow(df, cmap='GnBu')
+                plt.colorbar(img, label='Population')
 
             # Define the desired bounds (xmin, ymin, xmax, ymax)
             desired_bounds = (0, df.shape[0], df.shape[1], 0)
             polygon = row['geometry']
-            if polygon.geom_type == 'MultiPolygon':
-                for sub_polygon in polygon.geoms:
-                    # Calculate scaling factors for the x and y dimensions
-                    x_scale = (desired_bounds[2] - desired_bounds[0]) / (sub_polygon.bounds[2] - sub_polygon.bounds[0])
-                    y_scale = (desired_bounds[3] - desired_bounds[1]) / (sub_polygon.bounds[3] - sub_polygon.bounds[1])
-                    # Scale the polygon using the calculated factors
-                    scaled_polygon = Polygon([(
-                        x * x_scale + desired_bounds[0] - (sub_polygon.bounds[0] * x_scale),
-                        y * y_scale + desired_bounds[1] - (sub_polygon.bounds[1] * y_scale)
-                    ) for x, y in sub_polygon.exterior.coords])
-                    # Plot the scaled polygon
-                    gpd.GeoSeries([scaled_polygon]).plot(
-                        ax=ax, facecolor='none', edgecolor='k', linewidth=1
-                    )
-            else:
-                # Calculate scaling factors for the x and y dimensions
-                x_scale = (desired_bounds[2] - desired_bounds[0]) / (polygon.bounds[2] - polygon.bounds[0])
-                y_scale = (desired_bounds[3] - desired_bounds[1]) / (polygon.bounds[3] - polygon.bounds[1])
-                # Scale the polygon using the calculated factors
-                scaled_polygon = Polygon([(
-                    x * x_scale + desired_bounds[0] - (polygon.bounds[0] * x_scale),
-                    y * y_scale + desired_bounds[1] - (polygon.bounds[1] * y_scale)
-                ) for x, y in polygon.exterior.coords])
-                # Plot the scaled polygon
-                gpd.GeoSeries([scaled_polygon]).plot(
-                    ax=ax, facecolor='none', edgecolor='k', linewidth=1
-                )
+
+            #     if polygon.geom_type == 'MultiPolygon':
+            #         for sub_polygon in polygon.geoms:
+            #             # Calculate scaling factors for the x and y dimensions
+            #             x_scale = (desired_bounds[2] - desired_bounds[0]) / (sub_polygon.bounds[2] - sub_polygon.bounds[0])
+            #             y_scale = (desired_bounds[3] - desired_bounds[1]) / (sub_polygon.bounds[3] - sub_polygon.bounds[1])
+            #             # Scale the polygon using the calculated factors
+            #             scaled_polygon = Polygon([(
+            #                 x * x_scale + desired_bounds[0] - (sub_polygon.bounds[0] * x_scale),
+            #                 y * y_scale + desired_bounds[1] - (sub_polygon.bounds[1] * y_scale)
+            #             ) for x, y in sub_polygon.exterior.coords])
+            #             # Plot the scaled polygon
+            #             gpd.GeoSeries([scaled_polygon]).plot(
+            #                 ax=ax, facecolor='none', edgecolor='k', linewidth=1
+            #             )
+            #     else:
+
+            # Calculate scaling factors for the x and y dimensions
+            x_scale = (desired_bounds[2] - desired_bounds[0]) / (polygon.bounds[2] - polygon.bounds[0])
+            y_scale = (desired_bounds[3] - desired_bounds[1]) / (polygon.bounds[3] - polygon.bounds[1])
+            # Scale the polygon using the calculated factors
+            scaled_polygon = Polygon([(
+                x * x_scale + desired_bounds[0] - (polygon.bounds[0] * x_scale),
+                y * y_scale + desired_bounds[1] - (polygon.bounds[1] * y_scale)
+            ) for x, y in polygon.exterior.coords])
+            # Plot the scaled polygon
+            gpd.GeoSeries([scaled_polygon]).plot(
+                ax=ax, facecolor='none', edgecolor='k', linewidth=1
+            )
+
             ax.set_title(title)
             # Export
             path = Path(out_dir, title)
             plt.savefig(path)
             plt.close()
 
-        # Export
-        print(total_pop)
-        path = Path(out_dir, Path(filename).stem + '.csv')
-        output.to_csv(path, index=False)
+            # Export
+            print(total_pop)
+            path = Path(out_dir, Path(filename).stem + '.csv')
+            output.to_csv(path, index=False)
 
-"""
-Sanity checking:
+            if i == 3:
+                break
 
-print(region_populations)
-[('Vietnam', 96355304.0)]
-print(population_data.sum())
-96355090.0
-"""
