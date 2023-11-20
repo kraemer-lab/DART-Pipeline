@@ -21,12 +21,10 @@ from pathlib import Path
 import pandas as pd
 from matplotlib import pyplot as plt
 import matplotlib.ticker as mticker
-import seaborn as sns
 import os
 import numpy as np
 import json
 from shapely.geometry import Point, Polygon
-from shapely.affinity import scale
 import geopandas as gpd
 import rasterio
 from rasterio.features import geometry_mask
@@ -75,9 +73,11 @@ def plot_pop_density(df, folderpath, filename):
 """
 GADM administrative map
 """
-if False:
+if True:
     filenames = [
-        'gadm41_VNM_0.shp', 'gadm41_VNM_1.shp', 'gadm41_VNM_2.shp',
+        # 'gadm41_VNM_0.shp',
+        # 'gadm41_VNM_1.shp',
+        # 'gadm41_VNM_2.shp',
         'gadm41_VNM_3.shp'
     ]
     for filename in filenames:
@@ -88,6 +88,7 @@ if False:
         )
         path = Path('..', 'A Collate Data', branch_path, filename)
         gdf = gpd.read_file(path)
+
         # Plot
         fig = plt.figure(figsize=(10, 10))
         ax = plt.axes()
@@ -99,6 +100,46 @@ if False:
         os.makedirs(branch_path, exist_ok=True)
         path = Path(branch_path, filename.stem)
         plt.savefig(path)
+        plt.close()
+
+        # Iterate over the regions in the shape file
+        total_pop = 0
+        for i, row in gdf.iterrows():
+            # Initialise new row
+            new_row = {}
+            # Populate the new row
+            new_row['country'] = row['COUNTRY']
+            title = row['COUNTRY']
+            if 'NAME_1' in list(gdf):
+                new_row['name_1'] = row['NAME_1']
+                title = row['NAME_1']
+            if 'NAME_2' in list(gdf):
+                new_row['name_2'] = row['NAME_2']
+                title = row['NAME_2']
+            if 'NAME_3' in list(gdf):
+                new_row['name_3'] = row['NAME_3']
+                title = row['NAME_3']
+
+            # Plot
+            fig = plt.figure()
+            ax = plt.axes()
+            if row['geometry'].geom_type == 'MultiPolygon':
+                for polygon in row['geometry'].geoms:
+                    x, y = polygon.exterior.xy
+                    plt.plot(x, y)
+            elif row['geometry'].geom_type == 'Polygon':
+                x, y = row['geometry'].exterior.xy
+                plt.plot(x, y)
+            ax.set_aspect('equal')
+            plt.title(title)
+            plt.xlabel('Longitude')
+            plt.ylabel('Latitude')
+            # Export
+            folderpath = Path(branch_path, filename.stem)
+            os.makedirs(folderpath, exist_ok=True)
+            filepath = Path(folderpath, title + '.png')
+            plt.savefig(filepath)
+            plt.close()
 
 #
 # Socio-demographic data
@@ -231,20 +272,21 @@ if False:
     print(path)
 
     # Load the data
-    with rasterio.open(path) as src:
-        # Access metadata
-        print(f'Width: {src.width}')
-        print(f'Height: {src.height}')
-        print(f'Number of bands: {src.count}')
-        print(f'Coordinate reference system (CRS): {src.crs}')
-        print(f'Transform:\n{src.transform}')
-        # Read data from band 1
-        source_data = src.read(1)
-        # Get the geospatial information
-        width = src.width
-        height = src.height
-        transform = src.transform
-        crs = src.crs
+    src = rasterio.open(path)
+    # Access metadata
+    print(f'Width: {src.width}')
+    width = src.width
+    print(f'Height: {src.height}')
+    height = src.height
+    # Get the coordinate reference system (CRS) of the GeoTIFF
+    print(f'Coordinate reference system (CRS): {src.crs}')
+    crs = src.crs
+    # Get the affine transformation coefficients
+    print(f'Transform:\n{src.transform}')
+    transform = src.transform
+    # Read data from band 1
+    print(f'Number of bands: {src.count}')
+    source_data = src.read(1)
 
     # Naive plot
     plt.imshow(source_data, cmap='GnBu')
@@ -266,7 +308,7 @@ if False:
     # Replace placeholder numbers with 0
     # (-3.4e+38 is the smallest single-precision floating-point number)
     df = pd.DataFrame(source_data)
-    source_data = df[df != -3.4028234663852886e+38]
+    population_data = df[df != -3.4028234663852886e+38]
     """
     Sanity check: calculate the total population
     Google says that Vietnam's population was 96.65 million (2020)
@@ -283,10 +325,10 @@ if False:
     VNM_ppp_v2b_2020_UNadj.tif
     96,355,000 (2020)
     """
-    print(source_data.sum().sum())
+    print(f'Population as per {filename}: {population_data.sum().sum()}')
 
     # Plot - no normalisation
-    plt.imshow(source_data, cmap='GnBu')
+    plt.imshow(population_data, cmap='GnBu')
     plt.title('GeoTIFF Band 1')
     plt.colorbar()
     # Convert pixel coordinates to latitude and longitude
@@ -304,8 +346,8 @@ if False:
     plt.close()
 
     # # Plot - log transformed
-    # source_data = np.log(source_data)
-    # plt.imshow(source_data, cmap='GnBu')
+    # population_data = np.log(population_data)
+    # plt.imshow(population_data, cmap='GnBu')
     # plt.title('GeoTIFF Band 1')
     # plt.colorbar()
     # # Convert pixel coordinates to latitude and longitude
@@ -322,6 +364,24 @@ if False:
     # plt.savefig(path)
     # plt.close()
 
+    # Convert pixel coordinates to latitude and longitude
+    cols = np.arange(source_data.shape[1])
+    lon, _ = rasterio.transform.xy(transform, (1,), cols)
+    rows = np.arange(source_data.shape[0])
+    _, lat = rasterio.transform.xy(transform, rows, (1,))
+    # Replace placeholder numbers with 0
+    mask = source_data == -3.4028234663852886e+38
+    source_data[mask] = 0
+    # Create a DataFrame with latitude, longitude, and pixel values
+    df = pd.DataFrame(source_data, index=lat, columns=lon)
+    # Export
+    path = Path(branch_path, filename.stem + '.csv')
+    print(f'Exporting "{path}"')
+    df.to_csv(path)
+    # Sanity checking
+    if filename.stem == 'VNM_ppp_v2b_2020_UNadj':
+        assert df.to_numpy().sum() == 96355088.0  # 96,355,088
+
 #
 # Geospatial and Socio-Demographic Data
 #
@@ -329,10 +389,67 @@ if False:
 """
 WorldPop population count
 """
-if True:
+if False:
+    out_dir = Path('Geospatial and Socio-Demographic Data', 'Population')
+    os.makedirs(out_dir, exist_ok=True)
+
+    # Import the TIFF file
+    trunk_path = Path('..', 'A Collate Data')
+    branch_path = Path(
+        'Socio-Demographic Data', 'WorldPop population count',
+        'Population Counts', 'Individual countries', 'Vietnam',
+        'Viet_Nam_100m_Population'
+    )
+    leaf_path = Path('VNM_ppp_v2b_2020_UNadj.tif')
+    path = Path(trunk_path, branch_path, leaf_path)
+    src = rasterio.open(path)
+    # Get the coordinate reference system (CRS) of the GeoTIFF
+    crs = src.crs
+    print('Coordinate Reference System (CRS) of the GeoTIFF file:', crs)
+
+    # Read data from band 1
+    population_data = src.read(1)
+    # Replace placeholder numbers with 0
+    mask = population_data == -3.4028234663852886e+38
+    population_data[mask] = 0
+    # Sanity checking
+    assert population_data.sum() == 96355088.0, \
+        f'{population_data.sum()} != 96355088.0'  # 96,355,088
+
+    if False:
+        # Plot
+        tmp = np.log(population_data)
+        plt.imshow(tmp, cmap='GnBu')
+        plt.title(leaf_path.stem)
+        plt.colorbar()
+        path = Path(out_dir, leaf_path.stem + ' - Un-Transformed')
+        plt.savefig(path)
+        plt.close()
+
+        # Get the affine transformation coefficients
+        transform = src.transform
+        # Convert pixel coordinates to latitude and longitude
+        cols = np.arange(population_data.shape[1])
+        lon, _ = rasterio.transform.xy(transform, (1,), cols)
+        rows = np.arange(population_data.shape[0])
+        _, lat = rasterio.transform.xy(transform, rows, (1,))
+        # Create a DataFrame with latitude, longitude, and pixel values
+        df = pd.DataFrame(population_data, index=lat, columns=lon)
+        # Sanity checking
+        assert df.to_numpy().sum() == 96355088.0  # 96,355,088
+
+        # Plot
+        tmp = np.log(df)
+        plt.imshow(tmp, cmap='GnBu')
+        plt.title(leaf_path.stem)
+        plt.colorbar()
+        path = Path(out_dir, leaf_path.stem + ' - Transformed')
+        plt.savefig(path)
+        plt.close()
+
     filenames = [
-        # 'gadm41_VNM_0.shp',  # Takes 24.2s
-        'gadm41_VNM_1.shp',  # Takes 187.2s
+        # 'gadm41_VNM_0.shp',
+        'gadm41_VNM_1.shp',
         # 'gadm41_VNM_2.shp',
         # 'gadm41_VNM_3.shp',
     ]
@@ -354,59 +471,6 @@ if True:
         # Get the coordinate reference system (CRS) of the GeoDataFrame
         crs = gdf.crs
         print('Coordinate Reference System (CRS) of the shapefile:', crs)
-
-        # Import the TIFF file
-        trunk_path = Path('..', 'A Collate Data')
-        branch_path = Path(
-            'Socio-Demographic Data', 'WorldPop population count',
-            'Population Counts', 'Individual countries', 'Vietnam',
-            'Viet_Nam_100m_Population'
-        )
-        leaf_path = Path('VNM_ppp_v2b_2020_UNadj.tif')
-        path = Path(trunk_path, branch_path, leaf_path)
-        src = rasterio.open(path)
-        # Get the coordinate reference system (CRS) of the GeoTIFF
-        crs = src.crs
-        print('Coordinate Reference System (CRS) of the GeoTIFF file:', crs)
-
-        # Read data from band 1
-        population_data = src.read(1)
-        # Replace placeholder numbers with 0
-        mask = population_data == -3.4028234663852886e+38
-        population_data[mask] = 0
-        # Sanity checking
-        if filename == 'gadm41_VNM_0.shp':
-            assert population_data.sum() == 96355088.0, \
-                f'{population_data.sum()} != 96355088.0' # 96,355,088
-            # # Plot
-            # tmp = np.log(population_data)
-            # plt.imshow(tmp, cmap='GnBu')
-            # plt.title('VNM_ppp_v2b_2020_UNadj')
-            # plt.colorbar()
-            # path = Path(
-            #     'Geospatial and Socio-Demographic Data', 'Population',
-            #     'VNM_ppp_v2b_2020_UNadj'
-            # )
-            # plt.savefig(path)
-
-        # Get the affine transformation coefficients
-        transform = src.transform
-
-        # # Convert pixel coordinates to latitude and longitude
-        # cols = np.arange(population_data.shape[1])
-        # lon, _ = rasterio.transform.xy(transform, (1,), cols)
-        # rows = np.arange(population_data.shape[0])
-        # _, lat = rasterio.transform.xy(transform, rows, (1,))
-        # # Create a DataFrame with latitude, longitude, and pixel values
-        # df = pd.DataFrame(population_data, index=lat, columns=lon)
-        # # Sanity checking
-        # if filename == 'gadm41_VNM_0.shp':
-        #     assert df.to_numpy().sum() == 96355088.0  # 96,355,088.0
-        # # Plot
-        # df = np.log(df)
-        # plt.imshow(df, cmap='GnBu')
-        # plt.colorbar()
-        # plt.savefig('tmp.png')
 
         # Initialise output data frame
         output = pd.DataFrame()
@@ -444,66 +508,20 @@ if True:
             # Add to running count
             total_pop += region_population
 
-            # invert=False:
-            # - total_pop: 52,646.171875
-            # - first region: 160,355.66
-            # invert=True:
-            # - total_pop: 96,302,128.0 or 96,302,085.58067432
-            # - first region: 96,194,376
-
+            # Plot
+            fig = plt.figure(figsize=(10, 10))
+            ax = plt.axes()
             if title == 'Vietnam':
-                # Plot
-                fig = plt.figure(figsize=(10, 10))
-                ax = plt.axes()
                 arr = region_population_data
                 arr[arr == 0] = np.nan
                 img = ax.imshow(arr, cmap='GnBu')
-                plt.colorbar(img, label='Population')
             else:
-                # Plot
-                fig = plt.figure(figsize=(10, 10))
-                ax = plt.axes()
                 df = pd.DataFrame(region_population_data)
                 df = df.replace(0, np.nan)
                 df = df.dropna(how='all', axis=0)
                 df = df.dropna(how='all', axis=1)
-                # df = df[df != 0]
-                # df = np.log(df)
                 img = ax.imshow(df, cmap='GnBu')
-                plt.colorbar(img, label='Population')
-
-            # Define the desired bounds (xmin, ymin, xmax, ymax)
-            desired_bounds = (0, df.shape[0], df.shape[1], 0)
-            polygon = row['geometry']
-
-            #     if polygon.geom_type == 'MultiPolygon':
-            #         for sub_polygon in polygon.geoms:
-            #             # Calculate scaling factors for the x and y dimensions
-            #             x_scale = (desired_bounds[2] - desired_bounds[0]) / (sub_polygon.bounds[2] - sub_polygon.bounds[0])
-            #             y_scale = (desired_bounds[3] - desired_bounds[1]) / (sub_polygon.bounds[3] - sub_polygon.bounds[1])
-            #             # Scale the polygon using the calculated factors
-            #             scaled_polygon = Polygon([(
-            #                 x * x_scale + desired_bounds[0] - (sub_polygon.bounds[0] * x_scale),
-            #                 y * y_scale + desired_bounds[1] - (sub_polygon.bounds[1] * y_scale)
-            #             ) for x, y in sub_polygon.exterior.coords])
-            #             # Plot the scaled polygon
-            #             gpd.GeoSeries([scaled_polygon]).plot(
-            #                 ax=ax, facecolor='none', edgecolor='k', linewidth=1
-            #             )
-            #     else:
-
-            # Calculate scaling factors for the x and y dimensions
-            x_scale = (desired_bounds[2] - desired_bounds[0]) / (polygon.bounds[2] - polygon.bounds[0])
-            y_scale = (desired_bounds[3] - desired_bounds[1]) / (polygon.bounds[3] - polygon.bounds[1])
-            # Scale the polygon using the calculated factors
-            scaled_polygon = Polygon([(
-                x * x_scale + desired_bounds[0] - (polygon.bounds[0] * x_scale),
-                y * y_scale + desired_bounds[1] - (polygon.bounds[1] * y_scale)
-            ) for x, y in polygon.exterior.coords])
-            # Plot the scaled polygon
-            gpd.GeoSeries([scaled_polygon]).plot(
-                ax=ax, facecolor='none', edgecolor='k', linewidth=1
-            )
+            plt.colorbar(img, label='Population')
 
             ax.set_title(title)
             # Export
@@ -511,11 +529,7 @@ if True:
             plt.savefig(path)
             plt.close()
 
-            # Export
-            print(total_pop)
-            path = Path(out_dir, Path(filename).stem + '.csv')
-            output.to_csv(path, index=False)
-
-            if i == 3:
-                break
-
+        # Export
+        print(f'Total population: {total_pop}')
+        path = Path(out_dir, Path(filename).stem + '.csv')
+        output.to_csv(path, index=False)
