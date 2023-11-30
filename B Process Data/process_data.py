@@ -76,9 +76,9 @@ GADM administrative map
 if True:
     filenames = [
         # 'gadm41_VNM_0.shp',
-        # 'gadm41_VNM_1.shp',
+        'gadm41_VNM_1.shp',
         # 'gadm41_VNM_2.shp',
-        'gadm41_VNM_3.shp'
+        # 'gadm41_VNM_3.shp'
     ]
     for filename in filenames:
         # Import the shape file

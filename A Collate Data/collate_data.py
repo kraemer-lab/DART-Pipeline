@@ -75,9 +75,40 @@ import pandas as pd
 import platform
 
 
-def walk(trunk_url, branch_url, username=None, password=None):
+def get_base_directory(path=os.path.abspath('.')):
+    """Get the base directory for a git project."""
+    while True:
+        if '.git' in os.listdir(path):
+            return path
+        if path == os.path.dirname(path):
+            return None  # If the current directory is the root, break the loop
+        path = os.path.dirname(path)
+
+
+def get_password(data_name, username, base_dir='.'):
+    """Get a password from a passpy store."""
+    store_dir = Path(base_dir, '.password-store')
+    # Check what OS you are using
+    if platform.system() == 'Linux':
+        # GnuPG was installed via:
+        # $ sudo apt-get install gnupg2 -y
+        store = passpy.Store(store_dir=store_dir)
+    elif platform.system() == 'Darwin':  # macOS
+        # GnuPG was installed via:
+        # $ brew install gnupg
+        store = passpy.Store(store_dir=store_dir, gpg_bin='gpg')
+    password = store.get_key(data_name)
+    password = password[:-1]
+
+    return password
+
+
+def walk(
+    base_url, relative_url, only_one=False, dry_run=False, out_dir='.',
+    username=None, password=None
+):
     """
-    Re-create os.walk for use on a website.
+    Re-create `os.walk()` and `Path.walk()` for use with a website.
 
     Parameters
     ----------
@@ -91,49 +122,51 @@ def walk(trunk_url, branch_url, username=None, password=None):
         it). This is to save on time and space when testing functionality.
 
     """
-    # We want to be able to identify the parent URL
-    parent_url = branch_url[:branch_url.rindex('/')]
-    # We want to be able to identify links that are list sorters
-    sorter_leaves = ['?C=N;O=D', '?C=M;O=A', '?C=S;O=A', '?C=D;O=A']
+    url = os.path.join(base_url, relative_url)
+    print(url)
 
-    page = requests.get(trunk_url + branch_url, auth=(username, password))
+    # We want to be able to identify the parent URL
+    parent_url = os.path.dirname(url)
+
+    page = requests.get(url, auth=(username, password))
     webpage = html.fromstring(page.content)
-    link_leaves = webpage.xpath('//a/@href')
+    links = webpage.xpath('//a/@href')
     # Classify the links on the page
     sorters = []
-    sub_dirs = []
-    parent_dirs = []
+    children = []
+    parents = []
     files = []
-    for link_leaf in link_leaves:
-        if link_leaf in sorter_leaves:
-            sorters.append(link_leaf)
-        elif link_leaf.endswith('/'):
-            if (parent_url + '/').endswith(link_leaf):
-                # This is the parent dir's URL
-                parent_dirs.append(link_leaf)
+    for link in links:
+        if link in ['?C=N;O=D', '?C=M;O=A', '?C=S;O=A', '?C=D;O=A']:
+            sorters.append(link)
+        elif link.endswith('/'):
+            if parent_url.endswith(link.removesuffix('/')):
+                # This is the parent's URL
+                parents.append(link)
             else:
-                sub_dirs.append(link_leaf)
+                children.append(link)
         else:
-            files.append(link_leaf)
+            files.append(link)
+    # Remove hidden files
+    files = [x for x in files if not x.startswith('.')]
     if only_one:
         files = files[:1]
     for file in files:
         # Create folder and intermediate folders
-        folderpath = Path(str(out_dir) + branch_url)
-        os.makedirs(folderpath, exist_ok=True)
+        path = Path(out_dir, relative_url)
+        path.mkdir(parents=True, exist_ok=True)
         # Get the file
         if dry_run:
-            path = Path(folderpath, file)
+            path = Path(path, file)
             print(f'Creating: "{path}"')
-            if not os.path.exists(path):
-                with open(path, 'w'):
-                    pass
+            if not path.exists():
+                path.touch()
         else:
-            url = trunk_url + branch_url + '/' + file
-            print(f'Downloading: "{url}"')
-            path = Path(folderpath, file)
+            file_url = os.path.join(url, file)
+            print(f'Downloading: "{file_url}"')
+            path = Path(path, file)
             print(f'To: "{path}"')
-            r = requests.get(url, auth=(username, password))
+            r = requests.get(file_url, auth=(username, password))
             # 401: Unauthorized
             # 200: OK
             if r.status_code == 200:
@@ -141,8 +174,12 @@ def walk(trunk_url, branch_url, username=None, password=None):
                     for bits in r.iter_content():
                         out.write(bits)
 
-    for sub_dir in sub_dirs:
-        walk(trunk_url, branch_url + '/' + sub_dir[:-1], username, password)
+    for child in children:
+        relative_url_new = os.path.join(relative_url, child.removesuffix('/'))
+        walk(
+            base_url, relative_url_new, only_one,
+            dry_run, out_dir, username, password
+        )
 
 
 def download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2):
@@ -165,8 +202,9 @@ def download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2):
     name_2 : str
         The mico data type's 'name' as used by the World Pop website.
     """
-    root_url = 'https://www.worldpop.org/rest/data'
-    page = requests.get(root_url + '/' + alias_1 + '/' + alias_2)
+    base_url = 'https://www.worldpop.org/rest/data'
+    url = os.path.join(base_url, alias_1, alias_2)
+    page = requests.get(url)
     content = page.json()
     # Get the IDs of all the data
     df = pd.DataFrame()
@@ -178,7 +216,7 @@ def download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2):
         new_row = pd.DataFrame(new_row, index=[1])
         df = pd.concat([df, new_row], ignore_index=True)
     path = Path(out_dir, name_1, name_2)
-    os.makedirs(path, exist_ok=True)
+    path.mkdir(parents=True, exist_ok=True)
     path = Path(out_dir, name_1, name_2, f'{name_2}.csv')
     df.to_csv(path, index=False)
     # Get a unique list of the country ISO codes
@@ -193,14 +231,13 @@ def download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2):
             if iso3 == 'VNM':
                 # Initialise data frame
                 df = pd.DataFrame()
-                url = f'{root_url}/{alias_1}/{alias_2}?iso3={iso3}'
-                page = requests.get(url)
+                page = requests.get(url + f'?iso3={iso3}')
                 content = page.json()
                 # Full country name
                 country = content['data'][0]['country']
                 # Create folder for this country
                 path = Path(out_dir, name_1, name_2, country)
-                os.makedirs(path, exist_ok=True)
+                path.mkdir(parents=True, exist_ok=True)
                 # Iterate through entries
                 for datapoint in content['data']:
                     new_row = {}
@@ -211,8 +248,9 @@ def download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2):
                     df = pd.concat([df, new_row], ignore_index=True)
                     # Download data files
                     for file in datapoint['files']:
-                        fn = file.split('/')[-1]
-                        path = Path(out_dir, name_1, name_2, country, fn)
+                        # Get the base name
+                        basename = os.path.basename(file)
+                        path = Path(out_dir, name_1, name_2, country, basename)
                         # Make a request for the data
                         r = requests.get(file)
                         # 401: Unauthorized
@@ -222,23 +260,27 @@ def download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2):
                             print(f'to "{path}"')
                             with open(path, 'wb') as out:
                                 out.write(r.content)
-                        # Unzip data
-                        print(f'Unpacking "{path}"')
-                        foldername = str(path).removesuffix('.7z')
-                        # Extract the 7z file
-                        with py7zr.SevenZipFile(path, mode='r') as archive:
-                            archive.extractall(foldername)
+                        if Path(basename).suffix == '.7z':
+                            # Unzip data
+                            print(f'Unpacking "{path}"')
+                            foldername = str(path).removesuffix('.7z')
+                            # Extract the 7z file
+                            with py7zr.SevenZipFile(path, mode='r') as archive:
+                                archive.extractall(foldername)
                 # Export summary of available data
                 path = Path(out_dir, name_1, name_2, country, f'{country}.csv')
                 df.to_csv(path, index=False)
 
 
-#
-# Meteorological data
-#
+# Establish the base directory
+path = Path(__file__)
+base_dir = get_base_directory(path.parent)
 
 """
-APHRODITE Daily mean temperature product (V1808)
+Meteorological data
+ └ APHRODITE Daily mean temperature product (V1808)
+
+From the base directory:
 
 ```bash
 $ export PASSWORD_STORE_DIR=$PWD/.password-store
@@ -247,47 +289,43 @@ $ pass "APHRODITE Daily mean temperature product (V1808)"
 ```
 """
 if False:
-    # Create output directory
-    field = 'APHRODITE Daily mean temperature product (V1808)'
-    out_dir = Path('Meteorological Data', field)
-    os.makedirs(out_dir, exist_ok=True)
-    # Set parameters
-    dry_run = True
-    only_one = True
+    data_type = 'Meteorological Data'
+    data_name = 'APHRODITE Daily mean temperature product (V1808)'
     # Login credentials
     username = 'rowan.nicholls@dtc.ox.ac.uk'
-    # Check what OS you are using
-    if platform.system() == 'Linux':
-        # GnuPG was installed via:
-        # $ sudo apt-get install gnupg2 -y
-        store = passpy.Store(store_dir='.password-store')
-    elif platform.system() == 'Darwin':  # macOS
-        # GnuPG was installed via:
-        # $ brew install gnupg
-        store = passpy.Store(store_dir='.password-store', gpg_bin='gpg')
-    password = store.get_key(field)
-    password = password[:-1]
-    # URLs should be str, not urllib URL objects, because requests expects str
-    trunk_url = 'http://aphrodite.st.hirosaki-u.ac.jp'
+    password = get_password(data_name, username, base_dir)
+    # Set parameters
+    only_one = True
+    dry_run = True
+
+    # Create output directory
+    out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    # URLs should be str (not urllib URL objects) because requests expects str
+    base_url = 'http://aphrodite.st.hirosaki-u.ac.jp'
     # Dictionary of branch URLs for each resolution
-    branch_urls = {
-        '0.05 degree': '/product/APHRO_V1808_TEMP/APHRO_MA/005deg',
-        '0.05 degree nc': '/product/APHRO_V1808_TEMP/APHRO_MA/005deg_nc',
-        '0.25 degree': '/product/APHRO_V1808_TEMP/APHRO_MA/025deg',
-        '0.25 degree nc': '/product/APHRO_V1808_TEMP/APHRO_MA/025deg_nc',
-        '0.50 degree': '/product/APHRO_V1808_TEMP/APHRO_MA/050deg',
-        '0.50 degree nc': '/product/APHRO_V1808_TEMP/APHRO_MA/050deg_nc',
+    relative_urls = {
+        '0.05 degree': 'product/APHRO_V1808_TEMP/APHRO_MA/005deg',
+        '0.05 degree nc': 'product/APHRO_V1808_TEMP/APHRO_MA/005deg_nc',
+        '0.25 degree': 'product/APHRO_V1808_TEMP/APHRO_MA/025deg',
+        '0.25 degree nc': 'product/APHRO_V1808_TEMP/APHRO_MA/025deg_nc',
+        '0.50 degree': 'product/APHRO_V1808_TEMP/APHRO_MA/050deg',
+        '0.50 degree nc': 'product/APHRO_V1808_TEMP/APHRO_MA/050deg_nc',
     }
     # Walk through the folder structure
-    walk(trunk_url, branch_urls['0.05 degree'], username, password)
-    walk(trunk_url, branch_urls['0.05 degree nc'], username, password)
-    walk(trunk_url, branch_urls['0.25 degree'], username, password)
-    walk(trunk_url, branch_urls['0.25 degree nc'], username, password)
-    walk(trunk_url, branch_urls['0.50 degree'], username, password)
-    walk(trunk_url, branch_urls['0.50 degree nc'], username, password)
+    for key in relative_urls.keys():
+        relative_url = relative_urls[key]
+        walk(
+            base_url, relative_url, only_one, dry_run,
+            out_dir, username, password
+        )
 
 """
-APHRODITE Daily accumulated precipitation (V1901)
+Meteorological data
+ └ APHRODITE Daily accumulated precipitation (V1901)
+
+From the base directory:
 
 ```bash
 $ export PASSWORD_STORE_DIR=$PWD/.password-store
@@ -296,96 +334,104 @@ $ pass "APHRODITE Daily accumulated precipitation (V1901)"
 ```
 """
 if False:
-    # Create output directory
-    field = 'APHRODITE Daily accumulated precipitation (V1901)'
-    out_dir = Path('Meteorological Data', field)
-    os.makedirs(out_dir, exist_ok=True)
-    # Set parameters
-    dry_run = True
-    only_one = True
+    data_type = 'Meteorological Data'
+    data_name = 'APHRODITE Daily accumulated precipitation (V1901)'
     # Login credentials
     username = 'rowan.nicholls@dtc.ox.ac.uk'
-    # Check what OS you are using
-    if platform.system() == 'Linux':
-        # GnuPG was installed via:
-        # $ sudo apt-get install gnupg2 -y
-        store = passpy.Store(store_dir='.password-store')
-    elif platform.system() == 'Darwin':  # macOS
-        # GnuPG was installed via:
-        # $ brew install gnupg
-        store = passpy.Store(store_dir='.password-store', gpg_bin='gpg')
-    password = store.get_key(field)
-    password = password[:-1]
+    password = get_password(data_name, username, base_dir)
+    # Set parameters
+    only_one = True
+    dry_run = True
+
+    # Create output directory
+    out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
     # URLs should be str, not urllib URL objects, because requests expects str
-    trunk_url = 'http://aphrodite.st.hirosaki-u.ac.jp'
+    base_url = 'http://aphrodite.st.hirosaki-u.ac.jp'
     # Dictionary of branch URLs for each resolution
-    branch_urls = {
-        '0.05 degree': '/product/APHRO_V1901/APHRO_MA/005deg',
-        '0.25 degree': '/product/APHRO_V1901/APHRO_MA/025deg',
-        '0.25 degree nc': '/product/APHRO_V1901/APHRO_MA/025deg_nc',
-        '0.50 degree': '/product/APHRO_V1901/APHRO_MA/050deg',
-        '0.50 degree nc': '/product/APHRO_V1901/APHRO_MA/050deg_nc',
+    relative_urls = {
+        '0.05 degree': 'product/APHRO_V1901/APHRO_MA/005deg',
+        '0.25 degree': 'product/APHRO_V1901/APHRO_MA/025deg',
+        '0.25 degree nc': 'product/APHRO_V1901/APHRO_MA/025deg_nc',
+        '0.50 degree': 'product/APHRO_V1901/APHRO_MA/050deg',
+        '0.50 degree nc': 'product/APHRO_V1901/APHRO_MA/050deg_nc',
     }
     # Walk through the folder structure
-    walk(trunk_url, branch_urls['0.05 degree'], username, password)
-    walk(trunk_url, branch_urls['0.25 degree'], username, password)
-    walk(trunk_url, branch_urls['0.25 degree nc'], username, password)
-    walk(trunk_url, branch_urls['0.50 degree'], username, password)
-    walk(trunk_url, branch_urls['0.50 degree nc'], username, password)
+    for key in relative_urls.keys():
+        relative_url = relative_urls[key]
+        walk(
+            base_url, relative_url, only_one, dry_run,
+            out_dir, username, password
+        )
 
 """
-CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations
+Meteorological data
+ └ CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations
 """
 if False:
-    # Create output directory
-    f = 'CHIRPS - ' + \
+    data_type = 'Meteorological Data'
+    data_name = 'CHIRPS - ' + \
         'Rainfall Estimates from Rain Gauge and Satellite Observations'
-    out_dir = Path('Meteorological Data', f)
-    os.makedirs(out_dir, exist_ok=True)
     # Set parameters
     dry_run = True
     only_one = True
+
+    # Create output directory
+    out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
     # URLs should be str, not urllib URL objects, because requests expects str
-    trunk_url = 'https://data.chc.ucsb.edu'
-    branch_url = '/products/CHIRPS-2.0/'
+    base_url = 'https://data.chc.ucsb.edu'
+    relative_url = 'products/CHIRPS-2.0'
     # Walk through the folder structure
-    walk(trunk_url, branch_url)
+    walk(base_url, relative_url, only_one, dry_run, out_dir)
 
 """
-TerraClimate gridded temperature, precipitation, and other water balance
+Meteorological data
+ └ TerraClimate gridded temperature, precipitation, and other water balance
 variables
 """
 if False:
-    # Create output directory
-    f = 'TerraClimate gridded temperature, precipitation, and other'
-    out_dir = Path('Meteorological Data', f)
-    os.makedirs(out_dir, exist_ok=True)
+    data_type = 'Meteorological Data'
+    data_name = 'TerraClimate gridded temperature, precipitation, and other'
     # Set parameters
     dry_run = True
-    only_one = False
+    only_one = True
+
+    # Create output directory
+    out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
     # URLs should be str, not urllib URL objects, because requests expects str
-    trunk_url = 'https://climate.northwestknowledge.net'
-    branch_url = '/TERRACLIMATE-DATA'
+    base_url = 'https://climate.northwestknowledge.net'
+    relative_url = 'TERRACLIMATE-DATA'
     # Walk through the folder structure
-    walk(trunk_url, branch_url)
+    walk(base_url, relative_url, only_one, dry_run, out_dir)
 
 """
-ERA5 atmospheric reanalysis
+Meteorological data
+ └ ERA5 atmospheric reanalysis
 
+How to use the Climate Data Store (CDS) Application Program Interface (API):
 https://cds.climate.copernicus.eu/api-how-to
 
 ```bash
 $ python3.12 -m pip install cdsapi
+$ cd ~/DART-Pipeline
 $ export PASSWORD_STORE_DIR=$PWD/.password-store
 $ pass insert "ERA5 atmospheric reanalysis"
 $ pass "ERA5 atmospheric reanalysis"
 ```
 """
 if False:
+    data_type = 'Meteorological Data'
+    data_name = 'ERA5 atmospheric reanalysis'
+
     # Create output directory
-    f = 'ERA5 atmospheric reanalysis'
-    out_dir = Path('Meteorological Data', f)
-    os.makedirs(out_dir, exist_ok=True)
+    out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
     # Use the Climate Data Store (CDS) Application Program Interface (API)
     # https://pypi.org/project/cdsapi/
     c = cdsapi.Client()
@@ -423,66 +469,71 @@ if False:
         Path(out_dir, 'ERA5-ml-temperature-subarea.nc')
     )
 
-#
-# Socio-demographic data
-#
 
 """
-WorldPop population density
+Socio-demographic data
+ └ WorldPop population density
 """
 if False:
+    data_type = 'Socio-Demographic Data'
+    data_name = 'WorldPop population density'
+
     # Create output directory
-    field = 'WorldPop population density'
-    out_dir = Path('Socio-Demographic Data', field)
-    os.makedirs(out_dir, exist_ok=True)
+    out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Get overviews of all the data that is available
-    root_url = 'https://www.worldpop.org/rest/data'
-    page = requests.get(root_url)
-    content = page.json()
-    # Export as JSON
-    filepath = Path(out_dir, 'Available Datasets.json')
-    with open(filepath, 'w') as file:
-        json.dump(content, file)
-    # Construct a data frame overview of all the data that is available
-    df = pd.DataFrame()
-    for macro_data_type in content['data']:
-        page = requests.get(root_url + '/' + macro_data_type['alias'])
+    if False:
+        # Get overviews of all the data that is available
+        base_url = 'https://www.worldpop.org/rest/data'
+        page = requests.get(base_url)
         content = page.json()
-        for micro_data_type in content['data']:
-            new_row = {}
-            new_row['alias_1'] = macro_data_type['alias']
-            new_row['name_1'] = macro_data_type['name']
-            new_row['title_1'] = macro_data_type['title']
-            new_row['desc_1'] = macro_data_type['desc']
-            new_row['alias_2'] = micro_data_type['alias']
-            new_row['name_2'] = micro_data_type['name']
-            # Append new row to master data frame
-            new_row = pd.DataFrame(new_row, index=[1])
-            df = pd.concat([df, new_row], ignore_index=True)
-    filepath = Path(out_dir, 'Available Datasets.csv')
-    df.to_csv(filepath, index=False)
+        # Export as JSON
+        path = Path(out_dir, 'Available Datasets.json')
+        with open(path, 'w') as file:
+            json.dump(content, file)
+        # Construct a data frame overview of all the data that is available
+        df = pd.DataFrame()
+        for macro_data_type in content['data']:
+            url = os.path.join(base_url, macro_data_type['alias'])
+            page = requests.get(url)
+            content = page.json()
+            for micro_data_type in content['data']:
+                new_row = {}
+                new_row['alias_1'] = macro_data_type['alias']
+                new_row['name_1'] = macro_data_type['name']
+                new_row['title_1'] = macro_data_type['title']
+                new_row['desc_1'] = macro_data_type['desc']
+                new_row['alias_2'] = micro_data_type['alias']
+                new_row['name_2'] = micro_data_type['name']
+                # Append new row to master data frame
+                new_row = pd.DataFrame(new_row, index=[1])
+                df = pd.concat([df, new_row], ignore_index=True)
+        path = Path(out_dir, 'Available Datasets.csv')
+        df.to_csv(path, index=False)
 
-if False:
-    # Get the population density data
     alias_1 = 'pop_density'
     name_1 = 'Population Density'
-    alias_2 = 'pd_ic_1km'
-    name_2 = 'Unconstrained individual countries (1km resolution)'
-    download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2)
-if False:
-    alias_2 = 'pd_ic_1km_unadj'
-    name_2 = 'Unconstrained individual countries UN adjusted (1km resolution)'
-    download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2)
+    if False:
+        # Get the population density data
+        alias_2 = 'pd_ic_1km'
+        name_2 = 'Unconstrained individual countries (1km resolution)'
+        download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2)
+    if False:
+        alias_2 = 'pd_ic_1km_unadj'
+        name_2 = 'Unconstrained individual countries UN adjusted (1km resolution)'
+        download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2)
 
 """
-WorldPop population count
+Socio-demographic data
+ └ WorldPop population count
 """
 if False:  # This block takes 406.2s or 949.1s to run
+    data_type = 'Socio-Demographic Data'
+    data_name = 'WorldPop population count'
+
     # Create output directory
-    field = 'WorldPop population count'
-    out_dir = Path('Socio-Demographic Data', field)
-    os.makedirs(out_dir, exist_ok=True)
+    out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     # Get the population count data
     alias_1 = 'pop'
@@ -494,12 +545,10 @@ if False:  # This block takes 406.2s or 949.1s to run
     name_2 = 'Unconstrained global mosaics 2000-2020 (1km resolution)'
     download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2)
 
-#
-# Geospatial data
-#
 
 """
-GADM administrative map
+Geospatial data
+ └ GADM administrative map
 """
 
 
@@ -525,36 +574,38 @@ def download_gadm_data(file_format, out_dir, iso3='VNM', level=None):
         - level 2: county (district)
         - level 3: commune/ward (and equivalents)
     """
-    root_url = 'https://geodata.ucdavis.edu/gadm/gadm4.1/'
+    base_url = 'https://geodata.ucdavis.edu/gadm/gadm4.1'
     if file_format == 'Geopackage':
-        leaf_url = f'gpkg/gadm41_{iso3}.gpkg'
+        relative_url = f'gpkg/gadm41_{iso3}.gpkg'
     elif file_format == 'Shapefile':
-        leaf_url = f'shp/gadm41_{iso3}_shp.zip'
+        relative_url = f'shp/gadm41_{iso3}_shp.zip'
     elif file_format == 'GeoJSON':
         if level == 'level0':
-            leaf_url = f'json/gadm41_{iso3}_0.json'
+            relative_url = f'json/gadm41_{iso3}_0.json'
         elif level == 'level1':
-            leaf_url = f'json/gadm41_{iso3}_1.json.zip'
+            relative_url = f'json/gadm41_{iso3}_1.json.zip'
         elif level == 'level2':
-            leaf_url = f'json/gadm41_{iso3}_2.json.zip'
+            relative_url = f'json/gadm41_{iso3}_2.json.zip'
         elif level == 'level3':
-            leaf_url = f'json/gadm41_{iso3}_3.json.zip'
+            relative_url = f'json/gadm41_{iso3}_3.json.zip'
         else:
             raise ValueError(f'Unknown level "{level}"')
     else:
         raise ValueError(f'Unknown file format "{file_format}"')
     # Request the URL
-    url = root_url + leaf_url
+    url = os.path.join(base_url, relative_url)
     r = requests.get(url)
     # 401: Unauthorized
     # 200: OK
     if r.status_code == 200:
-        filename = leaf_url.split('/')[-1]
-        path = Path(out_dir, filename)
-        print(f'Downloading {filename}')
+        base_name = Path(relative_url).name
+        path = Path(out_dir, base_name)
+        print(f'Downloading {base_name}')
         print(f'to {out_dir}')
         with open(path, 'wb') as out:
             out.write(r.content)
+    else:
+        print(f'Status code {r.status_code} returned')
 
     # Unpack shape files
     if file_format == 'Shapefile':
@@ -562,11 +613,13 @@ def download_gadm_data(file_format, out_dir, iso3='VNM', level=None):
         shutil.unpack_archive(path, str(path).removesuffix('.zip'))
 
 
-if False:  # This block takes 87.3s/13.2s to run
+if True:  # This block takes 87.3s/13.2s to run
+    data_type = 'Geospatial Data'
+    data_name = 'GADM administrative map'
+
     # Create output directory
-    field = 'GADM administrative map'
-    out_dir = Path('Geospatial data', field)
-    os.makedirs(out_dir, exist_ok=True)
+    out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     download_gadm_data('Geopackage', out_dir, iso3='VNM')
     download_gadm_data('Shapefile', out_dir, iso3='VNM')

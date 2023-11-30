@@ -17,6 +17,8 @@ gitignored/
 *.sh
 *.shp
 *.shx
+
+# GeoTIFF files
 *.tfw
 *.tif
 
