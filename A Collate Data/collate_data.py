@@ -392,8 +392,8 @@ if __name__ == "__main__":
     desc = 'Download data and store it locally for later processing.'
     parser = argparse.ArgumentParser(description=desc)
     # Add optional arguments
-    default = 'APHRODITE Daily mean temperature product (V1808)'
     message = 'The name of the data field to be downloaded and collated.'
+    default = 'APHRODITE Daily mean temperature product (V1808)'
     parser.add_argument('--data_name', '-n', default=default, help=message)
     message = '''If set, only one item from each folder in the raw data
     will be downloaded/created.'''
@@ -445,7 +445,8 @@ $ pass "APHRODITE Daily mean temperature product (V1808)"
 
 Run times:
 
-- `python3.12 collate_data.py --only_one`: 8:34
+- `time python3.12 collate_data.py --only_one`: 6:36.88
+- `time python3.12 collate_data.py --only_one --dry_run`: 4.144
 """
 if args.data_name == 'APHRODITE Daily mean temperature product (V1808)':
     data_type = data_name_to_type[args.data_name]
