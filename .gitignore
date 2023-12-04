@@ -1,6 +1,11 @@
 # Anything explicitly ignored
 gitignored/
 
+# Collated data folders
+A Collate Data/Geospatial Data/
+A Collate Data/Meteorological Data/
+A Collate Data/Socio-Demographic Data/
+
 # Data files
 *.7z
 *.cpg
@@ -44,7 +49,6 @@ gitignored/
 
 # Notebook files
 *.nb.html
-*.html
 
 # Archive files
 *.gz

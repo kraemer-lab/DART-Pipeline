@@ -28,6 +28,7 @@ from shapely.geometry import Point, Polygon
 import geopandas as gpd
 import rasterio
 from rasterio.features import geometry_mask
+import argparse
 
 
 def plot_pop_density(df, folderpath, filename):

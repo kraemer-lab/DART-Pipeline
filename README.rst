@@ -19,7 +19,7 @@ Generated with:
 
 .. code-block::
 
-    $ cd docs
+    $ cd ~/DART-Pipeline/docs
     $ make singlehtml
 
 Authors and Acknowledgments

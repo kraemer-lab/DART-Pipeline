@@ -13,10 +13,20 @@ This section details the usage of all scripts, modules and functions in the pipe
 
 A Collate Data
 --------------
+The "A Collate Data" folder contains one script - `collate_data.py` - which will be documented here:
 
 collate_data.py
 ^^^^^^^^^^^^^^^
+
 .. automodule:: collate_data
+
+____
+
+.. autofunction:: collate_data.get_base_directory
+
+____
+
+.. autofunction:: collate_data.get_password
 
 ____
 
