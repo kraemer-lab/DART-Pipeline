@@ -377,13 +377,20 @@ def download_gadm_data(file_format, out_dir, iso3='VNM', level=None):
         print(f'to {out_dir}')
         with open(path, 'wb') as out:
             out.write(r.content)
+
+        # Unpack shape files
+        if file_format == 'Shapefile':
+            print(f'Unpacking {path}')
+            shutil.unpack_archive(path, str(path).removesuffix('.zip'))
+        # Unpack GeoJSON files
+        if file_format == 'GeoJSON':
+            if path.suffix == '.zip':
+                print(f'Unpacking {path}')
+                print(f'to {path.parent}')
+                shutil.unpack_archive(path, path.parent)
+
     else:
         print(f'Status code {r.status_code} returned')
-
-    # Unpack shape files
-    if file_format == 'Shapefile':
-        print(f'Unpacking {path}')
-        shutil.unpack_archive(path, str(path).removesuffix('.zip'))
 
 
 # If running directly
@@ -716,7 +723,7 @@ if args.data_name == 'WorldPop population count':
 Geospatial data
  └ GADM administrative map
 
-This block takes 87.3s or 13.2s to run.
+- `time python3.12 collate_data.py -n "GADM administrative map"`: 1m0.087s
 """
 if args.data_name == 'GADM administrative map':
     data_type = data_name_to_type[args.data_name]

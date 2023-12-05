@@ -1,11 +1,12 @@
 """
-Process data.
+Script to process raw data that has already been collated.
 
 Pre-requisites:
 
 .. code-block::
 
     $ python3.12 -m pip install matplotlib
+    $ python3.12 -m pip install pandas
     $ python3.12 -m pip install shapely
     $ python3.12 -m pip install geopandas
     $ python3.12 -m pip install rasterio
@@ -15,7 +16,6 @@ Pre-requisites:
     $ ogr2ogr --version
 
 Use `EPSG:9217 <https://epsg.io/9217>`_
-
 """
 from pathlib import Path
 import pandas as pd
@@ -29,6 +29,31 @@ import geopandas as gpd
 import rasterio
 from rasterio.features import geometry_mask
 import argparse
+
+
+def get_base_directory(path='.'):
+    """
+    Get the base directory for a Git project.
+
+    Parameters
+    ----------
+    path : str or pathlib.Path, default '.'
+        The path to the child directory.
+
+    Returns
+    -------
+    str or pathlib.Path, or None
+        The path to the parent/grand-parent/etc directory of the child
+        directory that contains the ".git" folder. If no such directory exists,
+        returns None.
+    """
+    path = os.path.abspath(path)
+    while True:
+        if '.git' in os.listdir(path):
+            return path
+        if path == os.path.dirname(path):
+            return None  # If the current directory is the root, break the loop
+        path = os.path.dirname(path)
 
 
 def plot_pop_density(df, folderpath, filename):
@@ -67,27 +92,78 @@ def plot_pop_density(df, folderpath, filename):
     plt.close()
 
 
-#
-# Geospatial data
-#
+# Establish the base directory
+path = Path(__file__)
+base_dir = get_base_directory(path.parent)
+
+# If running directly
+if __name__ == "__main__":
+    # Create command-line argument parser
+    desc = 'Process data that has been previously downloaded and collated.'
+    parser = argparse.ArgumentParser(description=desc)
+    # Add optional arguments
+    message = 'The name of the data field to be processed.'
+    # default = 'GADM administrative map'
+    # default = 'WorldPop population density'
+    default = ''
+    parser.add_argument('--data_name', '-n', default=default, help=message)
+    message = '''Some data fields have different data for each administrative
+    level'''
+    default = '0'
+    parser.add_argument('--admin_level', '-a', default=default, help=message)
+    # Parse arguments from terminal
+    args = parser.parse_args()
+# If running via Sphinx
+else:
+    # Create a fake args object
+    args = lambda: None
+    args.data_name = ''
+
+# Check
+if True:
+    print('Arguments:')
+    for arg in vars(args):
+        print(f'{arg + ":":20s} {vars(args)[arg]}')
+
+data_name_to_type = {
+    'APHRODITE Daily mean temperature product (V1808)': 'Meteorological Data',
+    'APHRODITE Daily accumulated precipitation (V1901)': 'Meteorological Data',
+    'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations':
+    'Meteorological Data',
+    'TerraClimate gridded temperature, precipitation, and other':
+    'Meteorological Data',
+    'ERA5 atmospheric reanalysis': 'Meteorological Data',
+    'WorldPop population density': 'Socio-Demographic Data',
+    'WorldPop population count': 'Socio-Demographic Data',
+    'GADM administrative map': 'Geospatial Data',
+}
+
 
 """
-GADM administrative map
+Geospatial data
+ └ GADM administrative map
+
+Run times:
+
+- `time python3.12 process_data.py`: 0m1.681s
+- `time python3.12 process_data.py -a 1`: 0m5.659s
+- `time python3.12 process_data.py -a 2`: 0m50.393s
+- `time python3.12 process_data.py -a 3`: 8m54.418s
 """
-if True:
-    filenames = [
-        # 'gadm41_VNM_0.shp',
-        'gadm41_VNM_1.shp',
-        # 'gadm41_VNM_2.shp',
-        # 'gadm41_VNM_3.shp'
-    ]
+if args.data_name == 'GADM administrative map':
+    filenames = [f'gadm41_VNM_{args.admin_level}.shp']
     for filename in filenames:
-        # Import the shape file
         filename = Path(filename)
-        branch_path = Path(
-            'Geospatial data', 'GADM administrative map', 'gadm41_VNM_shp',
+        relative_path = Path(
+            'Geospatial Data', 'GADM administrative map',
+            'gadm41_VNM_shp'
         )
-        path = Path('..', 'A Collate Data', branch_path, filename)
+        # Create output directory
+        out_dir = Path(base_dir, 'B Process Data', relative_path)
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        # Import the shape file
+        path = Path(base_dir, 'A Collate Data', relative_path, filename)
         gdf = gpd.read_file(path)
 
         # Plot
@@ -98,8 +174,7 @@ if True:
         plt.xlabel('Longitude')
         plt.ylabel('Latitude')
         # Export
-        os.makedirs(branch_path, exist_ok=True)
-        path = Path(branch_path, filename.stem)
+        path = Path(base_dir, 'B Process Data', relative_path, filename.stem)
         plt.savefig(path)
         plt.close()
 
@@ -136,110 +211,58 @@ if True:
             plt.xlabel('Longitude')
             plt.ylabel('Latitude')
             # Export
-            folderpath = Path(branch_path, filename.stem)
+            folderpath = Path(
+                base_dir, 'B Process Data', relative_path, filename.stem
+            )
             os.makedirs(folderpath, exist_ok=True)
-            filepath = Path(folderpath, title + '.png')
+            filepath = Path(folderpath, title)
             plt.savefig(filepath)
             plt.close()
 
-#
-# Socio-demographic data
-#
+"""
+Socio-demographic data
+ └ WorldPop population density
 
+Run times:
+
+- `time python3.12 process_data.py --data_name "WorldPop population density"`:
+  0m2.420s
 """
-WorldPop population density
-"""
-# Label the location of each coordinate
-# (takes approx 685.0s - 11:25 min - to download)
-out_dir = Path('Socio-Demographic Data', 'WorldPop population density')
-if False:
-    # Create the output folder
-    os.makedirs(out_dir, exist_ok=True)
+if args.data_name == 'WorldPop population density':
+    relative_path = Path(
+        'Socio-Demographic Data', 'WorldPop population density',
+        'Population Density',
+        'Unconstrained individual countries UN adjusted (1km resolution)',
+        'Vietnam'
+    )
+
+    # Create output directory
+    out_dir = Path(base_dir, 'B Process Data', relative_path)
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     # Import the population density data for Vietnam
-    path = Path(
-        '..', 'A Collate Data', 'Socio-Demographic Data',
-        'WorldPop population density', 'Population Density',
-        'Unconstrained individual countries UN adjusted (1km resolution)',
-        'Vietnam', 'vnm_pd_2020_1km_UNadj_ASCII_XYZ.zip'
-    )
+    filename = Path('vnm_pd_2020_1km_UNadj_ASCII_XYZ.zip')
+    path = Path(base_dir, 'A Collate Data', relative_path, filename)
     df = pd.read_csv(path)
 
-    # Import the coordinates of the borders of Vietnam's regions
-    path = Path('..', 'A Collate Data', 'Archive', 'VNM_ADM_2.geojson')
-    with open(path) as file:
-        geojson = json.load(file)
-
-    # Classify the location of each coordinate
-    df['Country'] = None
-    df['Admin 2'] = None
-    df['Admin 3'] = None
-    # Pre-construct the polygons
-    polygons = []
-    regions = []
-    for feature in geojson['features']:
-        polygon = Polygon(feature['geometry']['coordinates'][0][0])
-        # print(polygon)
-        polygons.append(polygon)
-        region = (
-            feature['properties']['COUNTRY'],
-            feature['properties']['NAME_1'],
-            feature['properties']['NAME_2']
-        )
-        regions.append(region)
-    # Iterate over the coordinates
-    for i, row in df.iterrows():
-        # Update the user
-        if i % 100 == 0:
-            print(f'{i} / {len(df)}')
-        point = Point(df.loc[i, 'X'], df.loc[i, 'Y'])
-        for j, polygon in enumerate(polygons):
-            # Check if the coordinate is in this region
-            if point.within(polygon):
-                # We have found the region this coordinate is in
-                df.loc[i, 'Country'] = regions[j][0]
-                df.loc[i, 'Admin 2'] = regions[j][1]
-                df.loc[i, 'Admin 3'] = regions[j][2]
-                # Move to the next line of the data frame
-                break
-    # Export
-    path = Path(out_dir, 'Vietnam.csv')
+    # Export as-is
+    filename = Path(filename.stem + '.csv')
+    path = Path(base_dir, 'B Process Data', relative_path, filename)
     df.to_csv(path, index=False)
 
-if False:
-    # Import the labelled data
-    path = Path(out_dir, 'Vietnam.csv')
-    df = pd.read_csv(path)
-
-    # Plot whole country
-    plot_pop_density(df, out_dir, 'Vietnam.png')
-
-    # Initialise output dictionaries
-    dct_admin_2 = {}
-    dct_admin_3 = {}
-
-    # Create the output folders
-    path = Path(out_dir, 'Admin 2')
-    os.makedirs(path, exist_ok=True)
-
-    # Analyse each province/city
-    for admin_2 in df['Admin 2'].unique():
-        if admin_2 is not np.nan:
-            subset = df[df['Admin 2'] == admin_2].copy()
-            print(admin_2)
-            plot_pop_density(subset, path, f'{admin_2}.png')
-            dct_admin_2[admin_2] = subset['Z'].mean()
-            for admin_3 in subset['Admin 3'].unique():
-                if admin_3 is not np.nan:
-                    ssubset = subset[subset['Admin 3'] == admin_3].copy()
-                    dct_admin_3[admin_3] = ssubset['Z'].mean()
+    # Plot
+    fig = plt.figure()
+    ax = plt.axes()
+    pt = df.pivot_table(index='Y', columns='X', values='Z')
+    ax.imshow(pt, cmap='viridis')
+    ax.invert_yaxis()
+    plt.title('Population Density')
     # Export
-    path = Path(out_dir, 'WorldPop population density - Admin 2.json')
-    with open(path, 'w') as file:
-        json.dump(dct_admin_2, file)
-    path = Path(out_dir, 'WorldPop population density - Admin 3.json')
-    with open(path, 'w') as file:
-        json.dump(dct_admin_3, file)
+    path = Path(
+        base_dir, 'B Process Data', relative_path, filename.stem
+    )
+    plt.savefig(path)
+    plt.close()
 
 """
 WorldPop population count
@@ -383,12 +406,9 @@ if False:
     if filename.stem == 'VNM_ppp_v2b_2020_UNadj':
         assert df.to_numpy().sum() == 96355088.0  # 96,355,088
 
-#
-# Geospatial and Socio-Demographic Data
-#
-
 """
-WorldPop population count
+Geospatial and Socio-Demographic Data
+ └ WorldPop population count
 """
 if False:
     out_dir = Path('Geospatial and Socio-Demographic Data', 'Population')
@@ -534,3 +554,117 @@ if False:
         print(f'Total population: {total_pop}')
         path = Path(out_dir, Path(filename).stem + '.csv')
         output.to_csv(path, index=False)
+
+"""
+Geospatial and Socio-Demographic Data
+ └ GADM administrative map and WorldPop population density
+
+Run times:
+
+- If the labelled population density data does not exist:
+    - `time python3.12 process_data.py -n "GADM administrative map and WorldPop
+    population density"`: 31m52.408s
+- If the labelled population density data exists:
+    - `time python3.12 process_data.py -n "GADM administrative map and WorldPop
+    population density"`: 0m16.145s
+"""
+if args.data_name.startswith('GADM administrative map and WorldPop populat'):
+    print('Only admin level 2 is currently implemented')
+    admin_level = args.admin_level
+    admin_level = 2
+
+    # Import the population density data for Vietnam
+    relative_path = Path(
+        'Socio-Demographic Data', 'WorldPop population density',
+        'Population Density',
+        'Unconstrained individual countries UN adjusted (1km resolution)',
+        'Vietnam'
+    )
+    filename = Path('vnm_pd_2020_1km_UNadj_ASCII_XYZ.zip')
+    path = Path(base_dir, 'A Collate Data', relative_path, filename)
+    df = pd.read_csv(path)
+
+    # Import the coordinates of the borders of Vietnam's regions
+    relative_path = Path('Geospatial Data', 'GADM administrative map')
+    filename = f'gadm41_VNM_{admin_level}.json'
+    path = Path(base_dir, 'A Collate Data', relative_path, filename)
+    with open(path) as file:
+        geojson = json.load(file)
+
+    # Check if the labelled population density data exists
+    relative_path = Path(
+        'Geospatial and Socio-Demographic Data',
+        'GADM administrative map and WorldPop population density'
+    )
+    filename = 'Vietnam.csv'
+    path = Path(base_dir, 'B Process Data', relative_path, filename)
+    if path.exists():
+        # Import the labelled data
+        df = pd.read_csv(path)
+
+        # Plot whole country
+        plot_pop_density(df, path.parent, 'Vietnam.png')
+
+        # Initialise output dictionaries
+        dct_admin_2 = {}
+        dct_admin_3 = {}
+
+        # Create the output folders
+        path = Path(path.parent, f'Admin 2')
+        os.makedirs(path, exist_ok=True)
+
+        # Analyse each province/city
+        for admin_2 in df[f'Admin 2'].unique():
+            if admin_2 is not np.nan:
+                subset = df[df['Admin 2'] == admin_2].copy()
+                print(admin_2)
+                plot_pop_density(subset, path, f'{admin_2}.png')
+                dct_admin_2[admin_2] = subset['Z'].mean()
+                for admin_3 in subset['Admin 3'].unique():
+                    if admin_3 is not np.nan:
+                        ssubset = subset[subset['Admin 3'] == admin_3].copy()
+                        dct_admin_3[admin_3] = ssubset['Z'].mean()
+        # Export
+        filename = 'WorldPop population density - Admin 2.json'
+        path = Path(base_dir, 'B Process Data', relative_path, filename)
+        with open(path, 'w') as file:
+            json.dump(dct_admin_2, file)
+        filename = 'WorldPop population density - Admin 3.json'
+        path = Path(base_dir, 'B Process Data', relative_path, filename)
+        with open(path, 'w') as file:
+            json.dump(dct_admin_3, file)
+    else:
+        # Classify the location of each coordinate
+        df['Country'] = None
+        df['Admin 2'] = None
+        df['Admin 3'] = None
+        # Pre-construct the polygons
+        polygons = []
+        regions = []
+        for feature in geojson['features']:
+            polygon = Polygon(feature['geometry']['coordinates'][0][0])
+            polygons.append(polygon)
+            region = (
+                feature['properties']['COUNTRY'],
+                feature['properties']['NAME_1'],
+                feature['properties']['NAME_2']
+            )
+            regions.append(region)
+        # Iterate over the coordinates
+        for i, row in df.iterrows():
+            # Update the user
+            if i % 100 == 0:
+                print(f'{i} / {len(df)}')
+            point = Point(df.loc[i, 'X'], df.loc[i, 'Y'])
+            for j, polygon in enumerate(polygons):
+                # Check if the coordinate is in this region
+                if point.within(polygon):
+                    # We have found the region this coordinate is in
+                    df.loc[i, 'Country'] = regions[j][0]
+                    df.loc[i, 'Admin 2'] = regions[j][1]
+                    df.loc[i, 'Admin 3'] = regions[j][2]
+                    # Move to the next line of the data frame
+                    break
+        # Export
+        path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(path, index=False)
