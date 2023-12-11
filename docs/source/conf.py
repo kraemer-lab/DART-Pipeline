@@ -9,8 +9,10 @@ import sys
 
 path = pathlib.Path(__file__).parents[2].resolve().as_posix()
 sys.path.insert(0, path)
-path = pathlib.Path(path, 'A Collate Data').resolve().as_posix()
-sys.path.insert(0, path)
+a_path = pathlib.Path(path, 'A Collate Data').resolve().as_posix()
+sys.path.insert(0, a_path)
+b_path = pathlib.Path(path, 'B Process Data').resolve().as_posix()
+sys.path.insert(0, b_path)
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information

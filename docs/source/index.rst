@@ -40,5 +40,24 @@ ____
 
 .. autofunction:: collate_data.download_gadm_data
 
+____
+
 B Process Data
 --------------
+
+process_data.py
+^^^^^^^^^^^^^^^
+
+.. automodule:: process_data
+
+____
+
+.. autofunction:: process_data.get_base_directory
+
+____
+
+.. autofunction:: process_data.plot_pop_density
+
+____
+
+.. autofunction:: process_data.pixel_to_latlon

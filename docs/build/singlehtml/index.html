@@ -35,6 +35,7 @@
 </div>
 <section id="dart-pipeline">
 <h1>DART-Pipeline<a class="headerlink" href="#dart-pipeline" title="Permalink to this headline">¶</a></h1>
+<p>Data analysis pipeline for the Dengue Advanced Readiness Tools (DART) project.</p>
 <p>The aim of this project is to develop a scalable and reproducible pipeline for the joint analysis of epidemiological, climate, and behavioural data to anticipate and predict dengue outbreaks.</p>
 <section id="project-manifest">
 <h2>Project Manifest<a class="headerlink" href="#project-manifest" title="Permalink to this headline">¶</a></h2>
@@ -249,9 +250,9 @@ folder with a naming system matching that of a wet run.</p></li>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>file_format</strong> (<em>{'Geopackage'</em><em>, </em><em>'Shapefile'</em><em>, </em><em>'GeoJSON'}</em>) – The format of the raw data to be downloaded.</p></li>
 <li><p><strong>out_dir</strong> (<em>str</em><em> or </em><em>pathlib.Path</em>) – Folder path to where the files will be downloaded.</p></li>
-<li><p><strong>iso3</strong> (<em>str</em><em>, </em><em>default 'VNM'</em><em>,</em>) – Alpha-3 country code as per ISO 3166 for the desired country. List of
-country codes:
-<a class="reference external" href="https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes">https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes</a></p></li>
+<li><p><strong>iso3</strong> (<em>str</em><em>, </em><em>default 'VNM'</em>) – Alpha-3 country code as per ISO 3166 for the desired country. See the
+Wikipedia pages “<a class="reference external" href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3">ISO 3166-1 alpha-3</a>” and
+“<a class="reference external" href="https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes">List of ISO 3166 country codes</a>”.</p></li>
 <li><p><strong>level</strong> (<em>{'level0'</em><em>, </em><em>'level1'</em><em>, </em><em>'level2'</em><em>, </em><em>'level3'</em><em>, </em><em>None}</em><em>, </em><em>default None</em>) – <p>Administrative levels available (depends on the country):</p>
 <ul>
 <li><p>level 0: country</p></li>
@@ -267,8 +268,89 @@ country codes:
 
 </section>
 </section>
+<hr class="docutils" />
 <section id="b-process-data">
 <h3>B Process Data<a class="headerlink" href="#b-process-data" title="Permalink to this headline">¶</a></h3>
+<section id="module-process_data">
+<span id="process-data-py"></span><h4>process_data.py<a class="headerlink" href="#module-process_data" title="Permalink to this headline">¶</a></h4>
+<p>Script to process raw data that has already been collated.</p>
+<p>Pre-requisites:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python3.12 -m pip install matplotlib
+$ python3.12 -m pip install pandas
+$ python3.12 -m pip install shapely
+$ python3.12 -m pip install geopandas
+$ python3.12 -m pip install rasterio
+$ /bin/bash -c &quot;$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)&quot;
+$ brew --version
+$ brew install gdal
+$ ogr2ogr --version
+</pre></div>
+</div>
+<p>Use <a class="reference external" href="https://epsg.io/9217">EPSG:9217</a> or <a class="reference external" href="https://epsg.io/4326">EPSG:4326</a>
+for projections</p>
+<p>Use the <a class="reference external" href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3">ISO 3166-1 alpha-3</a> format for country codes.</p>
+<hr class="docutils" />
+<dl class="py function">
+<dt class="sig sig-object py" id="process_data.get_base_directory">
+<span class="sig-prename descclassname"><span class="pre">process_data.</span></span><span class="sig-name descname"><span class="pre">get_base_directory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'.'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#process_data.get_base_directory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the base directory for a Git project.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>path</strong> (<em>str</em><em> or </em><em>pathlib.Path</em><em>, </em><em>default '.'</em>) – The path to the child directory.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The path to the parent/grand-parent/etc directory of the child
+directory that contains the “.git” folder. If no such directory exists,
+returns None.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str or pathlib.Path, or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<hr class="docutils" />
+<dl class="py function">
+<dt class="sig sig-object py" id="process_data.plot_pop_density">
+<span class="sig-prename descclassname"><span class="pre">process_data.</span></span><span class="sig-name descname"><span class="pre">plot_pop_density</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">folderpath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#process_data.plot_pop_density" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the population for a region.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>DataFrame</em>) – The data to plot.</p></li>
+<li><p><strong>folderpath</strong> (<em>str</em><em> or </em><em>pathlib.Path</em>) – The parent directory for the output plot.</p></li>
+<li><p><strong>filename</strong> (<em>str</em><em> or </em><em>pathlib.Path</em>) – The filename for the output plot.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<hr class="docutils" />
+<dl class="py function">
+<dt class="sig sig-object py" id="process_data.pixel_to_latlon">
+<span class="sig-prename descclassname"><span class="pre">process_data.</span></span><span class="sig-name descname"><span class="pre">pixel_to_latlon</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transform</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#process_data.pixel_to_latlon" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert pixel coordinates to latitude and longitude.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>list</em>) – The x- and y-locations of the pixels to be converted to latitude and
+longitude.</p></li>
+<li><p><strong>y</strong> (<em>list</em>) – The x- and y-locations of the pixels to be converted to latitude and
+longitude.</p></li>
+<li><p><strong>transform</strong> (<em>Affine</em>) – Affine transformation matrix as given in the GeoTIFF file.</p></li>
+<li><p><strong>crs</strong> (<em>rasterio.crs</em>) – A Rasterio coordinate reference system.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>lat, lon</strong> – The latitude and longitude coordinates.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>array</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
 </section>
 </section>
 </section>

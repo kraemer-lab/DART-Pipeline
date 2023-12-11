@@ -1,8 +1,9 @@
 =============
 DART-Pipeline
 =============
-The aim of this project is to develop a scalable and reproducible pipeline for the joint analysis of epidemiological, climate, and behavioural data to anticipate and predict dengue outbreaks. 
+Data analysis pipeline for the Dengue Advanced Readiness Tools (DART) project.
 
+The aim of this project is to develop a scalable and reproducible pipeline for the joint analysis of epidemiological, climate, and behavioural data to anticipate and predict dengue outbreaks.
 
 Project Manifest
 ================

@@ -335,10 +335,12 @@ def download_gadm_data(file_format, out_dir, iso3='VNM', level=None):
         The format of the raw data to be downloaded.
     out_dir : str or pathlib.Path
         Folder path to where the files will be downloaded.
-    iso3 : str, default 'VNM',
-        Alpha-3 country code as per ISO 3166 for the desired country. List of
-        country codes:
-        https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes
+    iso3 : str, default 'VNM'
+        Alpha-3 country code as per ISO 3166 for the desired country. See the
+        Wikipedia pages "`ISO 3166-1 alpha-3
+        <https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3>`_" and
+        "`List of ISO 3166 country codes
+        <https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes>`_".
     level : {'level0', 'level1', 'level2', 'level3', None}, default None
         Administrative levels available (depends on the country):
 
