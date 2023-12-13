@@ -24,7 +24,7 @@ Generated with:
 
 Contributing
 ============
-To contribute to this project, please follow the guidelines in the `CONTRIBUTING.md` file.
+Please see our `Contributing to DART <./CONTRIBUTING.md>`_ guide.
 
 Authors and Acknowledgments
 ===========================
