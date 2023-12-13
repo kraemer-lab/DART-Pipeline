@@ -22,6 +22,10 @@ Generated with:
     $ cd docs
     $ make singlehtml
 
+Contributing
+============
+To contribute to this project, please follow the guidelines in the `CONTRIBUTING.md` file.
+
 Authors and Acknowledgments
 ===========================
 - OxRSE
