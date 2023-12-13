@@ -119,3 +119,8 @@ __pycache__
 
 # Pass files
 *.password-store
+
+# Snakemake and GRAPEVNE build files
+.snakemake
+**/results/out
+credentials.json
