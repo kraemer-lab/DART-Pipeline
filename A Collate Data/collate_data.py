@@ -68,6 +68,9 @@ import cdsapi
 import json
 import pandas as pd
 import platform
+import distro
+import sys
+import warnings
 
 
 def walk(trunk_url, branch_url, username=None, password=None):
@@ -220,6 +223,63 @@ def download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2):
                 path = Path(out_dir, name_1, name_2, country, f'{country}.csv')
                 df.to_csv(path, index=False)
 
+
+# Check that the OS is one of the ones that has been tested
+tested_oss = 'Ubuntu 22.04'
+core_os = platform.system()
+if core_os == 'Linux':
+    OS = distro.name()
+    ver = distro.version()
+    if OS != 'Ubuntu':
+        # This is a non-Ubuntu Linux machine
+        warnings.warn(f'You are using an OS ({OS}) that has not been tested')
+        print('Tested OSs:', tested_oss)
+    elif ver != '22.04':
+        # This is an Ubuntu machine that is not 22.04
+        warnings.warn(f'You are using Ubuntu {ver} which has not been tested')
+        print('Tested OSs:', tested_oss)
+elif core_os == 'Windows':
+    OS = platform.system()
+    version = platform.release()
+    warnings.warn(f'You are using an OS ({OS}) that has not been tested')
+    print('Tested OSs:', tested_oss)
+elif core_os == 'Darwin':
+    # Check which version of macOS you have
+    v = platform.mac_ver()[0]
+    major = v.split('.')[0]
+    minor = v.split('.')[1]
+    if int(major) == 10:
+        macOS_vers = {
+            '10.11': 'El Capitan',
+            '10.12': 'Sierra',
+            '10.13': 'High Sierra',
+            '10.14': 'Mojave',
+            '10.15': 'Catalina',
+        }
+        OS = macOS_vers[f'{major}.{minor}']
+    else:
+        macOS_vers = {
+            '11': 'Big Sur',
+            '12': 'Monterey',
+            '13': 'Ventura',
+            '14': 'Sonoma',
+        }
+        OS = macOS_vers[major]
+    warnings.warn(f'You are using macOS {v} ({OS}) which has not been tested')
+    print('Tested OSs:', tested_oss)
+
+# Check that the Python version being used is one of the ones that has been
+# tested
+v = platform.python_version()
+if v != '3.12.0':
+    warnings.warn(f'You are using Python {v} which has not been tested')
+    print('Tested versions: 3.12.0')
+
+# Check that the user is in a virtual environment
+if sys.prefix == sys.base_prefix:
+    warnings.warn(f'You are not working in a virtual environment')
+    path = sys.executable
+    print(f'Python is being run from {path}')
 
 #
 # Meteorological data
