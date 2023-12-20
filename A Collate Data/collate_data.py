@@ -271,9 +271,23 @@ elif core_os == 'Darwin':
 # Check that the Python version being used is one of the ones that has been
 # tested
 v = platform.python_version()
-if v != '3.12.0':
-    warnings.warn(f'You are using Python {v} which has not been tested')
-    print('Tested versions: 3.12.0')
+major = v.split('.')[0]
+minor = v.split('.')[1]
+micro = v.split('.')[2]
+if major == '2':
+    # Python 2 is being used
+    warnings.warn(f'You are using Python {v} which has reached end-of-life')
+    print('Please update to Python 3')
+elif major == '3':
+    # Python 3 is being used
+    if int(minor) <= 7:
+        warnings.warn(f'You are using Python {v} beyond its end-of-life date')
+        print('Please update to the latest version of Python')
+    elif int(minor) <= 11:
+        warnings.warn(f'You are using Python {v} which has not been tested')
+        print('Tested versions: 3.12')
+else:
+    warnings.warn(f'A version of Python other than 2 or 3 has been detected.')
 
 # Check that the user is in a virtual environment
 if sys.prefix == sys.base_prefix:
