@@ -23,6 +23,10 @@ Generated with:
     $ cd ~/DART-Pipeline/docs
     $ make singlehtml
 
+Contributing
+============
+Please see our `Contributing to DART <./CONTRIBUTING.md>`_ guide.
+
 Authors and Acknowledgments
 ===========================
 - OxRSE
