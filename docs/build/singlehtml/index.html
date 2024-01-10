@@ -55,6 +55,10 @@ $ make singlehtml
 </div>
 </section>
 </section>
+<section id="contributing">
+<h2>Contributing<a class="headerlink" href="#contributing" title="Permalink to this headline">¶</a></h2>
+<p>Please see our <a class="reference external" href="./CONTRIBUTING.md">Contributing to DART</a> guide.</p>
+</section>
 <section id="authors-and-acknowledgments">
 <h2>Authors and Acknowledgments<a class="headerlink" href="#authors-and-acknowledgments" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
@@ -94,31 +98,22 @@ $ make singlehtml
 <p>Script to collate raw data by downloading it from online sources.</p>
 <p>See “DART dataset summarisation.xls” for information about the data fields
 to be collated.</p>
-<p>This documentation assumes Python 3.12 is being used. Other versions have not
-been tested.</p>
-<p>Package requirements for this script are listed in <cite>requirements.txt</cite> as
-created with <cite>pipreqs</cite>:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python3.12 -m pip install pipreqs
-$ pipreqs &#39;.&#39; --force
+<p>This script has been tested on Python 3.12 and more versions will be tested in
+the future.</p>
+<p><strong>Installation and Setup</strong></p>
+<p>Package requirements for this script are listed in <cite>requirements.txt</cite>. Install
+these dependencies by opening a terminal in the <cite>A Collate Data</cite> folder and
+running the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python3 -m pip install -r requirements.txt
 </pre></div>
 </div>
-<p>These packages can be installed from the terminal via the following:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python3.12 -m pip install requests
-$ python3.12 -m pip install lxml
-$ python3.12 -m pip install cdsapi
-$ python3.12 -m pip install setuptools
-$ python3.12 -m pip install pandas
-$ python3.12 -m pip install py7zr
-$ python3.12 -m pip install passpy
-$ python3.12 -m pip install setuptools
-</pre></div>
-</div>
-<p>Password management is done with gnupg (aka gnupg2, <a class="reference external" href="mailto:gnupg&#37;&#52;&#48;2&#46;4">gnupg<span>&#64;</span>2<span>&#46;</span>4</a>, gpg, gpg2):</p>
+<p>Password management is done with gnupg (aka gnupg2, <a class="reference external" href="mailto:gnupg&#37;&#52;&#48;2&#46;4">gnupg<span>&#64;</span>2<span>&#46;</span>4</a>, gpg, gpg2) and
+uses <cite>passpy</cite> which would have been installed in the previous step. Continue
+the setup as follows:</p>
 <ul class="simple">
 <li><p>Setup on Ubuntu:</p></li>
 </ul>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python3.12 -m pip install passpy
-$ sudo apt-get install gnupg2 -y
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ sudo apt-get install gnupg2 -y
 $ sudo apt install pass
 $ gpg --gen-key
 $ gpg --list-keys
@@ -132,8 +127,7 @@ $ passpy show &quot;name for password&quot;
 <ul class="simple">
 <li><p>Setup on macOS:</p></li>
 </ul>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python3.12 -m pip install passpy
-$ brew install gnupg
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ brew install gnupg
 $ brew install pass
 $ gpg --gen-key
 $ gpg --list-keys
@@ -147,6 +141,24 @@ $ passpy show &quot;name for password&quot;
 <p>If you see <cite>OSError: Unable to run gpg (gpg2) - it may not be available.</cite> then
 it might mean you haven’t installed gpg or it might mean that macOS can’t find
 it. My solution is to use it from within Python, not from the Terminal.</p>
+<p><strong>Example Usage</strong></p>
+<p>To download Daily mean temperature product (V1808) meteorological data an
+<a class="reference external" href="http://aphrodite.st.hirosaki-u.ac.jp/download/">APHRODITE account</a> is
+needed and the username and password need to be to hand. The password must be
+stored in a <cite>pass</cite> password manager in the base directory:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ cd ~/DART-Pipeline
+$ export PASSWORD_STORE_DIR=$PWD/.password-store
+$ pass insert &quot;APHRODITE Daily mean temperature product (V1808)&quot;
+</pre></div>
+</div>
+<p>The script can then be run (note that these examples use the <cite>–only_one</cite> and
+<cite>–dry_run</cite> flags which are meant for script testing purposes):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python3 collate_data.py --only_one --dry_run # Approx run time: 4.144
+$ python3 collate_data.py --only_one  # Approx run time: 6:36.88
+</pre></div>
+</div>
+<p>This will create a <cite>Meteorological Data</cite> folder inside the A folder into which
+data will be downloaded.</p>
 <hr class="docutils" />
 <dl class="py function">
 <dt class="sig sig-object py" id="collate_data.get_base_directory">
@@ -271,85 +283,11 @@ Wikipedia pages “<a class="reference external" href="https://en.wikipedia.org/
 <hr class="docutils" />
 <section id="b-process-data">
 <h3>B Process Data<a class="headerlink" href="#b-process-data" title="Permalink to this headline">¶</a></h3>
-<section id="module-process_data">
-<span id="process-data-py"></span><h4>process_data.py<a class="headerlink" href="#module-process_data" title="Permalink to this headline">¶</a></h4>
-<p>Script to process raw data that has already been collated.</p>
-<p>Pre-requisites:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python3.12 -m pip install matplotlib
-$ python3.12 -m pip install pandas
-$ python3.12 -m pip install shapely
-$ python3.12 -m pip install geopandas
-$ python3.12 -m pip install rasterio
-$ /bin/bash -c &quot;$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)&quot;
-$ brew --version
-$ brew install gdal
-$ ogr2ogr --version
-</pre></div>
-</div>
-<p>Use <a class="reference external" href="https://epsg.io/9217">EPSG:9217</a> or <a class="reference external" href="https://epsg.io/4326">EPSG:4326</a>
-for projections</p>
-<p>Use the <a class="reference external" href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3">ISO 3166-1 alpha-3</a> format for country codes.</p>
+<section id="process-data-py">
+<h4>process_data.py<a class="headerlink" href="#process-data-py" title="Permalink to this headline">¶</a></h4>
 <hr class="docutils" />
-<dl class="py function">
-<dt class="sig sig-object py" id="process_data.get_base_directory">
-<span class="sig-prename descclassname"><span class="pre">process_data.</span></span><span class="sig-name descname"><span class="pre">get_base_directory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'.'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#process_data.get_base_directory" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get the base directory for a Git project.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>path</strong> (<em>str</em><em> or </em><em>pathlib.Path</em><em>, </em><em>default '.'</em>) – The path to the child directory.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The path to the parent/grand-parent/etc directory of the child
-directory that contains the “.git” folder. If no such directory exists,
-returns None.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>str or pathlib.Path, or None</p>
-</dd>
-</dl>
-</dd></dl>
-
 <hr class="docutils" />
-<dl class="py function">
-<dt class="sig sig-object py" id="process_data.plot_pop_density">
-<span class="sig-prename descclassname"><span class="pre">process_data.</span></span><span class="sig-name descname"><span class="pre">plot_pop_density</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">folderpath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#process_data.plot_pop_density" title="Permalink to this definition">¶</a></dt>
-<dd><p>Plot the population for a region.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<em>DataFrame</em>) – The data to plot.</p></li>
-<li><p><strong>folderpath</strong> (<em>str</em><em> or </em><em>pathlib.Path</em>) – The parent directory for the output plot.</p></li>
-<li><p><strong>filename</strong> (<em>str</em><em> or </em><em>pathlib.Path</em>) – The filename for the output plot.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
 <hr class="docutils" />
-<dl class="py function">
-<dt class="sig sig-object py" id="process_data.pixel_to_latlon">
-<span class="sig-prename descclassname"><span class="pre">process_data.</span></span><span class="sig-name descname"><span class="pre">pixel_to_latlon</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transform</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#process_data.pixel_to_latlon" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert pixel coordinates to latitude and longitude.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>list</em>) – The x- and y-locations of the pixels to be converted to latitude and
-longitude.</p></li>
-<li><p><strong>y</strong> (<em>list</em>) – The x- and y-locations of the pixels to be converted to latitude and
-longitude.</p></li>
-<li><p><strong>transform</strong> (<em>Affine</em>) – Affine transformation matrix as given in the GeoTIFF file.</p></li>
-<li><p><strong>crs</strong> (<em>rasterio.crs</em>) – A Rasterio coordinate reference system.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><strong>lat, lon</strong> – The latitude and longitude coordinates.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>array</p>
-</dd>
-</dl>
-</dd></dl>
-
 </section>
 </section>
 </section>

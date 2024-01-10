@@ -1,25 +1,51 @@
 """
 Script to process raw data that has already been collated.
 
-Pre-requisites:
+After the `collate_data.py` script in the "A Collate Data" folder has been run,
+the `process_data.py` script in the "B Process Data" folder can be run. This
+script has been tested on Python 3.12 and more versions will be tested in the
+future.
+
+**Installation and Setup**
+
+The package requirements are listed in `requirements.txt` - install
+these dependencies by opening a terminal in the "B Process Data" folder and
+running the following:
 
 .. code-block::
 
-    $ python3.12 -m pip install matplotlib
-    $ python3.12 -m pip install pandas
-    $ python3.12 -m pip install shapely
-    $ python3.12 -m pip install geopandas
-    $ python3.12 -m pip install rasterio
+    $ python3 -m pip install -r requirements.txt
+
+Additionally, on macOS, the Geospatial Data Abstraction Library needs to be
+installed from Homebrew:
+
+.. code-block::
+
     $ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     $ brew --version
     $ brew install gdal
     $ ogr2ogr --version
 
-Use `EPSG:9217 <https://epsg.io/9217>`_ or `EPSG:4326 <https://epsg.io/4326>`_
-for projections
+**Example Usage**
 
-Use the `ISO 3166-1 alpha-3
-<https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3>`_ format for country codes.
+To process GADM administrative map geospatial data, run one or more of the
+following commands (depending on the administrative level you are interested
+in, a parameter controlled by the `-a` flag):
+
+.. code-block::
+
+    $ python3 process_data.py --data_name "GADM administrative map" # Approx run time: 0m1.681s
+    $ python3 process_data.py --data_name "GADM administrative map" -a 1  # Approx run time: 0m5.659s
+    $ python3 process_data.py --data_name "GADM administrative map" -a 2  # Approx run time: 0m50.393s
+    $ python3 process_data.py --data_name "GADM administrative map" -a 3  # Approx run time: 8m54.418s
+
+These commands will create a "Geospatial Data" sub-folder and output data into
+it.
+
+In general, use `EPSG:9217 <https://epsg.io/9217>`_ or
+`EPSG:4326 <https://epsg.io/4326>`_ for map projections and use the
+`ISO 3166-1 alpha-3 <https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3>`_
+format for country codes.
 """
 from pathlib import Path
 import pandas as pd

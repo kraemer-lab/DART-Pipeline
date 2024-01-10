@@ -1,40 +1,30 @@
 """
 Script to collate raw data by downloading it from online sources.
 
-See "DART dataset summarisation.xls" for information about the data fields
+See `DART dataset summarisation.xls` for information about the data fields
 to be collated.
 
-This documentation assumes Python 3.12 is being used. Other versions have not
-been tested.
+This script has been tested on Python 3.12 and more versions will be tested in
+the future.
 
-Package requirements for this script are listed in `requirements.txt` as
-created with `pipreqs`:
+**Installation and Setup**
 
-.. code-block::
-
-    $ python3.12 -m pip install pipreqs
-    $ pipreqs '.' --force
-
-These packages can be installed from the terminal via the following:
+Package requirements for this script are listed in `requirements.txt`. Install
+these dependencies by opening a terminal in the "A Collate Data" folder and
+running the following:
 
 .. code-block::
 
-    $ python3.12 -m pip install requests
-    $ python3.12 -m pip install lxml
-    $ python3.12 -m pip install cdsapi
-    $ python3.12 -m pip install setuptools
-    $ python3.12 -m pip install pandas
-    $ python3.12 -m pip install py7zr
-    $ python3.12 -m pip install passpy
-    $ python3.12 -m pip install setuptools
+    $ python3 -m pip install -r requirements.txt
 
-Password management is done with gnupg (aka gnupg2, gnupg@2.4, gpg, gpg2):
+Password management is done with gnupg (aka gnupg2, gnupg@2.4, gpg, gpg2) and
+uses `passpy` which would have been installed in the previous step. Continue
+the setup as follows:
 
 - Setup on Ubuntu:
 
 .. code-block::
 
-    $ python3.12 -m pip install passpy
     $ sudo apt-get install gnupg2 -y
     $ sudo apt install pass
     $ gpg --gen-key
@@ -49,7 +39,6 @@ Password management is done with gnupg (aka gnupg2, gnupg@2.4, gpg, gpg2):
 
 .. code-block::
 
-    $ python3.12 -m pip install passpy
     $ brew install gnupg
     $ brew install pass
     $ gpg --gen-key
@@ -63,6 +52,30 @@ Password management is done with gnupg (aka gnupg2, gnupg@2.4, gpg, gpg2):
 If you see `OSError: Unable to run gpg (gpg2) - it may not be available.` then
 it might mean you haven't installed gpg or it might mean that macOS can't find
 it. My solution is to use it from within Python, not from the Terminal.
+
+**Example Usage**
+
+To download Daily mean temperature product (V1808) meteorological data an
+`APHRODITE account <http://aphrodite.st.hirosaki-u.ac.jp/download/>`_ is
+needed and the username and password need to be to hand. The password must be
+stored in a `pass` password manager in the base directory:
+
+.. code-block::
+
+    $ cd ~/DART-Pipeline
+    $ export PASSWORD_STORE_DIR=$PWD/.password-store
+    $ pass insert "APHRODITE Daily mean temperature product (V1808)"
+
+The script can then be run (note that these examples use the `--only_one` and
+`--dry_run` flags which are meant for script testing purposes):
+
+.. code-block::
+
+    $ python3 collate_data.py --only_one --dry_run # Approx run time: 4.144
+    $ python3 collate_data.py --only_one  # Approx run time: 6:36.88
+
+This will create a `Meteorological Data` folder inside the A folder into which
+data will be downloaded.
 """
 import requests
 from lxml import html
@@ -145,7 +158,7 @@ def walk(
     username=None, password=None
 ):
     """
-    Re-create `os.walk` and `Path.walk` for use with a website.
+    Re-create `os.walk()` and `Path.walk()` for use with a website.
 
     By default, all the files that are encountered by this walk function will
     be downloaded into a matching file structure on the local machine.
@@ -173,10 +186,18 @@ def walk(
     password : str, default None
         The password associated with an account that can access the data.
     """
-    url = os.path.join(base_url, relative_url)
+    # In general, use strings for creating and handling URLs as opposed to
+    # urllib's URL objects or path objects.
+    # - The requests.get() function expects a string
+    # - The urllib module can be useful for more advanced URL manipulation but
+    #   always use the urlunparse() function to convert back into a string
+    # - Avoid os.path.join() because on Windows machines the slash will be the
+    #   wrong way around
+    url = base_url + '/' + relative_url
 
     # We want to be able to identify the parent URL
-    parent_url = os.path.dirname(url)
+    idx = url.rindex('/')
+    parent_url = url[:idx]
 
     page = requests.get(url, auth=(username, password))
     if page.status_code != 200:
@@ -213,7 +234,7 @@ def walk(
             print(f'Touching: "{path}"')
             path.touch()
         else:
-            file_url = os.path.join(url, file)
+            file_url = url + '/' + file
             print(f'Downloading: "{file_url}"')
             path = Path(path, file)
             print(f'To: "{path}"')
@@ -228,7 +249,7 @@ def walk(
                 print(f'Status code {r.status_code}')
 
     for child in children:
-        relative_url_new = os.path.join(relative_url, child.removesuffix('/'))
+        relative_url_new = relative_url + '/' + child.removesuffix('/')
         walk(
             base_url, relative_url_new, only_one,
             dry_run, out_dir, username, password
@@ -256,7 +277,7 @@ def download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2):
         The mico data type's 'name' as used by the World Pop website.
     """
     base_url = 'https://www.worldpop.org/rest/data'
-    url = os.path.join(base_url, alias_1, alias_2)
+    url = '/'.join([base_url, alias_1, alias_2])
     page = requests.get(url)
     content = page.json()
     # Get the IDs of all the data
@@ -368,7 +389,7 @@ def download_gadm_data(file_format, out_dir, iso3='VNM', level=None):
     else:
         raise ValueError(f'Unknown file format "{file_format}"')
     # Request the URL
-    url = os.path.join(base_url, relative_url)
+    url = '/'.join([base_url, relative_url])
     r = requests.get(url)
     # 401: Unauthorized
     # 200: OK
@@ -593,7 +614,7 @@ How to use the Climate Data Store (CDS) Application Program Interface (API):
 https://cds.climate.copernicus.eu/api-how-to
 
 ```bash
-$ python3.12 -m pip install cdsapi
+$ python3 -m pip install cdsapi
 $ cd ~/DART-Pipeline
 $ export PASSWORD_STORE_DIR=$PWD/.password-store
 $ pass insert "ERA5 atmospheric reanalysis"
@@ -668,7 +689,7 @@ if args.data_name == 'WorldPop population density':
         # Construct a data frame overview of all the data that is available
         df = pd.DataFrame()
         for macro_data_type in content['data']:
-            url = os.path.join(base_url, macro_data_type['alias'])
+            url = '/'.join([base_url, macro_data_type['alias']])
             page = requests.get(url)
             content = page.json()
             for micro_data_type in content['data']:
