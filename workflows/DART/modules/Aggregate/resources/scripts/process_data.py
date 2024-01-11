@@ -1,51 +1,25 @@
 """
 Script to process raw data that has already been collated.
 
-After the `collate_data.py` script in the "A Collate Data" folder has been run,
-the `process_data.py` script in the "B Process Data" folder can be run. This
-script has been tested on Python 3.12 and more versions will be tested in the
-future.
-
-**Installation and Setup**
-
-The package requirements are listed in `requirements.txt` - install
-these dependencies by opening a terminal in the "B Process Data" folder and
-running the following:
+Pre-requisites:
 
 .. code-block::
 
-    $ python3 -m pip install -r requirements.txt
-
-Additionally, on macOS, the Geospatial Data Abstraction Library needs to be
-installed from Homebrew:
-
-.. code-block::
-
+    $ python3.12 -m pip install matplotlib
+    $ python3.12 -m pip install pandas
+    $ python3.12 -m pip install shapely
+    $ python3.12 -m pip install geopandas
+    $ python3.12 -m pip install rasterio
     $ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     $ brew --version
     $ brew install gdal
     $ ogr2ogr --version
 
-**Example Usage**
+Use `EPSG:9217 <https://epsg.io/9217>`_ or `EPSG:4326 <https://epsg.io/4326>`_
+for projections
 
-To process GADM administrative map geospatial data, run one or more of the
-following commands (depending on the administrative level you are interested
-in, a parameter controlled by the `-a` flag):
-
-.. code-block::
-
-    $ python3 process_data.py --data_name "GADM administrative map" # Approx run time: 0m1.681s
-    $ python3 process_data.py --data_name "GADM administrative map" -a 1  # Approx run time: 0m5.659s
-    $ python3 process_data.py --data_name "GADM administrative map" -a 2  # Approx run time: 0m50.393s
-    $ python3 process_data.py --data_name "GADM administrative map" -a 3  # Approx run time: 8m54.418s
-
-These commands will create a "Geospatial Data" sub-folder and output data into
-it.
-
-In general, use `EPSG:9217 <https://epsg.io/9217>`_ or
-`EPSG:4326 <https://epsg.io/4326>`_ for map projections and use the
-`ISO 3166-1 alpha-3 <https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3>`_
-format for country codes.
+Use the `ISO 3166-1 alpha-3
+<https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3>`_ format for country codes.
 """
 from pathlib import Path
 import pandas as pd
@@ -157,11 +131,6 @@ def pixel_to_latlon(x, y, transform, crs):
 
     return lat, lon
 
-
-# Establish the base directory
-path = Path(__file__)
-base_dir = get_base_directory(path.parent)
-
 # If running directly
 if __name__ == "__main__":
     # Create command-line argument parser
@@ -201,6 +170,13 @@ if __name__ == "__main__":
     default = 'VNM'
     parser.add_argument('--country_iso3', '-c', default=default, help=message)
 
+    path = Path(__file__)
+    parser.add_argument(
+        '--base_directory', '-b',
+        default=get_base_directory(path.parent),
+        help='Output directory'
+    )
+
     # Parse arguments from terminal
     args = parser.parse_args()
 # If running via Sphinx
@@ -227,6 +203,9 @@ data_name_to_type = {
     'WorldPop population count': 'Socio-Demographic Data',
     'GADM administrative map': 'Geospatial Data',
 }
+
+# Establish the base directory
+base_dir = os.path.abspath(args.base_directory)
 
 
 """
