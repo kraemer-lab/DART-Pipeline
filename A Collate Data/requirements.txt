@@ -1,8 +1,7 @@
-# Create this file with:
-# $ python3 -m pip install pipreqs
-# $ pipreqs '.' --force
 cdsapi==0.6.1
 lxml==4.9.3
-pandas==2.1.2
+pandas==2.1.4
 passpy==1.0.2
+py7zr==0.20.6
 Requests==2.31.0
+setuptools

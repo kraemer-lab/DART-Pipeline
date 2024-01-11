@@ -8,9 +8,17 @@ future.
 
 **Installation and Setup**
 
-The package requirements are listed in `requirements.txt` - install
-these dependencies by opening a terminal in the "B Process Data" folder and
-running the following:
+As with the A-script, it is recommended to work in a Python virtual
+environment specific to this script. Open a terminal in the "B Process Data"
+folder and run the following:
+
+.. code-block::
+
+    $ python3 -m venv venv
+    $ source venv/bin/activate
+
+The package requirements for the B-script are listed in `requirements.txt` -
+install these dependencies by running the following:
 
 .. code-block::
 
@@ -47,6 +55,9 @@ In general, use `EPSG:9217 <https://epsg.io/9217>`_ or
 `ISO 3166-1 alpha-3 <https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3>`_
 format for country codes.
 """
+# Create the requirements file with:
+# $ python3 -m pip install pipreqs
+# $ pipreqs '.' --force
 from pathlib import Path
 import pandas as pd
 from matplotlib import pyplot as plt

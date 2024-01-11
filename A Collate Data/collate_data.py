@@ -9,9 +9,16 @@ the future.
 
 **Installation and Setup**
 
+It is recommended to work in a virtual Python environment. Open a terminal in
+the "A Collate Data" folder and run the following:
+
+.. code-block::
+
+    $ python3 -m venv venv
+    $ source venv/bin/activate
+
 Package requirements for this script are listed in `requirements.txt`. Install
-these dependencies by opening a terminal in the "A Collate Data" folder and
-running the following:
+these dependencies via:
 
 .. code-block::
 
@@ -77,6 +84,9 @@ The script can then be run (note that these examples use the `--only_one` and
 This will create a `Meteorological Data` folder inside the A folder into which
 data will be downloaded.
 """
+# Create the requirements file with:
+# $ python3 -m pip install pipreqs
+# $ pipreqs '.' --force
 import requests
 from lxml import html
 import os
@@ -158,7 +168,7 @@ def walk(
     username=None, password=None
 ):
     """
-    Re-create `os.walk()` and `Path.walk()` for use with a website.
+    Re-create `os.walk` and `Path.walk` for use with a website.
 
     By default, all the files that are encountered by this walk function will
     be downloaded into a matching file structure on the local machine.
