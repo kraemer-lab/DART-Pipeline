@@ -13,7 +13,7 @@ This section details the usage of all scripts, modules and functions in the pipe
 
 A Collate Data
 --------------
-The "A Collate Data" folder contains one script - `collate_data.py` - which will be documented here:
+The "A Collate Data" folder contains one script - `collate_data.py` - which is documented here:
 
 collate_data.py
 ^^^^^^^^^^^^^^^
@@ -44,6 +44,8 @@ ____
 
 B Process Data
 --------------
+The "B Process Data" folder contains one script - `process_data.py` - which
+processes data that has already been downloaded and collated:
 
 process_data.py
 ^^^^^^^^^^^^^^^
