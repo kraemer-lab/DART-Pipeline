@@ -207,7 +207,10 @@ def walk(
     idx = url.rindex('/')
     parent_url = url[:idx]
 
-    page = requests.get(url, auth=(username, password))
+    if username and password:
+        page = requests.get(url, auth=(username, password))
+    else:
+        page = requests.get(url)
     if page.status_code != 200:
         print(f'Status code {page.status_code}')
     webpage = html.fromstring(page.content)
@@ -230,8 +233,11 @@ def walk(
             files.append(link)
     # Remove hidden files
     files = [x for x in files if not x.startswith('.')]
+    # Only take the first file
     if only_one:
         files = files[:1]
+
+    # Download files on this webpage
     for file in files:
         # Create folder and intermediate folders
         path = Path(out_dir, relative_url)
@@ -243,10 +249,13 @@ def walk(
             path.touch()
         else:
             file_url = url + '/' + file
-            print(f'Downloading: "{file_url}"')
+            print('Downloading', file_url)
             path = Path(path, file)
-            print(f'To: "{path}"')
-            r = requests.get(file_url, auth=(username, password))
+            print('to', path)
+            if username and password:
+                r = requests.get(file_url, auth=(username, password))
+            else:
+                r = requests.get(file_url)
             # 401: Unauthorized
             # 200: OK
             if r.status_code == 200:
@@ -254,7 +263,7 @@ def walk(
                     for bits in r.iter_content():
                         out.write(bits)
             else:
-                print(f'Status code {r.status_code}')
+                print('Failed with status code', r.status_code)
 
     for child in children:
         relative_url_new = relative_url + '/' + child.removesuffix('/')
@@ -262,96 +271,6 @@ def walk(
             base_url, relative_url_new, only_one,
             dry_run, out_dir, username, password
         )
-
-
-def download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2):
-    """
-    Download data from www.worldpop.org.
-
-    A summary of all the available data can be downloaded by running
-    `collate_data.py`.
-
-    Parameters
-    ----------
-    out_dir : str or pathlib.Path
-        Path to the folder to where the data will be downloaded.
-    alias_1 : str
-        The macro data type's 'alias' as used by the World Pop website.
-    name_1 : str
-        The macro data type's 'name' as used by the World Pop website.
-    alias_2 : str
-        The mico data type's 'alias' as used by the World Pop website.
-    name_2 : str
-        The mico data type's 'name' as used by the World Pop website.
-    """
-    base_url = 'https://www.worldpop.org/rest/data'
-    url = '/'.join([base_url, alias_1, alias_2])
-    page = requests.get(url)
-    content = page.json()
-    # Get the IDs of all the data
-    df = pd.DataFrame()
-    for datapoint in content['data']:
-        new_row = {}
-        for key in list(datapoint):
-            new_row[key] = datapoint[key]
-        # Append new row to master data frame
-        new_row = pd.DataFrame(new_row, index=[1])
-        df = pd.concat([df, new_row], ignore_index=True)
-    path = Path(out_dir, name_1, name_2)
-    path.mkdir(parents=True, exist_ok=True)
-    path = Path(out_dir, name_1, name_2, f'{name_2}.csv')
-    df.to_csv(path, index=False)
-    # Get a unique list of the country ISO codes
-    iso3s = []
-    for datapoint in content['data']:
-        if datapoint['iso3'] not in iso3s:
-            iso3s.append(datapoint['iso3'])
-    # Iterate over countries
-    if iso3s[0] is not None:
-        for iso3 in iso3s:
-            # Download data for Vietnam
-            if iso3 == 'VNM':
-                # Initialise data frame
-                df = pd.DataFrame()
-                page = requests.get(url + f'?iso3={iso3}')
-                content = page.json()
-                # Full country name
-                country = content['data'][0]['country']
-                # Create folder for this country
-                path = Path(out_dir, name_1, name_2, country)
-                path.mkdir(parents=True, exist_ok=True)
-                # Iterate through entries
-                for datapoint in content['data']:
-                    new_row = {}
-                    for key in list(datapoint):
-                        new_row[key] = str(datapoint[key])
-                    # Append new row to master data frame
-                    new_row = pd.DataFrame(new_row, index=[1])
-                    df = pd.concat([df, new_row], ignore_index=True)
-                    # Download data files
-                    for file in datapoint['files']:
-                        # Get the base name
-                        basename = os.path.basename(file)
-                        path = Path(out_dir, name_1, name_2, country, basename)
-                        # Make a request for the data
-                        r = requests.get(file)
-                        # 401: Unauthorized
-                        # 200: OK
-                        if r.status_code == 200:
-                            print(f'Downloading "{file}"')
-                            print(f'to "{path}"')
-                            with open(path, 'wb') as out:
-                                out.write(r.content)
-                        if Path(basename).suffix == '.7z':
-                            # Unzip data
-                            print(f'Unpacking "{path}"')
-                            foldername = str(path).removesuffix('.7z')
-                            # Extract the 7z file
-                            with py7zr.SevenZipFile(path, mode='r') as archive:
-                                archive.extractall(foldername)
-                # Export summary of available data
-                path = Path(out_dir, name_1, name_2, country, f'{country}.csv')
-                df.to_csv(path, index=False)
 
 
 def download_gadm_data(file_format, out_dir, iso3='VNM', level=None):
@@ -378,6 +297,7 @@ def download_gadm_data(file_format, out_dir, iso3='VNM', level=None):
         - level 2: county (district)
         - level 3: commune/ward (and equivalents)
     """
+    # Construct the URL
     base_url = 'https://geodata.ucdavis.edu/gadm/gadm4.1'
     if file_format == 'Geopackage':
         relative_url = f'gpkg/gadm41_{iso3}.gpkg'
@@ -396,62 +316,55 @@ def download_gadm_data(file_format, out_dir, iso3='VNM', level=None):
             raise ValueError(f'Unknown level "{level}"')
     else:
         raise ValueError(f'Unknown file format "{file_format}"')
-    # Request the URL
     url = '/'.join([base_url, relative_url])
-    r = requests.get(url)
-    # 401: Unauthorized
-    # 200: OK
-    if r.status_code == 200:
-        base_name = Path(relative_url).name
-        path = Path(out_dir, base_name)
-        print(f'Downloading {base_name}')
-        print(f'to {out_dir}')
-        with open(path, 'wb') as out:
-            out.write(r.content)
 
+    # Construct the output file path
+    base_name = Path(relative_url).name
+    path = Path(out_dir, base_name)
+
+    # Attempt to download the file
+    succeded = download_file(url, path)
+
+    # Unpack the file
+    if succeded:
         # Unpack shape files
         if file_format == 'Shapefile':
-            print(f'Unpacking {path}')
-            shutil.unpack_archive(path, str(path).removesuffix('.zip'))
+            unpack_file(path, same_folder=False)
         # Unpack GeoJSON files
         if file_format == 'GeoJSON':
-            if path.suffix == '.zip':
-                print(f'Unpacking {path}')
-                print(f'to {path.parent}')
-                shutil.unpack_archive(path, path.parent)
-
-    else:
-        print(f'Status code {r.status_code} returned')
+            # The level 0 data is not packed
+            if level != 'level0':
+                unpack_file(path, same_folder=True)
 
 
 def download_file(url, path):
+    print('Downloading', url)
+    print('to', path)
     # Make a request for the data
     r = requests.get(url)
     # 401: Unauthorized
     # 200: OK
     if r.status_code == 200:
-        print('Downloading', url)
-        print('to', path)
         with open(path, 'wb') as out:
             out.write(r.content)
+        return True
     else:
-        print(f'Status code {r.status_code}')
+        print('Failed with status code', r.status_code)
+        return False
 
 
 def unpack_file(path, same_folder=False):
+    print('Unpacking', path)
     if Path(path).suffix == '.7z':
-        print('Unpacking', path)
         foldername = str(path).removesuffix('.7z')
         # Extract the 7z file
         with py7zr.SevenZipFile(path, mode='r') as archive:
             archive.extractall(foldername)
     else:
         if same_folder:
-            print('Unpacking', path)
             print('to', path.parent)
             shutil.unpack_archive(path, path.parent)
         else:
-            print('Unpacking', path)
             print('to', str(path).removesuffix('.zip'))
             shutil.unpack_archive(path, str(path).removesuffix('.zip'))
 
@@ -517,8 +430,11 @@ $ pass "APHRODITE Daily mean temperature product (V1808)"
 
 Run times:
 
-- `time python3.12 collate_data.py --only_one`: 6m36.88s
-- `time python3.12 collate_data.py --only_one --dry_run`: 4.144s
+time python3 collate_data.py --only_one
+6m36.88s
+
+time python3 collate_data.py --only_one --dry_run
+4.144s
 """
 if args.data_name == 'APHRODITE Daily mean temperature product (V1808)':
     data_type = data_name_to_type[args.data_name]
@@ -613,13 +529,16 @@ Run times:
   Gauge and Satellite Observations" --only_one`: 1h21m59.41s
 """
 if args.data_name.startswith('CHIRPS: Rainfall Estimates from Rain Gauge and'):
-    data_type = data_name_to_type[args.data_name]
-    # Set parameters
+    # Get parameters from arguments
+    data_name = args.data_name
     only_one = args.only_one
     dry_run = args.dry_run
 
+    # Set additional parameters
+    data_type = data_name_to_type[data_name]
+
     # Create output directory
-    sanitised = args.data_name.replace(':', ' -')
+    sanitised = data_name.replace(':', ' -')
     out_dir = Path(base_dir, 'A Collate Data', data_type, sanitised)
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -640,13 +559,16 @@ Run times:
 precipitation, and other" --only_one --dry_run`: 4.606s
 """
 if args.data_name.startswith('TerraClimate gridded temperature, precipitatio'):
-    data_type = data_name_to_type[args.data_name]
-    # Set parameters
+    # Get parameters from arguments
+    data_name = args.data_name
     only_one = args.only_one
     dry_run = args.dry_run
 
+    # Set additional parameters
+    data_type = data_name_to_type[data_name]
+
     # Create output directory
-    out_dir = Path(base_dir, 'A Collate Data', data_type, args.data_name)
+    out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # URLs should be str, not urllib URL objects, because requests expects str
@@ -761,9 +683,10 @@ if args.data_name == 'WorldPop population density':
         print(f'Touching: "{path}"')
         path.touch()
     else:
-        download_file(url, path)
+        succeded = download_file(url, path)
         # Unpack file
-        unpack_file(path, same_folder=True)
+        if succeded:
+            unpack_file(path, same_folder=True)
 
     #
     # GeoTIFF file
@@ -793,14 +716,15 @@ Run times:
 - `$ time python3 collate_data.py -n "WorldPop population count"`: 406.2s
 """
 if args.data_name == 'WorldPop population count':
-    data_type = data_name_to_type[args.data_name]
-    # Set parameters
+    # Get parameters from arguments
+    data_name = args.data_name
     only_one = args.only_one
+    if only_one:
+        print('The --only_one/-1 flag has no effect for this metric')
     dry_run = args.dry_run
 
-    # Construct additional parameters
-    year = '2020'
-    iso3 = 'VNM'
+    # Set additional parameters
+    data_type = data_name_to_type[data_name]
     base_url = 'https://data.worldpop.org'
 
     # Download GeoDataFrame file
@@ -808,7 +732,7 @@ if args.data_name == 'WorldPop population count':
         'Viet_Nam_100m_Population.7z'
     url = os.path.join(base_url, relative_url)
     path = Path(
-        base_dir, 'A Collate Data', data_type, args.data_name, relative_url
+        base_dir, 'A Collate Data', data_type, data_name, relative_url
     )
     path.parent.mkdir(parents=True, exist_ok=True)
     if dry_run:
@@ -817,26 +741,39 @@ if args.data_name == 'WorldPop population count':
     else:
         print('Downloading', url)
         print('to', path)
-        download_file(url, path)
+        succeded = download_file(url, path)
         # Unpack file
-        unpack_file(path, same_folder=True)
+        if succeded:
+            unpack_file(path, same_folder=True)
 
 """
 Geospatial data
  └ GADM administrative map
 
-- `time python3 collate_data.py -n "GADM administrative map"` (1:00.087 min)
+time python3 collate_data.py -n "GADM administrative map"
+2m0.457s
 """
 if args.data_name == 'GADM administrative map':
-    data_type = data_name_to_type[args.data_name]
+    # Get parameters from arguments
+    data_name = args.data_name
+    only_one = args.only_one
+    if only_one:
+        print('The --only_one/-1 flag has no effect for this metric')
+    dry_run = args.dry_run
+    if dry_run:
+        print('The --dry_run/-d flag has no effect for this metric')
+
+    # Set additional parameters
+    data_type = data_name_to_type[data_name]
+    iso3 = 'VNM'
 
     # Create output directory
-    out_dir = Path(base_dir, 'A Collate Data', data_type, args.data_name)
+    out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    download_gadm_data('Geopackage', out_dir, iso3='VNM')
-    download_gadm_data('Shapefile', out_dir, iso3='VNM')
-    download_gadm_data('GeoJSON', out_dir, iso3='VNM', level='level0')
-    download_gadm_data('GeoJSON', out_dir, iso3='VNM', level='level1')
-    download_gadm_data('GeoJSON', out_dir, iso3='VNM', level='level2')
-    download_gadm_data('GeoJSON', out_dir, iso3='VNM', level='level3')
+    download_gadm_data('Geopackage', out_dir, iso3=iso3)
+    download_gadm_data('Shapefile', out_dir, iso3=iso3)
+    download_gadm_data('GeoJSON', out_dir, iso3=iso3, level='level0')
+    download_gadm_data('GeoJSON', out_dir, iso3=iso3, level='level1')
+    download_gadm_data('GeoJSON', out_dir, iso3=iso3, level='level2')
+    download_gadm_data('GeoJSON', out_dir, iso3=iso3, level='level3')
