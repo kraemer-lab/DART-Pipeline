@@ -34,6 +34,7 @@ installed from Homebrew:
     $ brew install gdal
     $ ogr2ogr --version
 
+<<<<<<< Updated upstream
 **Example Usage**
 
 To process GADM administrative map geospatial data, run one or more of the
@@ -42,10 +43,14 @@ in, a parameter controlled by the `-a` flag):
 
 .. code-block::
 
-    $ python3 process_data.py --data_name "GADM administrative map" # Approx run time: 0m1.681s
-    $ python3 process_data.py --data_name "GADM administrative map" -a 1  # Approx run time: 0m5.659s
-    $ python3 process_data.py --data_name "GADM administrative map" -a 2  # Approx run time: 0m50.393s
-    $ python3 process_data.py --data_name "GADM administrative map" -a 3  # Approx run time: 8m54.418s
+    # Approx run time: 0m1.681s
+    $ python3 process_data.py --data_name "GADM administrative map"
+    # Approx run time: 0m5.659s
+    $ python3 process_data.py --data_name "GADM administrative map" -a 1
+    # Approx run time: 0m50.393s
+    $ python3 process_data.py --data_name "GADM administrative map" -a 2
+    # Approx run time: 8m54.418s
+    $ python3 process_data.py --data_name "GADM administrative map" -a 3
 
 These commands will create a "Geospatial Data" sub-folder and output data into
 it.
@@ -181,11 +186,6 @@ if __name__ == "__main__":
 
     # Add optional arguments: data_name
     message = 'The name of the data field to be processed.'
-    # default = 'GADM administrative map'
-    # default = 'WorldPop population density'
-    # default = 'WorldPop population count'
-    # default = 'GADM administrative map and WorldPop population count'
-    # default = 'GADM administrative map and WorldPop population density'
     default = ''
     parser.add_argument('--data_name', '-n', default=default, help=message)
 
@@ -238,7 +238,6 @@ data_name_to_type = {
     'WorldPop population count': 'Socio-Demographic Data',
     'GADM administrative map': 'Geospatial Data',
 }
-
 
 """
 Geospatial data
@@ -372,12 +371,16 @@ Socio-demographic data
 - EPSG:9217: https://epsg.io/9217
 - EPSG:4326: https://epsg.io/4326
 - EPSG = European Petroleum Survey Group
+
+Run times:
+
+- `time python3 process_data.py --data_name "WorldPop population count"`:
+  1m24.587s
 """
 if args.data_name == 'WorldPop population count':
     print('Processing WorldPop population count')
 
     # Get the year for which data will be loaded
-    print(args.year)
     if args.year == '':
         year = '2020'
     else:
@@ -535,6 +538,13 @@ if args.data_name == 'WorldPop population count':
 """
 Geospatial and Socio-Demographic Data
  └ GADM administrative map and WorldPop population count
+
+- `time python3 process_data.py --data_name "GADM administrative map and
+  WorldPop population count" --admin_level 0`: 10.182s
+- `time python3 process_data.py --data_name "GADM administrative map and
+  WorldPop population count" --admin_level 1`: 1m36.789s
+- `time python3 process_data.py --data_name "GADM administrative map and
+  WorldPop population count" --admin_level 2`: 17m21.086s
 """
 if args.data_name == 'GADM administrative map and WorldPop population count':
     # Get the year for which data will be loaded
@@ -654,11 +664,11 @@ Geospatial and Socio-Demographic Data
 Run times:
 
 - If the labelled population density data does not exist:
-    - `time python3.12 process_data.py -n "GADM administrative map and WorldPop
+    - `time python3 process_data.py -n "GADM administrative map and WorldPop
     population density"`: 31m52.408s
 - If the labelled population density data exists:
-    - `time python3.12 process_data.py -n "GADM administrative map and WorldPop
-    population density"`: 0m16.145s
+    - `time python3 process_data.py -n "GADM administrative map and WorldPop
+    population density"`: 16.145s
 """
 if args.data_name == 'GADM administrative map and WorldPop population density':
     # Get the year for which data will be loaded
@@ -677,10 +687,8 @@ if args.data_name == 'GADM administrative map and WorldPop population density':
 
     # Import the population density data for Vietnam
     relative_path = Path(
-        'Socio-Demographic Data', 'WorldPop population density',
-        'Population Density',
-        'Unconstrained individual countries UN adjusted (1km resolution)',
-        'Vietnam'
+        'Socio-Demographic Data', 'WorldPop population density', 'GIS',
+        'Population_Density', 'Global_2000_2020_1km_UNadj', '2020', 'VNM'
     )
     filename = Path(f'{iso3.lower()}_pd_{year}_1km_UNadj_ASCII_XYZ.zip')
     path = Path(base_dir, 'A Collate Data', relative_path, filename)

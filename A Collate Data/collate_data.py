@@ -24,41 +24,39 @@ these dependencies via:
 
     $ python3 -m pip install -r requirements.txt
 
-Password management is done with gnupg (aka gnupg2, gnupg@2.4, gpg, gpg2) and
-uses `passpy` which would have been installed in the previous step. Continue
-the setup as follows:
-
-- Setup on Ubuntu:
+Password management is done with GNU Privacy Guard (GnuPG or GPG) together with
+pass and passpy. The passpy library would have been installed in the previous
+step while GnuPG and pass can be installed via `apt` on Ubuntu or `brew` on
+macOS:
 
 .. code-block::
 
+    # Ubuntu:
     $ sudo apt-get install gnupg2 -y
     $ sudo apt install pass
-    $ gpg --gen-key
-    $ gpg --list-keys
-    $ cd ~/DART-Pipeline
-    $ export PASSWORD_STORE_DIR=$PWD/.password-store
-    $ pass init <your GPG public key>
-    $ passpy insert "name for password"
-    $ passpy show "name for password"
-
-- Setup on macOS:
 
 .. code-block::
 
+    # macOS:
     $ brew install gnupg
     $ brew install pass
+
+The rest of the password management setup is as follows:
+
+.. code-block::
+
     $ gpg --gen-key
     $ gpg --list-keys
     $ cd ~/DART-Pipeline
     $ export PASSWORD_STORE_DIR=$PWD/.password-store
-    $ pass init <your GPG public key>
+    $ pass init <your GnuPG public key>
     $ passpy insert "name for password"
     $ passpy show "name for password"
 
-If you see `OSError: Unable to run gpg (gpg2) - it may not be available.` then
-it might mean you haven't installed gpg or it might mean that macOS can't find
-it. My solution is to use it from within Python, not from the Terminal.
+If you are on macOS and see `OSError: Unable to run gpg (gpg2) - it may not be
+available` then it might mean you haven't installed GnuPG yet or it might mean
+that you have but macOS can't find it. A solution is to use passpy (from within
+Python) and to not use GnuPG (from the Terminal).
 
 **Example Usage**
 
@@ -426,6 +424,38 @@ def download_gadm_data(file_format, out_dir, iso3='VNM', level=None):
         print(f'Status code {r.status_code} returned')
 
 
+def download_file(url, path):
+    # Make a request for the data
+    r = requests.get(url)
+    # 401: Unauthorized
+    # 200: OK
+    if r.status_code == 200:
+        print('Downloading', url)
+        print('to', path)
+        with open(path, 'wb') as out:
+            out.write(r.content)
+    else:
+        print(f'Status code {r.status_code}')
+
+
+def unpack_file(path, same_folder=False):
+    if Path(path).suffix == '.7z':
+        print('Unpacking', path)
+        foldername = str(path).removesuffix('.7z')
+        # Extract the 7z file
+        with py7zr.SevenZipFile(path, mode='r') as archive:
+            archive.extractall(foldername)
+    else:
+        if same_folder:
+            print('Unpacking', path)
+            print('to', path.parent)
+            shutil.unpack_archive(path, path.parent)
+        else:
+            print('Unpacking', path)
+            print('to', str(path).removesuffix('.zip'))
+            shutil.unpack_archive(path, str(path).removesuffix('.zip'))
+
+
 # If running directly
 if __name__ == "__main__":
     # Create command-line argument parser
@@ -433,7 +463,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=desc)
     # Add optional arguments
     message = 'The name of the data field to be downloaded and collated.'
-    default = 'APHRODITE Daily mean temperature product (V1808)'
+    default = ''
     parser.add_argument('--data_name', '-n', default=default, help=message)
     message = '''If set, only one item from each folder in the raw data
     will be downloaded/created.'''
@@ -476,6 +506,8 @@ base_dir = get_base_directory(path.parent)
 Meteorological data
  └ APHRODITE Daily mean temperature product (V1808)
 
+**Requires APHRODITE account**
+
 ```bash
 $ cd ~/DART-Pipeline
 $ export PASSWORD_STORE_DIR=$PWD/.password-store
@@ -485,8 +517,8 @@ $ pass "APHRODITE Daily mean temperature product (V1808)"
 
 Run times:
 
-- `time python3.12 collate_data.py --only_one`: 6:36.88
-- `time python3.12 collate_data.py --only_one --dry_run`: 4.144
+- `time python3.12 collate_data.py --only_one`: 6m36.88s
+- `time python3.12 collate_data.py --only_one --dry_run`: 4.144s
 """
 if args.data_name == 'APHRODITE Daily mean temperature product (V1808)':
     data_type = data_name_to_type[args.data_name]
@@ -523,6 +555,8 @@ if args.data_name == 'APHRODITE Daily mean temperature product (V1808)':
 """
 Meteorological data
  └ APHRODITE Daily accumulated precipitation (V1901)
+
+**Requires APHRODITE account**
 
 From the base directory:
 
@@ -576,7 +610,7 @@ Meteorological data
 Run times:
 
 - `time python3.12 collate_data.py -n "CHIRPS: Rainfall Estimates from Rain
-  Gauge and Satellite Observations" --only_one`: 1:21:59.41
+  Gauge and Satellite Observations" --only_one`: 1h21m59.41s
 """
 if args.data_name.startswith('CHIRPS: Rainfall Estimates from Rain Gauge and'):
     data_type = data_name_to_type[args.data_name]
@@ -599,6 +633,11 @@ if args.data_name.startswith('CHIRPS: Rainfall Estimates from Rain Gauge and'):
 Meteorological data
  └ TerraClimate gridded temperature, precipitation, and other water balance
 variables
+
+Run times:
+
+- `$ time python3 collate_data.py -n "TerraClimate gridded temperature,
+precipitation, and other" --only_one --dry_run`: 4.606s
 """
 if args.data_name.startswith('TerraClimate gridded temperature, precipitatio'):
     data_type = data_name_to_type[args.data_name]
@@ -630,6 +669,10 @@ $ export PASSWORD_STORE_DIR=$PWD/.password-store
 $ pass insert "ERA5 atmospheric reanalysis"
 $ pass "ERA5 atmospheric reanalysis"
 ```
+
+Run times:
+
+- `$ time python3 collate_data.py -n "ERA5 atmospheric reanalysis"`: 7.738s
 """
 if args.data_name == 'ERA5 atmospheric reanalysis':
     data_type = data_name_to_type[args.data_name]
@@ -675,88 +718,114 @@ if args.data_name == 'ERA5 atmospheric reanalysis':
         Path(out_dir, 'ERA5-ml-temperature-subarea.nc')
     )
 
-
 """
 Socio-demographic data
  └ WorldPop population density
+
+All available datasets are detailed here: https://www.worldpop.org/rest/data
+
+Run times:
+
+time python3 collate_data.py -n "WorldPop population density" --dry_run
+0m0.732s
+
+time python3 collate_data.py -n "WorldPop population density"
+0m2.860s
 """
 if args.data_name == 'WorldPop population density':
-    data_type = data_name_to_type[args.data_name]
+    # Get parameters from arguments
+    data_name = args.data_name
+    only_one = args.only_one
+    if only_one:
+        print('The --only_one/-1 flag has no effect for this metric')
+    dry_run = args.dry_run
 
-    # Create output directory
-    out_dir = Path(base_dir, 'A Collate Data', data_type, args.data_name)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    # Set additional parameters
+    data_type = data_name_to_type[data_name]
+    year = '2020'
+    iso3 = 'VNM'
+    base_url = 'https://data.worldpop.org'
 
-    if False:
-        # Get overviews of all the data that is available
-        base_url = 'https://www.worldpop.org/rest/data'
-        page = requests.get(base_url)
-        content = page.json()
-        # Export as JSON
-        path = Path(out_dir, 'Available Datasets.json')
-        with open(path, 'w') as file:
-            json.dump(content, file)
-        # Construct a data frame overview of all the data that is available
-        df = pd.DataFrame()
-        for macro_data_type in content['data']:
-            url = '/'.join([base_url, macro_data_type['alias']])
-            page = requests.get(url)
-            content = page.json()
-            for micro_data_type in content['data']:
-                new_row = {}
-                new_row['alias_1'] = macro_data_type['alias']
-                new_row['name_1'] = macro_data_type['name']
-                new_row['title_1'] = macro_data_type['title']
-                new_row['desc_1'] = macro_data_type['desc']
-                new_row['alias_2'] = micro_data_type['alias']
-                new_row['name_2'] = micro_data_type['name']
-                # Append new row to master data frame
-                new_row = pd.DataFrame(new_row, index=[1])
-                df = pd.concat([df, new_row], ignore_index=True)
-        path = Path(out_dir, 'Available Datasets.csv')
-        df.to_csv(path, index=False)
+    #
+    # GeoDataFrame file
+    #
+    # Construct URL
+    relative_url = 'GIS/Population_Density/Global_2000_2020_1km_UNadj/' + \
+        f'{year}/{iso3}/{iso3.lower()}_pd_{year}_1km_UNadj_ASCII_XYZ.zip'
+    url = '/'.join([base_url, relative_url])
+    # Construct and create output path
+    path = Path(base_dir, 'A Collate Data', data_type, data_name, relative_url)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # Touch or download the GeoDataFrame file
+    if dry_run:
+        print(f'Touching: "{path}"')
+        path.touch()
+    else:
+        download_file(url, path)
+        # Unpack file
+        unpack_file(path, same_folder=True)
 
-    alias_1 = 'pop_density'
-    name_1 = 'Population Density'
-    if False:
-        # Get the population density data
-        alias_2 = 'pd_ic_1km'
-        name_2 = 'Unconstrained individual countries (1km resolution)'
-        download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2)
-    if False:
-        alias_2 = 'pd_ic_1km_unadj'
-        name_2 = 'Unconstrained individual countries UN adjusted ' + \
-            '(1km resolution)'
-        download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2)
+    #
+    # GeoTIFF file
+    #
+    # Construct URL
+    relative_url = 'GIS/Population_Density/Global_2000_2020_1km_UNadj/' + \
+        f'{year}/{iso3}/{iso3.lower()}_pd_{year}_1km_UNadj.tif'
+    url = '/'.join([base_url, relative_url])
+    # Construct and create output path
+    path = Path(base_dir, 'A Collate Data', data_type, data_name, relative_url)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # Touch or download the GeoTIFF file
+    if dry_run:
+        print(f'Touching: "{path}"')
+        path.touch()
+    else:
+        download_file(url, path)
 
 """
 Socio-demographic data
  └ WorldPop population count
 
-This block takes 406.2s or 949.1s to run.
+All available datasets are detailed here: https://www.worldpop.org/rest/data
+
+Run times:
+
+- `$ time python3 collate_data.py -n "WorldPop population count"`: 406.2s
 """
 if args.data_name == 'WorldPop population count':
     data_type = data_name_to_type[args.data_name]
+    # Set parameters
+    only_one = args.only_one
+    dry_run = args.dry_run
 
-    # Create output directory
-    out_dir = Path(base_dir, 'A Collate Data', data_type, args.data_name)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    # Construct additional parameters
+    year = '2020'
+    iso3 = 'VNM'
+    base_url = 'https://data.worldpop.org'
 
-    # Get the population count data
-    alias_1 = 'pop'
-    name_1 = 'Population Counts'
-    alias_2 = 'pic'
-    name_2 = 'Individual countries'
-    download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2)
-    alias_2 = 'wpgp1km'
-    name_2 = 'Unconstrained global mosaics 2000-2020 (1km resolution)'
-    download_worldpop_data(out_dir, alias_1, name_1, alias_2, name_2)
+    # Download GeoDataFrame file
+    relative_url = 'GIS/Population/Individual_countries/VNM/' + \
+        'Viet_Nam_100m_Population.7z'
+    url = os.path.join(base_url, relative_url)
+    path = Path(
+        base_dir, 'A Collate Data', data_type, args.data_name, relative_url
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if dry_run:
+        print(f'Touching: "{path}"')
+        path.touch()
+    else:
+        print('Downloading', url)
+        print('to', path)
+        download_file(url, path)
+        # Unpack file
+        unpack_file(path, same_folder=True)
 
 """
 Geospatial data
  └ GADM administrative map
 
-- `time python3.12 collate_data.py -n "GADM administrative map"`: 1m0.087s
+- `time python3 collate_data.py -n "GADM administrative map"` (1:00.087 min)
 """
 if args.data_name == 'GADM administrative map':
     data_type = data_name_to_type[args.data_name]
