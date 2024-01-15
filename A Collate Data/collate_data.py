@@ -463,7 +463,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=desc)
     # Add optional arguments
     message = 'The name of the data field to be downloaded and collated.'
-    default = 'APHRODITE Daily mean temperature product (V1808)'
+    default = ''
     parser.add_argument('--data_name', '-n', default=default, help=message)
     message = '''If set, only one item from each folder in the raw data
     will be downloaded/created.'''
@@ -726,60 +726,61 @@ All available datasets are detailed here: https://www.worldpop.org/rest/data
 
 Run times:
 
-- `$ time python3 collate_data.py -n "WorldPop population density"`: 1m39.633s
-- `$ time python3 collate_data.py -n "WorldPop population density" --only_one`:
-  1m2.862s
-- `$ time python3 collate_data.py -n "WorldPop population density" --dry_run`:
-  0.565s
-- `$ time python3 collate_data.py -n "WorldPop population density" --only_one
-  --dry_run`: 0.526s
+time python3 collate_data.py -n "WorldPop population density" --dry_run
+0m0.732s
+
+time python3 collate_data.py -n "WorldPop population density"
+0m2.860s
 """
 if args.data_name == 'WorldPop population density':
-    data_type = data_name_to_type[args.data_name]
-    # Set parameters
+    # Get parameters from arguments
+    data_name = args.data_name
     only_one = args.only_one
+    if only_one:
+        print('The --only_one/-1 flag has no effect for this metric')
     dry_run = args.dry_run
 
-    # Construct additional parameters
+    # Set additional parameters
+    data_type = data_name_to_type[data_name]
     year = '2020'
     iso3 = 'VNM'
     base_url = 'https://data.worldpop.org'
 
-    # Download GeoDataFrame file
+    #
+    # GeoDataFrame file
+    #
+    # Construct URL
     relative_url = 'GIS/Population_Density/Global_2000_2020_1km_UNadj/' + \
         f'{year}/{iso3}/{iso3.lower()}_pd_{year}_1km_UNadj_ASCII_XYZ.zip'
-    url = os.path.join(base_url, relative_url)
-    path = Path(
-        base_dir, 'A Collate Data', data_type, args.data_name, relative_url
-    )
+    url = '/'.join([base_url, relative_url])
+    # Construct and create output path
+    path = Path(base_dir, 'A Collate Data', data_type, data_name, relative_url)
     path.parent.mkdir(parents=True, exist_ok=True)
+    # Touch or download the GeoDataFrame file
     if dry_run:
         print(f'Touching: "{path}"')
         path.touch()
     else:
-        print('Downloading', url)
-        print('to', path)
         download_file(url, path)
         # Unpack file
         unpack_file(path, same_folder=True)
 
-    if not only_one:
-        # Download GeoTIFF file
-        relative_url = 'GIS/Population_Density/' + \
-            'Global_2000_2020_1km_UNadj/' + \
-            f'{year}/{iso3}/{iso3.lower()}_pd_{year}_1km_UNadj.tif'
-        url = os.path.join(base_url, relative_url)
-        path = Path(
-            base_dir, 'A Collate Data', data_type, args.data_name, relative_url
-        )
-        path.parent.mkdir(parents=True, exist_ok=True)
-        if dry_run:
-            print(f'Touching: "{path}"')
-            path.touch()
-        else:
-            print('Downloading', url)
-            print('to', path)
-            download_file(url, path)
+    #
+    # GeoTIFF file
+    #
+    # Construct URL
+    relative_url = 'GIS/Population_Density/Global_2000_2020_1km_UNadj/' + \
+        f'{year}/{iso3}/{iso3.lower()}_pd_{year}_1km_UNadj.tif'
+    url = '/'.join([base_url, relative_url])
+    # Construct and create output path
+    path = Path(base_dir, 'A Collate Data', data_type, data_name, relative_url)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # Touch or download the GeoTIFF file
+    if dry_run:
+        print(f'Touching: "{path}"')
+        path.touch()
+    else:
+        download_file(url, path)
 
 """
 Socio-demographic data
