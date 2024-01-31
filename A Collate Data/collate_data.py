@@ -93,8 +93,10 @@ import py7zr
 from pathlib import Path
 import passpy
 import cdsapi
+import pandas as pd
 import platform
 import argparse
+import utils
 
 
 def get_base_directory(path='.'):
@@ -377,9 +379,15 @@ class EmptyObject:
 
 # If running directly
 if __name__ == '__main__':
+    # Perform checks
+    utils.check_os()
+    utils.check_python()
+    utils.check_environment()
+
     # Create command-line argument parser
     desc = 'Download data and store it locally for later processing.'
     parser = argparse.ArgumentParser(description=desc)
+
     # Add optional arguments
     message = 'The name of the data field to be downloaded and collated.'
     default = ''
@@ -390,8 +398,10 @@ if __name__ == '__main__':
     message = '''If set, the raw data will not be downloaded. Instead, empty
     files will be created with the correct names and locations.'''
     parser.add_argument('--dry_run', '-d', action='store_true', help=message)
+
     # Parse arguments from terminal
     args = parser.parse_args()
+
 # If running via Sphinx
 else:
     # Create a fake args object so Sphinx doesn't complain it doesn't have
