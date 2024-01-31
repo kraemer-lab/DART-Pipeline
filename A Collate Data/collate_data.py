@@ -93,35 +93,9 @@ import py7zr
 from pathlib import Path
 import passpy
 import cdsapi
-import pandas as pd
 import platform
 import argparse
 import utils
-
-
-def get_base_directory(path='.'):
-    """
-    Get the base directory for a Git project.
-
-    Parameters
-    ----------
-    path : str or pathlib.Path, default '.'
-        The path to the child directory.
-
-    Returns
-    -------
-    str or pathlib.Path, or None
-        The path to the parent/grand-parent/etc directory of the child
-        directory that contains the ".git" folder. If no such directory exists,
-        returns None.
-    """
-    path = os.path.abspath(path)
-    while True:
-        if '.git' in os.listdir(path):
-            return path
-        if path == os.path.dirname(path):
-            return None  # If the current directory is the root, break the loop
-        path = os.path.dirname(path)
 
 
 def get_password(data_name, username, base_dir='.'):
@@ -430,7 +404,7 @@ data_name_to_type = {
 
 # Establish the base directory
 path = Path(__file__)
-base_dir = get_base_directory(path.parent)
+base_dir = utils.get_base_directory(path.parent)
 
 """
 Meteorological data

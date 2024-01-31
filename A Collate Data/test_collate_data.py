@@ -7,17 +7,12 @@ Past Runs
 - 2024-01-17 macOS Sonoma, Python 3.12: Ran 5 tests in 4.376s
 """
 import unittest
-from collate_data import get_base_directory, walk, download_gadm_data, \
+from collate_data import walk, download_gadm_data, \
     download_file, unpack_file
 from pathlib import Path
 
 
 class TestCases(unittest.TestCase):
-
-    def test_get_base_directory(self):
-        expected = str(Path('~/DART-Pipeline').expanduser())
-        actual = get_base_directory()
-        self.assertEqual(expected, actual)
 
     def test_walk(self):
         base_url = 'https://data.chc.ucsb.edu'

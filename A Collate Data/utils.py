@@ -3,36 +3,62 @@ import platform
 import distro
 import warnings
 import sys
+import os
+
+
+def get_base_directory(path='.'):
+    """
+    Get the base directory for a Git project.
+
+    Parameters
+    ----------
+    path : str or pathlib.Path, default '.'
+        The path to the child directory.
+
+    Returns
+    -------
+    str or pathlib.Path, or None
+        The path to the parent/grand-parent/etc directory of the child
+        directory that contains the ".git" folder. If no such directory exists,
+        returns None.
+    """
+    path = os.path.abspath(path)
+    while True:
+        if '.git' in os.listdir(path):
+            return path
+        if path == os.path.dirname(path):
+            return None  # If the current directory is the root, break the loop
+        path = os.path.dirname(path)
 
 
 def check_os():
     """Check that the OS is one of the ones that has been tested."""
-    tested_oss = ['Ubuntu 22.04', 'macOS Sonoma']
+    tested_oss = ['Ubuntu 22', 'macOS Sonoma']
     core_os = platform.system()
 
     # If this is a Linux machine
     if core_os == 'Linux':
         name = distro.name()
-        ver = distro.version()
+        ver = int(distro.version().split('.')[0])
         OS = f'{name} {ver}'
         if name != 'Ubuntu':
             # This is a non-Ubuntu Linux machine
             warnings.warn('Operating system')
-            print(f'You are using a Linux OS ({OS}) that has not been tested')
-            print('Tested OSs:', tested_oss)
+            print(f'You are using {OS} which has not been tested')
+            print('Tested operating systems:', tested_oss)
         elif OS not in tested_oss:
             # This is an Ubuntu machine that is not one of the tested versions
             warnings.warn('Operating system')
             print(f'You are using Ubuntu {ver} which has not been tested')
-            print('Tested OSs:', tested_oss)
+            print('Tested operating systems:', tested_oss)
 
     # If this is a Windows machine
     elif core_os == 'Windows':
         OS = platform.system()
         version = platform.release()
         warnings.warn('Operating system')
-        print(f'You are using an OS ({OS}) that has not been tested')
-        print('Tested OSs:', tested_oss)
+        print('You are using Windows. This OS has not been tested')
+        print('Tested operating systems:', tested_oss)
 
     # This is a macOS machine
     elif core_os == 'Darwin':
@@ -61,7 +87,12 @@ def check_os():
         if OS not in tested_oss:
             warnings.warn('Operating system')
             print(f'You are using {OS} which has not been tested')
-            print('Tested OSs:', tested_oss)
+            print('Tested operating systems:', tested_oss)
+
+    else:
+        warnings.warn('Operating system')
+        print(f'You are using {core_os} which has not been tested')
+        print('Tested operating systems:', tested_oss)
 
 
 def check_python():
@@ -96,13 +127,19 @@ def check_python():
 
 def check_environment():
     """Check that the user is in a virtual environment."""
-    if sys.prefix == sys.base_prefix:
+    path = os.path.join(get_base_directory(), 'A Collate Data')
+    if path in sys.prefix:
+        # Python is located in the A folder - ie it's a venv
+        pass
+    else:
+        # Python is not located in the A folder - ie it's not a venv
         warnings.warn('No virtual environment')
         print('You are not working in a virtual environment')
         print(f'Python is being run from {sys.executable}')
 
 
 if __name__ == '__main__':
+    print(get_base_directory())
     check_os()
     check_python()
     check_environment()
