@@ -1,68 +1,26 @@
 """
 Script to process raw data that has already been collated.
 
-After the `collate_data.py` script in the "A Collate Data" folder has been run,
-the `process_data.py` script in the "B Process Data" folder can be run. This
-script has been tested on Python 3.12 and more versions will be tested in the
-future.
-
-**Installation and Setup**
-
-As with the A-script, it is recommended to work in a Python virtual
-environment specific to this script. Open a terminal in the "B Process Data"
-folder and run the following:
+Pre-requisites:
 
 .. code-block::
 
-    $ python3 -m venv venv
-    $ source venv/bin/activate
-
-The package requirements for the B-script are listed in `requirements.txt` -
-install these dependencies by running the following:
-
-.. code-block::
-
-    $ python3 -m pip install -r requirements.txt
-
-Additionally, on macOS, the Geospatial Data Abstraction Library needs to be
-installed from Homebrew:
-
-.. code-block::
-
+    $ python3.12 -m pip install matplotlib
+    $ python3.12 -m pip install pandas
+    $ python3.12 -m pip install shapely
+    $ python3.12 -m pip install geopandas
+    $ python3.12 -m pip install rasterio
     $ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     $ brew --version
     $ brew install gdal
     $ ogr2ogr --version
 
-<<<<<<< Updated upstream
-**Example Usage**
+Use `EPSG:9217 <https://epsg.io/9217>`_ or `EPSG:4326 <https://epsg.io/4326>`_
+for projections
 
-To process GADM administrative map geospatial data, run one or more of the
-following commands (depending on the administrative level you are interested
-in, a parameter controlled by the `-a` flag):
-
-.. code-block::
-
-    # Approx run time: 0m1.681s
-    $ python3 process_data.py --data_name "GADM administrative map"
-    # Approx run time: 0m5.659s
-    $ python3 process_data.py --data_name "GADM administrative map" -a 1
-    # Approx run time: 0m50.393s
-    $ python3 process_data.py --data_name "GADM administrative map" -a 2
-    # Approx run time: 8m54.418s
-    $ python3 process_data.py --data_name "GADM administrative map" -a 3
-
-These commands will create a "Geospatial Data" sub-folder and output data into
-it.
-
-In general, use `EPSG:9217 <https://epsg.io/9217>`_ or
-`EPSG:4326 <https://epsg.io/4326>`_ for map projections and use the
-`ISO 3166-1 alpha-3 <https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3>`_
-format for country codes.
+Use the `ISO 3166-1 alpha-3
+<https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3>`_ format for country codes.
 """
-# Create the requirements file with:
-# $ python3 -m pip install pipreqs
-# $ pipreqs '.' --force
 from pathlib import Path
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -173,11 +131,6 @@ def pixel_to_latlon(x, y, transform, crs):
 
     return lat, lon
 
-
-# Establish the base directory
-path = Path(__file__)
-base_dir = get_base_directory(path.parent)
-
 # If running directly
 if __name__ == "__main__":
     # Create command-line argument parser
@@ -186,6 +139,11 @@ if __name__ == "__main__":
 
     # Add optional arguments: data_name
     message = 'The name of the data field to be processed.'
+    # default = 'GADM administrative map'
+    # default = 'WorldPop population density'
+    # default = 'WorldPop population count'
+    # default = 'GADM administrative map and WorldPop population count'
+    # default = 'GADM administrative map and WorldPop population density'
     default = ''
     parser.add_argument('--data_name', '-n', default=default, help=message)
 
@@ -211,6 +169,13 @@ if __name__ == "__main__":
     message = '''Country code in "ISO 3166-1 alpha-3" format.'''
     default = 'VNM'
     parser.add_argument('--country_iso3', '-c', default=default, help=message)
+
+    path = Path(__file__)
+    parser.add_argument(
+        '--base_directory', '-b',
+        default=get_base_directory(path.parent),
+        help='Output directory'
+    )
 
     # Parse arguments from terminal
     args = parser.parse_args()
@@ -238,6 +203,10 @@ data_name_to_type = {
     'WorldPop population count': 'Socio-Demographic Data',
     'GADM administrative map': 'Geospatial Data',
 }
+
+# Establish the base directory
+base_dir = os.path.abspath(args.base_directory)
+
 
 """
 Geospatial data
@@ -371,16 +340,12 @@ Socio-demographic data
 - EPSG:9217: https://epsg.io/9217
 - EPSG:4326: https://epsg.io/4326
 - EPSG = European Petroleum Survey Group
-
-Run times:
-
-- `time python3 process_data.py --data_name "WorldPop population count"`:
-  1m24.587s
 """
 if args.data_name == 'WorldPop population count':
     print('Processing WorldPop population count')
 
     # Get the year for which data will be loaded
+    print(args.year)
     if args.year == '':
         year = '2020'
     else:
@@ -538,13 +503,6 @@ if args.data_name == 'WorldPop population count':
 """
 Geospatial and Socio-Demographic Data
  └ GADM administrative map and WorldPop population count
-
-- `time python3 process_data.py --data_name "GADM administrative map and
-  WorldPop population count" --admin_level 0`: 10.182s
-- `time python3 process_data.py --data_name "GADM administrative map and
-  WorldPop population count" --admin_level 1`: 1m36.789s
-- `time python3 process_data.py --data_name "GADM administrative map and
-  WorldPop population count" --admin_level 2`: 17m21.086s
 """
 if args.data_name == 'GADM administrative map and WorldPop population count':
     # Get the year for which data will be loaded
@@ -664,11 +622,11 @@ Geospatial and Socio-Demographic Data
 Run times:
 
 - If the labelled population density data does not exist:
-    - `time python3 process_data.py -n "GADM administrative map and WorldPop
+    - `time python3.12 process_data.py -n "GADM administrative map and WorldPop
     population density"`: 31m52.408s
 - If the labelled population density data exists:
-    - `time python3 process_data.py -n "GADM administrative map and WorldPop
-    population density"`: 16.145s
+    - `time python3.12 process_data.py -n "GADM administrative map and WorldPop
+    population density"`: 0m16.145s
 """
 if args.data_name == 'GADM administrative map and WorldPop population density':
     # Get the year for which data will be loaded
@@ -687,8 +645,10 @@ if args.data_name == 'GADM administrative map and WorldPop population density':
 
     # Import the population density data for Vietnam
     relative_path = Path(
-        'Socio-Demographic Data', 'WorldPop population density', 'GIS',
-        'Population_Density', 'Global_2000_2020_1km_UNadj', '2020', 'VNM'
+        'Socio-Demographic Data', 'WorldPop population density',
+        'Population Density',
+        'Unconstrained individual countries UN adjusted (1km resolution)',
+        'Vietnam'
     )
     filename = Path(f'{iso3.lower()}_pd_{year}_1km_UNadj_ASCII_XYZ.zip')
     path = Path(base_dir, 'A Collate Data', relative_path, filename)

@@ -1,0 +1,7 @@
+input_namespace:
+  login: login
+output_namespace: out
+params:
+  "Dataset": "APHRODITE Daily mean temperature product (V1808)"
+  "Options": "--only_one"  # --dry_run"
+  "Credentials file": "credentials.json"

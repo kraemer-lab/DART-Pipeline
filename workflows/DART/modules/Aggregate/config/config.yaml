@@ -1,0 +1,9 @@
+input_namespace: in
+output_namespace: out
+params:
+  "Dataset": "APHRODITE Daily mean temperature product (V1808)"
+  "Admin Level": "1"
+  "Year": ""
+  "Resolution Type": "ppp"
+  "Country (ISO3)": "VNM"
+  "Options": ""
