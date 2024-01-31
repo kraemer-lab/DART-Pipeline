@@ -458,9 +458,15 @@ def unpack_file(path, same_folder=False):
 
 # If running directly
 if __name__ == "__main__":
+    # Perform checks
+    utils.check_os()
+    utils.check_python()
+    utils.check_environment()
+
     # Create command-line argument parser
     desc = 'Download data and store it locally for later processing.'
     parser = argparse.ArgumentParser(description=desc)
+
     # Add optional arguments
     message = 'The name of the data field to be downloaded and collated.'
     default = ''
@@ -471,13 +477,10 @@ if __name__ == "__main__":
     message = '''If set, the raw data will not be downloaded. Instead, empty
     files will be created with the correct names and locations.'''
     parser.add_argument('--dry_run', '-d', action='store_true', help=message)
+
     # Parse arguments from terminal
     args = parser.parse_args()
 
-    # Perform checks
-    utils.check_os()
-    utils.check_python()
-    utils.check_environment()
 # If running via Sphinx
 else:
     # Create a fake args object
