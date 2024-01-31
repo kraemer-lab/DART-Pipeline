@@ -124,3 +124,7 @@ __pycache__
 .snakemake
 **/results/out
 credentials.json
+
+# Sublime Text files
+*.sublime-project
+*.sublime-workspace

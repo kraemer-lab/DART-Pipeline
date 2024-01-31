@@ -93,13 +93,10 @@ import py7zr
 from pathlib import Path
 import passpy
 import cdsapi
-import json
 import pandas as pd
 import platform
-import distro
-import sys
-import warnings
 import argparse
+import utils
 
 
 def get_base_directory(path='.'):
@@ -459,81 +456,6 @@ def unpack_file(path, same_folder=False):
             shutil.unpack_archive(path, str(path).removesuffix('.zip'))
 
 
-# Check that the OS is one of the ones that has been tested
-tested_oss = ['Ubuntu 22.04', 'macOS Sonoma']
-core_os = platform.system()
-if core_os == 'Linux':
-    name = distro.name()
-    ver = distro.version()
-    OS = f'{name} {ver}'
-    if name != 'Ubuntu':
-        # This is a non-Ubuntu Linux machine
-        warnings.warn(f'You are using an OS ({OS}) that has not been tested')
-        print('Tested OSs:', tested_oss)
-    elif ver != '22.04':
-        # This is an Ubuntu machine that is not 22.04
-        warnings.warn(f'You are using Ubuntu {ver} which has not been tested')
-        print('Tested OSs:', tested_oss)
-elif core_os == 'Windows':
-    OS = platform.system()
-    version = platform.release()
-    warnings.warn(f'You are using an OS ({OS}) that has not been tested')
-    print('Tested OSs:', tested_oss)
-elif core_os == 'Darwin':
-    # Check which version of macOS you have
-    v = platform.mac_ver()[0]
-    major = v.split('.')[0]
-    minor = v.split('.')[1]
-    if int(major) == 10:
-        macOS_vers = {
-            '10.11': 'El Capitan',
-            '10.12': 'Sierra',
-            '10.13': 'High Sierra',
-            '10.14': 'Mojave',
-            '10.15': 'Catalina',
-        }
-        OS = macOS_vers[f'{major}.{minor}']
-    else:
-        macOS_vers = {
-            '11': 'Big Sur',
-            '12': 'Monterey',
-            '13': 'Ventura',
-            '14': 'Sonoma',
-        }
-        OS = macOS_vers[major]
-    if f'macOS {OS}' not in tested_oss:
-        msg = f'You are using macOS {OS} (v{major}) which has not been tested'
-        warnings.warn(msg)
-        print('Tested OSs:', tested_oss)
-
-# Check that the Python version being used is one of the ones that has been
-# tested
-v = platform.python_version()
-major = v.split('.')[0]
-minor = v.split('.')[1]
-micro = v.split('.')[2]
-if major == '2':
-    # Python 2 is being used
-    warnings.warn(f'You are using Python {v} which has reached end-of-life')
-    print('Please update to Python 3')
-elif major == '3':
-    # Python 3 is being used
-    if int(minor) <= 7:
-        warnings.warn(f'You are using Python {v} beyond its end-of-life date')
-        print('Please update to the latest version of Python')
-    elif int(minor) <= 11:
-        warnings.warn(f'You are using Python {v} which has not been tested')
-        print('Tested versions: 3.12')
-else:
-    warnings.warn('A version of Python other than 2 or 3 has been detected.')
-
-# Check that the user is in a virtual environment
-if sys.prefix == sys.base_prefix:
-    warnings.warn('You are not working in a virtual environment')
-    path = sys.executable
-    print(f'Python is being run from {path}')
-
-
 # If running directly
 if __name__ == "__main__":
     # Create command-line argument parser
@@ -551,6 +473,11 @@ if __name__ == "__main__":
     parser.add_argument('--dry_run', '-d', action='store_true', help=message)
     # Parse arguments from terminal
     args = parser.parse_args()
+
+    # Perform checks
+    utils.check_os()
+    utils.check_python()
+    utils.check_environment()
 # If running via Sphinx
 else:
     # Create a fake args object
