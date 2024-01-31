@@ -34,7 +34,6 @@ installed from Homebrew:
     $ brew install gdal
     $ ogr2ogr --version
 
-<<<<<<< Updated upstream
 **Example Usage**
 
 To process GADM administrative map geospatial data, run one or more of the
@@ -174,9 +173,11 @@ def pixel_to_latlon(x, y, transform, crs):
     return lat, lon
 
 
-# Establish the base directory
-path = Path(__file__)
-base_dir = get_base_directory(path.parent)
+class EmptyObject:
+    """Define an empty object for creating a fake args object for Sphinx."""
+
+    pass
+
 
 # If running directly
 if __name__ == "__main__":
@@ -216,8 +217,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 # If running via Sphinx
 else:
-    # Create a fake args object
-    args = lambda: None
+    # Create a fake args object so Sphinx doesn't complain it doesn't have
+    # command-line arguments
+    args = EmptyObject()
     args.data_name = ''
 
 # Check
@@ -239,16 +241,27 @@ data_name_to_type = {
     'GADM administrative map': 'Geospatial Data',
 }
 
+# Establish the base directory
+path = Path(__file__)
+base_dir = get_base_directory(path.parent)
+
 """
 Geospatial data
  └ GADM administrative map
 
 Run times:
 
-- `time python3.12 process_data.py`: 0m1.681s
-- `time python3.12 process_data.py -a 1`: 0m5.659s
-- `time python3.12 process_data.py -a 2`: 0m50.393s
-- `time python3.12 process_data.py -a 3`: 8m54.418s
+time python3.12 process_data.py
+0m1.681s
+
+time python3.12 process_data.py -a 1
+0m5.659s
+
+time python3.12 process_data.py -a 2
+0m50.393s
+
+time python3.12 process_data.py -a 3
+8m54.418s
 """
 if args.data_name == 'GADM administrative map':
     filenames = [f'gadm41_VNM_{args.admin_level}.shp']
@@ -325,8 +338,8 @@ Socio-demographic data
 
 Run times:
 
-- `time python3.12 process_data.py --data_name "WorldPop population density"`:
-  0m2.420s
+time python3.12 process_data.py --data_name "WorldPop population density"
+0m2.420s
 """
 if args.data_name == 'WorldPop population density':
     relative_path = Path(
@@ -374,8 +387,8 @@ Socio-demographic data
 
 Run times:
 
-- `time python3 process_data.py --data_name "WorldPop population count"`:
-  1m24.587s
+time python3 process_data.py --data_name "WorldPop population count"
+1m24.587s
 """
 if args.data_name == 'WorldPop population count':
     print('Processing WorldPop population count')
@@ -516,7 +529,7 @@ if args.data_name == 'WorldPop population count':
     # Create a DataFrame with latitude, longitude, and pixel values
     df = pd.DataFrame(source_data, index=lat, columns=lon)
     # Export
-    fn =  filename.stem + '.csv'
+    fn = filename.stem + '.csv'
     path = Path(base_dir, 'B Process Data', relative_path, fn)
     if not path.exists():
         print(f'Exporting "{path}"')
@@ -539,12 +552,17 @@ if args.data_name == 'WorldPop population count':
 Geospatial and Socio-Demographic Data
  └ GADM administrative map and WorldPop population count
 
-- `time python3 process_data.py --data_name "GADM administrative map and
-  WorldPop population count" --admin_level 0`: 10.182s
-- `time python3 process_data.py --data_name "GADM administrative map and
-  WorldPop population count" --admin_level 1`: 1m36.789s
-- `time python3 process_data.py --data_name "GADM administrative map and
-  WorldPop population count" --admin_level 2`: 17m21.086s
+time python3 process_data.py --data_name "GADM administrative map and
+WorldPop population count" --admin_level 0
+10.182s
+
+time python3 process_data.py --data_name "GADM administrative map and
+WorldPop population count" --admin_level 1
+1m36.789s
+
+time python3 process_data.py --data_name "GADM administrative map and
+WorldPop population count" --admin_level 2
+17m21.086s
 """
 if args.data_name == 'GADM administrative map and WorldPop population count':
     # Get the year for which data will be loaded
@@ -663,12 +681,15 @@ Geospatial and Socio-Demographic Data
 
 Run times:
 
-- If the labelled population density data does not exist:
-    - `time python3 process_data.py -n "GADM administrative map and WorldPop
-    population density"`: 31m52.408s
-- If the labelled population density data exists:
-    - `time python3 process_data.py -n "GADM administrative map and WorldPop
-    population density"`: 16.145s
+If the labelled population density data does not exist:
+time python3 process_data.py -n "GADM administrative map and WorldPop
+population density"
+31m52.408s
+
+If the labelled population density data exists:
+time python3 process_data.py -n "GADM administrative map and WorldPop
+population density"
+16.145s
 """
 if args.data_name == 'GADM administrative map and WorldPop population density':
     # Get the year for which data will be loaded
@@ -720,11 +741,11 @@ if args.data_name == 'GADM administrative map and WorldPop population density':
         dct_admin_3 = {}
 
         # Create the output folders
-        path = Path(path.parent, f'Admin 2')
+        path = Path(path.parent, 'Admin 2')
         os.makedirs(path, exist_ok=True)
 
         # Analyse each province/city
-        for admin_2 in df[f'Admin 2'].unique():
+        for admin_2 in df['Admin 2'].unique():
             if admin_2 is not np.nan:
                 subset = df[df['Admin 2'] == admin_2].copy()
                 print(admin_2)

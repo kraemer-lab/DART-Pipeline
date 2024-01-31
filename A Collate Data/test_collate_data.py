@@ -1,9 +1,10 @@
 """
 Run unit tests on collate_data.py.
 
-Past runs:
-
-- 2024-01-15: Ran 5 tests in 13.366s
+Past Runs
+---------
+- 2024-01-15 Ubuntu 22.04, Python 3.12: Ran 5 tests in 13.366s
+- 2024-01-17 macOS Sonoma, Python 3.12: Ran 5 tests in 4.376s
 """
 import unittest
 from collate_data import get_base_directory, walk, download_gadm_data, \
@@ -13,12 +14,10 @@ from pathlib import Path
 
 class TestCases(unittest.TestCase):
 
-
     def test_get_base_directory(self):
         expected = str(Path('~/DART-Pipeline').expanduser())
         actual = get_base_directory()
         self.assertEqual(expected, actual)
-
 
     def test_walk(self):
         base_url = 'https://data.chc.ucsb.edu'
@@ -44,7 +43,6 @@ class TestCases(unittest.TestCase):
         Path('tests/products/').rmdir()
         Path('tests/').rmdir()
 
-
     def test_download_gadm_data(self):
         file_format = 'GeoJSON'
         out_dir = Path('tests')
@@ -65,7 +63,6 @@ class TestCases(unittest.TestCase):
         path.unlink()
         Path('tests/').rmdir()
 
-
     def test_download_file(self):
         #
         # Test a successful download
@@ -79,8 +76,11 @@ class TestCases(unittest.TestCase):
         # Check if the file has been created
         expected = True
         actual = path.exists()
+        self.assertEqual(expected, actual)
 
-        # Perform the test
+        # Check if the value returned from the function is correct
+        expected = True
+        actual = succeded
         self.assertEqual(expected, actual)
 
         # Tear down
@@ -99,8 +99,11 @@ class TestCases(unittest.TestCase):
         # Check if the file has been created
         expected = False
         actual = path.exists()
+        self.assertEqual(expected, actual)
 
-        # Perform the test
+        # Check if the value returned from the function is correct
+        expected = False
+        actual = succeded
         self.assertEqual(expected, actual)
 
         # Tear down
@@ -109,7 +112,6 @@ class TestCases(unittest.TestCase):
         Path('tests/product/APHRO_V1808_TEMP').rmdir()
         Path('tests/product').rmdir()
         Path('tests/').rmdir()
-
 
     def test_unpack_file(self):
         url = 'https://geodata.ucdavis.edu/gadm/gadm4.1/json/gadm41_VNM_1.json.zip'

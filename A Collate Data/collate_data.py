@@ -93,8 +93,6 @@ import py7zr
 from pathlib import Path
 import passpy
 import cdsapi
-import json
-import pandas as pd
 import platform
 import argparse
 
@@ -338,6 +336,7 @@ def download_gadm_data(file_format, out_dir, iso3='VNM', level=None):
 
 
 def download_file(url, path):
+    """Download a file from a given URL to a given path."""
     print('Downloading', url)
     print('to', path)
     # Make a request for the data
@@ -354,6 +353,7 @@ def download_file(url, path):
 
 
 def unpack_file(path, same_folder=False):
+    """Unpack a zipped file."""
     print('Unpacking', path)
     if Path(path).suffix == '.7z':
         foldername = str(path).removesuffix('.7z')
@@ -369,8 +369,14 @@ def unpack_file(path, same_folder=False):
             shutil.unpack_archive(path, str(path).removesuffix('.zip'))
 
 
+class EmptyObject:
+    """Define an empty object for creating a fake args object for Sphinx."""
+
+    pass
+
+
 # If running directly
-if __name__ == "__main__":
+if __name__ == '__main__':
     # Create command-line argument parser
     desc = 'Download data and store it locally for later processing.'
     parser = argparse.ArgumentParser(description=desc)
@@ -388,8 +394,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 # If running via Sphinx
 else:
-    # Create a fake args object
-    args = lambda: None
+    # Create a fake args object so Sphinx doesn't complain it doesn't have
+    # command-line arguments
+    args = EmptyObject()
     args.data_name = ''
 
 # Check
