@@ -460,12 +460,13 @@ def unpack_file(path, same_folder=False):
 
 
 # Check that the OS is one of the ones that has been tested
-tested_oss = 'Ubuntu 22.04'
+tested_oss = ['Ubuntu 22.04', 'macOS Sonoma']
 core_os = platform.system()
 if core_os == 'Linux':
-    OS = distro.name()
+    name = distro.name()
     ver = distro.version()
-    if OS != 'Ubuntu':
+    OS = f'{name} {ver}'
+    if name != 'Ubuntu':
         # This is a non-Ubuntu Linux machine
         warnings.warn(f'You are using an OS ({OS}) that has not been tested')
         print('Tested OSs:', tested_oss)
@@ -500,8 +501,10 @@ elif core_os == 'Darwin':
             '14': 'Sonoma',
         }
         OS = macOS_vers[major]
-    warnings.warn(f'You are using macOS {v} ({OS}) which has not been tested')
-    print('Tested OSs:', tested_oss)
+    if f'macOS {OS}' not in tested_oss:
+        msg = f'You are using macOS {OS} (v{major}) which has not been tested'
+        warnings.warn(msg)
+        print('Tested OSs:', tested_oss)
 
 # Check that the Python version being used is one of the ones that has been
 # tested
@@ -522,11 +525,11 @@ elif major == '3':
         warnings.warn(f'You are using Python {v} which has not been tested')
         print('Tested versions: 3.12')
 else:
-    warnings.warn(f'A version of Python other than 2 or 3 has been detected.')
+    warnings.warn('A version of Python other than 2 or 3 has been detected.')
 
 # Check that the user is in a virtual environment
 if sys.prefix == sys.base_prefix:
-    warnings.warn(f'You are not working in a virtual environment')
+    warnings.warn('You are not working in a virtual environment')
     path = sys.executable
     print(f'Python is being run from {path}')
 
@@ -576,7 +579,6 @@ data_name_to_type = {
 # Establish the base directory
 path = Path(__file__)
 base_dir = get_base_directory(path.parent)
->>>>>>> origin/main
 
 """
 Meteorological data
