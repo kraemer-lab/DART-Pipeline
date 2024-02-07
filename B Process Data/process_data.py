@@ -75,6 +75,7 @@ import geopandas as gpd
 import rasterio
 from rasterio.features import geometry_mask
 import argparse
+import utils
 
 
 def get_base_directory(path='.'):
@@ -180,6 +181,11 @@ base_dir = get_base_directory(path.parent)
 
 # If running directly
 if __name__ == "__main__":
+    # Perform checks
+    utils.check_os()
+    utils.check_python()
+    utils.check_environment()
+
     # Create command-line argument parser
     desc = 'Process data that has been previously downloaded and collated.'
     parser = argparse.ArgumentParser(description=desc)
@@ -214,6 +220,7 @@ if __name__ == "__main__":
 
     # Parse arguments from terminal
     args = parser.parse_args()
+
 # If running via Sphinx
 else:
     # Create a fake args object
