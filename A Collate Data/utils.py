@@ -3,6 +3,8 @@ import platform
 import distro
 import warnings
 import sys
+import os
+import re
 
 
 def check_os():
@@ -68,37 +70,55 @@ def check_python():
     """
     Check that the Python version being used is one that has been tested.
 
-    See https://devguide.python.org/versions/ for the Python versions that have
-    passed their end-of-life dates.
+    The Python versions that have passed their end-of-life dates:
+    https://devguide.python.org/versions/
+
+    Why sys.version_info is slightly easier than platform.python_version():
+    https://stackoverflow.com/a/37462418
     """
-    v = platform.python_version()
-    major = v.split('.')[0]
-    minor = v.split('.')[1]
-    if major == '2':
+    if sys.version_info <= (2, 7):
         # Python 2 is being used
         warnings.warn('Python version')
-        print(f'You are using Python {v} which has reached end-of-life')
+        print('You are using Python 2 which has reached end-of-life')
         print('Please update to Python 3')
-    elif major == '3':
-        # Python 3 is being used
-        if int(minor) <= 7:
-            warnings.warn('Python version')
-            print(f'You are using Python {v} beyond its end-of-life date')
-            print('Please update to the latest version of Python')
-        elif int(minor) <= 11:
-            warnings.warn('Python version')
-            print(f'You are using Python {v} which has not been tested')
-            print('Tested versions: 3.12')
-    else:
+    elif sys.version_info <= (3, 7):
+        # Python 3.0 to 3.7 is being used
+        minor = sys.version_info.minor
         warnings.warn('Python version')
-        print('A version of Python other than 2 or 3 has been detected.')
+        print(f'You are using Python 3.{minor} beyond its end-of-life date')
+        print('Please update to the latest version of Python')
+    elif sys.version_info <= (3, 11):
+        # Python 3.8 to 3.11 is being used
+        minor = sys.version_info.minor
+        warnings.warn('Python version')
+        print(f'You are using Python 3.{minor} which has not been tested')
+        print('Tested versions: 3.12')
+    elif sys.version_info >= (3, 13):
+        # Python 3.13 onwards is being used
+        minor = sys.version_info.minor
+        warnings.warn('Python version')
+        print(f'You are using Python 3.{minor} which has not been tested')
+        print('Tested versions: 3.12')
 
 
 def check_environment():
     """Check that the user is in a virtual environment."""
     if sys.prefix == sys.base_prefix:
+        using_base_python = True
+
+    # Code adapted from https://stackoverflow.com/a/43880536
+    using_docker = False
+    path = '/proc/self/cgroup'
+    if os.path.isfile(path):
+        with open(path) as f:
+            for line in f:
+                if re.match(r'\d+:[\w=]+:/docker(-[ce]e)?/\w+', line):
+                    using_docker = True
+
+    if using_base_python and not using_docker:
         warnings.warn('No virtual environment')
-        print('You are not working in a virtual environment')
+        print('You are not working in a virtual environment ', end='')
+        print('and are not in Docker')
         print(f'Python is being run from {sys.executable}')
 
 
