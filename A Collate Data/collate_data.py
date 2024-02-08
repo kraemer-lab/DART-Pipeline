@@ -136,8 +136,8 @@ def get_password(data_name, username, base_dir='.'):
 
 
 def walk(
-    base_url, relative_url, only_one=False, dry_run=False, out_dir='.',
-    username=None, password=None
+    base_url, relative_url, only_one=False, dry_run=False, out_dir: str | Path
+    = '.', username=None, password=None
 ):
     """
     Re-create `os.walk` and `Path.walk` for use with a website.
@@ -348,7 +348,8 @@ def unpack_file(path, same_folder=False):
 class EmptyObject:
     """Define an empty object for creating a fake args object for Sphinx."""
 
-    pass
+    def __init__(self):
+        self.data_name = ''
 
 
 # If running directly
@@ -381,7 +382,6 @@ else:
     # Create a fake args object so Sphinx doesn't complain it doesn't have
     # command-line arguments
     args = EmptyObject()
-    args.data_name = ''
 
 # Check
 if True:

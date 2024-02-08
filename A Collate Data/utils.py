@@ -4,30 +4,33 @@ import distro
 import warnings
 import sys
 import os
+import re
+from pathlib import Path
 
 
-def get_base_directory(path='.'):
+def get_base_directory(starting_path: str | Path = '.') -> str | None:
     """
     Get the base directory for a Git project.
 
     Parameters
     ----------
-    path : str or pathlib.Path, default '.'
-        The path to the child directory.
+    starting_path : str or pathlib.Path, default '.'
+        The path to a directory which is, ostensibly, within a Git project.
 
     Returns
     -------
-    str or pathlib.Path, or None
-        The path to the parent/grand-parent/etc directory of the child
-        directory that contains the ".git" folder. If no such directory exists,
-        returns None.
+    str, or None
+        The path to the directory which contains the `.git` folder and which is
+        also a parent directory of `starting_path`. If no such directory
+        exists, returns None.
     """
-    path = os.path.abspath(path)
+    path = os.path.abspath(starting_path)
     while True:
         if '.git' in os.listdir(path):
             return path
         if path == os.path.dirname(path):
-            return None  # If the current directory is the root, break the loop
+            # If the current directory is the computer's root, break the loop
+            return None
         path = os.path.dirname(path)
 
 
@@ -44,21 +47,21 @@ def check_os():
         if name != 'Ubuntu':
             # This is a non-Ubuntu Linux machine
             warnings.warn('Operating system')
-            print(f'You are using {OS} which has not been tested')
-            print('Tested operating systems:', tested_oss)
+            print(f'You are using a Linux OS ({OS}) that has not been tested')
+            print('Tested OSs:', tested_oss)
         elif OS not in tested_oss:
             # This is an Ubuntu machine that is not one of the tested versions
             warnings.warn('Operating system')
             print(f'You are using Ubuntu {ver} which has not been tested')
-            print('Tested operating systems:', tested_oss)
+            print('Tested OSs:', tested_oss)
 
     # If this is a Windows machine
     elif core_os == 'Windows':
         OS = platform.system()
         version = platform.release()
         warnings.warn('Operating system')
-        print('You are using Windows. This OS has not been tested')
-        print('Tested operating systems:', tested_oss)
+        print(f'You are using an OS ({OS}) that has not been tested')
+        print('Tested OSs:', tested_oss)
 
     # This is a macOS machine
     elif core_os == 'Darwin':
@@ -87,54 +90,100 @@ def check_os():
         if OS not in tested_oss:
             warnings.warn('Operating system')
             print(f'You are using {OS} which has not been tested')
-            print('Tested operating systems:', tested_oss)
+            print('Tested OSs:', tested_oss)
 
     else:
         warnings.warn('Operating system')
         print(f'You are using {core_os} which has not been tested')
-        print('Tested operating systems:', tested_oss)
+        print('Tested OSs:', tested_oss)
 
 
 def check_python():
     """
     Check that the Python version being used is one that has been tested.
 
-    See https://devguide.python.org/versions/ for the Python versions that have
-    passed their end-of-life dates.
+    The Python versions that have passed their end-of-life dates:
+    https://devguide.python.org/versions/
+
+    Why sys.version_info is slightly easier than platform.python_version():
+    https://stackoverflow.com/a/37462418
     """
-    v = platform.python_version()
-    major = v.split('.')[0]
-    minor = v.split('.')[1]
-    if major == '2':
+    if sys.version_info <= (2, 7):
         # Python 2 is being used
         warnings.warn('Python version')
-        print(f'You are using Python {v} which has reached end-of-life')
-        print('Please update to Python 3')
-    elif major == '3':
-        # Python 3 is being used
-        if int(minor) <= 7:
-            warnings.warn('Python version')
-            print(f'You are using Python {v} beyond its end-of-life date')
-            print('Please update to the latest version of Python')
-        elif int(minor) <= 11:
-            warnings.warn('Python version')
-            print(f'You are using Python {v} which has not been tested')
-            print('Tested versions: 3.12')
-    else:
+        print('You are using Python 2 which has reached end-of-life.')
+        print('Please update to Python 3.')
+    elif sys.version_info <= (3, 7):
+        # Python 3.0 to 3.7 is being used
+        minor = sys.version_info[1]
         warnings.warn('Python version')
-        print('A version of Python other than 2 or 3 has been detected.')
+        print(f'You are using Python 3.{minor} beyond its end-of-life date.')
+        print('Please update to the latest version of Python.')
+    elif sys.version_info <= (3, 11):
+        # Python 3.8 to 3.11 is being used
+        minor = sys.version_info[1]
+        warnings.warn('Python version')
+        print(f'You are using Python 3.{minor} which has not been tested.')
+        print('Tested versions: 3.12')
+    elif sys.version_info >= (3, 13):
+        # Python 3.13 onwards is being used
+        warnings.warn('Python version')
+        version = f'{sys.version_info[0]}.{sys.version_info[1]}'
+        print(f'You are using Python {version} which has not been tested.')
+        print('Tested versions: 3.12')
 
 
 def check_environment():
-    """Check that the user is in a virtual environment."""
-    path = os.path.join(get_base_directory(), 'A Collate Data')
-    if path in sys.prefix:
-        # Python is located in the A folder - ie it's a venv
-        pass
+    """
+    Check that the user is in a virtual environment.
+
+    The `sys.prefix` value is the start of the path to the instance of Python
+    being used.
+
+    - On Unix, if base Python (the system Python) is being used this value will
+      be `/usr/local` by default
+    - If a virtual environment is being used, this value will be
+      `~/DART-Pipeline/A Collate Data/venv` (or similar)
+
+    The `sys.base_prefix` value is the start of the path to the base (system)
+    instance of Python and will not change if a virtual environment is being
+    used.
+
+    - On Unix, this value will be `/usr/local` by default
+
+    The contents of `/proc/self/cgroup` will typically show the control groups
+    (cgroups) associated with the current process (self). If you are using
+    Docker, you might see something like
+    `1:name=systemd:/docker/<container_id>`
+    """
+    # Check if the user is use base Python
+    if sys.prefix == sys.base_prefix:
+        using_base_python = True
     else:
-        # Python is not located in the A folder - ie it's not a venv
+        using_base_python = False
+
+    # Code adapted from https://stackoverflow.com/a/43880536
+    using_docker = False
+    path = '/proc/self/cgroup'
+    if os.path.isfile(path):
+        with open(path) as f:
+            for line in f:
+                # Match the following:
+                # - \d+ : One or more digits
+                # - : : A colon character
+                # - [\w=]+ : One or more word characters or an equal sign
+                # - :/docker : The literal string ":/docker"
+                # - (-[ce]e)? : An optional group consisting of a hyphen
+                #   followed by either "c" or "e" followed by "e"
+                # - /\w+ : A forward slash followed by one or more word
+                #   characters
+                if re.match(r'\d+:[\w=]+:/docker(-[ce]e)?/\w+', line):
+                    using_docker = True
+
+    if using_base_python and not using_docker:
         warnings.warn('No virtual environment')
-        print('You are not working in a virtual environment')
+        print('You are not working in a virtual environment ', end='')
+        print('and are not in Docker.')
         print(f'Python is being run from {sys.executable}')
 
 

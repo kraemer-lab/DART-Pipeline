@@ -1,7 +1,6 @@
 cdsapi==0.6.1
+distro==1.8.0
 lxml==4.9.3
-pandas==2.1.4
 passpy==1.0.2
-py7zr==0.20.6
+py7zr==0.20.7
 Requests==2.31.0
-setuptools

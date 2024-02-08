@@ -3,8 +3,9 @@ Run unit tests on collate_data.py.
 
 Past Runs
 ---------
-- 2024-01-15 Ubuntu 22.04, Python 3.12: Ran 5 tests in 13.366s
-- 2024-01-17 macOS Sonoma, Python 3.12: Ran 5 tests in 4.376s
+- 2024-01-15 on Ubuntu 22.04 using Python 3.12: Ran 5 tests in 13.366s
+- 2024-01-17 on macOS Sonoma using Python 3.12: Ran 5 tests in 4.376s
+- 2024-02-08 on Ubuntu 22.04 using Python 3.12: Ran 4 tests in 10.968s
 """
 import unittest
 from collate_data import walk, download_gadm_data, \
@@ -85,7 +86,10 @@ class TestCases(unittest.TestCase):
         #
         # Test an unsuccessful download
         #
-        url = 'http://aphrodite.st.hirosaki-u.ac.jp/product/APHRO_V1808_TEMP/APHRO_MA/005deg/APHRO_MA_TAVE_CLM_005deg_V1808.ctl.gz'
+        # This will fail because a password is needed
+        url = 'http://aphrodite.st.hirosaki-u.ac.jp/product/' + \
+            'APHRO_V1808_TEMP/APHRO_MA/005deg/' + \
+            'APHRO_MA_TAVE_CLM_005deg_V1808.ctl.gz'
         out_dir = Path('tests/product/APHRO_V1808_TEMP/APHRO_MA/005deg')
         out_dir.mkdir(parents=True, exist_ok=True)
         path = Path(out_dir, 'APHRO_MA_TAVE_CLM_005deg_V1808.ctl.gz')
@@ -109,7 +113,8 @@ class TestCases(unittest.TestCase):
         Path('tests/').rmdir()
 
     def test_unpack_file(self):
-        url = 'https://geodata.ucdavis.edu/gadm/gadm4.1/json/gadm41_VNM_1.json.zip'
+        url = 'https://geodata.ucdavis.edu/gadm/gadm4.1/json/' + \
+            'gadm41_VNM_1.json.zip'
         out_dir = Path('tests')
         out_dir.mkdir(parents=True, exist_ok=True)
         path = Path(out_dir, 'gadm41_VNM_1.json.zip')
