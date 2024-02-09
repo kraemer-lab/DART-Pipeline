@@ -3,7 +3,7 @@ Run unit tests on utils.py.
 
 Past Runs
 ---------
-None
+- 2024-02-09 on macOS Sonoma with Python 3.12: Ran 17 tests in 0.010s
 """
 import unittest
 from unittest.mock import patch, mock_open
@@ -11,6 +11,8 @@ import utils
 import sys
 from pathlib import Path
 import warnings
+import platform
+import os
 
 
 class TestCases(unittest.TestCase):
@@ -147,10 +149,18 @@ class TestCases(unittest.TestCase):
             # Assert that there were 0 warnings
             self.assertEqual(len(w), 0)
 
+    @patch.dict(os.environ, {'DOCKER_CONTAINER': 'mocked_value'})
     def test_check_environment_using_docker(self):
         """Test when using Docker."""
-        contents = '1:name=systemd:/docker-ee/foobar456'
-        with patch('builtins.open', mock_open(read_data=contents)):
+        if platform.system() == 'Linux':
+            contents = '1:name=systemd:/docker-ee/foobar456'
+            with patch('builtins.open', mock_open(read_data=contents)):
+                with warnings.catch_warnings(record=True) as w:
+                    utils.check_environment()
+                    # Assert that there were 0 warnings
+                    self.assertEqual(len(w), 0)
+
+        elif platform.system() == 'Darwin':
             with warnings.catch_warnings(record=True) as w:
                 utils.check_environment()
                 # Assert that there were 0 warnings

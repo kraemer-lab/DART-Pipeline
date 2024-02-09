@@ -6,6 +6,7 @@ Past Runs
 - 2024-01-15 on Ubuntu 22.04 using Python 3.12: Ran 5 tests in 13.366s
 - 2024-01-17 on macOS Sonoma using Python 3.12: Ran 5 tests in 4.376s
 - 2024-02-08 on Ubuntu 22.04 using Python 3.12: Ran 4 tests in 10.968s
+- 2024-02-09 on macOS Sonoma using Python 3.12: Ran 4 tests in 6.190s
 """
 import unittest
 from collate_data import walk, download_gadm_data, \

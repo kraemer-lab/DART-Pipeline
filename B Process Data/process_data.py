@@ -674,6 +674,7 @@ time python3 process_data.py -n "GADM administrative map and WorldPop
 population density"
 
 - 31m52.408s
+- 11m30.10s
 
 ### If the labelled population density data exists
 

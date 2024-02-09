@@ -60,7 +60,7 @@ def check_os():
         OS = platform.system()
         version = platform.release()
         warnings.warn('Operating system')
-        print('You are using Windows. This OS has not been tested')
+        print(f'You are using an OS ({OS}) that has not been tested')
         print('Tested OSs:', tested_oss)
 
     # This is a macOS machine
@@ -162,23 +162,31 @@ def check_environment():
     else:
         using_base_python = False
 
-    # Code adapted from https://stackoverflow.com/a/43880536
+    # Check if the user is using Docker
     using_docker = False
-    path = '/proc/self/cgroup'
-    if os.path.isfile(path):
-        with open(path) as f:
-            for line in f:
-                # Match the following:
-                # - \d+ : One or more digits
-                # - : : A colon character
-                # - [\w=]+ : One or more word characters or an equal sign
-                # - :/docker : The literal string ":/docker"
-                # - (-[ce]e)? : An optional group consisting of a hyphen
-                #   followed by either "c" or "e" followed by "e"
-                # - /\w+ : A forward slash followed by one or more word
-                #   characters
-                if re.match(r'\d+:[\w=]+:/docker(-[ce]e)?/\w+', line):
-                    using_docker = True
+    # This is a Linux machine
+    if platform.system() == 'Linux':
+        # Code adapted from https://stackoverflow.com/a/43880536
+        path = '/proc/self/cgroup'
+        if os.path.isfile(path):
+            with open(path) as f:
+                for line in f:
+                    # Match the following:
+                    # - \d+ : One or more digits
+                    # - : : A colon character
+                    # - [\w=]+ : One or more word characters or an equal sign
+                    # - :/docker : The literal string ":/docker"
+                    # - (-[ce]e)? : An optional group consisting of a hyphen
+                    #   followed by either "c" or "e" followed by "e"
+                    # - /\w+ : A forward slash followed by one or more word
+                    #   characters
+                    if re.match(r'\d+:[\w=]+:/docker(-[ce]e)?/\w+', line):
+                        using_docker = True
+    # This is a macOS machine
+    elif platform.system() == 'Darwin':
+        # Check for Docker-specific environment variable
+        if os.environ.get('DOCKER_CONTAINER'):
+            using_docker = True
 
     if using_base_python and not using_docker:
         warnings.warn('No virtual environment')

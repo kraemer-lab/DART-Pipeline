@@ -640,10 +640,11 @@ All available datasets are detailed here: https://www.worldpop.org/rest/data
 Run times:
 
 time python3 collate_data.py -n "WorldPop population density" --dry_run
-0m0.732s
+- 0m0.732s
 
 time python3 collate_data.py -n "WorldPop population density"
-0m2.860s
+- 0m2.860s
+- 0m0.29s
 """
 if args.data_name == 'WorldPop population density':
     # Get parameters from arguments
@@ -742,7 +743,8 @@ Geospatial data
  └ GADM administrative map
 
 time python3 collate_data.py -n "GADM administrative map"
-2m0.457s
+- 2m0.457s
+- 0m31.094s
 """
 if args.data_name == 'GADM administrative map':
     # Get parameters from arguments

@@ -4,6 +4,7 @@ Run unit tests on process_data.py.
 Past runs
 ---------
 - 2024-02-08 on Ubuntu 22.04 using Python 3.12: Ran 2 tests in 0.824s
+- 2024-02-09 on macOS Sonoma using Python 3.12: Ran 2 tests in 0.833s
 """
 import rasterio
 import unittest
