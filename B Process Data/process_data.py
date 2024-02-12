@@ -29,12 +29,12 @@ installed from Homebrew:
 
 .. code-block::
 
-    $ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    $ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/
+    install/HEAD/install.sh)"
     $ brew --version
     $ brew install gdal
     $ ogr2ogr --version
 
-<<<<<<< Updated upstream
 **Example Usage**
 
 To process GADM administrative map geospatial data, run one or more of the
@@ -67,40 +67,20 @@ from pathlib import Path
 import pandas as pd
 from matplotlib import pyplot as plt
 import matplotlib.ticker as mticker
-import os
 import numpy as np
-import json
 from shapely.geometry import Point, Polygon
 import geopandas as gpd
 import rasterio
 from rasterio.features import geometry_mask
 import argparse
+import os
 import utils
+import json
 
-
-def get_base_directory(path='.'):
-    """
-    Get the base directory for a Git project.
-
-    Parameters
-    ----------
-    path : str or pathlib.Path, default '.'
-        The path to the child directory.
-
-    Returns
-    -------
-    str or pathlib.Path, or None
-        The path to the parent/grand-parent/etc directory of the child
-        directory that contains the ".git" folder. If no such directory exists,
-        returns None.
-    """
-    path = os.path.abspath(path)
-    while True:
-        if '.git' in os.listdir(path):
-            return path
-        if path == os.path.dirname(path):
-            return None  # If the current directory is the root, break the loop
-        path = os.path.dirname(path)
+# If Wayland is being used on GNOME, use a different Matplotlib backend
+if os.environ.get('WAYLAND_DISPLAY') is not None:
+    # Set the Matplotlib backend to one that is compatible with Wayland
+    plt.switch_backend('Agg')
 
 
 def plot_pop_density(df, folderpath, filename):
@@ -150,7 +130,7 @@ def plot_pop_density(df, folderpath, filename):
     plt.close()
 
 
-def pixel_to_latlon(x, y, transform, crs):
+def pixel_to_latlon(x, y, transform):
     """
     Convert pixel coordinates to latitude and longitude.
 
@@ -161,8 +141,6 @@ def pixel_to_latlon(x, y, transform, crs):
         longitude.
     transform : Affine
         Affine transformation matrix as given in the GeoTIFF file.
-    crs : rasterio.crs
-        A Rasterio coordinate reference system.
 
     Returns
     -------
@@ -175,16 +153,18 @@ def pixel_to_latlon(x, y, transform, crs):
     return lat, lon
 
 
-# Establish the base directory
-path = Path(__file__)
-base_dir = get_base_directory(path.parent)
+class EmptyObject:
+    """Define an empty object for creating a fake args object for Sphinx."""
+
+    def __init__(self):
+        self.data_name = ''
+
 
 # If running directly
 if __name__ == "__main__":
     # Perform checks
     utils.check_os()
     utils.check_python()
-    utils.check_environment()
 
     # Create command-line argument parser
     desc = 'Process data that has been previously downloaded and collated.'
@@ -223,9 +203,9 @@ if __name__ == "__main__":
 
 # If running via Sphinx
 else:
-    # Create a fake args object
-    args = lambda: None
-    args.data_name = ''
+    # Create a fake args object so Sphinx doesn't complain it doesn't have
+    # command-line arguments
+    args = EmptyObject()
 
 # Check
 if True:
@@ -246,16 +226,27 @@ data_name_to_type = {
     'GADM administrative map': 'Geospatial Data',
 }
 
+# Establish the base directory
+path = Path(__file__)
+base_dir = utils.get_base_directory(path.parent)
+
 """
 Geospatial data
  └ GADM administrative map
 
 Run times:
 
-- `time python3.12 process_data.py`: 0m1.681s
-- `time python3.12 process_data.py -a 1`: 0m5.659s
-- `time python3.12 process_data.py -a 2`: 0m50.393s
-- `time python3.12 process_data.py -a 3`: 8m54.418s
+time python3.12 process_data.py
+0m1.681s
+
+time python3.12 process_data.py -a 1
+0m5.659s
+
+time python3.12 process_data.py -a 2
+0m50.393s
+
+time python3.12 process_data.py -a 3
+8m54.418s
 """
 if args.data_name == 'GADM administrative map':
     filenames = [f'gadm41_VNM_{args.admin_level}.shp']
@@ -332,8 +323,8 @@ Socio-demographic data
 
 Run times:
 
-- `time python3.12 process_data.py --data_name "WorldPop population density"`:
-  0m2.420s
+time python3.12 process_data.py --data_name "WorldPop population density"
+0m2.420s
 """
 if args.data_name == 'WorldPop population density':
     relative_path = Path(
@@ -381,8 +372,8 @@ Socio-demographic data
 
 Run times:
 
-- `time python3 process_data.py --data_name "WorldPop population count"`:
-  1m24.587s
+time python3 process_data.py --data_name "WorldPop population count"
+1m24.587s
 """
 if args.data_name == 'WorldPop population count':
     print('Processing WorldPop population count')
@@ -479,7 +470,7 @@ if args.data_name == 'WorldPop population count':
         plt.ylabel('Latitude')
         plt.xlabel('Longitude')
         # Convert pixel coordinates to latitude and longitude
-        lat, lon = pixel_to_latlon(xlocs, ylocs, transform, crs)
+        lat, lon = pixel_to_latlon(xlocs, ylocs, transform)
         # Flatten into a list
         lat = [str(round(x[0], 1)) for x in lat]
         lon = [str(round(x, 1)) for x in lon[0]]
@@ -501,7 +492,7 @@ if args.data_name == 'WorldPop population count':
         plt.ylabel('Latitude')
         plt.xlabel('Longitude')
         # Convert pixel coordinates to latitude and longitude
-        lat, lon = pixel_to_latlon(xlocs, ylocs, transform, crs)
+        lat, lon = pixel_to_latlon(xlocs, ylocs, transform)
         # Flatten into a list
         lat = [str(round(x[0], 1)) for x in lat]
         lon = [str(round(x, 1)) for x in lon[0]]
@@ -523,7 +514,7 @@ if args.data_name == 'WorldPop population count':
     # Create a DataFrame with latitude, longitude, and pixel values
     df = pd.DataFrame(source_data, index=lat, columns=lon)
     # Export
-    fn =  filename.stem + '.csv'
+    fn = filename.stem + '.csv'
     path = Path(base_dir, 'B Process Data', relative_path, fn)
     if not path.exists():
         print(f'Exporting "{path}"')
@@ -546,12 +537,17 @@ if args.data_name == 'WorldPop population count':
 Geospatial and Socio-Demographic Data
  └ GADM administrative map and WorldPop population count
 
-- `time python3 process_data.py --data_name "GADM administrative map and
-  WorldPop population count" --admin_level 0`: 10.182s
-- `time python3 process_data.py --data_name "GADM administrative map and
-  WorldPop population count" --admin_level 1`: 1m36.789s
-- `time python3 process_data.py --data_name "GADM administrative map and
-  WorldPop population count" --admin_level 2`: 17m21.086s
+time python3 process_data.py --data_name "GADM administrative map and
+WorldPop population count" --admin_level 0
+10.182s
+
+time python3 process_data.py --data_name "GADM administrative map and
+WorldPop population count" --admin_level 1
+1m36.789s
+
+time python3 process_data.py --data_name "GADM administrative map and
+WorldPop population count" --admin_level 2
+17m21.086s
 """
 if args.data_name == 'GADM administrative map and WorldPop population count':
     # Get the year for which data will be loaded
@@ -668,14 +664,24 @@ if args.data_name == 'GADM administrative map and WorldPop population count':
 Geospatial and Socio-Demographic Data
  └ GADM administrative map and WorldPop population density
 
-Run times:
+Run times
+---------
 
-- If the labelled population density data does not exist:
-    - `time python3 process_data.py -n "GADM administrative map and WorldPop
-    population density"`: 31m52.408s
-- If the labelled population density data exists:
-    - `time python3 process_data.py -n "GADM administrative map and WorldPop
-    population density"`: 16.145s
+### If the labelled population density data does not exist
+
+time python3 process_data.py -n "GADM administrative map and WorldPop
+population density"
+
+- 31m52.408s
+- 11m30.10s
+
+### If the labelled population density data exists
+
+time python3 process_data.py -n "GADM administrative map and WorldPop
+population density"
+
+- 0m16.145s
+- 0m15.953s
 """
 if args.data_name == 'GADM administrative map and WorldPop population density':
     # Get the year for which data will be loaded
@@ -727,11 +733,11 @@ if args.data_name == 'GADM administrative map and WorldPop population density':
         dct_admin_3 = {}
 
         # Create the output folders
-        path = Path(path.parent, f'Admin 2')
+        path = Path(path.parent, 'Admin 2')
         os.makedirs(path, exist_ok=True)
 
         # Analyse each province/city
-        for admin_2 in df[f'Admin 2'].unique():
+        for admin_2 in df['Admin 2'].unique():
             if admin_2 is not np.nan:
                 subset = df[df['Admin 2'] == admin_2].copy()
                 print(admin_2)
