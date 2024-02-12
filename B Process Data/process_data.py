@@ -165,7 +165,6 @@ if __name__ == "__main__":
     # Perform checks
     utils.check_os()
     utils.check_python()
-    utils.check_environment()
 
     # Create command-line argument parser
     desc = 'Process data that has been previously downloaded and collated.'

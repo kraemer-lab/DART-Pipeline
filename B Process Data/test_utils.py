@@ -4,15 +4,13 @@ Run unit tests on utils.py.
 Past Runs
 ---------
 - 2024-02-09 on macOS Sonoma with Python 3.12: Ran 17 tests in 0.010s
+- 2024-02-12 on Ubuntu 22 with Python 3.12: Ran 15 tests in 0.050s
 """
 import unittest
-from unittest.mock import patch, mock_open
+from unittest.mock import patch
 import utils
-import sys
 from pathlib import Path
 import warnings
-import platform
-import os
 
 
 class TestCases(unittest.TestCase):
@@ -122,49 +120,17 @@ class TestCases(unittest.TestCase):
         with self.assertWarns(UserWarning):
             utils.check_python()
 
+    @patch('sys.version_info', (3, 12))
+    def test_check_python_312(self):
+        with warnings.catch_warnings(record=True) as w:
+            utils.check_python()
+            # Assert that there were 0 warnings
+            self.assertEqual(len(w), 0)
+
     @patch('sys.version_info', (4, 0))
     def test_check_python_4(self):
         with self.assertWarns(UserWarning):
             utils.check_python()
-
-    #
-    # Test check_environment()
-    #
-
-    @patch('sys.prefix', sys.base_prefix)
-    @patch('os.path.isfile', return_value=False)
-    def test_check_environment_using_base(self, mock_isfile):
-        """Test when using base Python."""
-        with self.assertWarns(UserWarning):
-            utils.check_environment()
-
-    base_dir = str(Path('~/DART-Pipeline').expanduser())
-    base_dir_a = Path(base_dir, 'A Collate Data', 'venv')
-
-    @patch('sys.prefix', base_dir_a)
-    def test_check_environment_using_venv(self):
-        """Test when using a virtual environment."""
-        with warnings.catch_warnings(record=True) as w:
-            utils.check_environment()
-            # Assert that there were 0 warnings
-            self.assertEqual(len(w), 0)
-
-    @patch.dict(os.environ, {'DOCKER_CONTAINER': 'mocked_value'})
-    def test_check_environment_using_docker(self):
-        """Test when using Docker."""
-        if platform.system() == 'Linux':
-            contents = '1:name=systemd:/docker-ee/foobar456'
-            with patch('builtins.open', mock_open(read_data=contents)):
-                with warnings.catch_warnings(record=True) as w:
-                    utils.check_environment()
-                    # Assert that there were 0 warnings
-                    self.assertEqual(len(w), 0)
-
-        elif platform.system() == 'Darwin':
-            with warnings.catch_warnings(record=True) as w:
-                utils.check_environment()
-                # Assert that there were 0 warnings
-                self.assertEqual(len(w), 0)
 
 
 if __name__ == '__main__':
