@@ -124,13 +124,16 @@ def get_password(data_name, username, base_dir='.'):
     if platform.system() == 'Linux':
         # GnuPG was installed via:
         # $ sudo apt-get install gnupg2 -y
-        store = passpy.Store(store_dir=store_dir)
+        store = passpy.Store(store_dir=str(store_dir))
     elif platform.system() == 'Darwin':  # macOS
         # GnuPG was installed via:
         # $ brew install gnupg
-        store = passpy.Store(store_dir=store_dir, gpg_bin='gpg')
+        store = passpy.Store(store_dir=str(store_dir), gpg_bin='gpg')
+    else:
+        raise ValueError(f'Unsupported OS detected: {platform.system()}')
     password = store.get_key(data_name)
-    password = password[:-1]
+    if password is not None:
+        password = password[:-1]
 
     return password
 
@@ -350,6 +353,8 @@ class EmptyObject:
 
     def __init__(self):
         self.data_name = ''
+        self.only_one = False
+        self.dry_run = False
 
 
 # If running directly
@@ -428,6 +433,7 @@ time python3 collate_data.py --only_one --dry_run
 """
 if args.data_name == 'APHRODITE Daily mean temperature product (V1808)':
     data_type = data_name_to_type[args.data_name]
+
     # Login credentials
     username = 'rowan.nicholls@dtc.ox.ac.uk'
     password = get_password(args.data_name, username, base_dir)

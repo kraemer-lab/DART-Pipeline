@@ -11,6 +11,7 @@ from unittest.mock import patch
 import utils
 from pathlib import Path
 import warnings
+import os
 
 
 class TestCases(unittest.TestCase):
@@ -47,7 +48,7 @@ class TestCases(unittest.TestCase):
         - This tests an input which is a Path object, not a string.
         - This tests a directory that is not in a Git project.
         """
-        expected = None
+        expected = os.path.abspath(Path('..', '..'))
         actual = utils.get_base_directory(Path('..', '..'))
         self.assertEqual(expected, actual)
 
