@@ -96,6 +96,7 @@ import cdsapi
 import platform
 import argparse
 import utils
+from datetime import date
 
 
 def get_password(data_name, username, base_dir='.'):
@@ -250,7 +251,7 @@ def walk(
         )
 
 
-def download_gadm_data(file_format, out_dir, iso3='VNM', level=None):
+def download_gadm_data(file_format, out_dir, iso3, dry_run, level=None):
     """
     Download and unpack data from GADM.
 
@@ -299,19 +300,24 @@ def download_gadm_data(file_format, out_dir, iso3='VNM', level=None):
     base_name = Path(relative_url).name
     path = Path(out_dir, base_name)
 
-    # Attempt to download the file
-    succeded = download_file(url, path)
+    if dry_run:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        print(f'Touching: "{path}"')
+        path.touch()
+    else:
+        # Attempt to download the file
+        succeded = download_file(url, path)
 
-    # Unpack the file
-    if succeded:
-        # Unpack shape files
-        if file_format == 'Shapefile':
-            unpack_file(path, same_folder=False)
-        # Unpack GeoJSON files
-        if file_format == 'GeoJSON':
-            # The level 0 data is not packed
-            if level != 'level0':
-                unpack_file(path, same_folder=True)
+        # Unpack the file
+        if succeded:
+            # Unpack shape files
+            if file_format == 'Shapefile':
+                unpack_file(path, same_folder=False)
+            # Unpack GeoJSON files
+            if file_format == 'GeoJSON':
+                # The level 0 data is not packed
+                if level != 'level0':
+                    unpack_file(path, same_folder=True)
 
 
 def download_file(url, path):
@@ -371,10 +377,10 @@ def download_aphrodite_temperature_data(only_one=False, dry_run=False):
     **Requires APHRODITE account**
 
     ```bash
-    $ cd ~/DART-Pipeline
-    $ export PASSWORD_STORE_DIR=$PWD/.password-store
-    $ pass insert "APHRODITE Daily mean temperature product (V1808)"
-    $ pass "APHRODITE Daily mean temperature product (V1808)"
+    cd ~/DART-Pipeline
+    export PASSWORD_STORE_DIR=$PWD/.password-store
+    pass insert "APHRODITE Daily mean temperature product (V1808)"
+    pass "APHRODITE Daily mean temperature product (V1808)"
     ```
 
     Run times:
@@ -382,6 +388,9 @@ def download_aphrodite_temperature_data(only_one=False, dry_run=False):
     - `time python3 collate_data.py -n "APHRODITE temperature" -1`: 6m36.88s
     - `time python3 collate_data.py -n "APHRODITE temperature" -1 -d`: 4.144s
     """
+    data_type = 'Meteorological Data'
+    data_name = 'APHRODITE Daily mean temperature product (V1808)'
+
     # Login credentials
     username = 'rowan.nicholls@dtc.ox.ac.uk'
     password = get_password(data_name, username, base_dir)
@@ -430,6 +439,9 @@ def download_aphrodite_precipitation_data(only_one=False, dry_run=False):
     - `time python3 collate_data.py "APHRODITE precipitation" -1`: 35.674s
     - `time python3 collate_data.py "APHRODITE precipitation" -1 -d`: 35.674s
     """
+    data_type = 'Meteorological Data'
+    data_name = 'APHRODITE Daily accumulated precipitation (V1901)'
+
     # Login credentials
     username = 'rowan.nicholls@dtc.ox.ac.uk'
     password = get_password(data_name, username, base_dir)
@@ -465,16 +477,23 @@ def download_chirps_rainfall_data(only_one, dry_run):
 
     - `time python3 collate_data.py "CHIRPS rainfall -1`: 1h21m59.41s
     """
+    data_type = 'Meteorological Data'
+    data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite ' + \
+        'Observations'
+
     # Create output directory
     sanitised = data_name.replace(':', ' -')
     out_dir = Path(base_dir, 'A Collate Data', data_type, sanitised)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # URLs should be str, not urllib URL objects, because requests expects str
-    base_url = 'https://data.chc.ucsb.edu'
-    relative_url = 'products/CHIRPS-2.0'
-    # Walk through the folder structure
-    walk(base_url, relative_url, only_one, dry_run, out_dir)
+    # Download data for 2023 onwards
+    for year in [y for y in range(2023, int(date.today().year) + 1)]:
+        # URLs should be str, not urllib URL objects, because requests expects
+        # str
+        base_url = 'https://data.chc.ucsb.edu'
+        relative_url = f'products/CHIRPS-2.0/global_daily/tifs/p05/{year}'
+        # Walk through the folder structure
+        walk(base_url, relative_url, only_one, dry_run, out_dir)
 
 
 def download_terraclimate_data(only_one, dry_run):
@@ -485,6 +504,9 @@ def download_terraclimate_data(only_one, dry_run):
 
     - `time python3 collate_data.py "TerraClimate data" -1 -d`: 4.606s
     """
+    data_type = 'Meteorological Data'
+    data_name = 'TerraClimate gridded temperature, precipitation, and other'
+
     # Create output directory
     out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -515,6 +537,9 @@ def download_era5_reanalysis_data(only_one, dry_run):
 
     - `time python3 collate_data.py "ERA5 reanalysisis"`: 7.738s
     """
+    data_type = 'Meteorological Data'
+    data_name = 'ERA5 atmospheric reanalysis'
+
     # Create output directory
     out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -581,6 +606,9 @@ def download_worldpop_pop_density_data(only_one, dry_run):
         - 0m2.860s
         - 0m0.29s
     """
+    data_type = 'Socio-Demographic Data'
+    data_name = 'WorldPop population density'
+
     if only_one:
         print('The --only_one/-1 flag has no effect for this metric')
 
@@ -638,6 +666,9 @@ def download_worldpop_pop_count_data(only_one, dry_run):
 
     - `time python3 collate_data.py "WorldPop pop count"`: 406.2s
     """
+    data_type = 'Socio-Demographic Data'
+    data_name = 'WorldPop population count'
+
     if only_one:
         print('The --only_one/-1 flag has no effect for this metric')
 
@@ -672,7 +703,7 @@ def download_geospatial_data(data_name, only_one=False, dry_run=False):
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
 
-def download_gadm_admin_map_data(only_one, dry_run):
+def download_gadm_admin_map_data(only_one, dry_run=True):
     """
     Download GADM administrative map.
 
@@ -682,10 +713,11 @@ def download_gadm_admin_map_data(only_one, dry_run):
         - 2m0.457s
         - 0m31.094s
     """
+    data_type = 'Geospatial Data'
+    data_name = 'GADM administrative map'
+
     if only_one:
         print('The --only_one/-1 flag has no effect for this metric')
-    if dry_run:
-        print('The --dry_run/-d flag has no effect for this metric')
 
     # Set additional parameters
     iso3 = 'VNM'
@@ -694,12 +726,12 @@ def download_gadm_admin_map_data(only_one, dry_run):
     out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    download_gadm_data('Geopackage', out_dir, iso3=iso3)
-    download_gadm_data('Shapefile', out_dir, iso3=iso3)
-    download_gadm_data('GeoJSON', out_dir, iso3=iso3, level='level0')
-    download_gadm_data('GeoJSON', out_dir, iso3=iso3, level='level1')
-    download_gadm_data('GeoJSON', out_dir, iso3=iso3, level='level2')
-    download_gadm_data('GeoJSON', out_dir, iso3=iso3, level='level3')
+    download_gadm_data('Geopackage', out_dir, iso3, dry_run)
+    download_gadm_data('Shapefile', out_dir, iso3, dry_run)
+    download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level0')
+    download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level1')
+    download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level2')
+    download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level3')
 
 
 class EmptyObject:
