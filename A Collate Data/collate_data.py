@@ -82,9 +82,9 @@ The script can then be run (note that these examples use the `--only_one` and
 This will create a `Meteorological Data` folder inside the A folder into which
 data will be downloaded.
 """
-# Create the requirements file with:
-# $ python3 -m pip install pipreqs
-# $ pipreqs '.' --force
+# Create the requirements file from the terminal with:
+# python3 -m pip install pipreqs
+# pipreqs '.' --force
 import requests
 from lxml import html
 import os
@@ -348,101 +348,46 @@ def unpack_file(path, same_folder=False):
             shutil.unpack_archive(path, str(path).removesuffix('.zip'))
 
 
-class EmptyObject:
-    """Define an empty object for creating a fake args object for Sphinx."""
+def download_meteorological_data(data_name, only_one=False, dry_run=False):
+    """Download Meteorological data."""
+    if data_name == 'APHRODITE Daily mean temperature product (V1808)':
+        download_aphrodite_temperature_data(only_one, dry_run)
+    elif data_name == 'APHRODITE Daily accumulated precipitation (V1901)':
+        download_aphrodite_precipitation_data(only_one, dry_run)
+    elif data_name.startswith('CHIRPS: Rainfall Estimates from Rain Gauge an'):
+        download_chirps_rainfall_data(only_one, dry_run)
+    elif data_name.startswith('TerraClimate gridded temperature, precipitati'):
+        download_terraclimate_data(only_one, dry_run)
+    elif data_name == 'ERA5 atmospheric reanalysis':
+        download_era5_reanalysis_data(only_one, dry_run)
+    else:
+        raise ValueError(f'Unrecognised data name "{data_name}"')
 
-    def __init__(self):
-        self.data_name = ''
-        self.only_one = False
-        self.dry_run = False
 
+def download_aphrodite_temperature_data(only_one=False, dry_run=False):
+    """
+    Download APHRODITE Daily mean temperature product (V1808).
 
-# If running directly
-if __name__ == '__main__':
-    # Perform checks
-    utils.check_os()
-    utils.check_python()
+    **Requires APHRODITE account**
 
-    # Create command-line argument parser
-    desc = 'Download data and store it locally for later processing.'
-    parser = argparse.ArgumentParser(description=desc)
+    ```bash
+    $ cd ~/DART-Pipeline
+    $ export PASSWORD_STORE_DIR=$PWD/.password-store
+    $ pass insert "APHRODITE Daily mean temperature product (V1808)"
+    $ pass "APHRODITE Daily mean temperature product (V1808)"
+    ```
 
-    # Add optional arguments
-    message = 'The name of the data field to be downloaded and collated.'
-    default = ''
-    parser.add_argument('--data_name', '-n', default=default, help=message)
-    message = '''If set, only one item from each folder in the raw data
-    will be downloaded/created.'''
-    parser.add_argument('--only_one', '-1', action='store_true', help=message)
-    message = '''If set, the raw data will not be downloaded. Instead, empty
-    files will be created with the correct names and locations.'''
-    parser.add_argument('--dry_run', '-d', action='store_true', help=message)
+    Run times:
 
-    # Parse arguments from terminal
-    args = parser.parse_args()
-
-# If running via Sphinx
-else:
-    # Create a fake args object so Sphinx doesn't complain it doesn't have
-    # command-line arguments
-    args = EmptyObject()
-
-# Check
-if True:
-    print('Arguments:')
-    for arg in vars(args):
-        print(f'{arg + ":":20s} {vars(args)[arg]}')
-
-data_name_to_type = {
-    'APHRODITE Daily mean temperature product (V1808)': 'Meteorological Data',
-    'APHRODITE Daily accumulated precipitation (V1901)': 'Meteorological Data',
-    'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations':
-    'Meteorological Data',
-    'TerraClimate gridded temperature, precipitation, and other':
-    'Meteorological Data',
-    'ERA5 atmospheric reanalysis': 'Meteorological Data',
-    'WorldPop population density': 'Socio-Demographic Data',
-    'WorldPop population count': 'Socio-Demographic Data',
-    'GADM administrative map': 'Geospatial Data',
-}
-
-# Establish the base directory
-path = Path(__file__)
-base_dir = utils.get_base_directory(path.parent)
-
-"""
-Meteorological data
- └ APHRODITE Daily mean temperature product (V1808)
-
-**Requires APHRODITE account**
-
-```bash
-$ cd ~/DART-Pipeline
-$ export PASSWORD_STORE_DIR=$PWD/.password-store
-$ pass insert "APHRODITE Daily mean temperature product (V1808)"
-$ pass "APHRODITE Daily mean temperature product (V1808)"
-```
-
-Run times:
-
-time python3 collate_data.py --only_one
-6m36.88s
-
-time python3 collate_data.py --only_one --dry_run
-4.144s
-"""
-if args.data_name == 'APHRODITE Daily mean temperature product (V1808)':
-    data_type = data_name_to_type[args.data_name]
-
+    - `time python3 collate_data.py -n "APHRODITE temperature" -1`: 6m36.88s
+    - `time python3 collate_data.py -n "APHRODITE temperature" -1 -d`: 4.144s
+    """
     # Login credentials
     username = 'rowan.nicholls@dtc.ox.ac.uk'
-    password = get_password(args.data_name, username, base_dir)
-    # Set parameters
-    only_one = args.only_one
-    dry_run = args.dry_run
+    password = get_password(data_name, username, base_dir)
 
     # Create output directory
-    out_dir = Path(base_dir, 'A Collate Data', data_type, args.data_name)
+    out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # URLs should be str (not urllib URL objects) because requests expects str
@@ -464,37 +409,33 @@ if args.data_name == 'APHRODITE Daily mean temperature product (V1808)':
             out_dir, username, password
         )
 
-"""
-Meteorological data
- └ APHRODITE Daily accumulated precipitation (V1901)
 
-**Requires APHRODITE account**
+def download_aphrodite_precipitation_data(only_one=False, dry_run=False):
+    """
+    Download APHRODITE Daily accumulated precipitation (V1901).
 
-From the base directory:
+    **Requires APHRODITE account**
 
-```bash
-$ cd ~/DART-Pipeline
-$ export PASSWORD_STORE_DIR=$PWD/.password-store
-$ pass insert "APHRODITE Daily accumulated precipitation (V1901)"
-$ pass "APHRODITE Daily accumulated precipitation (V1901)"
-```
+    From the base directory:
 
-Run times:
+    ```bash
+    $ cd ~/DART-Pipeline
+    $ export PASSWORD_STORE_DIR=$PWD/.password-store
+    $ pass insert "APHRODITE Daily accumulated precipitation (V1901)"
+    $ pass "APHRODITE Daily accumulated precipitation (V1901)"
+    ```
 
-- `time python3.12 collate_data.py -n "APHRODITE Daily accumulated
-  precipitation (V1901)" --only_one`: 35.674s
-"""
-if args.data_name == 'APHRODITE Daily accumulated precipitation (V1901)':
-    data_type = data_name_to_type[args.data_name]
+    Run times:
+
+    - `time python3 collate_data.py "APHRODITE precipitation" -1`: 35.674s
+    - `time python3 collate_data.py "APHRODITE precipitation" -1 -d`: 35.674s
+    """
     # Login credentials
     username = 'rowan.nicholls@dtc.ox.ac.uk'
-    password = get_password(args.data_name, username, base_dir)
-    # Set parameters
-    only_one = args.only_one
-    dry_run = args.dry_run
+    password = get_password(data_name, username, base_dir)
 
     # Create output directory
-    out_dir = Path(base_dir, 'A Collate Data', data_type, args.data_name)
+    out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # URLs should be str, not urllib URL objects, because requests expects str
@@ -515,24 +456,15 @@ if args.data_name == 'APHRODITE Daily accumulated precipitation (V1901)':
             out_dir, username, password
         )
 
-"""
-Meteorological data
- └ CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations
 
-Run times:
+def download_chirps_rainfall_data(only_one, dry_run):
+    """
+    Download CHIRPS Rainfall Estimates from Rain Gauge, Satellite Observations.
 
-- `time python3.12 collate_data.py -n "CHIRPS: Rainfall Estimates from Rain
-  Gauge and Satellite Observations" --only_one`: 1h21m59.41s
-"""
-if args.data_name.startswith('CHIRPS: Rainfall Estimates from Rain Gauge and'):
-    # Get parameters from arguments
-    data_name = args.data_name
-    only_one = args.only_one
-    dry_run = args.dry_run
+    Run times:
 
-    # Set additional parameters
-    data_type = data_name_to_type[data_name]
-
+    - `time python3 collate_data.py "CHIRPS rainfall -1`: 1h21m59.41s
+    """
     # Create output directory
     sanitised = data_name.replace(':', ' -')
     out_dir = Path(base_dir, 'A Collate Data', data_type, sanitised)
@@ -544,25 +476,15 @@ if args.data_name.startswith('CHIRPS: Rainfall Estimates from Rain Gauge and'):
     # Walk through the folder structure
     walk(base_url, relative_url, only_one, dry_run, out_dir)
 
-"""
-Meteorological data
- └ TerraClimate gridded temperature, precipitation, and other water balance
-variables
 
-Run times:
+def download_terraclimate_data(only_one, dry_run):
+    """
+    Download TerraClimate gridded temperature, precipitation, etc.
 
-- `$ time python3 collate_data.py -n "TerraClimate gridded temperature,
-precipitation, and other" --only_one --dry_run`: 4.606s
-"""
-if args.data_name.startswith('TerraClimate gridded temperature, precipitatio'):
-    # Get parameters from arguments
-    data_name = args.data_name
-    only_one = args.only_one
-    dry_run = args.dry_run
+    Run times:
 
-    # Set additional parameters
-    data_type = data_name_to_type[data_name]
-
+    - `time python3 collate_data.py "TerraClimate data" -1 -d`: 4.606s
+    """
     # Create output directory
     out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -573,30 +495,28 @@ if args.data_name.startswith('TerraClimate gridded temperature, precipitatio'):
     # Walk through the folder structure
     walk(base_url, relative_url, only_one, dry_run, out_dir)
 
-"""
-Meteorological data
- └ ERA5 atmospheric reanalysis
 
-How to use the Climate Data Store (CDS) Application Program Interface (API):
-https://cds.climate.copernicus.eu/api-how-to
+def download_era5_reanalysis_data(only_one, dry_run):
+    """
+    Download ERA5 atmospheric reanalysis data.
 
-```bash
-$ python3 -m pip install cdsapi
-$ cd ~/DART-Pipeline
-$ export PASSWORD_STORE_DIR=$PWD/.password-store
-$ pass insert "ERA5 atmospheric reanalysis"
-$ pass "ERA5 atmospheric reanalysis"
-```
+    How to use the Climate Data Store (CDS) Application Program Interface
+    (API): https://cds.climate.copernicus.eu/api-how-to
 
-Run times:
+    ```bash
+    python3 -m pip install cdsapi
+    cd ~/DART-Pipeline
+    export PASSWORD_STORE_DIR=$PWD/.password-store
+    pass insert "ERA5 atmospheric reanalysis"
+    pass "ERA5 atmospheric reanalysis"
+    ```
 
-- `$ time python3 collate_data.py -n "ERA5 atmospheric reanalysis"`: 7.738s
-"""
-if args.data_name == 'ERA5 atmospheric reanalysis':
-    data_type = data_name_to_type[args.data_name]
+    Run times:
 
+    - `time python3 collate_data.py "ERA5 reanalysisis"`: 7.738s
+    """
     # Create output directory
-    out_dir = Path(base_dir, 'A Collate Data', data_type, args.data_name)
+    out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # Use the Climate Data Store (CDS) Application Program Interface (API)
@@ -636,31 +556,35 @@ if args.data_name == 'ERA5 atmospheric reanalysis':
         Path(out_dir, 'ERA5-ml-temperature-subarea.nc')
     )
 
-"""
-Socio-demographic data
- └ WorldPop population density
 
-All available datasets are detailed here: https://www.worldpop.org/rest/data
+def download_socio_demographic_data(data_name, only_one=False, dry_run=False):
+    """Download socio-demographic data."""
+    if data_name == 'WorldPop population density':
+        download_worldpop_pop_density_data(only_one, dry_run)
+    elif data_name == 'WorldPop population count':
+        download_worldpop_pop_count_data(only_one, dry_run)
+    else:
+        raise ValueError(f'Unrecognised data name "{data_name}"')
 
-Run times:
 
-time python3 collate_data.py -n "WorldPop population density" --dry_run
-- 0m0.732s
+def download_worldpop_pop_density_data(only_one, dry_run):
+    """
+    Download WorldPop population density.
 
-time python3 collate_data.py -n "WorldPop population density"
-- 0m2.860s
-- 0m0.29s
-"""
-if args.data_name == 'WorldPop population density':
-    # Get parameters from arguments
-    data_name = args.data_name
-    only_one = args.only_one
+    All available datasets are detailed here:
+    https://www.worldpop.org/rest/data
+
+    Run times:
+
+    - `time python3 collate_data.py "WorldPop pop density" -d`: 0m0.732s
+    - `time python3 collate_data.py "WorldPop pop density":
+        - 0m2.860s
+        - 0m0.29s
+    """
     if only_one:
         print('The --only_one/-1 flag has no effect for this metric')
-    dry_run = args.dry_run
 
     # Set additional parameters
-    data_type = data_name_to_type[data_name]
     year = '2020'
     iso3 = 'VNM'
     base_url = 'https://data.worldpop.org'
@@ -702,26 +626,22 @@ if args.data_name == 'WorldPop population density':
     else:
         download_file(url, path)
 
-"""
-Socio-demographic data
- └ WorldPop population count
 
-All available datasets are detailed here: https://www.worldpop.org/rest/data
+def download_worldpop_pop_count_data(only_one, dry_run):
+    """
+    Download WorldPop population count.
 
-Run times:
+    All available datasets are detailed here:
+    https://www.worldpop.org/rest/data
 
-- `$ time python3 collate_data.py -n "WorldPop population count"`: 406.2s
-"""
-if args.data_name == 'WorldPop population count':
-    # Get parameters from arguments
-    data_name = args.data_name
-    only_one = args.only_one
+    Run times:
+
+    - `time python3 collate_data.py "WorldPop pop count"`: 406.2s
+    """
     if only_one:
         print('The --only_one/-1 flag has no effect for this metric')
-    dry_run = args.dry_run
 
-    # Set additional parameters
-    data_type = data_name_to_type[data_name]
+    # Set additional parameter
     base_url = 'https://data.worldpop.org'
 
     # Download GeoDataFrame file
@@ -743,26 +663,31 @@ if args.data_name == 'WorldPop population count':
         if succeded:
             unpack_file(path, same_folder=True)
 
-"""
-Geospatial data
- └ GADM administrative map
 
-time python3 collate_data.py -n "GADM administrative map"
-- 2m0.457s
-- 0m31.094s
-"""
-if args.data_name == 'GADM administrative map':
-    # Get parameters from arguments
-    data_name = args.data_name
-    only_one = args.only_one
+def download_geospatial_data(data_name, only_one=False, dry_run=False):
+    """Download Geospatial data."""
+    if data_name == 'GADM administrative map':
+        download_gadm_admin_map_data(only_one, dry_run)
+    else:
+        raise ValueError(f'Unrecognised data name "{data_name}"')
+
+
+def download_gadm_admin_map_data(only_one, dry_run):
+    """
+    Download GADM administrative map.
+
+    Run times:
+
+    - `time python3 collate_data.py "GADM admin map"`:
+        - 2m0.457s
+        - 0m31.094s
+    """
     if only_one:
         print('The --only_one/-1 flag has no effect for this metric')
-    dry_run = args.dry_run
     if dry_run:
         print('The --dry_run/-d flag has no effect for this metric')
 
     # Set additional parameters
-    data_type = data_name_to_type[data_name]
     iso3 = 'VNM'
 
     # Create output directory
@@ -775,3 +700,118 @@ if args.data_name == 'GADM administrative map':
     download_gadm_data('GeoJSON', out_dir, iso3=iso3, level='level1')
     download_gadm_data('GeoJSON', out_dir, iso3=iso3, level='level2')
     download_gadm_data('GeoJSON', out_dir, iso3=iso3, level='level3')
+
+
+class EmptyObject:
+    """Define an empty object for creating a fake args object for Sphinx."""
+
+    def __init__(self):
+        self.data_name = ''
+        self.only_one = False
+        self.dry_run = False
+
+
+shorthand_to_data_name = {
+    # Meteorological Data
+    'APHRODITE temperature':
+    'APHRODITE Daily mean temperature product (V1808)',
+    'APHRODITE precipitation':
+    'APHRODITE Daily accumulated precipitation (V1901)',
+    'CHIRPS rainfall':
+    'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations',
+    'TerraClimate data':
+    'TerraClimate gridded temperature, precipitation, and other',
+    'ERA5 reanalysis':
+    'ERA5 atmospheric reanalysis',
+
+    # Socio-Demographic Data
+    'WorldPop pop density': 'WorldPop population density',
+    'WorldPop pop count': 'WorldPop population count',
+
+    # Geospatial Data
+    'GADM admin map': 'GADM administrative map',
+}
+
+data_name_to_type = {
+    # Meteorological Data
+    'APHRODITE Daily mean temperature product (V1808)': 'Meteorological Data',
+    'APHRODITE Daily accumulated precipitation (V1901)': 'Meteorological Data',
+    'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations':
+    'Meteorological Data',
+    'TerraClimate gridded temperature, precipitation, and other':
+    'Meteorological Data',
+    'ERA5 atmospheric reanalysis': 'Meteorological Data',
+
+    # Socio-Demographic Data
+    'WorldPop population density': 'Socio-Demographic Data',
+    'WorldPop population count': 'Socio-Demographic Data',
+
+    # Geospatial Data
+    'GADM administrative map': 'Geospatial Data',
+}
+
+# Establish the base directory
+path = Path(__file__)
+base_dir = utils.get_base_directory(path.parent)
+
+# If running directly
+if __name__ == '__main__':
+    # Perform checks
+    utils.check_os()
+    utils.check_python()
+
+    # Create command-line argument parser
+    desc = 'Download data and store it locally for later processing.'
+    parser = argparse.ArgumentParser(description=desc)
+
+    # Add positional arguments
+    message = 'The name of the data field to be downloaded and collated.'
+    default = ''
+    parser.add_argument('data_name', nargs='?', default=default, help=message)
+
+    # Add optional arguments
+    message = '''If set, only one item from each folder in the raw data
+    will be downloaded/created.'''
+    parser.add_argument('--only_one', '-1', action='store_true', help=message)
+    message = '''If set, the raw data will not be downloaded. Instead, empty
+    files will be created with the correct names and locations.'''
+    parser.add_argument('--dry_run', '-d', action='store_true', help=message)
+
+    # Parse arguments from terminal
+    args = parser.parse_args()
+
+    # Check
+    if True:
+        print('Arguments:')
+        for arg in vars(args):
+            print(f'{arg + ":":20s} {vars(args)[arg]}')
+
+    # Extract the arguments
+    data_name = args.data_name
+    only_one = args.only_one
+    dry_run = args.dry_run
+
+    # Convert shorthand names to full names
+    if data_name in shorthand_to_data_name.keys():
+        data_name = shorthand_to_data_name[data_name]
+    # Get macro data type
+    data_type = ''
+    if data_name in data_name_to_type.keys():
+        data_type = data_name_to_type[data_name]
+
+    if data_name == '':
+        print('No data name has been provided. Exiting the programme.')
+    elif data_type == 'Meteorological Data':
+        download_meteorological_data(data_name, only_one, dry_run)
+    elif data_type == 'Socio-Demographic Data':
+        download_socio_demographic_data(data_name, only_one, dry_run)
+    elif data_type == 'Geospatial Data':
+        download_geospatial_data(data_name, only_one, dry_run)
+    else:
+        raise ValueError(f'Unrecognised data type "{data_type}"')
+
+# If running via Sphinx
+else:
+    # Create a fake args object so Sphinx doesn't complain it doesn't have
+    # command-line arguments
+    args = EmptyObject()
