@@ -76,7 +76,7 @@ import utils
 # $ pipreqs '.' --force
 
 
-def get_credentials(metric, base_dir='..'):
+def get_credentials(metric, base_dir='..', credentials=None):
     """
     Get a username and password pair from a credentials.json file.
 
@@ -88,6 +88,9 @@ def get_credentials(metric, base_dir='..'):
     base_dir : str or pathlib.Path, default '..'
         The base directory of the Git project. It is assumed that the password
         store has been created and is located here.
+    credentials : str, pathlib.Path or None, default None
+        Path (including filename) to the credentials file is different from the
+        default (which is `credentials.json` in the `DART-Pipeline` directory).
 
     Returns
     -------
@@ -95,7 +98,12 @@ def get_credentials(metric, base_dir='..'):
         The username and password associated with the entry in the credentials
         file will be returned.
     """
-    path = Path(base_dir, 'credentials.json')
+    # Construct the path to the credentials file
+    if credentials is None:
+        path = Path(base_dir, 'credentials.json')
+    else:
+        path = Path(credentials)
+    # Open and parse the credentials file
     with open(path, 'r') as f:
         credentials = json.load(f)
     username = credentials[metric]['username']
@@ -342,6 +350,9 @@ if __name__ == '__main__':
     message = '''If set, the raw data will not be downloaded. Instead, empty
     files will be created with the correct names and locations.'''
     parser.add_argument('--dry_run', '-d', action='store_true', help=message)
+    message = '''Path (including filename) to the credentials file.
+    Default is `credentials.json` in the `DART-Pipeline` directory.'''
+    parser.add_argument('--credentials', '-c', default=None, help=message)
 
     # Parse arguments from terminal
     args = parser.parse_args()

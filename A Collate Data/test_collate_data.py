@@ -8,7 +8,7 @@ Past Runs
 - 2024-02-08 on Ubuntu 22.04 using Python 3.12: Ran 4 tests in 10.968s
 - 2024-02-09 on macOS Sonoma using Python 3.12: Ran 4 tests in 6.190s
 - 2024-02-09 on macOS Sonoma using Python 3.12: Ran 4 tests in 6.190s
-- 2024-02-14 on macOS Sonoma using Python 3.12: Ran 5 tests in 4.516s
+- 2024-02-14 on macOS Sonoma using Python 3.12: Ran 6 tests in 9.256s
 """
 import unittest
 from unittest.mock import patch
@@ -25,7 +25,7 @@ from collate_data import \
 class TestCases(unittest.TestCase):
 
     @patch('collate_data.open')
-    def test_get_credentials(self, mock_open):
+    def test_get_credentials_default(self, mock_open):
         # Mock the contents of the credentials file
         file = '''{
             "Example metric": {
@@ -40,6 +40,25 @@ class TestCases(unittest.TestCase):
 
         # Perform the tests
         self.assertEqual(username, 'Example username')
+        self.assertEqual(password, 'Example password')
+
+    @patch('collate_data.open')
+    def test_get_credentials_moved(self, mock_open):
+        # Mock the contents of the credentials file
+        file = '''{
+            "Example metric": {
+                "username": "Example username",
+                "password": "Example password"
+            }
+        }'''
+        mock_open.return_value.__enter__.return_value.read.return_value = file
+
+        # Call the function being tested
+        path = Path('alternative/path/to/example_credentials.json')
+        uname, password = get_credentials('Example metric', credentials=path)
+
+        # Perform the tests
+        self.assertEqual(uname, 'Example username')
         self.assertEqual(password, 'Example password')
 
     def test_walk(self):
