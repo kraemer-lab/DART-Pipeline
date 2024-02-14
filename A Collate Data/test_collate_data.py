@@ -8,9 +8,15 @@ Past Runs
 - 2024-02-08 on Ubuntu 22.04 using Python 3.12: Ran 4 tests in 10.968s
 - 2024-02-09 on macOS Sonoma using Python 3.12: Ran 4 tests in 6.190s
 - 2024-02-13 on Ubuntu 22.04 using Python 3.12: Ran 16 tests in 64.283s
+- 2024-02-14 on macOS Sonoma using Python 3.12: Ran 6 tests in 9.256s
 """
 import unittest
+from unittest.mock import patch
+from pathlib import Path
+# Custom modules
+import utils
 from collate_data import \
+    get_credentials, \
     walk, \
     download_gadm_data, \
     download_file, \
@@ -26,14 +32,46 @@ from collate_data import \
     download_worldpop_pop_count_data, \
     download_geospatial_data, \
     download_gadm_admin_map_data
-from pathlib import Path
-import utils
 
 
 class TestCases(unittest.TestCase):
 
-    # TODO
-    # def test_get_password(self):
+    @patch('collate_data.open')
+    def test_get_credentials_default(self, mock_open):
+        # Mock the contents of the credentials file
+        file = '''{
+            "Example metric": {
+                "username": "Example username",
+                "password": "Example password"
+            }
+        }'''
+        mock_open.return_value.__enter__.return_value.read.return_value = file
+
+        # Call the function being tested
+        username, password = get_credentials('Example metric')
+
+        # Perform the tests
+        self.assertEqual(username, 'Example username')
+        self.assertEqual(password, 'Example password')
+
+    @patch('collate_data.open')
+    def test_get_credentials_moved(self, mock_open):
+        # Mock the contents of the credentials file
+        file = '''{
+            "Example metric": {
+                "username": "Example username",
+                "password": "Example password"
+            }
+        }'''
+        mock_open.return_value.__enter__.return_value.read.return_value = file
+
+        # Call the function being tested
+        path = Path('alternative/path/to/example_credentials.json')
+        uname, password = get_credentials('Example metric', credentials=path)
+
+        # Perform the tests
+        self.assertEqual(uname, 'Example username')
+        self.assertEqual(password, 'Example password')
 
     def test_walk(self):
         base_url = 'https://data.chc.ucsb.edu'

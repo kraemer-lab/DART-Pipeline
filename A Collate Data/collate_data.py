@@ -24,119 +24,93 @@ these dependencies via:
 
     $ python3 -m pip install -r requirements.txt
 
-Password management is done with GNU Privacy Guard (GnuPG or GPG) together with
-pass and passpy. The passpy library would have been installed in the previous
-step while GnuPG and pass can be installed via `apt` on Ubuntu or `brew` on
-macOS:
+Password management is done by creating a file called `credentials.json` in the
+top-level of the `DART-Pipeline` directory and adding login credentials into it
+in the following format:
 
 .. code-block::
 
-    # Ubuntu:
-    $ sudo apt-get install gnupg2 -y
-    $ sudo apt install pass
+    {
+        "Example metric": {
+            "username": "example@email.com",
+            "password": "correct horse battery staple"
+        }
+    }
 
-.. code-block::
-
-    # macOS:
-    $ brew install gnupg
-    $ brew install pass
-
-The rest of the password management setup is as follows:
-
-.. code-block::
-
-    $ gpg --gen-key
-    $ gpg --list-keys
-    $ cd ~/DART-Pipeline
-    $ export PASSWORD_STORE_DIR=$PWD/.password-store
-    $ pass init <your GnuPG public key>
-    $ passpy insert "name for password"
-    $ passpy show "name for password"
-
-If you are on macOS and see `OSError: Unable to run gpg (gpg2) - it may not be
-available` then it might mean you haven't installed GnuPG yet or it might mean
-that you have but macOS can't find it. A solution is to use passpy (from within
-Python) and to not use GnuPG (from the Terminal).
+This file is automatically ignored by Git but can be imported into scripts.
 
 **Example Usage**
 
 To download Daily mean temperature product (V1808) meteorological data an
 `APHRODITE account <http://aphrodite.st.hirosaki-u.ac.jp/download/>`_ is
-needed and the username and password need to be to hand. The password must be
-stored in a `pass` password manager in the base directory:
+needed and the username and password need to be added to the `credentials.json`
+file as described above. The script can then be run as follows (note that these
+examples use the `--only_one` and `--dry_run` flags which are meant for script
+testing purposes only):
 
 .. code-block::
 
-    $ cd ~/DART-Pipeline
-    $ export PASSWORD_STORE_DIR=$PWD/.password-store
-    $ pass insert "APHRODITE Daily mean temperature product (V1808)"
-
-The script can then be run (note that these examples use the `--only_one` and
-`--dry_run` flags which are meant for script testing purposes):
-
-.. code-block::
-
-    $ python3 collate_data.py --only_one --dry_run # Approx run time: 4.144
-    $ python3 collate_data.py --only_one  # Approx run time: 6:36.88
+    # Approx run time: 4.144
+    $ python3 collate_data.py "APHRODITE temperature" --only_one --dry_run
+    # Approx run time: 6:36.88
+    $ python3 collate_data.py "APHRODITE temperature" --only_one
 
 This will create a `Meteorological Data` folder inside the A folder into which
 data will be downloaded.
 """
-# Create the requirements file from the terminal with:
-# python3 -m pip install pipreqs
-# pipreqs '.' --force
-import requests
+# External libraries
+import cdsapi
 from lxml import html
+import py7zr
+import requests
+# Built-in modules
 import os
 import shutil
-import py7zr
 from pathlib import Path
-import passpy
-import cdsapi
-import platform
 import argparse
-import utils
+import json
 from datetime import date
+# Custom modules
+import utils
+# Create the requirements file from the terminal with:
+# $ python3 -m pip install pipreqs
+# $ pipreqs '.' --force
 
 
-def get_password(data_name, username, base_dir='.'):
+def get_credentials(metric, base_dir='..', credentials=None):
     """
-    Get a password from a passpy store.
+    Get a username and password pair from a credentials.json file.
 
     Parameters
     ----------
-    data_name : str
+    metric : str
         Name of the field that is accessible online but which is
         password-protected.
-    username : str
-        The username associated with an account that can access the data.
-    base_dir : str or pathlib.Path, default '.'
+    base_dir : str or pathlib.Path, default '..'
         The base directory of the Git project. It is assumed that the password
         store has been created and is located here.
+    credentials : str, pathlib.Path or None, default None
+        Path (including filename) to the credentials file is different from the
+        default (which is `credentials.json` in the `DART-Pipeline` directory).
 
     Returns
     -------
-    password : str
-        If successful, the password associated with the entry in the password
-        store will be returned.
+    username, password : str
+        The username and password associated with the entry in the credentials
+        file will be returned.
     """
-    store_dir = Path(base_dir, '.password-store')
-    # Check what OS you are using
-    if platform.system() == 'Linux':
-        # GnuPG was installed via:
-        # $ sudo apt-get install gnupg2 -y
-        store = passpy.Store(store_dir=str(store_dir))
-    elif platform.system() == 'Darwin':  # macOS
-        # GnuPG was installed via:
-        # $ brew install gnupg
-        store = passpy.Store(store_dir=str(store_dir), gpg_bin='gpg')
+    # Construct the path to the credentials file
+    if credentials is None:
+        path = Path(base_dir, 'credentials.json')
     else:
-        raise ValueError(f'Unsupported OS detected: {platform.system()}')
-    password = store.get_key(data_name)
-    if password is not None:
-        password = password[:-1]
+        path = Path(credentials)
+    # Open and parse the credentials file
+    with open(path, 'r') as f:
+        credentials = json.load(f)
+    username = credentials[metric]['username']
+    password = credentials[metric]['password']
 
-    return password
+    return username, password
 
 
 def walk(
@@ -376,13 +350,6 @@ def download_aphrodite_temperature_data(only_one=False, dry_run=False):
 
     **Requires APHRODITE account**
 
-    ```bash
-    cd ~/DART-Pipeline
-    export PASSWORD_STORE_DIR=$PWD/.password-store
-    pass insert "APHRODITE Daily mean temperature product (V1808)"
-    pass "APHRODITE Daily mean temperature product (V1808)"
-    ```
-
     Run times:
 
     - `time python3 collate_data.py -n "APHRODITE temperature" -1`: 6m36.88s
@@ -392,8 +359,10 @@ def download_aphrodite_temperature_data(only_one=False, dry_run=False):
     data_name = 'APHRODITE Daily mean temperature product (V1808)'
 
     # Login credentials
-    username = 'rowan.nicholls@dtc.ox.ac.uk'
-    password = get_password(data_name, username, base_dir)
+    username, password = get_credentials(args.data_name, base_dir)
+    # Set parameters
+    only_one = args.only_one
+    dry_run = args.dry_run
 
     # Create output directory
     out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
@@ -443,8 +412,10 @@ def download_aphrodite_precipitation_data(only_one=False, dry_run=False):
     data_name = 'APHRODITE Daily accumulated precipitation (V1901)'
 
     # Login credentials
-    username = 'rowan.nicholls@dtc.ox.ac.uk'
-    password = get_password(data_name, username, base_dir)
+    username, password = get_credentials(args.data_name, base_dir)
+    # Set parameters
+    only_one = args.only_one
+    dry_run = args.dry_run
 
     # Create output directory
     out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
@@ -738,6 +709,7 @@ class EmptyObject:
     """Define an empty object for creating a fake args object for Sphinx."""
 
     def __init__(self):
+        """Initialise."""
         self.data_name = ''
         self.only_one = False
         self.dry_run = False
@@ -808,6 +780,9 @@ if __name__ == '__main__':
     message = '''If set, the raw data will not be downloaded. Instead, empty
     files will be created with the correct names and locations.'''
     parser.add_argument('--dry_run', '-d', action='store_true', help=message)
+    message = '''Path (including filename) to the credentials file.
+    Default is `credentials.json` in the `DART-Pipeline` directory.'''
+    parser.add_argument('--credentials', '-c', default=None, help=message)
 
     # Parse arguments from terminal
     args = parser.parse_args()
