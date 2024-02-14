@@ -328,12 +328,14 @@ def unpack_file(path, same_folder=False):
             shutil.unpack_archive(path, str(path).removesuffix('.zip'))
 
 
-def download_meteorological_data(data_name, only_one=False, dry_run=False):
+def download_meteorological_data(
+    data_name, only_one=False, dry_run=False, credentials=None
+):
     """Download Meteorological data."""
     if data_name == 'APHRODITE Daily mean temperature product (V1808)':
-        download_aphrodite_temperature_data(only_one, dry_run)
+        download_aphrodite_temperature_data(only_one, dry_run, credentials)
     elif data_name == 'APHRODITE Daily accumulated precipitation (V1901)':
-        download_aphrodite_precipitation_data(only_one, dry_run)
+        download_aphrodite_precipitation_data(only_one, dry_run, credentials)
     elif data_name.startswith('CHIRPS: Rainfall Estimates from Rain Gauge an'):
         download_chirps_rainfall_data(only_one, dry_run)
     elif data_name.startswith('TerraClimate gridded temperature, precipitati'):
@@ -344,7 +346,9 @@ def download_meteorological_data(data_name, only_one=False, dry_run=False):
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
 
-def download_aphrodite_temperature_data(only_one=False, dry_run=False):
+def download_aphrodite_temperature_data(
+    only_one=False, dry_run=False, credentials=None
+):
     """
     Download APHRODITE Daily mean temperature product (V1808).
 
@@ -359,10 +363,7 @@ def download_aphrodite_temperature_data(only_one=False, dry_run=False):
     data_name = 'APHRODITE Daily mean temperature product (V1808)'
 
     # Login credentials
-    username, password = get_credentials(args.data_name, base_dir)
-    # Set parameters
-    only_one = args.only_one
-    dry_run = args.dry_run
+    username, password = get_credentials(data_name, base_dir, credentials)
 
     # Create output directory
     out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
@@ -388,7 +389,9 @@ def download_aphrodite_temperature_data(only_one=False, dry_run=False):
         )
 
 
-def download_aphrodite_precipitation_data(only_one=False, dry_run=False):
+def download_aphrodite_precipitation_data(
+    only_one=False, dry_run=False, credentials=None
+):
     """
     Download APHRODITE Daily accumulated precipitation (V1901).
 
@@ -412,10 +415,7 @@ def download_aphrodite_precipitation_data(only_one=False, dry_run=False):
     data_name = 'APHRODITE Daily accumulated precipitation (V1901)'
 
     # Login credentials
-    username, password = get_credentials(args.data_name, base_dir)
-    # Set parameters
-    only_one = args.only_one
-    dry_run = args.dry_run
+    username, password = get_credentials(data_name, base_dir, credentials)
 
     # Create output directory
     out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
@@ -797,6 +797,7 @@ if __name__ == '__main__':
     data_name = args.data_name
     only_one = args.only_one
     dry_run = args.dry_run
+    credentials = args.credentials
 
     # Convert shorthand names to full names
     if data_name in shorthand_to_data_name.keys():
@@ -809,7 +810,7 @@ if __name__ == '__main__':
     if data_name == '':
         print('No data name has been provided. Exiting the programme.')
     elif data_type == 'Meteorological Data':
-        download_meteorological_data(data_name, only_one, dry_run)
+        download_meteorological_data(data_name, only_one, dry_run, credentials)
     elif data_type == 'Socio-Demographic Data':
         download_socio_demographic_data(data_name, only_one, dry_run)
     elif data_type == 'Geospatial Data':

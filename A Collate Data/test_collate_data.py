@@ -8,7 +8,7 @@ Past Runs
 - 2024-02-08 on Ubuntu 22.04 using Python 3.12: Ran 4 tests in 10.968s
 - 2024-02-09 on macOS Sonoma using Python 3.12: Ran 4 tests in 6.190s
 - 2024-02-13 on Ubuntu 22.04 using Python 3.12: Ran 16 tests in 64.283s
-- 2024-02-14 on macOS Sonoma using Python 3.12: Ran 6 tests in 9.256s
+- 2024-02-14 on macOS Sonoma using Python 3.12: Ran 18 tests in 42.751s
 """
 import unittest
 from unittest.mock import patch
@@ -191,26 +191,29 @@ class TestCases(unittest.TestCase):
         Path('tests/').rmdir()
 
     def test_download_meteorological_data(self):
+        only_one = True
+        dry_run = True
+
         data_name = 'APHRODITE Daily mean temperature product (V1808)'
-        download_meteorological_data(data_name, only_one=True, dry_run=True)
+        download_meteorological_data(data_name, only_one, dry_run)
         self.test_download_aphrodite_temperature_data()
 
         data_name = 'APHRODITE Daily accumulated precipitation (V1901)'
-        download_meteorological_data(data_name, only_one=True, dry_run=True)
+        download_meteorological_data(data_name, only_one, dry_run)
         self.test_download_aphrodite_precipitation_data()
 
         data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and ' + \
             'Satellite Observations'
-        download_meteorological_data(data_name, only_one=True, dry_run=True)
+        download_meteorological_data(data_name, only_one, dry_run)
         self.test_download_chirps_rainfall_data()
 
         data_name = 'TerraClimate gridded temperature, precipitation, and ' + \
             'other'
-        download_meteorological_data(data_name, only_one=True, dry_run=True)
+        download_meteorological_data(data_name, only_one, dry_run)
         self.test_download_terraclimate_data()
 
         data_name = 'ERA5 atmospheric reanalysis'
-        download_meteorological_data(data_name, only_one=True, dry_run=True)
+        download_meteorological_data(data_name, only_one, dry_run)
         self.test_download_era5_reanalysis_data()
 
     def test_download_aphrodite_temperature_data(self):
