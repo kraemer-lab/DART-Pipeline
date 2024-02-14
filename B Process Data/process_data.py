@@ -157,11 +157,55 @@ class EmptyObject:
     """Define an empty object for creating a fake args object for Sphinx."""
 
     def __init__(self):
+        """Initialise."""
         self.data_name = ''
 
 
+shorthand_to_data_name = {
+    # Meteorological Data
+    'APHRODITE temperature':
+    'APHRODITE Daily mean temperature product (V1808)',
+    'APHRODITE precipitation':
+    'APHRODITE Daily accumulated precipitation (V1901)',
+    'CHIRPS rainfall':
+    'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations',
+    'TerraClimate data':
+    'TerraClimate gridded temperature, precipitation, and other',
+    'ERA5 reanalysis':
+    'ERA5 atmospheric reanalysis',
+
+    # Socio-Demographic Data
+    'WorldPop pop density': 'WorldPop population density',
+    'WorldPop pop count': 'WorldPop population count',
+
+    # Geospatial Data
+    'GADM admin map': 'GADM administrative map',
+}
+
+data_name_to_type = {
+    # Meteorological Data
+    'APHRODITE Daily mean temperature product (V1808)': 'Meteorological Data',
+    'APHRODITE Daily accumulated precipitation (V1901)': 'Meteorological Data',
+    'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations':
+    'Meteorological Data',
+    'TerraClimate gridded temperature, precipitation, and other':
+    'Meteorological Data',
+    'ERA5 atmospheric reanalysis': 'Meteorological Data',
+
+    # Socio-Demographic Data
+    'WorldPop population density': 'Socio-Demographic Data',
+    'WorldPop population count': 'Socio-Demographic Data',
+
+    # Geospatial Data
+    'GADM administrative map': 'Geospatial Data',
+}
+
+# Establish the base directory
+path = Path(__file__)
+base_dir = utils.get_base_directory(path.parent)
+
 # If running directly
-if __name__ == "__main__":
+if __name__ == '__main__':
     # Perform checks
     utils.check_os()
     utils.check_python()
@@ -170,65 +214,59 @@ if __name__ == "__main__":
     desc = 'Process data that has been previously downloaded and collated.'
     parser = argparse.ArgumentParser(description=desc)
 
-    # Add optional arguments: data_name
+    # Add optional arguments
     message = 'The name of the data field to be processed.'
-    default = ''
-    parser.add_argument('--data_name', '-n', default=default, help=message)
-
-    # Add optional arguments: admin_level
+    parser.add_argument('--data_name', '-n', default='', help=message)
     message = '''Some data fields have different data for each administrative
     level'''
-    default = '1'
-    parser.add_argument('--admin_level', '-a', default=default, help=message)
-
-    # Add optional arguments: year
+    parser.add_argument('--admin_level', '-a', default='1', help=message)
     message = '''Some data fields have data available for multiple years.'''
-    default = ''
-    parser.add_argument('--year', '-y', default=default, help=message)
-
-    # Add optional arguments: resolution_type
+    parser.add_argument('--year', '-y', default='', help=message)
     message = '''"ppp" (people per pixel) or "pph" (people per hectare).'''
-    default = 'ppp'
-    parser.add_argument(
-        '--resolution_type', '-r', default=default, help=message
-    )
-
-    # Add optional arguments: country_iso3
+    parser.add_argument('--resolution_type', '-r', default='ppp', help=message)
     message = '''Country code in "ISO 3166-1 alpha-3" format.'''
-    default = 'VNM'
-    parser.add_argument('--country_iso3', '-c', default=default, help=message)
+    parser.add_argument('--country_iso3', '-c', default='VNM', help=message)
 
     # Parse arguments from terminal
     args = parser.parse_args()
+
+    # Check
+    if True:
+        print('Arguments:')
+        for arg in vars(args):
+            print(f'{arg + ":":20s} {vars(args)[arg]}')
+
+    # Extract the arguments
+    data_name = args.data_name
+    admin_level = args.admin_level
+    year = args.year
+    resolution_type = args.resolution_type
+    country_iso3 = args.country_iso3
+
+    # Convert shorthand names to full names
+    if data_name in shorthand_to_data_name.keys():
+        data_name = shorthand_to_data_name[data_name]
+    # Get macro data type
+    data_type = ''
+    if data_name in data_name_to_type.keys():
+        data_type = data_name_to_type[data_name]
+
+    if data_name == '':
+        print('No data name has been provided. Exiting the programme.')
+    # elif data_type == 'Meteorological Data':
+    #     process_meteorological_data(data_name, only_one, dry_run, credentials)
+    # elif data_type == 'Socio-Demographic Data':
+    #     process__socio_demographic_data(data_name, only_one, dry_run)
+    # elif data_type == 'Geospatial Data':
+    #     process__geospatial_data(data_name, only_one, dry_run)
+    else:
+        raise ValueError(f'Unrecognised data type "{data_type}"')
 
 # If running via Sphinx
 else:
     # Create a fake args object so Sphinx doesn't complain it doesn't have
     # command-line arguments
     args = EmptyObject()
-
-# Check
-if True:
-    print('Arguments:')
-    for arg in vars(args):
-        print(f'{arg + ":":20s} {vars(args)[arg]}')
-
-data_name_to_type = {
-    'APHRODITE Daily mean temperature product (V1808)': 'Meteorological Data',
-    'APHRODITE Daily accumulated precipitation (V1901)': 'Meteorological Data',
-    'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations':
-    'Meteorological Data',
-    'TerraClimate gridded temperature, precipitation, and other':
-    'Meteorological Data',
-    'ERA5 atmospheric reanalysis': 'Meteorological Data',
-    'WorldPop population density': 'Socio-Demographic Data',
-    'WorldPop population count': 'Socio-Demographic Data',
-    'GADM administrative map': 'Geospatial Data',
-}
-
-# Establish the base directory
-path = Path(__file__)
-base_dir = utils.get_base_directory(path.parent)
 
 """
 Geospatial data
