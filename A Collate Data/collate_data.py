@@ -782,7 +782,8 @@ if __name__ == '__main__':
     parser.add_argument('--dry_run', '-d', action='store_true', help=message)
     message = '''Path (including filename) to the credentials file.
     Default is `credentials.json` in the `DART-Pipeline` directory.'''
-    parser.add_argument('--credentials', '-c', default=None, help=message)
+    default = '../credentials.json'
+    parser.add_argument('--credentials', '-c', default=default, help=message)
 
     # Parse arguments from terminal
     args = parser.parse_args()

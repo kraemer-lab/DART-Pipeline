@@ -251,16 +251,16 @@ if __name__ == '__main__':
     if data_name in data_name_to_type.keys():
         data_type = data_name_to_type[data_name]
 
-    if data_name == '':
-        print('No data name has been provided. Exiting the programme.')
+    # if data_name == '':
+    #     print('No data name has been provided. Exiting the programme.')
     # elif data_type == 'Meteorological Data':
     #     process_meteorological_data(data_name, only_one, dry_run, credentials)
     # elif data_type == 'Socio-Demographic Data':
     #     process__socio_demographic_data(data_name, only_one, dry_run)
     # elif data_type == 'Geospatial Data':
     #     process__geospatial_data(data_name, only_one, dry_run)
-    else:
-        raise ValueError(f'Unrecognised data type "{data_type}"')
+    # else:
+    #     raise ValueError(f'Unrecognised data type "{data_type}"')
 
 # If running via Sphinx
 else:
@@ -434,8 +434,8 @@ if args.data_name == 'WorldPop population count':
 
     # Import
     relative_path = Path(
-        'Socio-Demographic Data', 'WorldPop population count',
-        'Population Counts', 'Individual countries', 'Vietnam',
+        'Socio-Demographic Data', 'WorldPop population count', 'GIS',
+        'Population', 'Individual_countries', 'VNM',
         'Viet_Nam_100m_Population'
     )
     path = Path(base_dir, 'A Collate Data', relative_path, filename)
