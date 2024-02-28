@@ -60,6 +60,9 @@ class TestCases(unittest.TestCase):
         actual = lat, lon
         self.assertEqual(expected, actual)
 
+    def process_geospatial_data():
+        pass
+
 
 if __name__ == '__main__':
     unittest.main()

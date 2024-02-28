@@ -60,10 +60,7 @@ In general, use `EPSG:9217 <https://epsg.io/9217>`_ or
 `ISO 3166-1 alpha-3 <https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3>`_
 format for country codes.
 """
-# Create the requirements file with:
-# $ python3 -m pip install pipreqs
-# $ pipreqs '.' --force
-from pathlib import Path
+# External libraries
 import pandas as pd
 from matplotlib import pyplot as plt
 import matplotlib.ticker as mticker
@@ -72,10 +69,18 @@ from shapely.geometry import Point, Polygon
 import geopandas as gpd
 import rasterio
 from rasterio.features import geometry_mask
+# Built-in modules
 import argparse
-import os
-import utils
+import gzip
 import json
+import os
+from pathlib import Path
+import struct
+# Custom modules
+import utils
+# Create the requirements file with:
+# $ python3 -m pip install pipreqs
+# $ pipreqs '.' --force
 
 # If Wayland is being used on GNOME, use a different Matplotlib backend
 if os.environ.get('WAYLAND_DISPLAY') is not None:
@@ -153,6 +158,271 @@ def pixel_to_latlon(x, y, transform):
     return lat, lon
 
 
+def process_geospatial_data(data_name, admin_level, country_iso3):
+    """Process Geospatial data."""
+    if data_name == 'GADM administrative map':
+        process_gadm_admin_map_data(admin_level, country_iso3)
+    else:
+        raise ValueError(f'Unrecognised data name "{data_name}"')
+
+
+def process_gadm_admin_map_data(admin_level, country_iso3):
+    """
+    Process GADM administrative map data.
+
+    Run times:
+
+    - `time python3 process_data.py "GADM admin map" -a 0`: 0m1.036s
+    - `time python3 process_data.py "GADM admin map"`: 0m3.830s
+    - `time python3 process_data.py "GADM admin map" -a 2`: 0m33.953s
+    - `time python3 process_data.py "GADM admin map" -a 3`: 12m30.51s
+    """
+    filenames = [f'gadm41_{country_iso3}_{admin_level}.shp']
+    for filename in filenames:
+        filename = Path(filename)
+        relative_path = Path(
+            'Geospatial Data', 'GADM administrative map',
+            f'gadm41_{country_iso3}_shp'
+        )
+
+        # Import the shape file
+        path = Path(base_dir, 'A Collate Data', relative_path, filename)
+        gdf = gpd.read_file(path)
+
+        # Plot
+        fig = plt.figure(figsize=(10, 10))
+        ax = fig.add_subplot()
+        gdf.plot(ax=ax)
+        name = gdf.loc[0, 'COUNTRY']
+        plt.title(f'{name} - Admin Level {admin_level}')
+        plt.xlabel('Longitude')
+        plt.ylabel('Latitude')
+        # Export
+        path = Path(base_dir, 'B Process Data', relative_path, filename.stem)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        print(f'Exporting "{path}"')
+        plt.savefig(path)
+        plt.close()
+
+        # Iterate over the regions in the shape file
+        for i, row in gdf.iterrows():
+            # Initialise new row
+            new_row = {}
+            # Populate the new row
+            new_row['country'] = row['COUNTRY']
+            title = row['COUNTRY']
+            if 'NAME_1' in list(gdf):
+                new_row['name_1'] = row['NAME_1']
+                title = row['NAME_1']
+            if 'NAME_2' in list(gdf):
+                new_row['name_2'] = row['NAME_2']
+                title = row['NAME_2']
+            if 'NAME_3' in list(gdf):
+                new_row['name_3'] = row['NAME_3']
+                title = row['NAME_3']
+
+            # Plot
+            fig = plt.figure()
+            ax = fig.add_subplot()
+            if row['geometry'].geom_type == 'MultiPolygon':
+                for polygon in row['geometry'].geoms:
+                    x, y = polygon.exterior.xy
+                    plt.plot(x, y)
+            elif row['geometry'].geom_type == 'Polygon':
+                x, y = row['geometry'].exterior.xy
+                plt.plot(x, y)
+            ax.set_aspect('equal')
+            plt.title(title)
+            plt.xlabel('Longitude')
+            plt.ylabel('Latitude')
+            # Export
+            path = Path(
+                base_dir, 'B Process Data', relative_path, filename.stem,
+                str(title) + '.png'
+            )
+            path.parent.mkdir(parents=True, exist_ok=True)
+            print(f'Exporting "{path}"')
+            plt.savefig(path)
+            plt.close()
+
+
+def process_meteorological_data(data_name):
+    """Process meteorological data."""
+    if data_name == 'APHRODITE Daily mean temperature product (V1808)':
+        process_aphrodite_temperature_data()
+    else:
+        raise ValueError(f'Unrecognised data name "{data_name}"')
+
+
+def process_aphrodite_temperature_data():
+    """
+    Process APHRODITE Daily mean temperature product (V1808) data.
+
+    Run times:
+
+    - `time python3 process_data.py "APHRODITE temperature"`:
+    """
+    # Directory where data stored
+    dir_path = Path(
+        base_dir, 'A Collate Data', 'Meteorological Data',
+        'APHRODITE Daily mean temperature product (V1808)', 'product',
+        'APHRO_V1808_TEMP', 'APHRO_MA', '025deg',
+    )
+    # In TAVE_YYYdeg, YYY is 025 or 050
+    prod = 'TAVE_025deg'
+    # Version of AphorTemp
+    ver = 'V1808'
+    # Year to be read
+    year = 2015
+
+    # Local variables
+    nx, ny = None, None
+    temp, rstn = [], []
+    nday = None
+
+    # Allocate arrays
+    if prod == 'TAVE_025deg':
+        nx = 360
+        ny = 280
+    elif prod == 'TAVE_050deg':
+        nx = 180
+        ny = 140
+    else:
+        raise ValueError('ERROR: Invalid product specified.')
+
+    # Check leap year
+    if (year % 4 == 0 and year % 100 != 0) or year % 400 == 0:
+        nday = 366
+    else:
+        nday = 365
+
+    # Open input file
+    fname = Path(dir_path, f'APHRO_MA_{prod}_{ver}.{year}.gz')
+    try:
+        with open(fname, 'rb') as f:
+            print(f'Reading: {fname}')
+            for iday in range(1, nday + 1):
+                print('iday', 'temp', 'rstn')
+                f.seek((iday - 1) * 4 * 2 * nx * ny)
+                temp_data = np.fromfile(f, dtype=np.float32, count=nx * ny).reshape((nx, ny))
+                rstn_data = np.fromfile(f, dtype=np.float32, count=nx * ny).reshape((nx, ny))
+                print(iday, temp_data[0, 0], rstn_data[0, 0])
+                temp.append(temp_data[0, 0])
+                rstn.append(rstn_data[0, 0])
+    except FileNotFoundError:
+        print(f'ERROR: File not found - {fname}')
+    except ValueError:
+        pass
+
+    # Convert lists to DataFrame
+    dct = {'temp': temp, 'rstn': rstn}
+    df = pd.DataFrame(dct)
+
+    # Export
+    path = Path(
+        base_dir, 'B Process Data', 'Meteorological Data',
+        'APHRODITE Daily mean temperature product (V1808)',
+        '025deg.csv'
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(path)
+
+
+def process_socio_demographic_data(data_name, year, country_iso3):
+    """Process socio-demographic data."""
+    if data_name == 'WorldPop population density':
+        process_worldpop_pop_density_data(year, country_iso3)
+    else:
+        raise ValueError(f'Unrecognised data name "{data_name}"')
+
+
+def process_worldpop_pop_density_data(year, country_iso3):
+    """
+    Process WorldPop population density.
+
+    Run times:
+
+    - `time python3 process_data.py "WorldPop pop density"`: 1.954s
+    """
+    # Import the population density data
+    relative_path = Path(
+        'Socio-Demographic Data', 'WorldPop population density', 'GIS',
+        'Population_Density', 'Global_2000_2020_1km_UNadj', year, country_iso3,
+    )
+    iso3_lower = country_iso3.lower()
+    filename = Path(f'{iso3_lower}_pd_{year}_1km_UNadj_ASCII_XYZ.zip')
+    path = Path(base_dir, 'A Collate Data', relative_path, filename)
+    df = pd.read_csv(path)
+
+    # Export as-is
+    filename = Path(filename.stem + '.csv')
+    path = Path(
+        base_dir, 'B Process Data', 'Socio-Demographic Data',
+        'WorldPop population density', year, country_iso3,
+        str(filename.stem) + '.csv'
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    print(f'Exporting "{path}"')
+    df.to_csv(path, index=False)
+
+    # Plot
+    A = 3  # We want figures to be A3
+    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+    fig, ax = plt.subplots(figsize=figsize)
+    pt = df.pivot_table(index='Y', columns='X', values='Z')
+    im = ax.imshow(pt, cmap='GnBu')
+    ax.invert_yaxis()
+    plt.title('Population Density - Naive')
+    label = f'Population Density {year}, UN Adjusted (pop/km²)'
+    plt.colorbar(im, shrink=0.2, label=label)
+    # Remove ticks and tick labels
+    plt.axis('off')
+    # Export
+    path = Path(
+        base_dir, 'B Process Data', 'Socio-Demographic Data',
+        'WorldPop population density', year, country_iso3,
+        str(filename.stem) + ' - Naive.png'
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    print(f'Exporting "{path}"')
+    plt.savefig(path)
+    plt.close()
+
+    # Plot
+    A = 3  # We want figures to be A3
+    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+    fig, ax = plt.subplots(figsize=figsize)
+    plt.title('Population Density - Re-Scaled')
+    # Re-scale
+    df['Z_rescaled'] = df['Z']**0.01
+    pt = df.pivot_table(index='Y', columns='X', values='Z_rescaled')
+    im = ax.imshow(pt, cmap='GnBu')
+    ax.invert_yaxis()
+    # Manually create the colour bar
+    ticks = np.linspace(df['Z_rescaled'].min(), df['Z_rescaled'].max(), 5)
+    ticklabels = ticks**(1 / 0.01)
+    ticklabels = ticklabels.astype(int)
+    fig.colorbar(
+        im,
+        ticks=ticks,
+        format=mticker.FixedFormatter(ticklabels),
+        shrink=0.2,
+        label=f'Population Density {year}, UN Adjusted (pop/km²)'
+    )
+    # Remove ticks and tick labels
+    plt.axis('off')
+    # Export
+    path = Path(
+        base_dir, 'B Process Data', 'Socio-Demographic Data',
+        'WorldPop population density', year, country_iso3,
+        str(filename.stem) + ' - Re-Scaled.png'
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    print(f'Exporting "{path}"')
+    plt.savefig(path)
+    plt.close()
+
+
 class EmptyObject:
     """Define an empty object for creating a fake args object for Sphinx."""
 
@@ -163,10 +433,10 @@ class EmptyObject:
 
 shorthand_to_data_name = {
     # Meteorological Data
-    'APHRODITE temperature':
-    'APHRODITE Daily mean temperature product (V1808)',
     'APHRODITE precipitation':
     'APHRODITE Daily accumulated precipitation (V1901)',
+    'APHRODITE temperature':
+    'APHRODITE Daily mean temperature product (V1808)',
     'CHIRPS rainfall':
     'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations',
     'TerraClimate data':
@@ -214,14 +484,17 @@ if __name__ == '__main__':
     desc = 'Process data that has been previously downloaded and collated.'
     parser = argparse.ArgumentParser(description=desc)
 
-    # Add optional arguments
+    # Add positional arguments
     message = 'The name of the data field to be processed.'
-    parser.add_argument('--data_name', '-n', default='', help=message)
+    default = ''
+    parser.add_argument('data_name', nargs='?', default=default, help=message)
+
+    # Add optional arguments
     message = '''Some data fields have different data for each administrative
     level'''
     parser.add_argument('--admin_level', '-a', default='1', help=message)
     message = '''Some data fields have data available for multiple years.'''
-    parser.add_argument('--year', '-y', default='', help=message)
+    parser.add_argument('--year', '-y', default='2020', help=message)
     message = '''"ppp" (people per pixel) or "pph" (people per hectare).'''
     parser.add_argument('--resolution_type', '-r', default='ppp', help=message)
     message = '''Country code in "ISO 3166-1 alpha-3" format.'''
@@ -241,7 +514,7 @@ if __name__ == '__main__':
     admin_level = args.admin_level
     year = args.year
     resolution_type = args.resolution_type
-    country_iso3 = args.country_iso3
+    country_iso3 = args.country_iso3.upper()
 
     # Convert shorthand names to full names
     if data_name in shorthand_to_data_name.keys():
@@ -251,16 +524,17 @@ if __name__ == '__main__':
     if data_name in data_name_to_type.keys():
         data_type = data_name_to_type[data_name]
 
-    # if data_name == '':
-    #     print('No data name has been provided. Exiting the programme.')
-    # elif data_type == 'Meteorological Data':
-    #     process_meteorological_data(data_name, only_one, dry_run, credentials)
-    # elif data_type == 'Socio-Demographic Data':
-    #     process__socio_demographic_data(data_name, only_one, dry_run)
-    # elif data_type == 'Geospatial Data':
-    #     process__geospatial_data(data_name, only_one, dry_run)
-    # else:
-    #     raise ValueError(f'Unrecognised data type "{data_type}"')
+    if data_name == '':
+        print('No data name has been provided. Exiting the programme.')
+    elif data_type == 'Geospatial Data':
+        process_geospatial_data(data_name, admin_level, country_iso3)
+    elif data_type == 'Meteorological Data':
+        process_meteorological_data(data_name)
+    elif data_type == 'Socio-Demographic Data':
+        process_socio_demographic_data(data_name, year, country_iso3)
+
+    else:
+        raise ValueError(f'Unrecognised data type "{data_type}"')
 
 # If running via Sphinx
 else:
@@ -268,137 +542,6 @@ else:
     # command-line arguments
     args = EmptyObject()
 
-"""
-Geospatial data
- └ GADM administrative map
-
-Run times:
-
-time python3.12 process_data.py
-0m1.681s
-
-time python3.12 process_data.py -a 1
-0m5.659s
-
-time python3.12 process_data.py -a 2
-0m50.393s
-
-time python3.12 process_data.py -a 3
-8m54.418s
-"""
-if args.data_name == 'GADM administrative map':
-    filenames = [f'gadm41_VNM_{args.admin_level}.shp']
-    for filename in filenames:
-        filename = Path(filename)
-        relative_path = Path(
-            'Geospatial Data', 'GADM administrative map',
-            'gadm41_VNM_shp'
-        )
-        # Create output directory
-        out_dir = Path(base_dir, 'B Process Data', relative_path)
-        out_dir.mkdir(parents=True, exist_ok=True)
-
-        # Import the shape file
-        path = Path(base_dir, 'A Collate Data', relative_path, filename)
-        gdf = gpd.read_file(path)
-
-        # Plot
-        fig = plt.figure(figsize=(10, 10))
-        ax = plt.axes()
-        gdf.plot(ax=ax)
-        plt.title(filename)
-        plt.xlabel('Longitude')
-        plt.ylabel('Latitude')
-        # Export
-        path = Path(base_dir, 'B Process Data', relative_path, filename.stem)
-        plt.savefig(path)
-        plt.close()
-
-        # Iterate over the regions in the shape file
-        total_pop = 0
-        for i, row in gdf.iterrows():
-            # Initialise new row
-            new_row = {}
-            # Populate the new row
-            new_row['country'] = row['COUNTRY']
-            title = row['COUNTRY']
-            if 'NAME_1' in list(gdf):
-                new_row['name_1'] = row['NAME_1']
-                title = row['NAME_1']
-            if 'NAME_2' in list(gdf):
-                new_row['name_2'] = row['NAME_2']
-                title = row['NAME_2']
-            if 'NAME_3' in list(gdf):
-                new_row['name_3'] = row['NAME_3']
-                title = row['NAME_3']
-
-            # Plot
-            fig = plt.figure()
-            ax = plt.axes()
-            if row['geometry'].geom_type == 'MultiPolygon':
-                for polygon in row['geometry'].geoms:
-                    x, y = polygon.exterior.xy
-                    plt.plot(x, y)
-            elif row['geometry'].geom_type == 'Polygon':
-                x, y = row['geometry'].exterior.xy
-                plt.plot(x, y)
-            ax.set_aspect('equal')
-            plt.title(title)
-            plt.xlabel('Longitude')
-            plt.ylabel('Latitude')
-            # Export
-            folderpath = Path(
-                base_dir, 'B Process Data', relative_path, filename.stem
-            )
-            os.makedirs(folderpath, exist_ok=True)
-            filepath = Path(folderpath, title)
-            plt.savefig(filepath)
-            plt.close()
-
-"""
-Socio-demographic data
- └ WorldPop population density
-
-Run times:
-
-time python3.12 process_data.py --data_name "WorldPop population density"
-0m2.420s
-"""
-if args.data_name == 'WorldPop population density':
-    relative_path = Path(
-        'Socio-Demographic Data', 'WorldPop population density',
-        'Population Density',
-        'Unconstrained individual countries UN adjusted (1km resolution)',
-        'Vietnam'
-    )
-
-    # Create output directory
-    out_dir = Path(base_dir, 'B Process Data', relative_path)
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    # Import the population density data for Vietnam
-    filename = Path('vnm_pd_2020_1km_UNadj_ASCII_XYZ.zip')
-    path = Path(base_dir, 'A Collate Data', relative_path, filename)
-    df = pd.read_csv(path)
-
-    # Export as-is
-    filename = Path(filename.stem + '.csv')
-    path = Path(base_dir, 'B Process Data', relative_path, filename)
-    df.to_csv(path, index=False)
-
-    # Plot
-    fig = plt.figure()
-    ax = plt.axes()
-    pt = df.pivot_table(index='Y', columns='X', values='Z')
-    ax.imshow(pt, cmap='viridis')
-    ax.invert_yaxis()
-    plt.title('Population Density')
-    # Export
-    path = Path(
-        base_dir, 'B Process Data', relative_path, filename.stem
-    )
-    plt.savefig(path)
-    plt.close()
 
 """
 Socio-demographic data

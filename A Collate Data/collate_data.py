@@ -356,8 +356,9 @@ def download_aphrodite_temperature_data(
 
     Run times:
 
-    - `time python3 collate_data.py -n "APHRODITE temperature" -1`: 6m36.88s
-    - `time python3 collate_data.py -n "APHRODITE temperature" -1 -d`: 4.144s
+    - `time python3 collate_data.py "APHRODITE temperature"`:
+    - `time python3 collate_data.py "APHRODITE temperature" -1`: 6m36.88s
+    - `time python3 collate_data.py "APHRODITE temperature" -1 -d`: 4.144s
     """
     data_type = 'Meteorological Data'
     data_name = 'APHRODITE Daily mean temperature product (V1808)'
