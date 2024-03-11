@@ -69,6 +69,8 @@ from shapely.geometry import Point, Polygon
 import geopandas as gpd
 import rasterio
 from rasterio.features import geometry_mask
+from rasterio.transform import xy
+import netCDF4 as nc
 # Built-in modules
 import argparse
 import gzip
@@ -248,10 +250,106 @@ def process_gadm_admin_map_data(admin_level, country_iso3):
 
 def process_meteorological_data(data_name):
     """Process meteorological data."""
-    if data_name == 'APHRODITE Daily mean temperature product (V1808)':
+    if data_name == 'APHRODITE Daily accumulated precipitation (V1901)':
+        process_aphrodite_precipitation_data()
+    elif data_name == 'APHRODITE Daily mean temperature product (V1808)':
         process_aphrodite_temperature_data()
+    elif data_name.startswith('CHIRPS: Rainfall Estimates from Rain Gauge an'):
+        process_chirps_rainfall_data()
+    elif data_name == 'ERA5 atmospheric reanalysis':
+        process_era5_reanalysis_data()
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
+
+
+def process_aphrodite_precipitation_data():
+    """
+    Process APHRODITE Daily accumulated precipitation (V1901) data.
+
+    Run times:
+
+    - `time python3 process_data.py "APHRODITE precipitation"`: 0m1.150s
+    """
+    for res in ['025deg', '050deg']:
+        dir_path = Path(
+            base_dir, 'A Collate Data', 'Meteorological Data',
+            'APHRODITE Daily accumulated precipitation (V1901)', 'product',
+            'APHRO_V1901', 'APHRO_MA', res,
+        )
+
+        # Version of AphorTemp
+        version = 'V1901'
+
+        if res == '025deg':
+            nx = 360
+            ny = 280
+        elif res == '050deg':
+            nx = 180
+            ny = 140
+        else:
+            raise ValueError('ERROR: Invalid resolution specified')
+
+        year = 2015
+        # Check leap year
+        if (year % 4 == 0 and year % 100 != 0) or year % 400 == 0:
+            nday = 366
+        else:
+            nday = 365
+        # Construct filename
+        fname = Path(dir_path, f'APHRO_MA_{res}_{version}.{year}.gz')
+
+        # Initialise output lists
+        temp = []
+        rstn = []
+
+        print(f'Reading: {fname}')
+        print('iday', 'temp', 'rstn')
+        for iday in range(1, nday + 1):
+            try:
+                with open(fname, 'rb') as f:
+                    # Seek to the appropriate position in the file for the
+                    # current day's data
+                    # 4 bytes per float, 2 variables (temp and rstn)
+                    f.seek((iday - 1) * nx * ny * 4 * 2)
+                    # Read the data for the current day
+                    # 2 variables (temp and rstn)
+                    data = np.fromfile(f, dtype=np.float32, count=nx * ny * 2)
+                    # Replace undefined values with NaN
+                    data = np.where(data == -99.9, np.nan, data)
+                    data = np.where(data == -np.inf, np.nan, data)
+                    data = np.where(data == np.inf, np.nan, data)
+                    data = np.where(abs(data) < 0.000000001, np.nan, data)
+                    data = np.where(abs(data) > 99999999999, np.nan, data)
+                    # Reshape the data based on Fortran's column-major order
+                    data = data.reshape((2, nx, ny), order='F')
+                    temp_data = data[0, :, :]
+                    rstn_data = data[1, :, :]
+                    # Get the averages
+                    mean_temp = np.nanmean(temp_data)
+                    mean_rstn = np.nanmean(rstn_data)
+                    # Print average values for temp and rstn
+                    print(f'Day {iday}: ', end='')
+                    print(f'Temp average = {mean_temp:.2f}, ', end='')
+                    print(f'Rstn average = {mean_rstn:.2f}')
+                    temp.append(mean_temp)
+                    rstn.append(mean_rstn)
+            except FileNotFoundError:
+                print(f'ERROR: File not found - {fname}')
+            except ValueError:
+                pass
+
+        # Convert lists to DataFrame
+        dct = {'temp': temp, 'rstn': rstn}
+        df = pd.DataFrame(dct)
+
+        # Export
+        path = Path(
+            base_dir, 'B Process Data', 'Meteorological Data',
+            'APHRODITE Daily accumulated precipitation (V1901)',
+            f'{res}.csv'
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(path)
 
 
 def process_aphrodite_temperature_data():
@@ -260,72 +358,251 @@ def process_aphrodite_temperature_data():
 
     Run times:
 
-    - `time python3 process_data.py "APHRODITE temperature"`:
+    - `time python3 process_data.py "APHRODITE temperature"`: 0m3.018s
     """
-    # Directory where data stored
-    dir_path = Path(
-        base_dir, 'A Collate Data', 'Meteorological Data',
-        'APHRODITE Daily mean temperature product (V1808)', 'product',
-        'APHRO_V1808_TEMP', 'APHRO_MA', '025deg',
-    )
-    # In TAVE_YYYdeg, YYY is 025 or 050
-    prod = 'TAVE_025deg'
-    # Version of AphorTemp
-    ver = 'V1808'
-    # Year to be read
-    year = 2015
+    for res in ['005deg', '025deg', '050deg_nc']:
+        # Directory where data is stored
+        dir_path = Path(
+            base_dir, 'A Collate Data', 'Meteorological Data',
+            'APHRODITE Daily mean temperature product (V1808)', 'product',
+            'APHRO_V1808_TEMP', 'APHRO_MA', res,
+        )
 
-    # Local variables
-    nx, ny = None, None
-    temp, rstn = [], []
-    nday = None
+        # Version of AphorTemp
+        version = 'V1808'
 
-    # Allocate arrays
-    if prod == 'TAVE_025deg':
-        nx = 360
-        ny = 280
-    elif prod == 'TAVE_050deg':
-        nx = 180
-        ny = 140
-    else:
-        raise ValueError('ERROR: Invalid product specified.')
+        # Product name
+        # The name of the product uses the template "TAVE_YYYdeg" were YYY is
+        # 025 or 050
+        if res == '005deg':
+            product = 'TAVE_CLM_005deg'
+            nx = 1800
+            ny = 1400
+        elif res == '025deg':
+            product = 'TAVE_025deg'
+            nx = 360
+            ny = 280
+        elif res == '050deg_nc':
+            product = 'TAVE_050deg'
+            nx = 180
+            ny = 140
+        else:
+            raise ValueError('ERROR: Invalid resolution specified')
 
-    # Check leap year
-    if (year % 4 == 0 and year % 100 != 0) or year % 400 == 0:
-        nday = 366
-    else:
-        nday = 365
+        # Number of days and filename
+        if product == 'TAVE_CLM_005deg':
+            nday = 366
+            # Construct filename
+            fname = Path(dir_path, f'APHRO_MA_{product}_{version}.grd.gz')
+        elif product == 'TAVE_025deg':
+            year = 2015
+            # Check leap year
+            if (year % 4 == 0 and year % 100 != 0) or year % 400 == 0:
+                nday = 366
+            else:
+                nday = 365
+            # Construct filename
+            fname = Path(dir_path, f'APHRO_MA_{product}_{version}.{year}.gz')
+        elif product == 'TAVE_050deg':
+            year = 2015
+            # Check leap year
+            if (year % 4 == 0 and year % 100 != 0) or year % 400 == 0:
+                nday = 366
+            else:
+                nday = 365
+            # Construct filename
+            fname = f'APHRO_MA_{product}_{version}.{year}.nc.gz'
+            fname = Path(dir_path, fname)
+        else:
+            raise ValueError('ERROR: Invalid product specified')
 
-    # Open input file
-    fname = Path(dir_path, f'APHRO_MA_{prod}_{ver}.{year}.gz')
-    try:
-        with open(fname, 'rb') as f:
-            print(f'Reading: {fname}')
-            for iday in range(1, nday + 1):
+        # Initialise output lists
+        temp = []
+        rstn = []
+
+        try:
+            with open(fname, 'rb') as f:
+                print(f'Reading: {fname}')
                 print('iday', 'temp', 'rstn')
-                f.seek((iday - 1) * 4 * 2 * nx * ny)
-                temp_data = np.fromfile(f, dtype=np.float32, count=nx * ny).reshape((nx, ny))
-                rstn_data = np.fromfile(f, dtype=np.float32, count=nx * ny).reshape((nx, ny))
-                print(iday, temp_data[0, 0], rstn_data[0, 0])
-                temp.append(temp_data[0, 0])
-                rstn.append(rstn_data[0, 0])
-    except FileNotFoundError:
-        print(f'ERROR: File not found - {fname}')
-    except ValueError:
-        pass
+                for iday in range(1, nday + 1):
+                    temp_data = np.fromfile(f, dtype=np.float32, count=nx * ny)
+                    rstn_data = np.fromfile(f, dtype=np.float32, count=nx * ny)
+                    temp_data = temp_data.reshape((nx, ny))
+                    rstn_data = rstn_data.reshape((nx, ny))
+                    print(iday, temp_data[0, 0], rstn_data[0, 0])
+                    temp.append(temp_data[0, 0])
+                    rstn.append(rstn_data[0, 0])
+        except FileNotFoundError:
+            print(f'ERROR: File not found - {fname}')
+        except ValueError:
+            pass
+
+        # Convert lists to DataFrame
+        dct = {'temp': temp, 'rstn': rstn}
+        df = pd.DataFrame(dct)
+
+        # Export
+        path = Path(
+            base_dir, 'B Process Data', 'Meteorological Data',
+            'APHRODITE Daily mean temperature product (V1808)',
+            f'{res}.csv'
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(path)
+
+
+def process_chirps_rainfall_data():
+    """
+    Process CHIRPS: Rainfall Estimates from Rain Gauge and Satellite
+    Observations data.
+
+    "CHIRPS" stands for Climate Hazards Group InfraRed Precipitation with
+    Station.
+
+    Run times:
+
+    - `time python3 process_data.py "CHIRPS rainfall"`: 2m14.596s
+    """
+    path = Path(
+        base_dir, 'A Collate Data', 'Meteorological Data',
+        'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
+        'Observations', 'products', 'CHIRPS-2.0', 'global_daily', 'tifs',
+        'p05', '2024'
+    )
+    filepaths = list(path.iterdir())[:1]
+    for filepath in filepaths:
+        print(f'Processing "{filepath.name}"')
+        # Open the CHIRPS .tif file
+        src = rasterio.open(filepath)
+        num_bands = src.count
+        if num_bands != 1:
+            msg = f'There is a number of bands other than 1: {num_bands}'
+            raise ValueError(msg)
+
+        # Get the data in the first band as an array
+        data = src.read(1)
+        # Get the affine transformation coefficients
+        transform = src.transform
+        # Get the size of the image
+        rows, cols = src.height, src.width
+
+        # Reshape the data into a 1D array
+        rainfall = data.flatten()
+        # Construct the coordinates for each pixel
+        all_rows, all_cols = np.indices((rows, cols))
+        lon, lat = xy(transform, all_rows.flatten(), all_cols.flatten())
+
+        # Create a data frame
+        df = pd.DataFrame({
+            'longitude': lon,
+            'latitude': lat,
+            'rainfall': rainfall,
+        })
+        # Export
+        path = Path(
+            'Meteorological Data',
+            'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
+            'Observations', Path(filepath.name).with_suffix('.csv')
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        print(path)
+        df.to_csv(path, index=False)
+
+        # Plot
+        plt.figure(figsize=(20, 8))
+        extent = [np.min(lon), np.max(lon), np.min(lat), np.max(lat)]
+        # Hide nulls
+        data[data == -9999] = 0
+        cmap = plt.cm.get_cmap('Blues')
+        plt.imshow(data, extent=extent, cmap=cmap)
+        plt.colorbar(label='Rainfall [mm]')
+        plt.xlabel('Longitude')
+        plt.ylabel('Latitude')
+        plt.title('Rainfall Estimates')
+        plt.grid(True)
+        path = Path(
+            'Meteorological Data',
+            'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
+            'Observations', Path(filepath.name).with_suffix('.png')
+        )
+        plt.savefig(path)
+
+        # Plot - log transformed
+        plt.figure(figsize=(20, 8))
+        extent = [np.min(lon), np.max(lon), np.min(lat), np.max(lat)]
+        # Hide nulls
+        data[data == -9999] = 0
+        # Log transform
+        data = np.log(data)
+        cmap = plt.cm.get_cmap('Blues')
+        plt.imshow(data, extent=extent, cmap=cmap)
+        plt.colorbar(shrink=0.8, label='Rainfall [mm, log transformed]')
+        plt.xlabel('Longitude')
+        plt.ylabel('Latitude')
+        plt.title('Rainfall Estimates - Log Transformed')
+        plt.grid(True)
+        path = str(path).removesuffix('.png') + ' - Log Transformed.png'
+        plt.savefig(path)
+
+
+def process_era5_reanalysis_data():
+    """
+    Process ERA5 atmospheric reanalysis data.
+
+    Run times:
+
+    - `time python3 process_data.py "ERA5 reanalysis"`: 0m2.265s
+    """
+    path = Path(
+        base_dir, 'A Collate Data', 'Meteorological Data',
+        'ERA5 atmospheric reanalysis', 'ERA5-ml-temperature-subarea.nc'
+    )
+    file = nc.Dataset(path, 'r')
+
+    # Import variables as arrays
+    longitude = file.variables['longitude'][:]
+    latitude = file.variables['latitude'][:]
+    level = file.variables['level'][:]
+    time = file.variables['time'][:]
+    temp = file.variables['t'][:]
+    # Convert Kelvin to Celcius
+    temp = temp - 273.15
+
+    longitudes = []
+    latitudes = []
+    levels = []
+    times = []
+    temperatures = []
+    for i, lon in enumerate(longitude):
+        for j, lat in enumerate(latitude):
+            for k, lev in enumerate(level):
+                for l, t in enumerate(time):
+                    longitudes.append(lon)
+                    latitudes.append(lat)
+                    levels.append(lev)
+                    times.append(t)
+                    temperatures.append(temp[l, k, j, i])
 
     # Convert lists to DataFrame
-    dct = {'temp': temp, 'rstn': rstn}
+    dct = {
+        'longitude': longitudes,
+        'latitude': latitudes,
+        'level': levels,
+        'time': times,
+        'temperature': temperatures,
+    }
     df = pd.DataFrame(dct)
 
     # Export
     path = Path(
         base_dir, 'B Process Data', 'Meteorological Data',
-        'APHRODITE Daily mean temperature product (V1808)',
-        '025deg.csv'
+        'ERA5 atmospheric reanalysis', 'ERA5-ml-temperature-subarea.csv'
     )
     path.parent.mkdir(parents=True, exist_ok=True)
-    df.to_csv(path)
+    df.to_csv(path, index=False)
+
+    # Don't forget to close the file when you're done
+    file.close()
 
 
 def process_socio_demographic_data(data_name, year, country_iso3):
