@@ -62,6 +62,7 @@ data will be downloaded.
 import cdsapi
 from lxml import html
 import py7zr
+import gzip
 import requests
 # Built-in modules
 import os
@@ -324,10 +325,17 @@ def unpack_file(path, same_folder=False):
     """Unpack a zipped file."""
     print('Unpacking', path)
     if Path(path).suffix == '.7z':
-        foldername = str(path).removesuffix('.7z')
+        if same_folder:
+            output_folder = Path(path).parent
+        else:
+            output_folder = str(path).removesuffix('.7z')
         # Extract the 7z file
         with py7zr.SevenZipFile(path, mode='r') as archive:
-            archive.extractall(foldername)
+            archive.extractall(output_folder)
+    elif Path(path).suffix == '.gz':
+        p_out = str(path).removesuffix('.gz')
+        with gzip.open(path, 'rb') as f_in, open(p_out, 'wb') as f_out:
+            f_out.write(f_in.read())
     else:
         if same_folder:
             print('to', path.parent)
@@ -521,7 +529,9 @@ def download_chirps_rainfall_data(only_one, dry_run):
 
     Run times:
 
-    - `time python3 collate_data.py "CHIRPS rainfall"`: 5m30.123s
+    - `time python3 collate_data.py "CHIRPS rainfall"`:
+        - 5m30.123s (2024-01-01 to 2024-03-07)
+        - 2m56.14s (2024-01-01 to 2024-03-11)
     """
     data_type = 'Meteorological Data'
     data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite ' + \
@@ -541,6 +551,13 @@ def download_chirps_rainfall_data(only_one, dry_run):
         relative_url = f'products/CHIRPS-2.0/global_daily/tifs/p05/{year}'
         # Walk through the folder structure
         walk(base_url, relative_url, only_one, dry_run, out_dir)
+
+        # Unpack the data
+        for dirpath, dirnames, filenames in os.walk(out_dir):
+            for filename in filenames:
+                if filename.endswith('.tif.gz'):
+                    path = Path(dirpath, filename)
+                    unpack_file(path)
 
 
 def download_era5_reanalysis_data(only_one, dry_run):
@@ -613,7 +630,9 @@ def download_terraclimate_data(only_one, dry_run, year):
 
     Run times:
 
-    - `time python3 collate_data.py "TerraClimate data"`: 34m50.828s
+    - `time python3 collate_data.py "TerraClimate data"`:
+        - 34m50.828s
+        - 11m35.25s
     - `time python3 collate_data.py "TerraClimate data" -1 -d`: 4.606s
     """
     data_type = 'Meteorological Data'
@@ -634,8 +653,8 @@ def download_terraclimate_data(only_one, dry_run, year):
     files = [
         f'TerraClimate_aet_{year}.nc',
         f'TerraClimate_def_{year}.nc',
-        f'TerraClimate_PDSI_{year}.nc',
-        f'TerraClimate_pdsi_{year}.nc',
+        f'TerraClimate_PDSI_{year}.nc',  # For 2023 the capitalisation
+        f'TerraClimate_pdsi_{year}.nc',  # of "PDSI" changed
         f'TerraClimate_pet_{year}.nc',
         f'TerraClimate_ppt_{year}.nc',
         f'TerraClimate_q_{year}.nc',

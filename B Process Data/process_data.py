@@ -78,6 +78,7 @@ import json
 import os
 from pathlib import Path
 import struct
+from datetime import datetime, timedelta
 # Custom modules
 import utils
 # Create the requirements file with:
@@ -88,6 +89,13 @@ import utils
 if os.environ.get('WAYLAND_DISPLAY') is not None:
     # Set the Matplotlib backend to one that is compatible with Wayland
     plt.switch_backend('Agg')
+
+
+def days_to_date(days_since_1900):
+    base_date = datetime(1900, 1, 1)
+    target_date = base_date + timedelta(days=days_since_1900)
+
+    return target_date
 
 
 def plot_pop_density(df, folderpath, filename):
@@ -258,6 +266,8 @@ def process_meteorological_data(data_name):
         process_chirps_rainfall_data()
     elif data_name == 'ERA5 atmospheric reanalysis':
         process_era5_reanalysis_data()
+    elif data_name.startswith('TerraClimate gridded temperature, precipitati'):
+        process_terraclimate_data()
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
@@ -453,15 +463,14 @@ def process_aphrodite_temperature_data():
 
 def process_chirps_rainfall_data():
     """
-    Process CHIRPS: Rainfall Estimates from Rain Gauge and Satellite
-    Observations data.
+    Process CHIRPS Rainfall data.
 
     "CHIRPS" stands for Climate Hazards Group InfraRed Precipitation with
     Station.
 
     Run times:
 
-    - `time python3 process_data.py "CHIRPS rainfall"`: 2m14.596s
+    - `time python3 process_data.py "CHIRPS rainfall"`: s2m14.596s (one file)
     """
     path = Path(
         base_dir, 'A Collate Data', 'Meteorological Data',
@@ -469,7 +478,10 @@ def process_chirps_rainfall_data():
         'Observations', 'products', 'CHIRPS-2.0', 'global_daily', 'tifs',
         'p05', '2024'
     )
-    filepaths = list(path.iterdir())[:1]
+    filepaths = list(path.iterdir())
+    # Only process the GeoTIF files
+    filepaths = [f for f in filepaths if f.suffix == '.tif']
+
     for filepath in filepaths:
         print(f'Processing "{filepath.name}"')
         # Open the CHIRPS .tif file
@@ -505,7 +517,6 @@ def process_chirps_rainfall_data():
             'Observations', Path(filepath.name).with_suffix('.csv')
         )
         path.parent.mkdir(parents=True, exist_ok=True)
-        print(path)
         df.to_csv(path, index=False)
 
         # Plot
@@ -601,16 +612,261 @@ def process_era5_reanalysis_data():
     path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(path, index=False)
 
-    # Don't forget to close the file when you're done
+    # Close the file
     file.close()
 
 
-def process_socio_demographic_data(data_name, year, country_iso3):
+def process_terraclimate_data():
+    """
+    Process TerraClimate gridded temperature, precipitation, etc.
+
+    Run times:
+
+    - `time python3 process_data.py "TerraClimate data"`: 8m59.88s
+    """
+    metrics = [
+        'aet',  # water_evaporation_amount_mm
+        'def',  # water_potential_evaporation_amount_minus_water_evaporation_
+        'pdsi',  # palmer_drought_severity_index (unitless)
+        'pet',  # water_potential_evaporation_amount_mm
+        'ppt',  # precipitation_amount_mm
+        'q',  # runoff_amount_mm
+        'soil',  # soil_moisture_content_mm
+        'srad',  # downwelling_shortwave_flux_in_air_W_per_m_squared
+        'swe',  # liquid_water_content_of_surface_snow_mm
+        'tmax',  # air_temperature_max_degC
+        'tmin',  # air_temperature_min_degC
+        'vap',  # water_vapor_partial_pressure_in_air_kPa
+        'vpd',  # vapor_pressure_deficit_kPa
+        'ws',  # wind_speed_m_per_s
+    ]
+    for year in ['2023']:
+        for metric in metrics:
+            filename = f'TerraClimate_{metric}_{year}.nc'
+            print(f'Processing "{filename}"')
+            path = Path(
+                base_dir, 'A Collate Data', 'Meteorological Data',
+                'TerraClimate gridded temperature, precipitation, and other',
+                'TERRACLIMATE-DATA', filename
+            )
+            file = nc.Dataset(path, 'r')
+
+            # Construct the metric name
+            if metric == 'pdsi':
+                metric_name = 'palmer_drought_severity_index'  # unitless
+            elif metric == 'tmax':
+                metric_name = 'air_temperature_max_degC'
+            elif metric == 'tmin':
+                metric_name = 'air_temperature_min_degC'
+            else:
+                units = file[metric].units
+                units = units.replace('/', '_per_')
+                units = units.replace('^2', '_squared')
+                metric_name = file[metric].long_name + '_' + units
+
+            # Import variables as arrays
+            longitude = file.variables['lon'][:]
+            latitude = file.variables['lat'][:]
+            time = file.variables['time'][:]
+            raw_data = file.variables[metric][:]
+
+            for i, t in enumerate(time[-1:]):
+                lat = np.repeat(latitude, 8640)
+                lon = np.tile(longitude, 4320)
+                # Get the data for this timepoint, for all lat and lon
+                data = raw_data[i, :, :]
+                data = data.reshape(4320 * 8640)
+
+                # Stack the latitude, longitude and data arrays horizontally
+                ar = np.column_stack((lat, lon, data))
+
+                # Get the date this data represents
+                date = days_to_date(t)
+                date = date.strftime('%Y-%m-%d')
+
+                # Export
+                filename = metric_name + '.csv'
+                print(f'Exporting "{date}/{filename}"')
+                path = Path(
+                    base_dir, 'B Process Data', 'Meteorological Data',
+                    'TerraClimate', year, date, filename
+                )
+                path.parent.mkdir(parents=True, exist_ok=True)
+                header = f'latitude,longitude,{metric_name}'
+                np.savetxt(path, ar, delimiter=',', header=header, fmt='%f')
+
+            # Close the file
+            file.close()
+
+
+def process_socio_demographic_data(data_name, year, country_iso3, rt):
     """Process socio-demographic data."""
-    if data_name == 'WorldPop population density':
+    if data_name == 'WorldPop population count':
+        process_worldpop_pop_count_data(year, country_iso3, rt)
+    elif data_name == 'WorldPop population density':
         process_worldpop_pop_density_data(year, country_iso3)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
+
+
+def process_worldpop_pop_count_data(year, country_iso3, rt):
+    """
+    Process WorldPop population count.
+
+    - EPSG:9217: https://epsg.io/9217
+    - EPSG:4326: https://epsg.io/4326
+    - EPSG = European Petroleum Survey Group
+
+    Run times:
+
+    - `time python3 process_data.py "WorldPop pop count"`: 43.332s
+    """
+    # Import
+    filename = Path(f'{country_iso3}_{rt}_v2b_{year}_UNadj.tif')
+    print(f'Processing "{filename}"')
+    path = Path(
+        base_dir, 'A Collate Data', 'Socio-Demographic Data',
+        'WorldPop population count', 'GIS', 'Population',
+        'Individual_countries', country_iso3, filename
+    )
+    # Load the data
+    src = rasterio.open(path)
+    # Get the affine transformation coefficients
+    transform = src.transform
+    # Read data from band 1
+    if src.count != 1:
+        raise ValueError(f'Unexpected number of bands: {src.count}')
+    source_data = src.read(1)
+
+    # Naive plot
+    plt.imshow(source_data, cmap='GnBu')
+    plt.title('WorldPop Population Count')
+    plt.colorbar(shrink=0.8, label='Population')
+    # Export
+    path = Path(
+        base_dir, 'B Process Data', 'Socio-Demographic Data',
+        'WorldPop population count', country_iso3,
+        filename.stem + ' - Naive.png'
+    )
+    if not path.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(path)
+
+    # Save the tick details for the next plot
+    ylocs, ylabels = plt.yticks()
+    xlocs, xlabels = plt.xticks()
+    # Trim
+    ylocs = ylocs[1:-1]
+    xlocs = xlocs[1:-1:2]
+    # Finish
+    plt.close()
+
+    # Replace placeholder numbers with 0
+    # (-3.4e+38 is the smallest single-precision floating-point number)
+    df = pd.DataFrame(source_data)
+    population_data = df[df != -3.4028234663852886e+38]
+    """
+    Sanity check: calculate the total population
+    Google says that Vietnam's population was 96.65 million (2020)
+
+    VNM_pph_v2b_2020.tif
+    90,049,150 (2020)
+
+    VNM_pph_v2b_2020_UNadj.tif
+    96,355,010 (2020)
+
+    VNM_ppp_v2b_2020.tif
+    90,008,170 (2020)
+
+    VNM_ppp_v2b_2020_UNadj.tif
+    96,355,000 (2020)
+    """
+    print(f'Population as per {filename}: {population_data.sum().sum()}')
+
+    # Plot - no normalisation
+    path = Path(
+        base_dir, 'B Process Data', 'Socio-Demographic Data',
+        'WorldPop population count', country_iso3,
+        filename.stem + '.png'
+    )
+    if not path.exists():
+        plt.imshow(population_data, cmap='GnBu')
+        plt.title('WorldPop Population Count')
+        plt.colorbar(shrink=0.8, label='Population')
+        plt.ylabel('Latitude')
+        plt.xlabel('Longitude')
+        # Convert pixel coordinates to latitude and longitude
+        lat, lon = pixel_to_latlon(xlocs, ylocs, transform)
+        # Flatten into a list
+        lat = [str(round(x[0], 1)) for x in lat]
+        lon = [str(round(x, 1)) for x in lon[0]]
+        # Convert the axis ticks from pixels into latitude and longitude
+        plt.yticks(ylocs, lat)
+        plt.xticks(xlocs, lon)
+        # Export
+        plt.savefig(path)
+        plt.close()
+
+    # Plot - log transformed
+    path = Path(
+        base_dir, 'B Process Data', 'Socio-Demographic Data',
+        'WorldPop population count', country_iso3,
+        filename.stem + ' - Log Scale.png'
+    )
+    if not path.exists():
+        population_data = np.log(population_data)
+        plt.imshow(population_data, cmap='GnBu')
+        plt.title('WorldPop Population Count')
+        plt.colorbar(shrink=0.8, label='Population (log)')
+        plt.ylabel('Latitude')
+        plt.xlabel('Longitude')
+        # Convert pixel coordinates to latitude and longitude
+        lat, lon = pixel_to_latlon(xlocs, ylocs, transform)
+        # Flatten into a list
+        lat = [str(round(x[0], 1)) for x in lat]
+        lon = [str(round(x, 1)) for x in lon[0]]
+        # Convert the axis ticks from pixels into latitude and longitude
+        plt.yticks(ylocs, lat)
+        plt.xticks(xlocs, lon)
+        # Export
+        plt.savefig(path)
+        plt.close()
+
+    # Convert pixel coordinates to latitude and longitude
+    cols = np.arange(source_data.shape[1])
+    lon, _ = rasterio.transform.xy(transform, (1,), cols)
+    rows = np.arange(source_data.shape[0])
+    _, lat = rasterio.transform.xy(transform, rows, (1,))
+    # Replace placeholder numbers with 0
+    mask = source_data == -3.4028234663852886e+38
+    source_data[mask] = 0
+    # Create a DataFrame with latitude, longitude, and pixel values
+    df = pd.DataFrame(source_data, index=lat, columns=lon)
+    # Export
+    path = Path(
+        base_dir, 'B Process Data', 'Socio-Demographic Data',
+        'WorldPop population count', country_iso3,
+        filename.stem + '.csv'
+    )
+    if not path.exists():
+        print(f'Exporting "{path}"')
+        df.to_csv(path)
+    # Sanity checking
+    if filename.stem == 'VNM_ppp_v2b_2020_UNadj':
+        assert df.to_numpy().sum() == 96355088.0  # 96,355,088
+
+    # Plot - transformed
+    path = Path(
+        base_dir, 'B Process Data', 'Socio-Demographic Data',
+        'WorldPop population count', country_iso3,
+        filename.stem + ' - Transformed.png'
+    )
+    if not path.exists():
+        plt.imshow(df, cmap='GnBu')
+        plt.title('WorldPop Population Count')
+        plt.colorbar(shrink=0.8, label='Population')
+        plt.savefig(path)
+        plt.close()
 
 
 def process_worldpop_pop_density_data(year, country_iso3):
@@ -790,7 +1046,7 @@ if __name__ == '__main__':
     data_name = args.data_name
     admin_level = args.admin_level
     year = args.year
-    resolution_type = args.resolution_type
+    rt = args.resolution_type
     country_iso3 = args.country_iso3.upper()
 
     # Convert shorthand names to full names
@@ -808,7 +1064,7 @@ if __name__ == '__main__':
     elif data_type == 'Meteorological Data':
         process_meteorological_data(data_name)
     elif data_type == 'Socio-Demographic Data':
-        process_socio_demographic_data(data_name, year, country_iso3)
+        process_socio_demographic_data(data_name, year, country_iso3, rt)
 
     else:
         raise ValueError(f'Unrecognised data type "{data_type}"')
@@ -819,177 +1075,7 @@ else:
     # command-line arguments
     args = EmptyObject()
 
-
-"""
-Socio-demographic data
- └ WorldPop population count
-
-- EPSG:9217: https://epsg.io/9217
-- EPSG:4326: https://epsg.io/4326
-- EPSG = European Petroleum Survey Group
-
-Run times:
-
-time python3 process_data.py --data_name "WorldPop population count"
-1m24.587s
-"""
-if args.data_name == 'WorldPop population count':
-    print('Processing WorldPop population count')
-
-    # Get the year for which data will be loaded
-    if args.year == '':
-        year = '2020'
-    else:
-        year = args.year
-
-    # Get the other arguments
-    iso3 = args.country_iso3
-    rt = args.resolution_type
-
-    # filename = Path('VNM_pph_v2b_2020.tif')
-    # filename = Path('VNM_pph_v2b_2020_UNadj.tif')
-    # filename = Path('VNM_ppp_v2b_2020.tif')
-    # filename = Path('VNM_ppp_v2b_2020_UNadj.tif')
-    filename = Path(f'{iso3}_{rt}_v2b_{year}_UNadj.tif')
-
-    # Import
-    relative_path = Path(
-        'Socio-Demographic Data', 'WorldPop population count', 'GIS',
-        'Population', 'Individual_countries', 'VNM',
-        'Viet_Nam_100m_Population'
-    )
-    path = Path(base_dir, 'A Collate Data', relative_path, filename)
-    # Load the data
-    src = rasterio.open(path)
-    # Access metadata
-    width = src.width
-    print(f'Width: {width}')
-    height = src.height
-    print(f'Height: {height}')
-    # Get the coordinate reference system (CRS) of the GeoTIFF
-    crs = src.crs
-    print(f'Coordinate reference system (CRS): {crs}')
-    # Get the affine transformation coefficients
-    transform = src.transform
-    print(f'Transform:\n{transform}')
-    # Read data from band 1
-    print(f'Number of bands: {src.count}')
-    source_data = src.read(1)
-
-    # Naive plot
-    plt.imshow(source_data, cmap='GnBu')
-    plt.title('WorldPop Population Count')
-    plt.colorbar(shrink=0.8, label='Population')
-    # Export
-    fn = filename.stem + ' - Naive.png'
-    path = Path(base_dir, 'B Process Data', relative_path, fn)
-    if not path.exists():
-        path.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(path)
-
-    # Save the tick details for the next plot
-    ylocs, ylabels = plt.yticks()
-    xlocs, xlabels = plt.xticks()
-    # Trim
-    ylocs = ylocs[1:-1]
-    xlocs = xlocs[1:-1:2]
-    # Finish
-    plt.close()
-
-    # Replace placeholder numbers with 0
-    # (-3.4e+38 is the smallest single-precision floating-point number)
-    df = pd.DataFrame(source_data)
-    population_data = df[df != -3.4028234663852886e+38]
-    """
-    Sanity check: calculate the total population
-    Google says that Vietnam's population was 96.65 million (2020)
-
-    VNM_pph_v2b_2020.tif
-    90,049,150 (2020)
-
-    VNM_pph_v2b_2020_UNadj.tif
-    96,355,010 (2020)
-
-    VNM_ppp_v2b_2020.tif
-    90,008,170 (2020)
-
-    VNM_ppp_v2b_2020_UNadj.tif
-    96,355,000 (2020)
-    """
-    print(f'Population as per {filename}: {population_data.sum().sum()}')
-
-    # Plot - no normalisation
-    fn = filename.stem + '.png'
-    path = Path(base_dir, 'B Process Data', relative_path, fn)
-    if not path.exists():
-        plt.imshow(population_data, cmap='GnBu')
-        plt.title('WorldPop Population Count')
-        plt.colorbar(shrink=0.8, label='Population')
-        plt.ylabel('Latitude')
-        plt.xlabel('Longitude')
-        # Convert pixel coordinates to latitude and longitude
-        lat, lon = pixel_to_latlon(xlocs, ylocs, transform)
-        # Flatten into a list
-        lat = [str(round(x[0], 1)) for x in lat]
-        lon = [str(round(x, 1)) for x in lon[0]]
-        # Convert the axis ticks from pixels into latitude and longitude
-        plt.yticks(ylocs, lat)
-        plt.xticks(xlocs, lon)
-        # Export
-        plt.savefig(path)
-        plt.close()
-
-    # Plot - log transformed
-    fn = filename.stem + ' - Log Scale.png'
-    path = Path(base_dir, 'B Process Data', relative_path, fn)
-    if not path.exists():
-        population_data = np.log(population_data)
-        plt.imshow(population_data, cmap='GnBu')
-        plt.title('WorldPop Population Count')
-        plt.colorbar(shrink=0.8, label='Population (log)')
-        plt.ylabel('Latitude')
-        plt.xlabel('Longitude')
-        # Convert pixel coordinates to latitude and longitude
-        lat, lon = pixel_to_latlon(xlocs, ylocs, transform)
-        # Flatten into a list
-        lat = [str(round(x[0], 1)) for x in lat]
-        lon = [str(round(x, 1)) for x in lon[0]]
-        # Convert the axis ticks from pixels into latitude and longitude
-        plt.yticks(ylocs, lat)
-        plt.xticks(xlocs, lon)
-        # Export
-        plt.savefig(path)
-        plt.close()
-
-    # Convert pixel coordinates to latitude and longitude
-    cols = np.arange(source_data.shape[1])
-    lon, _ = rasterio.transform.xy(transform, (1,), cols)
-    rows = np.arange(source_data.shape[0])
-    _, lat = rasterio.transform.xy(transform, rows, (1,))
-    # Replace placeholder numbers with 0
-    mask = source_data == -3.4028234663852886e+38
-    source_data[mask] = 0
-    # Create a DataFrame with latitude, longitude, and pixel values
-    df = pd.DataFrame(source_data, index=lat, columns=lon)
-    # Export
-    fn = filename.stem + '.csv'
-    path = Path(base_dir, 'B Process Data', relative_path, fn)
-    if not path.exists():
-        print(f'Exporting "{path}"')
-        df.to_csv(path)
-    # Sanity checking
-    if filename.stem == 'VNM_ppp_v2b_2020_UNadj':
-        assert df.to_numpy().sum() == 96355088.0  # 96,355,088
-
-    # Plot - transformed
-    fn = filename.stem + ' - Transformed.png'
-    path = Path(base_dir, 'B Process Data', relative_path, fn)
-    if not path.exists():
-        plt.imshow(df, cmap='GnBu')
-        plt.title('WorldPop Population Count')
-        plt.colorbar(shrink=0.8, label='Population')
-        plt.savefig(path)
-        plt.close()
+# TODO
 
 """
 Geospatial and Socio-Demographic Data
