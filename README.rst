@@ -32,6 +32,41 @@ Documentation
     $ cd ~/DART-Pipeline/docs
     $ make singlehtml
 
+Progress
+========
+collate_data.py
+
+- download_epidemiological_data()
+    - ✅ download_ministerio_de_salud_peru_data()
+- download_geospatial_data()
+    - ✅ download_gadm_admin_map_data()
+- download_meteorological_data()
+    - ✅ download_aphrodite_precipitation_data()
+    - ✅ download_aphrodite_temperature_data()
+    - ✅ download_chirps_rainfall_data()
+    - ✅ download_era5_reanalysis_data()
+    - ✅ download_terraclimate_data()
+- download_socio_demographic_data()
+    - ✅ download_worldpop_pop_density_data()
+    - ✅ download_worldpop_pop_count_data()
+
+process_data.py
+
+- process_geospatial_data()
+    - ✅ process_gadm_admin_map_data()
+- process_meteorological_data()
+    - ✅ process_aphrodite_precipitation_data()
+    - ✅ process_aphrodite_temperature_data()
+    - ✅ process_chirps_rainfall_data()
+    - ✅ process_era5_reanalysis_data()
+    - ✅ process_terraclimate_data()
+- process_socio_demographic_data()
+    - ✅ process_worldpop_pop_count_data()
+    - ✅ process_worldpop_pop_density_data()
+- process_geospatial_sociodemographic_data()
+    - ✅ process_gadm_worldpoppopulation_data()
+
+
 Contributing
 ============
 Please see our `Contributing to DART <./CONTRIBUTING.md>`_ guide.

@@ -663,8 +663,9 @@ def download_chirps_rainfall_data(only_one, dry_run):
     Run times:
 
     - `time python3 collate_data.py "CHIRPS rainfall"`:
-        - 5m30.123s (2024-01-01 to 2024-03-07)
-        - 2m56.14s (2024-01-01 to 2024-03-11)
+        - 5:30.123 (2024-01-01 to 2024-03-07)
+        - 2:56.14 (2024-01-01 to 2024-03-11)
+        - 2:55.466 (2024-01-01 to 2024-02-29)
     """
     data_type = 'Meteorological Data'
     data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite ' + \
