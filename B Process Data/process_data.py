@@ -1038,6 +1038,139 @@ def process_worldpop_pop_density_data(year, iso3):
     plt.close()
 
 
+def process_geospatial_sociodemographic_data(
+    data_name, admin_level, iso3, year, rt
+):
+    """Process Geospatial and Socio-Demographic Data."""
+    if data_name == ['GADM administrative map', 'WorldPop population count']:
+        process_gadm_worldpoppopulation_data(admin_level, iso3, year, rt)
+    else:
+        raise ValueError(f'Unrecognised data names "{data_name}"')
+
+
+def process_gadm_worldpoppopulation_data(admin_level, iso3, year, rt):
+    """
+    Process GADM administrative map and WorldPop population count data.
+
+    Run times:
+
+    - `python3 process_data.py "GADM admin map" "WorldPop pop count" -a 0`:
+        - 0:10.182
+    - `python3 process_data.py "GADM admin map" "WorldPop pop count" -a 0
+      -3 "PER"`:
+    - `python3 process_data.py "GADM admin map" "WorldPop pop count" -a 1`:
+        - 1:36.789
+    - `python3 process_data.py "GADM admin map" "WorldPop pop count" -a 2`:
+        - 17:21.086
+    """
+    data_type = 'Geospatial and Socio-Demographic Data'
+    data_name = 'GADM administrative map and WorldPop population count'
+
+    # Import the TIFF file
+    filename = Path(f'{iso3}_{rt}_v2b_{year}_UNadj.tif')
+    path = Path(
+        base_dir, 'A Collate Data', 'Socio-Demographic Data',
+        'WorldPop population count', 'GIS', 'Population',
+        'Individual_countries', iso3
+    )
+    # Search for the actual folder that has the data
+    folders = [d for d in os.listdir(path) if d.endswith('_100m_Population')]
+    folder = folders[0]
+    # Now we can construct the full path
+    path = Path(path, folder, filename)
+    # Now we can import it
+    src = rasterio.open(path)
+    # Read data from band 1
+    population_data = src.read(1)
+    # Replace placeholder numbers with 0
+    mask = population_data == -3.4028234663852886e+38
+    population_data[mask] = 0
+    # Sanity checking
+    if (iso3 == 'VNM') and (year == '2020'):
+        assert population_data.sum() == 96355088.0, \
+            f'{population_data.sum()} != 96355088.0'  # 96,355,088
+    if (iso3 == 'PER') and (year == '2020'):
+        assert population_data.sum() == 32434896.0, \
+            f'{population_data.sum()} != 32434896.0'  # 32,434,896
+
+    # Import the shape file
+    filename = f'gadm41_{iso3}_{admin_level}.shp'
+    path = Path(
+        base_dir, 'A Collate Data', 'Geospatial Data',
+        'GADM administrative map', iso3, f'gadm41_{iso3}_shp', filename
+    )
+    gdf = gpd.read_file(path)
+
+    # Initialise output data frame
+    output = pd.DataFrame()
+    # Iterate over the regions in the shape file
+    total_pop = 0
+    for i, row in gdf.iterrows():
+        # Initialise new row
+        new_row = {}
+        new_row['country'] = row['COUNTRY']
+        # Initialise the title
+        title = row['COUNTRY']
+        # Update the new row and the title if the admin level is high enough
+        if 'NAME_1' in list(gdf):
+            new_row['name_1'] = row['NAME_1']
+            title = row['NAME_1']
+        if 'NAME_2' in list(gdf):
+            new_row['name_2'] = row['NAME_2']
+            title = row['NAME_2']
+        if 'NAME_3' in list(gdf):
+            new_row['name_3'] = row['NAME_3']
+            title = row['NAME_3']
+        # Look at the polygons in the shapefile
+        mask = geometry_mask(
+            [row['geometry']], out_shape=population_data.shape,
+            transform=src.transform, invert=True
+        )
+        # Use the mask to extract the region
+        region_population_data = population_data * mask
+        # Sum the pixel values to get the population for the region
+        region_population = region_population_data.sum()
+        print(title, region_population)
+        # Add to output data frame
+        new_row['population'] = region_population
+        new_row_df = pd.DataFrame(new_row, index=[1])
+        output = pd.concat([output, new_row_df], ignore_index=True)
+        # Add to running count
+        total_pop += region_population
+
+        # Plot
+        fig = plt.figure(figsize=(10, 10))
+        ax = plt.axes()
+        if admin_level == 0:
+            arr = region_population_data
+            arr[arr == 0] = np.nan
+            img = ax.imshow(arr, cmap='GnBu')
+        else:
+            df = pd.DataFrame(region_population_data)
+            df = df.replace(0, np.nan)
+            df = df.dropna(how='all', axis=0)
+            df = df.dropna(how='all', axis=1)
+            img = ax.imshow(df, cmap='GnBu')
+        plt.colorbar(img, label='Population', shrink=0.8)
+        ax.set_title(title)
+        # Export
+        path = Path(
+            base_dir, 'B Process Data', data_type, data_name, iso3,
+            f'Admin Level {admin_level}', title
+        )
+        os.makedirs(path.parent, exist_ok=True)
+        plt.savefig(path)
+        plt.close()
+
+    # Export
+    print(f'Total population: {total_pop}')
+    path = Path(
+        base_dir, 'B Process Data', data_type, data_name, iso3,
+        f'Admin Level {admin_level}', 'Population.csv'
+    )
+    output.to_csv(path, index=False)
+
+
 class EmptyObject:
     """Define an empty object for creating a fake args object for Sphinx."""
 
@@ -1106,9 +1239,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=desc)
 
     # Add positional arguments
-    message = 'The name of the data field to be processed.'
-    default = ''
-    parser.add_argument('data_name', nargs='?', default=default, help=message)
+    message = 'The name of the data field(s) to be processed.'
+    default = []
+    parser.add_argument('data_name', nargs='*', default=default, help=message)
 
     # Add optional arguments
     message = '''Some data fields have different data for each administrative
@@ -1138,23 +1271,30 @@ if __name__ == '__main__':
     iso3 = args.iso3.upper()
 
     # Convert shorthand names to full names
-    if data_name in shorthand_to_data_name.keys():
-        data_name = shorthand_to_data_name[data_name]
+    for i, name in enumerate(data_name):
+        if name in shorthand_to_data_name.keys():
+            data_name[i] = shorthand_to_data_name[name]
     # Get macro data type
-    data_type = ''
-    if data_name in data_name_to_type.keys():
-        data_type = data_name_to_type[data_name]
+    data_type = []
+    for name in data_name:
+        if name in data_name_to_type.keys():
+            data_type.append(data_name_to_type[name])
 
-    if data_name == '':
+    if data_name == []:
         print('No data name has been provided. Exiting the programme.')
-    elif data_type == 'Epidemiological Data':
-        process_epidemiological_data(data_name, admin_level, iso3)
-    elif data_type == 'Geospatial Data':
-        process_geospatial_data(data_name, admin_level, iso3)
-    elif data_type == 'Meteorological Data':
-        process_meteorological_data(data_name)
-    elif data_type == 'Socio-Demographic Data':
-        process_socio_demographic_data(data_name, year, iso3, rt)
+    elif data_type == ['Epidemiological Data']:
+        process_epidemiological_data(data_name[0], admin_level, iso3)
+    elif data_type == ['Geospatial Data']:
+        process_geospatial_data(data_name[0], admin_level, iso3)
+    elif data_type == ['Meteorological Data']:
+        process_meteorological_data(data_name[0])
+    elif data_type == ['Socio-Demographic Data']:
+        process_socio_demographic_data(data_name[0], year, iso3, rt)
+
+    elif data_type == ['Geospatial Data', 'Socio-Demographic Data']:
+        process_geospatial_sociodemographic_data(
+            data_name, admin_level, iso3, year, rt
+        )
 
     else:
         raise ValueError(f'Unrecognised data type "{data_type}"')
@@ -1166,133 +1306,6 @@ else:
     args = EmptyObject()
 
 # TODO
-
-"""
-Geospatial and Socio-Demographic Data
- └ GADM administrative map and WorldPop population count
-
-time python3 process_data.py --data_name "GADM administrative map and
-WorldPop population count" --admin_level 0
-10.182s
-
-time python3 process_data.py --data_name "GADM administrative map and
-WorldPop population count" --admin_level 1
-1m36.789s
-
-time python3 process_data.py --data_name "GADM administrative map and
-WorldPop population count" --admin_level 2
-17m21.086s
-"""
-if args.data_name == 'GADM administrative map and WorldPop population count':
-    # Get the year for which data will be loaded
-    if args.year == '':
-        year = '2020'
-    else:
-        year = args.year
-
-    # Get the other arguments
-    admin_level = args.admin_level
-    iso3 = args.country_iso3
-    rt = args.resolution_type
-
-    # Import the TIFF file
-    relative_path = Path(
-        'Socio-Demographic Data', 'WorldPop population count',
-        'Population Counts', 'Individual countries', 'Vietnam',
-        'Viet_Nam_100m_Population'
-    )
-    filename = Path(f'{iso3}_{rt}_v2b_{year}_UNadj.tif')
-    path = Path(base_dir, 'A Collate Data', relative_path, filename)
-    src = rasterio.open(path)
-    # Get the coordinate reference system (CRS) of the GeoTIFF
-    crs = src.crs
-    print('Coordinate Reference System (CRS) of the GeoTIFF file:', crs)
-    # Read data from band 1
-    population_data = src.read(1)
-    # Replace placeholder numbers with 0
-    mask = population_data == -3.4028234663852886e+38
-    population_data[mask] = 0
-    # Sanity checking
-    assert population_data.sum() == 96355088.0, \
-        f'{population_data.sum()} != 96355088.0'  # 96,355,088
-
-    # Import the shape file
-    relative_path = Path(
-        'Geospatial Data', 'GADM administrative map', 'gadm41_VNM_shp',
-    )
-    filename = f'gadm41_VNM_{admin_level}.shp'
-    path = Path(base_dir, 'A Collate Data', relative_path, filename)
-    gdf = gpd.read_file(path)
-    # Get the coordinate reference system (CRS) of the GeoDataFrame
-    crs = gdf.crs
-    print('Coordinate Reference System (CRS) of the shapefile:', crs)
-
-    # Initialise output data frame
-    output = pd.DataFrame()
-    # Iterate over the regions in the shape file
-    total_pop = 0
-    for i, row in gdf.iterrows():
-        # Initialise new row
-        new_row = {}
-        # Populate the new row
-        new_row['country'] = row['COUNTRY']
-        title = row['COUNTRY']
-        if 'NAME_1' in list(gdf):
-            new_row['name_1'] = row['NAME_1']
-            title = row['NAME_1']
-        if 'NAME_2' in list(gdf):
-            new_row['name_2'] = row['NAME_2']
-            title = row['NAME_2']
-        if 'NAME_3' in list(gdf):
-            new_row['name_3'] = row['NAME_3']
-            title = row['NAME_3']
-        # Look at the polygons in the shapefile
-        mask = geometry_mask(
-            [row['geometry']], out_shape=population_data.shape,
-            transform=src.transform, invert=True
-        )
-        # Use the mask to extract the region
-        region_population_data = population_data * mask
-        # Sum the pixel values to get the population for the region
-        region_population = region_population_data.sum()
-        print(title, region_population)
-        # Add to output data frame
-        new_row['population'] = region_population
-        new_row_df = pd.DataFrame(new_row, index=[1])
-        output = pd.concat([output, new_row_df], ignore_index=True)
-        # Add to running count
-        total_pop += region_population
-
-        # Plot
-        fig = plt.figure(figsize=(10, 10))
-        ax = plt.axes()
-        if title == 'Vietnam':
-            arr = region_population_data
-            arr[arr == 0] = np.nan
-            img = ax.imshow(arr, cmap='GnBu')
-        else:
-            df = pd.DataFrame(region_population_data)
-            df = df.replace(0, np.nan)
-            df = df.dropna(how='all', axis=0)
-            df = df.dropna(how='all', axis=1)
-            img = ax.imshow(df, cmap='GnBu')
-        plt.colorbar(img, label='Population', shrink=0.8)
-        ax.set_title(title)
-        # Export
-        relative_path = Path(
-            'Geospatial and Socio-Demographic Data',
-            'GADM administrative map and WorldPop population count',
-            filename.removesuffix(Path(filename).suffix)
-        )
-        path = Path(base_dir, 'B Process Data', relative_path, title)
-        os.makedirs(path.parent, exist_ok=True)
-        plt.savefig(path)
-        plt.close()
-
-    # Export
-    print(f'Total population: {total_pop}')
-    path = Path(base_dir, 'B Process Data', relative_path, 'Population.csv')
-    output.to_csv(path, index=False)
 
 """
 Geospatial and Socio-Demographic Data

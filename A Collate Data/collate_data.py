@@ -257,7 +257,7 @@ def walk(
 
 def download_gadm_data(file_format, out_dir, iso3, dry_run, level=None):
     """
-    Download and unpack data from GADM.
+    Download and unpack GADM (Database of Global Administrative Areas) data.
 
     Parameters
     ----------
@@ -351,18 +351,20 @@ def unpack_file(path, same_folder=False):
 def download_epidemiological_data(data_name, only_one, dry_run, year, iso3):
     """Download Epidemiological Data."""
     if data_name == 'Ministerio de Salud (Peru) data':
-        download_ministerio_de_salud_peru_data(only_one, dry_run, year, iso3)
+        download_ministerio_de_salud_peru_data()
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
 
-def download_ministerio_de_salud_peru_data(only_one, dry_run, year, iso3):
+def download_ministerio_de_salud_peru_data():
     """
     Download data from the Ministerio de Salud (Peru).
 
     Run times:
 
-    - `time python3 collate_data.py "Peru"`: 26:11.34
+    - `time python3 collate_data.py "Peru"`:
+        - 26:11.34
+        - 13:34.151
     """
     data_type = 'Epidemiological Data'
     data_name = 'Ministerio de Salud (Peru) data'
@@ -396,19 +398,16 @@ def download_ministerio_de_salud_peru_data(only_one, dry_run, year, iso3):
         url = 'https://www.dge.gob.pe/sala-situacional-dengue/uploads/' + \
             f'{page}.html'
         print(f'Accessing "{url}"')
-        try:
-            # Fetch webpage content
-            response = requests.get(url)
-            # Raise an exception for bad response status
-            response.raise_for_status()
-            # Parse HTML content
-            soup = BeautifulSoup(response.content, 'html.parser')
-            # Find links with the onclick attribute
-            onclick_links = soup.find_all('a', onclick=True)
-            # Extract link URLs
-            links = [link.get('onclick') for link in onclick_links]
-        except Exception as e:
-            print('An error occurred:', e)
+        # Fetch webpage content
+        response = requests.get(url)
+        # Raise an exception for bad response status
+        response.raise_for_status()
+        # Parse HTML content
+        soup = BeautifulSoup(response.content, 'html.parser')
+        # Find links with the onclick attribute
+        onclick_links = soup.find_all('a', onclick=True)
+        # Extract link URLs
+        links = [link.get('onclick') for link in onclick_links]
 
         for link in links:
             # Search the link for the data embedded in it
@@ -416,21 +415,67 @@ def download_ministerio_de_salud_peru_data(only_one, dry_run, year, iso3):
             matches = re.findall(regex_pattern, link, re.DOTALL)
             if matches:
                 base64_string = matches[0]
+            else:
+                raise ValueError('No data found embedded in the link')
 
             # Search the link for the filename
             regex_pattern = r"a\.download = '(.*?)';\s*a\.click"
             matches = re.findall(regex_pattern, link)
             if matches:
+                # There is an actual filename for this data
                 filename = matches[0]
+            else:
+                # Just use the page name for the file
+                filename = page + '.xlsx'
 
             # Decode and export the data
             decoded_bytes = base64.b64decode(base64_string)
             path = Path(
                 base_dir, 'A Collate Data', data_type, data_name, filename
             )
+            path.parent.mkdir(parents=True, exist_ok=True)
             with open(path, 'wb') as f:
                 print(f'Exporting "{path}"')
                 f.write(decoded_bytes)
+
+
+def download_geospatial_data(data_name, only_one, dry_run, iso3):
+    """Download Geospatial data."""
+    if data_name == 'GADM administrative map':
+        download_gadm_admin_map_data(only_one, dry_run, iso3)
+    else:
+        raise ValueError(f'Unrecognised data name "{data_name}"')
+
+
+def download_gadm_admin_map_data(only_one, dry_run, iso3):
+    """
+    Download GADM administrative map.
+
+    Run times:
+
+    - `time python3 collate_data.py "GADM admin map"`:
+        - 0:31.094
+        - 0:54.608
+    - `time python3 collate_data.py "GADM admin map" -3 "PER"`:
+        - 0:18.516
+        - 1:02.167
+    """
+    data_type = 'Geospatial Data'
+    data_name = 'GADM administrative map'
+
+    if only_one:
+        print('The --only_one/-1 flag has no effect for this metric')
+
+    # Create output directory
+    out_dir = Path(base_dir, 'A Collate Data', data_type, data_name, iso3)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    download_gadm_data('Geopackage', out_dir, iso3, dry_run)
+    download_gadm_data('Shapefile', out_dir, iso3, dry_run)
+    download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level0')
+    download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level1')
+    download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level2')
+    download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level3')
 
 
 def download_meteorological_data(
@@ -769,11 +814,13 @@ def download_worldpop_pop_density_data(only_one, dry_run, iso3):
 
     Run times:
 
-    - `time python3 collate_data.py "WorldPop pop density" -d`: 0m0.732s
+    - `time python3 collate_data.py "WorldPop pop density" -d`: 0:00.732
     - `time python3 collate_data.py "WorldPop pop density":
-        - 0m2.860s
-        - 0m0.29s
-    - `time python3 collate_data.py "WorldPop pop density" -3 "PER"`: 6.723s
+        - 0:02.860
+        - 0:04.349
+    - `time python3 collate_data.py "WorldPop pop density" -3 "PER"`:
+        - 0:06.723
+        - 0:18.760
     """
     data_type = 'Socio-Demographic Data'
     data_name = 'WorldPop population density'
@@ -839,7 +886,9 @@ def download_worldpop_pop_count_data(only_one, dry_run, iso3):
     Run times:
 
     - `time python3 collate_data.py "WorldPop pop count"`: 14:13.53
-    - `time python3 collate_data.py "WorldPop pop count" -3 "PER"`: 46:47.78
+    - `time python3 collate_data.py "WorldPop pop count" -3 "PER"`:
+        - 46:47.78
+        - 1:15:44.285
     """
     data_type = 'Socio-Demographic Data'
     data_name = 'WorldPop population count'
@@ -853,43 +902,6 @@ def download_worldpop_pop_count_data(only_one, dry_run, iso3):
     out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
     out_dir.mkdir(parents=True, exist_ok=True)
     walk(base_url, relative_url, only_one, dry_run, out_dir)
-
-
-def download_geospatial_data(data_name, only_one, dry_run, iso3):
-    """Download Geospatial data."""
-    if data_name == 'GADM administrative map':
-        download_gadm_admin_map_data(only_one, dry_run, iso3)
-    else:
-        raise ValueError(f'Unrecognised data name "{data_name}"')
-
-
-def download_gadm_admin_map_data(only_one, dry_run, iso3):
-    """
-    Download GADM administrative map.
-
-    Run times:
-
-    - `time python3 collate_data.py "GADM admin map"`:
-        - 2m0.457s
-        - 0m31.094s
-    - `time python3 collate_data.py "GADM admin map" -3 "PER"`: 18.516s
-    """
-    data_type = 'Geospatial Data'
-    data_name = 'GADM administrative map'
-
-    if only_one:
-        print('The --only_one/-1 flag has no effect for this metric')
-
-    # Create output directory
-    out_dir = Path(base_dir, 'A Collate Data', data_type, data_name, iso3)
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    download_gadm_data('Geopackage', out_dir, iso3, dry_run)
-    download_gadm_data('Shapefile', out_dir, iso3, dry_run)
-    download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level0')
-    download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level1')
-    download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level2')
-    download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level3')
 
 
 class EmptyObject:
@@ -981,7 +993,7 @@ if __name__ == '__main__':
     which to download.'''
     parser.add_argument('--year', '-y', default=None, help=message)
     message = '''Country code in "ISO 3166-1 alpha-3" format.'''
-    parser.add_argument('--iso3', '-3', default='VNM', help=message)
+    parser.add_argument('--iso3', '-3', default='', help=message)
 
     # Parse arguments from terminal
     args = parser.parse_args()
@@ -1022,14 +1034,14 @@ if __name__ == '__main__':
         print('No data name has been provided. Exiting the programme.')
     elif data_type == 'Epidemiological Data':
         download_epidemiological_data(data_name, only_one, dry_run, year, iso3)
+    elif data_type == 'Geospatial Data':
+        download_geospatial_data(data_name, only_one, dry_run, iso3)
     elif data_type == 'Meteorological Data':
         download_meteorological_data(
             data_name, only_one, dry_run, credentials, year
         )
     elif data_type == 'Socio-Demographic Data':
         download_socio_demographic_data(data_name, only_one, dry_run, iso3)
-    elif data_type == 'Geospatial Data':
-        download_geospatial_data(data_name, only_one, dry_run, iso3)
     else:
         raise ValueError(f'Unrecognised data type "{data_type}"')
 
