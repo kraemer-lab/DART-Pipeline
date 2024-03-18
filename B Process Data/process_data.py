@@ -794,7 +794,9 @@ def process_worldpop_pop_count_data(year, iso3, rt):
     Run times:
 
     - `time python3 process_data.py "WorldPop pop count"`: 43.332s
-    - `time python3 process_data.py "WorldPop pop count" -3 "PER"`: 2:05.13
+    - `time python3 process_data.py "WorldPop pop count" -3 "PER"`:
+        - 2:05.13
+        - 3:27.575
     """
     data_type = 'Socio-Demographic Data'
     data_name = 'WorldPop population count'
@@ -1058,10 +1060,20 @@ def process_gadm_worldpoppopulation_data(admin_level, iso3, year, rt):
         - 0:10.182
     - `python3 process_data.py "GADM admin map" "WorldPop pop count" -a 0
       -3 "PER"`:
+        - 0:28.003
     - `python3 process_data.py "GADM admin map" "WorldPop pop count" -a 1`:
         - 1:36.789
+    - `python3 process_data.py "GADM admin map" "WorldPop pop count" -a 1
+      -3 "PER"`:
+        - 1:28.149
     - `python3 process_data.py "GADM admin map" "WorldPop pop count" -a 2`:
         - 17:21.086
+    - `python3 process_data.py "GADM admin map" "WorldPop pop count" -a 2
+      -3 "PER"`:
+        - 8:52.580
+    - `python3 process_data.py "GADM admin map" "WorldPop pop count" -a 3
+      -3 "PER"`:
+        - 59:46.627
     """
     data_type = 'Geospatial and Socio-Demographic Data'
     data_name = 'GADM administrative map and WorldPop population count'
@@ -1144,15 +1156,17 @@ def process_gadm_worldpoppopulation_data(admin_level, iso3, year, rt):
         if admin_level == 0:
             arr = region_population_data
             arr[arr == 0] = np.nan
-            img = ax.imshow(arr, cmap='GnBu')
+            img = ax.imshow(arr, cmap='viridis')
         else:
             df = pd.DataFrame(region_population_data)
             df = df.replace(0, np.nan)
             df = df.dropna(how='all', axis=0)
             df = df.dropna(how='all', axis=1)
-            img = ax.imshow(df, cmap='GnBu')
-        plt.colorbar(img, label='Population', shrink=0.8)
+            img = ax.imshow(df, cmap='viridis')
+        plt.colorbar(img, label=f'Population ({rt})', shrink=0.8)
         ax.set_title(title)
+        ax.set_ylabel('Latitude')
+        ax.set_xlabel('Longitude')
         # Export
         path = Path(
             base_dir, 'B Process Data', data_type, data_name, iso3,
