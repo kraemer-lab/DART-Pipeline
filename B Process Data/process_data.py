@@ -97,53 +97,6 @@ def days_to_date(days_since_1900):
     return target_date
 
 
-def plot_pop_density(df, folderpath, filename):
-    """
-    Plot the population for a region.
-
-    Parameters
-    ----------
-    df : DataFrame
-        The data to plot.
-    folderpath : str or pathlib.Path
-        The parent directory for the output plot.
-    filename : str or pathlib.Path
-        The filename for the output plot.
-    """
-    # Plot
-    A = 3  # We want figures to be A3
-    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
-    fig = plt.figure(figsize=figsize, dpi=144)
-    ax = plt.axes()
-    # Re-scale
-    df['Z_rescaled'] = df['Z']**0.01
-    # Plot
-    pivotted = df.pivot(index='Y', columns='X', values='Z_rescaled')
-    cax = plt.imshow(pivotted, cmap='GnBu')
-    # Manually create the colour bar
-    ticks = np.linspace(df['Z_rescaled'].min(), df['Z_rescaled'].max(), 5)
-    ticklabels = ticks**(1 / 0.01)
-    ticklabels = ticklabels.astype(int)
-    fig.colorbar(
-        cax,
-        ticks=ticks,
-        format=mticker.FixedFormatter(ticklabels),
-        shrink=0.2,
-        label='Population Density 2020, UN Adjusted (pop/km²)'
-    )
-    # Turn upside down
-    plt.gca().invert_yaxis()
-    # Remove ticks and tick labels
-    plt.axis('off')
-    # Correct aspect ratio
-    ax.set_aspect('equal', adjustable='datalim')
-    ax.autoscale()
-    # Save
-    path = Path(folderpath, filename)
-    plt.savefig(path)
-    plt.close()
-
-
 def pixel_to_latlon(x, y, transform):
     """
     Convert pixel coordinates to latitude and longitude.
@@ -1044,8 +997,11 @@ def process_geospatial_sociodemographic_data(
     data_name, admin_level, iso3, year, rt
 ):
     """Process Geospatial and Socio-Demographic Data."""
-    if data_name == ['GADM administrative map', 'WorldPop population count']:
+    data_name_1 = 'GADM administrative map'
+    if data_name == [data_name_1, 'WorldPop population count']:
         process_gadm_worldpoppopulation_data(admin_level, iso3, year, rt)
+    elif data_name == [data_name_1, 'WorldPop population density']:
+        process_gadm_worldpopdensity_data(admin_level, iso3, year, rt)
     else:
         raise ValueError(f'Unrecognised data names "{data_name}"')
 
@@ -1184,6 +1140,157 @@ def process_gadm_worldpoppopulation_data(admin_level, iso3, year, rt):
     )
     output.to_csv(path, index=False)
 
+def process_gadm_worldpopdensity_data(admin_level, iso3, year, rt):
+    """
+    Process GADM administrative map and WorldPop population density data.
+
+    Run times:
+
+    - `python3 process_data.py "GADM admin map" "WorldPop pop density" -a 0`:
+    """
+    data_type = 'Geospatial and Socio-Demographic Data'
+    data_name = 'GADM administrative map and WorldPop population density'
+
+    # Import the population density data
+    filename = Path(f'{iso3.lower()}_pd_{year}_1km_UNadj_ASCII_XYZ.zip')
+    path = Path(
+        base_dir, 'A Collate Data', 'Socio-Demographic Data',
+        'WorldPop population density', 'GIS', 'Population_Density',
+        'Global_2000_2020_1km_UNadj', '2020', iso3, filename
+    )
+    df = pd.read_csv(path)
+
+    # Import the coordinates of the borders of the admin regions
+    filename = f'gadm41_{iso3}_{admin_level}.json'
+    path = Path(
+        base_dir, 'A Collate Data', 'Geospatial Data',
+        'GADM administrative map', iso3, filename
+    )
+    with open(path) as file:
+        geojson = json.load(file)
+
+    # Check if the labelled population density data exists
+    path = Path(
+        base_dir, 'B Process Data', 'Geospatial and Socio-Demographic Data',
+        'GADM administrative map and WorldPop population density', iso3,
+        f'Admin Level {admin_level}', 'Population Density.csv'
+    )
+    # If it doesn't, create it
+    if not path.exists():
+        # Classify the location of each coordinate
+        df[f'Admin Level {admin_level}'] = None
+        # Pre-construct the polygons
+        polygons = []
+        regions = []
+        for feature in geojson['features']:
+            coordinates = feature['geometry']['coordinates']
+            # Merge the coordinates of sub-polygons
+            merged_coordinates = []
+            for polygon_coords in coordinates:
+                merged_coordinates.extend(polygon_coords[0])
+            # Convert coordinates to a Polygon object
+            polygon = Polygon(merged_coordinates)
+            # Add to list
+            polygons.append(polygon)
+            if admin_level == '0':
+                region = feature['properties']['COUNTRY']
+            elif admin_level == '1':
+                region = feature['properties']['NAME_1']
+            elif admin_level == '2':
+                region = feature['properties']['NAME_2']
+            elif admin_level == '3':
+                region = feature['properties']['NAME_3']
+            else:
+                raise ValueError(f'Unrecognised admin level: "{admin_level}"')
+            regions.append(region)
+        # Iterate over the coordinates
+        for i, row in df.iterrows():
+            # Update the user
+            if i % 100 == 0:
+                print(f'{i} / {len(df)}')
+            point = Point(df.loc[i, 'X'], df.loc[i, 'Y'])
+            for j, polygon in enumerate(polygons):
+                # Check if the coordinate is in this region
+                if point.within(polygon):
+                    # We have found the region this coordinate is in
+                    df.loc[i, f'Admin Level {admin_level}'] = regions[j]
+                    # Move to the next line of the data frame
+                    break
+        # Export
+        path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(path, index=False)
+
+    # Import the labelled data
+    df = pd.read_csv(path)
+
+    # Plot the population density
+    for region in df[f'Admin Level {admin_level}'].unique():
+        subset = df[df[f'Admin Level {admin_level}'] == region].copy()
+
+        # Plot
+        A = 3  # We want figures to be A3
+        figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+        fig = plt.figure(figsize=figsize, dpi=144)
+        ax = plt.axes()
+        # Re-scale
+        subset['Z_rescaled'] = subset['Z']**0.01
+        # Plot
+        pivotted = subset.pivot(index='Y', columns='X', values='Z_rescaled')
+        cax = plt.imshow(pivotted, cmap='GnBu')
+        # Manually create the colour bar
+        ticks = np.linspace(
+            subset['Z_rescaled'].min(), subset['Z_rescaled'].max(), 5
+        )
+        ticklabels = ticks**(1 / 0.01)
+        ticklabels = ticklabels.astype(int)
+        fig.colorbar(
+            cax,
+            ticks=ticks,
+            format=mticker.FixedFormatter(ticklabels),
+            shrink=0.2,
+            label='Population Density 2020, UN Adjusted (pop/km²)'
+        )
+        # Turn upside down
+        plt.gca().invert_yaxis()
+        # Remove ticks and tick labels
+        plt.axis('off')
+        # Correct aspect ratio
+        ax.set_aspect('equal', adjustable='datalim')
+        ax.autoscale()
+        # Save
+        path = Path(folderpath, filename)
+        plt.savefig(path)
+        plt.close()
+
+    # # Initialise output dictionaries
+    # dct_admin_2 = {}
+    # dct_admin_3 = {}
+
+    # # Create the output folders
+    # path = Path(path.parent, 'Admin 2')
+    # os.makedirs(path, exist_ok=True)
+
+    # # Analyse each province/city
+    # for admin_2 in df['Admin 2'].unique():
+    #     if admin_2 is not np.nan:
+    #         subset = df[df['Admin 2'] == admin_2].copy()
+    #         print(admin_2)
+    #         plot_pop_density(subset, path, f'{admin_2}.png')
+    #         dct_admin_2[admin_2] = subset['Z'].mean()
+    #         for admin_3 in subset['Admin 3'].unique():
+    #             if admin_3 is not np.nan:
+    #                 ssubset = subset[subset['Admin 3'] == admin_3].copy()
+    #                 dct_admin_3[admin_3] = ssubset['Z'].mean()
+    # # Export
+    # filename = 'WorldPop population density - Admin 2.json'
+    # path = Path(base_dir, 'B Process Data', relative_path, filename)
+    # with open(path, 'w') as file:
+    #     json.dump(dct_admin_2, file)
+    # filename = 'WorldPop population density - Admin 3.json'
+    # path = Path(base_dir, 'B Process Data', relative_path, filename)
+    # with open(path, 'w') as file:
+    #     json.dump(dct_admin_3, file)
+
 
 class EmptyObject:
     """Define an empty object for creating a fake args object for Sphinx."""
@@ -1318,137 +1425,3 @@ else:
     # Create a fake args object so Sphinx doesn't complain it doesn't have
     # command-line arguments
     args = EmptyObject()
-
-# TODO
-
-"""
-Geospatial and Socio-Demographic Data
- └ GADM administrative map and WorldPop population density
-
-Run times
----------
-
-### If the labelled population density data does not exist
-
-time python3 process_data.py -n "GADM administrative map and WorldPop
-population density"
-
-- 31m52.408s
-- 11m30.10s
-
-### If the labelled population density data exists
-
-time python3 process_data.py -n "GADM administrative map and WorldPop
-population density"
-
-- 0m16.145s
-- 0m15.953s
-"""
-if args.data_name == 'GADM administrative map and WorldPop population density':
-    # Get the year for which data will be loaded
-    if args.year == '':
-        year = '2020'
-    else:
-        year = args.year
-
-    # Get the admin level
-    print('Only admin level 2 is currently implemented')
-    admin_level = args.admin_level
-    admin_level = 2
-
-    # Get the other argument
-    iso3 = args.country_iso3
-
-    # Import the population density data for Vietnam
-    relative_path = Path(
-        'Socio-Demographic Data', 'WorldPop population density', 'GIS',
-        'Population_Density', 'Global_2000_2020_1km_UNadj', '2020', 'VNM'
-    )
-    filename = Path(f'{iso3.lower()}_pd_{year}_1km_UNadj_ASCII_XYZ.zip')
-    path = Path(base_dir, 'A Collate Data', relative_path, filename)
-    df = pd.read_csv(path)
-
-    # Import the coordinates of the borders of Vietnam's regions
-    relative_path = Path('Geospatial Data', 'GADM administrative map')
-    filename = f'gadm41_{iso3}_{admin_level}.json'
-    path = Path(base_dir, 'A Collate Data', relative_path, filename)
-    with open(path) as file:
-        geojson = json.load(file)
-
-    # Check if the labelled population density data exists
-    relative_path = Path(
-        'Geospatial and Socio-Demographic Data',
-        'GADM administrative map and WorldPop population density'
-    )
-    filename = 'Vietnam.csv'
-    path = Path(base_dir, 'B Process Data', relative_path, filename)
-    if path.exists():
-        # Import the labelled data
-        df = pd.read_csv(path)
-
-        # Plot whole country
-        plot_pop_density(df, path.parent, 'Vietnam.png')
-
-        # Initialise output dictionaries
-        dct_admin_2 = {}
-        dct_admin_3 = {}
-
-        # Create the output folders
-        path = Path(path.parent, 'Admin 2')
-        os.makedirs(path, exist_ok=True)
-
-        # Analyse each province/city
-        for admin_2 in df['Admin 2'].unique():
-            if admin_2 is not np.nan:
-                subset = df[df['Admin 2'] == admin_2].copy()
-                print(admin_2)
-                plot_pop_density(subset, path, f'{admin_2}.png')
-                dct_admin_2[admin_2] = subset['Z'].mean()
-                for admin_3 in subset['Admin 3'].unique():
-                    if admin_3 is not np.nan:
-                        ssubset = subset[subset['Admin 3'] == admin_3].copy()
-                        dct_admin_3[admin_3] = ssubset['Z'].mean()
-        # Export
-        filename = 'WorldPop population density - Admin 2.json'
-        path = Path(base_dir, 'B Process Data', relative_path, filename)
-        with open(path, 'w') as file:
-            json.dump(dct_admin_2, file)
-        filename = 'WorldPop population density - Admin 3.json'
-        path = Path(base_dir, 'B Process Data', relative_path, filename)
-        with open(path, 'w') as file:
-            json.dump(dct_admin_3, file)
-    else:
-        # Classify the location of each coordinate
-        df['Country'] = None
-        df['Admin 2'] = None
-        df['Admin 3'] = None
-        # Pre-construct the polygons
-        polygons = []
-        regions = []
-        for feature in geojson['features']:
-            polygon = Polygon(feature['geometry']['coordinates'][0][0])
-            polygons.append(polygon)
-            region = (
-                feature['properties']['COUNTRY'],
-                feature['properties']['NAME_1'],
-                feature['properties']['NAME_2']
-            )
-            regions.append(region)
-        # Iterate over the coordinates
-        for i, row in df.iterrows():
-            # Update the user
-            if i % 100 == 0:
-                print(f'{i} / {len(df)}')
-            point = Point(df.loc[i, 'X'], df.loc[i, 'Y'])
-            for j, polygon in enumerate(polygons):
-                # Check if the coordinate is in this region
-                if point.within(polygon):
-                    # We have found the region this coordinate is in
-                    df.loc[i, 'Country'] = regions[j][0]
-                    df.loc[i, 'Admin 2'] = regions[j][1]
-                    df.loc[i, 'Admin 3'] = regions[j][2]
-                    # Move to the next line of the data frame
-                    break
-        # Export
-        path.parent.mkdir(parents=True, exist_ok=True)
-        df.to_csv(path, index=False)
