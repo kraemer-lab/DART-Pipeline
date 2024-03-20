@@ -453,7 +453,7 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
 
     Run times:
 
-    - `time python3 collate_data.py "GADM admin map"`:
+    - `time python3 collate_data.py "GADM admin map" -3 "VNM"`:
         - 0:31.094
         - 0:54.608
     - `time python3 collate_data.py "GADM admin map" -3 "PER"`:
@@ -465,6 +465,8 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
 
     if only_one:
         print('The --only_one/-1 flag has no effect for this metric')
+    if iso3 == '':
+        raise ValueError(f'No ISO3 code has been provided; use the "-3" flag')
 
     # Create output directory
     out_dir = Path(base_dir, 'A Collate Data', data_type, data_name, iso3)
@@ -815,8 +817,9 @@ def download_worldpop_pop_density_data(only_one, dry_run, iso3):
 
     Run times:
 
-    - `time python3 collate_data.py "WorldPop pop density" -d`: 0:00.732
-    - `time python3 collate_data.py "WorldPop pop density":
+    - `time python3 collate_data.py "WorldPop pop density" -d -3 "VNM"`:
+        - 0:00.732
+    - `time python3 collate_data.py "WorldPop pop density" -3 "VNM"`:
         - 0:02.860
         - 0:04.349
     - `time python3 collate_data.py "WorldPop pop density" -3 "PER"`:

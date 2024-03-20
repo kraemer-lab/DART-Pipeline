@@ -1140,13 +1140,26 @@ def process_gadm_worldpoppopulation_data(admin_level, iso3, year, rt):
     )
     output.to_csv(path, index=False)
 
+
 def process_gadm_worldpopdensity_data(admin_level, iso3, year, rt):
     """
     Process GADM administrative map and WorldPop population density data.
 
     Run times:
 
-    - `python3 process_data.py "GADM admin map" "WorldPop pop density" -a 0`:
+    ### If the labelled population density data does not exist
+
+    - `python3 process_data.py "GADM admin map" "WorldPop pop density" -a 0`
+        - 31:52.408
+        - 11:30.10
+    - `python3 process_data.py "GADM admin map" "WorldPop pop density" -a 0
+        -3 "PER"`
+
+    ### If the labelled population density data exists
+
+    - `python3 process_data.py "GADM admin map" "WorldPop pop density" -a 0`
+        - 0:16.145
+        - 0:15.953
     """
     data_type = 'Geospatial and Socio-Demographic Data'
     data_name = 'GADM administrative map and WorldPop population density'
@@ -1184,14 +1197,17 @@ def process_gadm_worldpopdensity_data(admin_level, iso3, year, rt):
         regions = []
         for feature in geojson['features']:
             coordinates = feature['geometry']['coordinates']
-            # Merge the coordinates of sub-polygons
-            merged_coordinates = []
+            # Convert each region into a Polygon object
+            sub_polygons = []
             for polygon_coords in coordinates:
-                merged_coordinates.extend(polygon_coords[0])
-            # Convert coordinates to a Polygon object
-            polygon = Polygon(merged_coordinates)
+                sub_polygons.extend(Polygon(polygon_coords[0]))
+            # Merge the sub-polygons
+            polygon = sub_polygons[0]
+            for sub_polygon in sub_polygons[1:]:
+                polygon = polygon.union(sub_polygon)
             # Add to list
             polygons.append(polygon)
+            # Extract the name of the region
             if admin_level == '0':
                 region = feature['properties']['COUNTRY']
             elif admin_level == '1':
@@ -1222,9 +1238,11 @@ def process_gadm_worldpopdensity_data(admin_level, iso3, year, rt):
 
     # Import the labelled data
     df = pd.read_csv(path)
+    df = df.dropna()
 
     # Plot the population density
     for region in df[f'Admin Level {admin_level}'].unique():
+        print(region)
         subset = df[df[f'Admin Level {admin_level}'] == region].copy()
 
         # Plot
@@ -1258,7 +1276,12 @@ def process_gadm_worldpopdensity_data(admin_level, iso3, year, rt):
         ax.set_aspect('equal', adjustable='datalim')
         ax.autoscale()
         # Save
-        path = Path(folderpath, filename)
+        path = Path(
+            base_dir, 'B Process Data',
+            'Geospatial and Socio-Demographic Data',
+            'GADM administrative map and WorldPop population density', iso3,
+            f'Admin Level {admin_level}', region
+        )
         plt.savefig(path)
         plt.close()
 
