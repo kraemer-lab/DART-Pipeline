@@ -65,18 +65,19 @@ import pandas as pd
 from matplotlib import pyplot as plt
 import matplotlib.ticker as mticker
 import numpy as np
-from shapely.geometry import Point, Polygon
 import geopandas as gpd
 import rasterio
 from rasterio.features import geometry_mask
 from rasterio.transform import xy
+from rasterio.mask import mask
 import netCDF4 as nc
+from shapely.geometry import box
 # Built-in modules
 import argparse
-import json
 import os
 from pathlib import Path
 from datetime import datetime, timedelta
+import math
 # Custom modules
 import utils
 # Create the requirements file with:
@@ -204,7 +205,7 @@ def process_gadm_admin_map_data(admin_level, iso3):
     Run times:
 
     - `time python3 process_data.py "GADM admin map" -a 0`: 0:01.036
-    - `time python3 process_data.py "GADM admin map"`: 0:03.830
+    - `time python3 process_data.py "GADM admin map" -a 1`: 0:03.830
     - `time python3 process_data.py "GADM admin map" -a 2`: 0:33.953
     - `time python3 process_data.py "GADM admin map" -a 3`: 12:30.51
     - `time python3 process_data.py "GADM admin map" -a 0 -3 "PER"`: 0:01.036
@@ -223,6 +224,14 @@ def process_gadm_admin_map_data(admin_level, iso3):
     )
     gdf = gpd.read_file(path)
 
+    # en.wikipedia.org/wiki/List_of_national_coordinate_reference_systems
+    national_crs = {
+        'GBR': 'EPSG:27700',
+        'PER': 'EPSG:24892',  # Peru central zone
+        'VNM': 'EPSG:4756',
+    }
+    gdf = gdf.to_crs(national_crs[iso3])
+
     # Plot
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot()
@@ -234,39 +243,42 @@ def process_gadm_admin_map_data(admin_level, iso3):
     # Export
     path = Path(
         base_dir, 'B Process Data', data_type, data_name, iso3,
-        f'gadm41_{iso3}_shp', Path(filename).stem
+        f'Admin Level {admin_level}.png'
     )
     path.parent.mkdir(parents=True, exist_ok=True)
     print(f'Exporting "{path}"')
     plt.savefig(path)
     plt.close()
 
+    # Initialise output data frame
+    output = pd.DataFrame()
     # Iterate over the regions in the shape file
-    for i, row in gdf.iterrows():
-        # Initialise new row
+    for _, region in gdf.iterrows():
+        # Initialise a new row for the output data frame
         new_row = {}
-        # Populate the new row
-        new_row['country'] = row['COUNTRY']
-        title = row['COUNTRY']
-        if 'NAME_1' in list(gdf):
-            new_row['name_1'] = row['NAME_1']
-            title = row['NAME_1']
-        if 'NAME_2' in list(gdf):
-            new_row['name_2'] = row['NAME_2']
-            title = row['NAME_2']
-        if 'NAME_3' in list(gdf):
-            new_row['name_3'] = row['NAME_3']
-            title = row['NAME_3']
+        new_row['Admin Level 0'] = region['COUNTRY']
+        # Initialise the title
+        title = region['COUNTRY']
+        # Update the new row and the title if the admin level is high enough
+        if int(admin_level) >= 1:
+            new_row['Admin Level 1'] = region['NAME_1']
+            title = region['NAME_1']
+        if int(admin_level) >= 2:
+            new_row['Admin Level 2'] = region['NAME_2']
+            title = region['NAME_2']
+        if int(admin_level) >= 3:
+            new_row['Admin Level 3'] = region['NAME_3']
+            title = region['NAME_3']
 
         # Plot
-        fig = plt.figure()
+        fig = plt.figure(figsize=(10, 10))
         ax = fig.add_subplot()
-        if row['geometry'].geom_type == 'MultiPolygon':
-            for polygon in row['geometry'].geoms:
+        if region['geometry'].geom_type == 'MultiPolygon':
+            for polygon in region['geometry'].geoms:
                 x, y = polygon.exterior.xy
                 plt.plot(x, y)
-        elif row['geometry'].geom_type == 'Polygon':
-            x, y = row['geometry'].exterior.xy
+        elif region['geometry'].geom_type == 'Polygon':
+            x, y = region['geometry'].exterior.xy
             plt.plot(x, y)
         ax.set_aspect('equal')
         plt.title(title)
@@ -275,12 +287,29 @@ def process_gadm_admin_map_data(admin_level, iso3):
         # Export
         path = Path(
             base_dir, 'B Process Data', data_type, data_name, iso3,
-            f'gadm41_{iso3}_shp', Path(filename).stem, str(title) + '.png'
+            f'Admin Level {admin_level}', str(title) + '.png'
         )
         path.parent.mkdir(parents=True, exist_ok=True)
         print(f'Exporting "{path}"')
         plt.savefig(path)
         plt.close()
+
+        # Calculate area in square metres
+        area = region.geometry.area
+        # Convert to square kilometers
+        area_sq_km = area / 1e6
+        # Add to output data frame
+        new_row['Area [km²]'] = area_sq_km
+        new_row_df = pd.DataFrame(new_row, index=[0])
+        output = pd.concat([output, new_row_df], ignore_index=True)
+
+    # Export
+    path = Path(
+        base_dir, 'B Process Data', data_type, data_name, iso3,
+        f'Admin Level {admin_level}', 'Area.csv'
+    )
+    print(f'Exporting "{path}"')
+    output.to_csv(path, index=False)
 
 
 def process_meteorological_data(data_name):
@@ -1012,7 +1041,18 @@ def process_gadm_chirps_data(admin_level, iso3, year, rt):
 
     Run times:
 
-    - `python3 process_data.py "GADM admin map" "CHIRPS rainfall" -a 0`
+    - `python3 process_data.py "GADM" "CHIRPS rainfall" -a 0`: 0:01.763
+    - `python3 process_data.py "GADM" "CHIRPS rainfall" -a 1`: 0:14.640
+    - `python3 process_data.py "GADM" "CHIRPS rainfall" -a 2`: 2:36.276
+    - `python3 process_data.py "GADM" "CHIRPS rainfall" -a 3`: 41:55.092
+    - `python3 process_data.py "GADM" "CHIRPS rainfall" -a 0 -3 "GBR"`:
+        - 0:12.027
+    - `python3 process_data.py "GADM" "CHIRPS rainfall" -a 1 -3 "GBR"`:
+        - 0:05.624
+    - `python3 process_data.py "GADM" "CHIRPS rainfall" -a 2 -3 "GBR"`:
+        - 0:05.626
+    - `python3 process_data.py "GADM" "CHIRPS rainfall" -a 3 -3 "GBR"`:
+        - 0:06.490
     """
     data_type = 'Geospatial and Meteorological Data'
     data_name = 'GADM administrative map and CHIRPS rainfall data'
@@ -1021,16 +1061,19 @@ def process_gadm_chirps_data(admin_level, iso3, year, rt):
     filename = Path('chirps-v2.0.2024.01.01.tif')
     path = Path(
         base_dir, 'A Collate Data', 'Meteorological Data',
-        'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite Observations',
+        'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
+        'Observations',
         'products', 'CHIRPS-2.0', 'global_daily', 'tifs', 'p05', '2024',
         'chirps-v2.0.2024.01.01.tif'
     )
     src = rasterio.open(path)
-    # Read data from band 1
+    # Read the first band
     data = src.read(1)
-    # # Replace placeholder numbers with 0
-    # mask = data == -3.4028234663852886e+38
-    # data[mask] = 0
+    # Replace negative values (no rainfall measured) with zeros
+    data[data < 0] = 0
+    # Create a bounding box from raster bounds
+    bounds = src.bounds
+    raster_bbox = box(bounds.left, bounds.bottom, bounds.right, bounds.top)
 
     # Import the shape file
     filename = f'gadm41_{iso3}_{admin_level}.shp'
@@ -1039,72 +1082,101 @@ def process_gadm_chirps_data(admin_level, iso3, year, rt):
         'GADM administrative map', iso3, f'gadm41_{iso3}_shp', filename
     )
     gdf = gpd.read_file(path)
+    # Transform the shape file to match the GeoTIFF's coordinate system
+    gdf = gdf.to_crs(src.crs)
 
-    # Initialise output data frame
+    # Get the aspect ratio for this region of the Earth
+    miny = gdf.bounds['miny'].values[0]
+    maxy = gdf.bounds['maxy'].values[0]
+    # Calculate the lengths of lines of latitude and longitude at the centroid
+    # of the polygon
+    centroid_lat = (miny + maxy) / 2.0
+    # Approximate length of one degree of latitude in meters
+    lat_length = 111.32 * 1000
+    # Approximate length of one degree of longitude in meters
+    lon_length = 111.32 * 1000 * math.cos(math.radians(centroid_lat))
+    # Calculate the stretch factor
+    aspect_ratio = lat_length / lon_length
+
+    # Initialise the output file
     output = pd.DataFrame()
-    # Iterate over the regions in the shape file
-    total_rainfall = 0
-    for i, row in gdf.iterrows():
-        # Initialise new row
-        new_row = {}
-        new_row['country'] = row['COUNTRY']
-        # Initialise the title
-        title = row['COUNTRY']
-        # Update the new row and the title if the admin level is high enough
-        if 'NAME_1' in list(gdf):
-            new_row['name_1'] = row['NAME_1']
-            title = row['NAME_1']
-        if 'NAME_2' in list(gdf):
-            new_row['name_2'] = row['NAME_2']
-            title = row['NAME_2']
-        if 'NAME_3' in list(gdf):
-            new_row['name_3'] = row['NAME_3']
-            title = row['NAME_3']
-        # Look at the polygons in the shapefile
-        mask = geometry_mask(
-            [row['geometry']], out_shape=data.shape,
-            transform=src.transform, invert=True
-        )
-        # Use the mask to extract the region
-        region_data = data * mask
-        # Sum the pixel values to get the population for the region
-        region_total = region_data.sum()
-        print(title, region_total)
-        # Add to output data frame
-        new_row['rainfall'] = region_total
-        new_row_df = pd.DataFrame(new_row, index=[1])
-        output = pd.concat([output, new_row_df], ignore_index=True)
-        # Add to running count
-        total_rainfall += region_total
+    # Iterate over each region in the shape file
+    for _, region in gdf.iterrows():
+        geometry = region.geometry
 
-        # Plot
-        fig = plt.figure(figsize=(10, 10))
-        ax = plt.axes()
-        if admin_level == 0:
-            arr = region_data
-            arr[arr == 0] = np.nan
-            img = ax.imshow(arr, cmap='viridis')
+        # Initialise a new row for the output data frame
+        new_row = {}
+        new_row['Admin Level 0'] = region['COUNTRY']
+        # Initialise the title
+        title = region['COUNTRY']
+        # Update the new row and the title if the admin level is high enough
+        if int(admin_level) >= 1:
+            new_row['Admin Level 1'] = region['NAME_1']
+            title = region['NAME_1']
+        if int(admin_level) >= 2:
+            new_row['Admin Level 2'] = region['NAME_2']
+            title = region['NAME_2']
+        if int(admin_level) >= 3:
+            new_row['Admin Level 3'] = region['NAME_3']
+            title = region['NAME_3']
+
+        # Check if the rainfall data intersects this region
+        if raster_bbox.intersects(geometry):
+            # There is rainfall data for this region
+            # Clip the data using the polygon of the current region
+            region_data, region_transform = mask(src, [geometry], crop=True)
+            # Replace negative values (where no rainfall was measured)
+            region_data = np.where(region_data < 0, np.nan, region_data)
+            region_shape = region_data.shape
+            # Define the extent
+            extent = [
+                region_transform[2],
+                region_transform[2] + region_transform[0] * region_shape[2],
+                region_transform[5] + region_transform[4] * region_shape[1],
+                region_transform[5],
+            ]
+
+            # Sum the pixel values to get the total for the region
+            region_total = np.nansum(region_data)
+            print(title, region_total)
+
+            # Plot
+            A = 4  # We want figures to be A4
+            figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+            fig = plt.figure(figsize=figsize, dpi=144)
+            ax = plt.axes()
+            # Rainfall data
+            img = ax.imshow(region_data[0], extent=extent, cmap='Blues')
+            # Manually add colorbar
+            fig.colorbar(img, shrink=0.2, label='Rainfall [mm]')
+            # Shape data
+            gpd.GeoSeries(geometry).plot(ax=ax, color='none')
+            # Format
+            ax.set_title(f'{title} Rainfall')
+            ax.set_xlabel('Longitude')
+            ax.set_ylabel('Latitude')
+            # Adjust the aspect ratio to match this part of the Earth
+            ax.set_aspect(aspect_ratio)
+            # Export
+            path = Path(
+                base_dir, 'B Process Data', data_type, data_name, iso3,
+                f'Admin Level {admin_level}', title + '.png'
+            )
+            os.makedirs(path.parent, exist_ok=True)
+            plt.savefig(path)
+            plt.close()
+
         else:
-            df = pd.DataFrame(region_data)
-            df = df.replace(0, np.nan)
-            df = df.dropna(how='all', axis=0)
-            df = df.dropna(how='all', axis=1)
-            img = ax.imshow(df, cmap='viridis')
-        plt.colorbar(img, label=f'Rainfall (mm)', shrink=0.8)
-        ax.set_title(title)
-        ax.set_ylabel('Latitude')
-        ax.set_xlabel('Longitude')
-        # Export
-        path = Path(
-            base_dir, 'B Process Data', data_type, data_name, iso3,
-            f'Admin Level {admin_level}', title
-        )
-        os.makedirs(path.parent, exist_ok=True)
-        plt.savefig(path)
-        plt.close()
+            # There is no rainfall data for this region
+            region_total = 0
+            print(title, region_total)
+
+        # Add to output data frame
+        new_row['Rainfall'] = region_total
+        new_row_df = pd.DataFrame(new_row, index=[0])
+        output = pd.concat([output, new_row_df], ignore_index=True)
 
     # Export
-    print(f'Total rainfall: {total_rainfall}')
     path = Path(
         base_dir, 'B Process Data', data_type, data_name, iso3,
         f'Admin Level {admin_level}', 'Rainfall.csv'
@@ -1131,24 +1203,22 @@ def process_gadm_worldpoppopulation_data(admin_level, iso3, year, rt):
 
     Run times:
 
-    - `python3 process_data.py "GADM admin map" "WorldPop pop count" -a 0`:
+    - `python3 process_data.py "GADM" "WorldPop pop count" -a 0`:
         - 0:10.182
-    - `python3 process_data.py "GADM admin map" "WorldPop pop count" -a 0
-      -3 "PER"`:
+    - `python3 process_data.py "GADM" "WorldPop pop count" -a 0 -3 "PER"`:
         - 0:28.003
-    - `python3 process_data.py "GADM admin map" "WorldPop pop count" -a 1`:
+        - 0:58.943
+    - `python3 process_data.py "GADM" "WorldPop pop count" -a 1`:
         - 1:36.789
-    - `python3 process_data.py "GADM admin map" "WorldPop pop count" -a 1
-      -3 "PER"`:
+    - `python3 process_data.py "GADM" "WorldPop pop count" -a 1 -3 "PER"`:
+        - 1:11.465
         - 1:28.149
-    - `python3 process_data.py "GADM admin map" "WorldPop pop count" -a 2`:
+    - `python3 process_data.py "GADM" "WorldPop pop count" -a 2`:
         - 17:21.086
-    - `python3 process_data.py "GADM admin map" "WorldPop pop count" -a 2
-      -3 "PER"`:
-        - 8:52.580
-    - `python3 process_data.py "GADM admin map" "WorldPop pop count" -a 3
-      -3 "PER"`:
-        - 59:46.627
+    - `python3 process_data.py "GADM" "WorldPop pop count" -a 2 -3 "PER"`:
+        - 1:53.670
+    - `python3 process_data.py "GADM" "WorldPop pop count" -a 3 -3 "PER"`:
+        - 7:20.111
     """
     data_type = 'Geospatial and Socio-Demographic Data'
     data_name = 'GADM administrative map and WorldPop population count'
@@ -1167,18 +1237,20 @@ def process_gadm_worldpoppopulation_data(admin_level, iso3, year, rt):
     path = Path(path, folder, filename)
     # Now we can import it
     src = rasterio.open(path)
-    # Read data from band 1
-    population_data = src.read(1)
+    # Read the first band
+    data = src.read(1)
     # Replace placeholder numbers with 0
-    mask = population_data == -3.4028234663852886e+38
-    population_data[mask] = 0
+    data[data == -3.4028234663852886e+38] = 0
+    # Create a bounding box from raster bounds
+    bounds = src.bounds
+    raster_bbox = box(bounds.left, bounds.bottom, bounds.right, bounds.top)
     # Sanity checking
     if (iso3 == 'VNM') and (year == '2020'):
-        assert population_data.sum() == 96355088.0, \
-            f'{population_data.sum()} != 96355088.0'  # 96,355,088
+        assert data.sum() == 96355088.0, \
+            f'{data.sum()} != 96355088.0'  # 96,355,088
     if (iso3 == 'PER') and (year == '2020'):
-        assert population_data.sum() == 32434896.0, \
-            f'{population_data.sum()} != 32434896.0'  # 32,434,896
+        assert data.sum() == 32434896.0, \
+            f'{data.sum()} != 32434896.0'  # 32,434,896
 
     # Import the shape file
     filename = f'gadm41_{iso3}_{admin_level}.shp'
@@ -1187,77 +1259,130 @@ def process_gadm_worldpoppopulation_data(admin_level, iso3, year, rt):
         'GADM administrative map', iso3, f'gadm41_{iso3}_shp', filename
     )
     gdf = gpd.read_file(path)
+    # Transform the shape file to match the GeoTIFF's coordinate system
+    # EPSG:4326 - WGS 84: latitude/longitude coordinate system based on the
+    # Earth's center of mass
+    gdf = gdf.to_crs(src.crs)
+
+    # Get the aspect ratio for this region of the Earth
+    miny = gdf.bounds['miny'].values[0]
+    maxy = gdf.bounds['maxy'].values[0]
+    # Calculate the lengths of lines of latitude and longitude at the centroid
+    # of the polygon
+    centroid_lat = (miny + maxy) / 2.0
+    # Approximate length of one degree of latitude in meters
+    lat_length = 111.32 * 1000
+    # Approximate length of one degree of longitude in meters
+    lon_length = 111.32 * 1000 * math.cos(math.radians(centroid_lat))
+    # Calculate the stretch factor
+    aspect_ratio = lat_length / lon_length
 
     # Initialise output data frame
     output = pd.DataFrame()
     # Iterate over the regions in the shape file
-    total_pop = 0
-    for i, row in gdf.iterrows():
-        # Initialise new row
-        new_row = {}
-        new_row['country'] = row['COUNTRY']
-        # Initialise the title
-        title = row['COUNTRY']
-        # Update the new row and the title if the admin level is high enough
-        if 'NAME_1' in list(gdf):
-            new_row['name_1'] = row['NAME_1']
-            title = row['NAME_1']
-        if 'NAME_2' in list(gdf):
-            new_row['name_2'] = row['NAME_2']
-            title = row['NAME_2']
-        if 'NAME_3' in list(gdf):
-            new_row['name_3'] = row['NAME_3']
-            title = row['NAME_3']
-        # Look at the polygons in the shapefile
-        mask = geometry_mask(
-            [row['geometry']], out_shape=population_data.shape,
-            transform=src.transform, invert=True
-        )
-        # Use the mask to extract the region
-        region_population_data = population_data * mask
-        # Sum the pixel values to get the population for the region
-        region_population = region_population_data.sum()
-        print(title, region_population)
-        # Add to output data frame
-        new_row['population'] = region_population
-        new_row_df = pd.DataFrame(new_row, index=[1])
-        output = pd.concat([output, new_row_df], ignore_index=True)
-        # Add to running count
-        total_pop += region_population
+    for _, region in gdf.iterrows():
+        geometry = region.geometry
 
-        # Plot
-        fig = plt.figure(figsize=(10, 10))
-        ax = plt.axes()
-        if admin_level == 0:
-            arr = region_population_data
-            arr[arr == 0] = np.nan
-            img = ax.imshow(arr, cmap='viridis')
+        # Initialise a new row for the output data frame
+        new_row = {}
+        new_row['Admin Level 0'] = region['COUNTRY']
+        # Initialise the title
+        title = region['COUNTRY']
+        # Update the new row and the title if the admin level is high enough
+        if int(admin_level) >= 1:
+            new_row['Admin Level 1'] = region['NAME_1']
+            title = region['NAME_1']
+        if int(admin_level) >= 2:
+            new_row['Admin Level 2'] = region['NAME_2']
+            title = region['NAME_2']
+        if int(admin_level) >= 3:
+            new_row['Admin Level 3'] = region['NAME_3']
+            title = region['NAME_3']
+
+        # Check if the population data intersects this region
+        if raster_bbox.intersects(geometry):
+            # There is population data for this region
+            # Clip the data using the polygon of the current region
+            region_data, region_transform = mask(src, [geometry], crop=True)
+            # Replace negative values (if any exist)
+            region_data = np.where(region_data < 0, np.nan, region_data)
+            region_shape = region_data.shape
+            # Define the extent
+            extent = [
+                region_transform[2],
+                region_transform[2] + region_transform[0] * region_shape[2],
+                region_transform[5] + region_transform[4] * region_shape[1],
+                region_transform[5],
+            ]
+
+            # Sum the pixel values to get the total for the region
+            region_total = np.nansum(region_data)
+            print(title, region_total)
+
+            # Plot
+            A = 5  # We want figures to be A5
+            figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+            fig = plt.figure(figsize=figsize, dpi=144)
+            ax = plt.axes()
+            # Rainfall data
+            img = ax.imshow(region_data[0], extent=extent, cmap='viridis')
+            # Manually add colorbar
+            fig.colorbar(img, shrink=0.2, label=f'Population [{rt}]')
+            # Shape data
+            gpd.GeoSeries(geometry).plot(ax=ax, color='none')
+            # Format
+            ax.set_title(f'{title} Population')
+            ax.set_xlabel('Longitude')
+            ax.set_ylabel('Latitude')
+            # Adjust the aspect ratio to match this part of the Earth
+            ax.set_aspect(aspect_ratio)
+            # Export
+            path = Path(
+                base_dir, 'B Process Data', data_type, data_name, iso3,
+                f'Admin Level {admin_level}', title + '.png'
+            )
+            os.makedirs(path.parent, exist_ok=True)
+            plt.savefig(path)
+            plt.close()
+
         else:
-            df = pd.DataFrame(region_population_data)
-            df = df.replace(0, np.nan)
-            df = df.dropna(how='all', axis=0)
-            df = df.dropna(how='all', axis=1)
-            img = ax.imshow(df, cmap='viridis')
-        plt.colorbar(img, label=f'Population ({rt})', shrink=0.8)
-        ax.set_title(title)
-        ax.set_ylabel('Latitude')
-        ax.set_xlabel('Longitude')
+            # There is no population data for this region
+            region_total = 0
+            print(title, region_total)
+
+        # Add to output data frame
+        new_row['Population'] = region_total
         # Export
-        path = Path(
-            base_dir, 'B Process Data', data_type, data_name, iso3,
-            f'Admin Level {admin_level}', title
-        )
-        os.makedirs(path.parent, exist_ok=True)
-        plt.savefig(path)
-        plt.close()
+        new_row_df = pd.DataFrame(new_row, index=[0])
+        output = pd.concat([output, new_row_df], ignore_index=True)
 
     # Export
-    print(f'Total population: {total_pop}')
     path = Path(
         base_dir, 'B Process Data', data_type, data_name, iso3,
         f'Admin Level {admin_level}', 'Population.csv'
     )
     output.to_csv(path, index=False)
+
+    # Calculate population density
+    # Import area
+    path = Path(
+        base_dir, 'B Process Data', 'Geospatial Data',
+        'GADM administrative map', iso3, f'Admin Level {admin_level}',
+        'Area.csv'
+    )
+    area = pd.read_csv(path)
+    # Merge
+    level = int(admin_level)
+    on = [f'Admin Level {x}' for x in range(level, level + 1)]
+    df = pd.merge(output, area, how='outer', on=on)
+    # Calculate
+    df['Population Density'] = df['Population'] / df['Area [km²]']
+    # Export
+    path = Path(
+        base_dir, 'B Process Data', data_type, data_name, iso3,
+        f'Admin Level {admin_level}', 'Population Density.csv'
+    )
+    df.to_csv(path, index=False)
 
 
 def process_gadm_worldpopdensity_data(admin_level, iso3, year, rt):
@@ -1400,6 +1525,7 @@ shorthand_to_data_name = {
 
     # Geospatial Data
     'GADM admin map': 'GADM administrative map',
+    'GADM': 'GADM administrative map',
 }
 
 data_name_to_type = {

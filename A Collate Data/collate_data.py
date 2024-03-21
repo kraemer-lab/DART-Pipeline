@@ -459,6 +459,8 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
     - `time python3 collate_data.py "GADM admin map" -3 "PER"`:
         - 0:18.516
         - 1:02.167
+    - `time python3 collate_data.py "GADM admin map" -3 "GBR"`:
+        - 13:22.114
     """
     data_type = 'Geospatial Data'
     data_name = 'GADM administrative map'
