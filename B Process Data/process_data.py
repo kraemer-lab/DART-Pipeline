@@ -76,7 +76,7 @@ from shapely.geometry import box
 import argparse
 import os
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import math
 # Custom modules
 import utils
@@ -88,6 +88,10 @@ import utils
 if os.environ.get('WAYLAND_DISPLAY') is not None:
     # Set the Matplotlib backend to one that is compatible with Wayland
     plt.switch_backend('Agg')
+
+# Settings
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
 
 
 def days_to_date(days_since_1900):
@@ -121,28 +125,38 @@ def pixel_to_latlon(x, y, transform):
     return lat, lon
 
 
-def process_epidemiological_data(data_name, admin_level, iso3):
+def process_epidemiological_data(data_name, iso3, admin_level):
     """Process Epidemiological Data."""
     if data_name == 'Ministerio de Salud (Peru) data':
-        process_ministerio_de_salud_peru_data(admin_level, 'PER')
+        process_ministerio_de_salud_peru_data(admin_level)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
 
-def process_ministerio_de_salud_peru_data(admin_level, iso3):
+def process_ministerio_de_salud_peru_data(admin_level):
     """
     Process data from the Ministerio de Salud - Peru.
 
     Run times:
-
-    - `time python3 process_data.py "Peru"`: 0:02.798
+    - `time python3 process_data.py Peru`: 00:02.798
     """
+    # Sanitise the inputs and update the user
     data_type = 'Epidemiological Data'
+    print(f'Data type:   {data_type}')
     data_name = 'Ministerio de Salud (Peru) data'
+    print(f'Data name:   {data_name}')
+    iso3 = 'PER'
+    print(f'Country:     {iso3}')
+    if not admin_level:
+        admin_level = '0'
+        print(f'Admin level: None, defaulting to {admin_level}')
+    elif admin_level in ['0', '1']:
+        print(f'Admin level: {admin_level}')
+    else:
+        raise ValueError(f'Invalid admin level: {admin_level}')
 
-    # Define an output data frame
-    master = pd.DataFrame()
-    # Import all the raw data
+    # Find the raw data
+    filepaths = []
     path = Path(base_dir, 'A Collate Data', data_type, data_name)
     for dirpath, dirnames, filenames in os.walk(path):
         filenames.sort()
@@ -150,43 +164,107 @@ def process_ministerio_de_salud_peru_data(admin_level, iso3):
             # Skip hidden files
             if filename.startswith('.'):
                 continue
-            # Import
-            path = Path(dirpath, filename)
-            df = pd.read_excel(path)
-            # Add column
-            dpt = filename.removesuffix('.xlsx').split('_')[-1].capitalize()
-            df['department'] = dpt
-            # Add to master data frame
-            master = pd.concat([master, df], ignore_index=True)
+            # Skip admin levels that have not been requested for analysis
+            if admin_level == '0':
+                if filename != 'casos_dengue_nacional.xlsx':
+                    continue
+            if admin_level == '1':
+                if filename == 'casos_dengue_nacional.xlsx':
+                    continue
+            filepaths.append(Path(dirpath, filename))
 
-            # Plot
-            df = df[df['tipo_dx'] == 'C']
-            # Convert 'year' and 'week' to datetime format
-            df['date'] = pd.to_datetime(
-                df['ano'].astype(str) + '-' + df['semana'].astype(str) + '-1',
-                format='%G-%V-%u'
-            )
-            plt.figure(figsize=(10, 6))
-            plt.plot(df['date'], df['n'])
-            plt.title(f'Dengue Cases in {dpt}, Peru')
-            plt.ylabel('Confirmed Dengue Cases')
-            plt.xlabel('Year')
-            plt.grid(True)
-            path = Path(
-                base_dir, 'B Process Data', 'Epidemiological Data',
-                'Ministerio de Salud - Peru', f'{dpt}.png'
-            )
-            path.parent.mkdir(parents=True, exist_ok=True)
-            plt.savefig(path)
-            plt.close()
+    # Initialise a master figure
+    if admin_level != '0':
+        A = 6  # We want figures to be A6
+        figsize = (46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A))
+        fig_all, ax_all = plt.subplots(figsize=figsize)
+
+    # Initialise an output data frame
+    master = pd.DataFrame()
+
+    # Import the raw data
+    for filepath in filepaths:
+        df = pd.read_excel(filepath)
+
+        # Get the name of the administrative divisions
+        filename = filepath.name
+        region = filename.removesuffix('.xlsx').split('_')[-1].capitalize()
+        print(f'Processing {region} data')
+        # Add to the output data frame
+        df['admin_level_0'] = 'Peru'
+        if admin_level == '0':
+            region = 'Peru'
+        if admin_level == '1':
+            df['admin_level_1'] = region
+
+        # Convert 'year' and 'week' to datetime format
+        df['date'] = pd.to_datetime(
+            df['ano'].astype(str) + '-' + df['semana'].astype(str) + '-1',
+            format='%G-%V-%u'
+        )
+        # Add to master data frame
+        master = pd.concat([master, df], ignore_index=True)
+
+        # Plot the individual region
+        A = 6  # We want figures to be A6
+        figsize = (46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A))
+        fig_region, ax_region = plt.subplots(figsize=figsize)
+        bl = df['tipo_dx'] == 'C'
+        ax_region.plot(df[bl]['date'], df[bl]['n'], c='k', lw=1.2)
+        ax_region.set_title(f'Dengue Cases in {region}')
+        ax_region.set_ylabel('Confirmed Dengue Cases')
+        ax_region.set_xlabel('Year')
+        try:
+            ax_region.set_xlim(df[bl]['date'].min(), df[bl]['date'].max())
+            ax_region.set_ylim(0, df[bl]['n'].max() * 1.1)
+        except ValueError:
+            # If the department only have one data point, df['date'].max()
+            # is infinite and a ValueError is triggered
+            pass
+        path = Path(
+            base_dir, 'B Process Data', 'Epidemiological Data',
+            'Ministerio de Salud - Peru', f'Admin Level {admin_level}',
+            region + '.png'
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        print(f'Exporting "{path}"')
+        fig_region.savefig(path)
+        plt.close(fig_region)
+
+        # Plot on master plot
+        if admin_level != '0':
+            bl = df['tipo_dx'] == 'C'
+            ax_all.plot(df[bl]['date'], df[bl]['n'], label=region)
+
+    # Finish master plot
+    if admin_level != '0':
+        ax_all.set_title('Dengue Cases in Peru')
+        ax_all.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+        plt.subplots_adjust(right=0.75)
+        ax_all.set_ylabel('Confirmed Dengue Cases')
+        ax_all.set_xlabel('Year')
+        ax_all.set_xlim(df[bl]['date'].min(), df[bl]['date'].max())
+        y_limits = ax_all.get_ylim()
+        ax_all.set_ylim(0, y_limits[1])
+        # Export
+        path = Path(
+            base_dir, 'B Process Data', 'Epidemiological Data',
+            'Ministerio de Salud - Peru', f'Admin Level {admin_level}',
+            f'Admin Level {admin_level}.png'
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        print(f'Exporting "{path}"')
+        fig_all.savefig(path)
+        plt.close(fig_all)
 
     # Export
     path = Path(
         base_dir, 'B Process Data', 'Epidemiological Data',
-        'Ministerio de Salud - Peru', 'master.csv'
+        'Ministerio de Salud - Peru', f'Admin Level {admin_level}',
+        f'Admin Level {admin_level}.csv'
     )
     path.parent.mkdir(parents=True, exist_ok=True)
-    print(f'Exporting to "{path}"')
+    print(f'Exporting "{path}"')
     master.to_csv(path, index=False)
 
 
@@ -1571,29 +1649,31 @@ if __name__ == '__main__':
     # Add optional arguments
     message = '''Some data fields have different data for each administrative
     level'''
-    parser.add_argument('--admin_level', '-a', default='1', help=message)
+    parser.add_argument('--admin_level', '-a', help=message)
     message = '''Some data fields have data available for multiple years.'''
-    parser.add_argument('--year', '-y', default='2020', help=message)
+    parser.add_argument('--year', '-y', help=message)
     message = '''"ppp" (people per pixel) or "pph" (people per hectare).'''
-    parser.add_argument('--resolution_type', '-r', default='ppp', help=message)
+    parser.add_argument('--resolution_type', '-r', help=message)
     message = '''Country code in "ISO 3166-1 alpha-3" format.'''
-    parser.add_argument('--iso3', '-3', default='VNM', help=message)
+    parser.add_argument('--iso3', '-3', help=message)
+    message = '''Show information to help with debugging.'''
+    parser.add_argument('--debug', '-d', help=message, action='store_true')
 
     # Parse arguments from terminal
     args = parser.parse_args()
 
     # Check
-    if True:
+    if args.debug:
         print('Arguments:')
         for arg in vars(args):
             print(f'{arg + ":":20s} {vars(args)[arg]}')
 
     # Extract the arguments
     data_name = args.data_name
+    iso3 = args.iso3
     admin_level = args.admin_level
     year = args.year
     rt = args.resolution_type
-    iso3 = args.iso3.upper()
 
     # Convert shorthand names to full names
     for i, name in enumerate(data_name):
@@ -1608,7 +1688,7 @@ if __name__ == '__main__':
     if data_name == []:
         print('No data name has been provided. Exiting the programme.')
     elif data_type == ['Epidemiological Data']:
-        process_epidemiological_data(data_name[0], admin_level, iso3)
+        process_epidemiological_data(data_name[0], iso3, admin_level)
     elif data_type == ['Geospatial Data']:
         process_geospatial_data(data_name[0], admin_level, iso3)
     elif data_type == ['Meteorological Data']:
