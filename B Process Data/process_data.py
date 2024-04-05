@@ -65,20 +65,22 @@ import pandas as pd
 from matplotlib import pyplot as plt
 import matplotlib.ticker as mticker
 import numpy as np
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Point, Polygon, box
 import geopandas as gpd
 import rasterio
 from rasterio.features import geometry_mask
 from rasterio.transform import xy
+from rasterio.mask import mask
 import netCDF4 as nc
 # Built-in modules
 import argparse
 import gzip
 import json
 import os
-from pathlib import Path
 import struct
-from datetime import datetime, timedelta
+import math
+from pathlib import Path
+from datetime import date, datetime, timedelta
 # Custom modules
 import utils
 # Create the requirements file with:
@@ -984,134 +986,191 @@ def process_gadm_chirps_data(admin_level, iso3, year, rt):
     - `python3 process_data.py GADM "CHIRPS rainfall" -a 2 -3 GBR`: 00:05.626
     - `python3 process_data.py GADM "CHIRPS rainfall" -a 3 -3 GBR`: 00:06.490
     """
+    # Format and validate the parameters
     data_type = 'Geospatial and Meteorological Data'
     data_name = 'GADM administrative map and CHIRPS rainfall data'
+    if iso3 is None:
+        iso3 = 'VNM'
+    if year is None:
+        year = '2024'
+    elif year != '2024':
+        raise ValueError(f'Analysis not implemented for the year {year}')
 
-    # Import the TIFF file
-    filename = Path('chirps-v2.0.2024.01.01.tif')
+    # Find the TIFF files
     path = Path(
         base_dir, 'A Collate Data', 'Meteorological Data',
         'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
         'Observations',
-        'products', 'CHIRPS-2.0', 'global_daily', 'tifs', 'p05', '2024',
-        'chirps-v2.0.2024.01.01.tif'
+        'products', 'CHIRPS-2.0', 'global_daily', 'tifs', 'p05', year
     )
-    src = rasterio.open(path)
-    # Read the first band
-    data = src.read(1)
-    # Replace negative values (no rainfall measured) with zeros
-    data[data < 0] = 0
-    # Create a bounding box from raster bounds
-    bounds = src.bounds
-    raster_bbox = box(bounds.left, bounds.bottom, bounds.right, bounds.top)
+    filepaths = [f for f in path.iterdir() if f.suffix == '.tif']
+    filepaths = sorted(filepaths)
 
-    # Import the shape file
-    filename = f'gadm41_{iso3}_{admin_level}.shp'
-    path = Path(
-        base_dir, 'A Collate Data', 'Geospatial Data',
-        'GADM administrative map', iso3, f'gadm41_{iso3}_shp', filename
-    )
-    gdf = gpd.read_file(path)
-    # Transform the shape file to match the GeoTIFF's coordinate system
-    gdf = gdf.to_crs(src.crs)
+    # Initialise the list of output data frames
+    output = []
 
-    # Get the aspect ratio for this region of the Earth
-    miny = gdf.bounds['miny'].values[0]
-    maxy = gdf.bounds['maxy'].values[0]
-    # Calculate the lengths of lines of latitude and longitude at the centroid
-    # of the polygon
-    centroid_lat = (miny + maxy) / 2.0
-    # Approximate length of one degree of latitude in meters
-    lat_length = 111.32 * 1000
-    # Approximate length of one degree of longitude in meters
-    lon_length = 111.32 * 1000 * math.cos(math.radians(centroid_lat))
-    # Calculate the stretch factor
-    aspect_ratio = lat_length / lon_length
+    # Iterate over the TIFF files
+    for filepath in filepaths:
+        # Extract the data from the filename
+        elements = filepath.name.split('.')
+        year = int(elements[2])
+        month = int(elements[3])
+        day = int(elements[4])
+        # Construct the date
+        date_obj = date(year, month, day)
 
-    # Initialise the output file
-    output = pd.DataFrame()
-    # Iterate over each region in the shape file
-    for _, region in gdf.iterrows():
-        geometry = region.geometry
+        # Import the TIFF file
+        src = rasterio.open(filepath)
+        # Read the first band
+        data = src.read(1)
+        # Replace negative values (no precipitation measured) with zeros
+        data[data < 0] = 0
+        # Create a bounding box from raster bounds
+        bounds = src.bounds
+        raster_bbox = box(bounds.left, bounds.bottom, bounds.right, bounds.top)
 
-        # Initialise a new row for the output data frame
-        new_row = {}
-        new_row['Admin Level 0'] = region['COUNTRY']
-        # Initialise the title
-        title = region['COUNTRY']
-        # Update the new row and the title if the admin level is high enough
-        if int(admin_level) >= 1:
-            new_row['Admin Level 1'] = region['NAME_1']
-            title = region['NAME_1']
-        if int(admin_level) >= 2:
-            new_row['Admin Level 2'] = region['NAME_2']
-            title = region['NAME_2']
-        if int(admin_level) >= 3:
-            new_row['Admin Level 3'] = region['NAME_3']
-            title = region['NAME_3']
+        # Import the shape file
+        path = Path(
+            base_dir, 'A Collate Data', 'Geospatial Data',
+            'GADM administrative map', iso3, f'gadm41_{iso3}_shp',
+            f'gadm41_{iso3}_{admin_level}.shp'
+        )
+        gdf = gpd.read_file(path)
+        # Transform the shape file to match the GeoTIFF's coordinate system
+        gdf = gdf.to_crs(src.crs)
 
-        # Check if the rainfall data intersects this region
-        if raster_bbox.intersects(geometry):
-            # There is rainfall data for this region
-            # Clip the data using the polygon of the current region
-            region_data, region_transform = mask(src, [geometry], crop=True)
-            # Replace negative values (where no rainfall was measured)
-            region_data = np.where(region_data < 0, np.nan, region_data)
-            region_shape = region_data.shape
-            # Define the extent
-            extent = [
-                region_transform[2],
-                region_transform[2] + region_transform[0] * region_shape[2],
-                region_transform[5] + region_transform[4] * region_shape[1],
-                region_transform[5],
-            ]
+        # Get the aspect ratio for this region of the Earth
+        miny = gdf.bounds['miny'].values[0]
+        maxy = gdf.bounds['maxy'].values[0]
+        # Calculate the lengths of lines of latitude and longitude at the
+        # centroid of the polygon
+        centroid_lat = (miny + maxy) / 2.0
+        # Approximate length of one degree of latitude in meters
+        lat_length = 111.32 * 1000
+        # Approximate length of one degree of longitude in meters
+        lon_length = 111.32 * 1000 * math.cos(math.radians(centroid_lat))
+        # Calculate the stretch factor
+        aspect_ratio = lat_length / lon_length
 
-            # Sum the pixel values to get the total for the region
-            region_total = np.nansum(region_data)
-            print(title, region_total)
+        # Iterate over each region in the shape file
+        for _, region in gdf.iterrows():
+            geometry = region.geometry
 
-            # Plot
-            A = 4  # We want figures to be A4
-            figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
-            fig = plt.figure(figsize=figsize, dpi=144)
-            ax = plt.axes()
-            # Rainfall data
-            img = ax.imshow(region_data[0], extent=extent, cmap='Blues')
-            # Manually add colorbar
-            fig.colorbar(img, shrink=0.2, label='Rainfall [mm]')
-            # Shape data
-            gpd.GeoSeries(geometry).plot(ax=ax, color='none')
-            # Format
-            ax.set_title(f'{title} Rainfall')
-            ax.set_xlabel('Longitude')
-            ax.set_ylabel('Latitude')
-            # Adjust the aspect ratio to match this part of the Earth
-            ax.set_aspect(aspect_ratio)
-            # Export
-            path = Path(
-                base_dir, 'B Process Data', data_type, data_name, iso3,
-                f'Admin Level {admin_level}', title + '.png'
-            )
-            os.makedirs(path.parent, exist_ok=True)
-            plt.savefig(path)
-            plt.close()
+            # Initialise a new row for the output data frame
+            new_row = {}
+            new_row['Admin Level 0'] = region['COUNTRY']
+            # Initialise the title
+            title = region['COUNTRY']
+            # Add the region names to the output df and update the plot title
+            if int(admin_level) >= 1:
+                new_row['Admin Level 1'] = region['NAME_1']
+                title = region['NAME_1']
+            if int(admin_level) >= 2:
+                new_row['Admin Level 2'] = region['NAME_2']
+                title = region['NAME_2']
+            if int(admin_level) >= 3:
+                new_row['Admin Level 3'] = region['NAME_3']
+                title = region['NAME_3']
 
-        else:
-            # There is no rainfall data for this region
-            region_total = 0
-            print(title, region_total)
+            # Check if the rainfall data intersects this region
+            if raster_bbox.intersects(geometry):
+                # There is rainfall data for this region
+                # Clip the data using the polygon of the current region
+                region_data, region_transform = mask(src, [geometry], crop=True)
+                # Replace negative values (where rainfall was not measured)
+                region_data = np.where(region_data < 0, np.nan, region_data)
+                region_shape = region_data.shape
+                # Define the extent
+                extent = [
+                    region_transform[2],
+                    region_transform[2] + region_transform[0] * region_shape[2],
+                    region_transform[5] + region_transform[4] * region_shape[1],
+                    region_transform[5],
+                ]
 
-        # Add to output data frame
-        new_row['Rainfall'] = region_total
-        new_row_df = pd.DataFrame(new_row, index=[0])
-        output = pd.concat([output, new_row_df], ignore_index=True)
+                # Sum the pixel values to get the total for the region
+                total = np.nanmean(region_data)
+                print(f'Precipitation on {date_obj} in {title}: {total}')
 
+                # Plot
+                A = 5  # We want figures to be A5
+                figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+                fig = plt.figure(figsize=figsize, dpi=144)
+                ax = plt.axes()
+                # Precipitation data
+                img = ax.imshow(region_data[0], extent=extent, cmap='Blues')
+                # Manually add colorbar
+                fig.colorbar(img, shrink=0.2, label='Precipitation [mm]')
+                # Shape data
+                gpd.GeoSeries(geometry).plot(ax=ax, color='none')
+                # Format
+                ax.set_title(f'Precipitation on {date_obj} in {title}')
+                ax.set_xlabel('Longitude')
+                ax.set_ylabel('Latitude')
+                # Adjust the aspect ratio to match this part of the Earth
+                ax.set_aspect(aspect_ratio)
+                # Export
+                path = Path(
+                    base_dir, 'B Process Data', data_type, data_name, iso3,
+                    f'Admin Level {admin_level}', str(date_obj),
+                    title + '.png'
+                )
+                os.makedirs(path.parent, exist_ok=True)
+                plt.savefig(path)
+                plt.close()
+
+            else:
+                # There is no precipitation data for this region
+                total = 0
+                print(f'Precipitation on {date_obj} in {title}: {total}')
+
+            # Add to output data frame
+            new_row['Date'] = date_obj
+            new_row['Precipitation'] = total
+            output.append(pd.DataFrame(new_row, index=[0]))
+
+    # Concatenate all data frames in the list into a single data frame
+    output = pd.concat(output, ignore_index=True)
     # Export
     path = Path(
         base_dir, 'B Process Data', data_type, data_name, iso3,
-        f'Admin Level {admin_level}', 'Rainfall.csv'
+        f'Admin Level {admin_level}', 'Precipitation.csv'
     )
     output.to_csv(path, index=False)
+    # Import
+    df = pd.read_csv(path)
+    df['Date'] = pd.to_datetime(df['Date'])
+
+    # Plot precipitation as a time series
+    A = 6  # We want figures to be A6
+    figsize = (46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A))
+    fig = plt.figure(figsize=figsize)
+    country = df['Admin Level 0'].values[0]
+    plt.title(f'{country} Precipitation')
+    # Loop through each region to plot its rainfall data
+    if admin_level == '0':
+        plt.plot(df['Date'], df['Precipitation'])
+    if admin_level == '1':
+        for region, data in df.groupby('Admin Level 1'):
+            plt.plot(data['Date'], data['Precipitation'], label=region)
+    plt.xlabel('Date')
+    plt.ylabel('Precipitation [mm]')
+    plt.xticks(
+        np.arange(df['Date'].min(), df['Date'].max(), pd.Timedelta(days=10)),
+        rotation=15, fontsize=6
+    )
+    if admin_level == '1':
+        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=6)
+    plt.xlim(df['Date'].min(), df['Date'].max())
+    plt.ylim(0, df['Precipitation'].max() * 1.1)
+    plt.tight_layout()
+    # Export
+    path = Path(
+        base_dir, 'B Process Data', data_type, data_name, iso3,
+        f'Admin Level {admin_level}', 'Precipitation.png'
+    )
+    plt.savefig(path)
+    plt.close()
 
 
 def process_geospatial_sociodemographic_data(
@@ -1314,6 +1373,8 @@ def process_gadm_worldpoppopulation_data(admin_level, iso3, year, rt):
     )
     df.to_csv(path, index=False)
 
+    # TODO: monthly and annual timeframes
+
 
 def process_gadm_worldpopdensity_data(admin_level, iso3, year, rt):
     """
@@ -1452,6 +1513,7 @@ shorthand_to_data_name = {
 
     # Geospatial Data
     'GADM admin map': 'GADM administrative map',
+    'GADM': 'GADM administrative map',
 }
 
 data_name_to_type = {
