@@ -791,27 +791,31 @@ def download_geospatial_data(data_name, only_one=False, dry_run=False):
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
 
-def download_gadm_admin_map_data(only_one, dry_run=True):
+def download_gadm_admin_map_data(only_one, dry_run, iso3):
     """
     Download GADM administrative map.
 
     Run times:
 
-    - `time python3 collate_data.py "GADM admin map"`:
-        - 2m0.457s
-        - 0m31.094s
+    - `time python3 collate_data.py "GADM admin map" -3 VNM`:
+        - 00:31.094
+        - 00:54.608
+    - `time python3 collate_data.py "GADM admin map" -3 PER`:
+        - 00:18.516
+        - 01:02.167
+    - `time python3 collate_data.py "GADM admin map" -3 GBR`:
+        - 13:22.114
     """
     data_type = 'Geospatial Data'
     data_name = 'GADM administrative map'
 
     if only_one:
         print('The --only_one/-1 flag has no effect for this metric')
-
-    # Set additional parameters
-    iso3 = 'VNM'
+    if iso3 == '':
+        raise ValueError(f'No ISO3 code has been provided; use the "-3" flag')
 
     # Create output directory
-    out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
+    out_dir = Path(base_dir, 'A Collate Data', data_type, data_name, iso3)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     download_gadm_data('Geopackage', out_dir, iso3, dry_run)
