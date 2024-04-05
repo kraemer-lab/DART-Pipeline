@@ -530,25 +530,36 @@ def download_chirps_rainfall_data(only_one, dry_run):
     Run times:
 
     - `time python3 collate_data.py "CHIRPS rainfall"`:
-        - 5m30.123s (2024-01-01 to 2024-03-07)
-        - 2m56.14s (2024-01-01 to 2024-03-11)
+        - 05:30.123 (2024-01-01 to 2024-03-07)
+        - 02:56.14 (2024-01-01 to 2024-03-11)
+        - 02:55.466 (2024-01-01 to 2024-02-29)
     """
     data_type = 'Meteorological Data'
     data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite ' + \
         'Observations'
 
     # Create output directory
-    sanitised = data_name.replace(':', ' -')
-    out_dir = Path(base_dir, 'A Collate Data', data_type, sanitised)
+    sanitised_data_name = data_name.replace(':', ' -')
+    out_dir = Path(base_dir, 'A Collate Data', data_type, sanitised_data_name)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # Download data for 2024 onwards
-    for year in [y for y in range(2024, int(date.today().year) + 1)]:
+    for year in [y for y in range(2023, int(date.today().year) + 1)]:
         # URLs should be str, not urllib URL objects, because requests expects
         # str
         base_url = 'https://data.chc.ucsb.edu'
         # I only know how to anayse tifs, not cogs
-        relative_url = f'products/CHIRPS-2.0/global_daily/tifs/p05/{year}'
+        fmt = 'tifs'
+
+        relative_url = f'products/CHIRPS-2.0/global_daily/{fmt}/p05/{year}'
+        # Walk through the folder structure
+        walk(base_url, relative_url, only_one, dry_run, out_dir)
+
+        relative_url = f'products/CHIRPS-2.0/global_monthly/{fmt}'
+        # Walk through the folder structure
+        walk(base_url, relative_url, only_one, dry_run, out_dir)
+
+        relative_url = f'products/CHIRPS-2.0/global_annual/{fmt}'
         # Walk through the folder structure
         walk(base_url, relative_url, only_one, dry_run, out_dir)
 
