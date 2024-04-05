@@ -622,7 +622,7 @@ def process_terraclimate_data():
 
     Run times:
 
-    - `time python3 process_data.py "TerraClimate data"`: 8m59.88s
+    - `time python3 process_data.py "TerraClimate data"`: 08:59.88
     """
     metrics = [
         'aet',  # water_evaporation_amount_mm
@@ -681,15 +681,15 @@ def process_terraclimate_data():
                 ar = np.column_stack((lat, lon, data))
 
                 # Get the date this data represents
-                date = days_to_date(t)
-                date = date.strftime('%Y-%m-%d')
+                date_object = days_to_date(t)
+                date_string = date_object.strftime('%Y-%m-%d')
 
                 # Export
                 filename = metric_name + '.csv'
-                print(f'Exporting "{date}/{filename}"')
+                print(f'Exporting "{date_string}/{filename}"')
                 path = Path(
                     base_dir, 'B Process Data', 'Meteorological Data',
-                    'TerraClimate', year, date, filename
+                    'TerraClimate', year, date_string, filename
                 )
                 path.parent.mkdir(parents=True, exist_ok=True)
                 header = f'latitude,longitude,{metric_name}'
