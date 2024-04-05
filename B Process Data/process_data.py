@@ -956,6 +956,475 @@ def process_worldpop_pop_density_data(year, country_iso3):
     plt.close()
 
 
+def process_geospatial_meteorological_data(
+    data_name, admin_level, iso3, year, rt
+):
+    """Process Geospatial and Meteorological Data."""
+    data_name_1 = 'GADM administrative map'
+    data_name_2 = \
+        'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations'
+    if data_name == [data_name_1, data_name_2]:
+        process_gadm_chirps_data(admin_level, iso3, year, rt)
+    else:
+        raise ValueError(f'Unrecognised data names "{data_name}"')
+
+
+def process_gadm_chirps_data(admin_level, iso3, year, rt):
+    """
+    Process GADM administrative map and CHIRPS rainfall data.
+
+    Run times:
+
+    - `python3 process_data.py GADM "CHIRPS rainfall" -a 0`: 00:01.763
+    - `python3 process_data.py GADM "CHIRPS rainfall" -a 1`: 00:14.640
+    - `python3 process_data.py GADM "CHIRPS rainfall" -a 2`: 02:36.276
+    - `python3 process_data.py GADM "CHIRPS rainfall" -a 3`: 41:55.092
+    - `python3 process_data.py GADM "CHIRPS rainfall" -a 0 -3 GBR`: 00:12.027
+    - `python3 process_data.py GADM "CHIRPS rainfall" -a 1 -3 GBR`: 00:05.624
+    - `python3 process_data.py GADM "CHIRPS rainfall" -a 2 -3 GBR`: 00:05.626
+    - `python3 process_data.py GADM "CHIRPS rainfall" -a 3 -3 GBR`: 00:06.490
+    """
+    data_type = 'Geospatial and Meteorological Data'
+    data_name = 'GADM administrative map and CHIRPS rainfall data'
+
+    # Import the TIFF file
+    filename = Path('chirps-v2.0.2024.01.01.tif')
+    path = Path(
+        base_dir, 'A Collate Data', 'Meteorological Data',
+        'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
+        'Observations',
+        'products', 'CHIRPS-2.0', 'global_daily', 'tifs', 'p05', '2024',
+        'chirps-v2.0.2024.01.01.tif'
+    )
+    src = rasterio.open(path)
+    # Read the first band
+    data = src.read(1)
+    # Replace negative values (no rainfall measured) with zeros
+    data[data < 0] = 0
+    # Create a bounding box from raster bounds
+    bounds = src.bounds
+    raster_bbox = box(bounds.left, bounds.bottom, bounds.right, bounds.top)
+
+    # Import the shape file
+    filename = f'gadm41_{iso3}_{admin_level}.shp'
+    path = Path(
+        base_dir, 'A Collate Data', 'Geospatial Data',
+        'GADM administrative map', iso3, f'gadm41_{iso3}_shp', filename
+    )
+    gdf = gpd.read_file(path)
+    # Transform the shape file to match the GeoTIFF's coordinate system
+    gdf = gdf.to_crs(src.crs)
+
+    # Get the aspect ratio for this region of the Earth
+    miny = gdf.bounds['miny'].values[0]
+    maxy = gdf.bounds['maxy'].values[0]
+    # Calculate the lengths of lines of latitude and longitude at the centroid
+    # of the polygon
+    centroid_lat = (miny + maxy) / 2.0
+    # Approximate length of one degree of latitude in meters
+    lat_length = 111.32 * 1000
+    # Approximate length of one degree of longitude in meters
+    lon_length = 111.32 * 1000 * math.cos(math.radians(centroid_lat))
+    # Calculate the stretch factor
+    aspect_ratio = lat_length / lon_length
+
+    # Initialise the output file
+    output = pd.DataFrame()
+    # Iterate over each region in the shape file
+    for _, region in gdf.iterrows():
+        geometry = region.geometry
+
+        # Initialise a new row for the output data frame
+        new_row = {}
+        new_row['Admin Level 0'] = region['COUNTRY']
+        # Initialise the title
+        title = region['COUNTRY']
+        # Update the new row and the title if the admin level is high enough
+        if int(admin_level) >= 1:
+            new_row['Admin Level 1'] = region['NAME_1']
+            title = region['NAME_1']
+        if int(admin_level) >= 2:
+            new_row['Admin Level 2'] = region['NAME_2']
+            title = region['NAME_2']
+        if int(admin_level) >= 3:
+            new_row['Admin Level 3'] = region['NAME_3']
+            title = region['NAME_3']
+
+        # Check if the rainfall data intersects this region
+        if raster_bbox.intersects(geometry):
+            # There is rainfall data for this region
+            # Clip the data using the polygon of the current region
+            region_data, region_transform = mask(src, [geometry], crop=True)
+            # Replace negative values (where no rainfall was measured)
+            region_data = np.where(region_data < 0, np.nan, region_data)
+            region_shape = region_data.shape
+            # Define the extent
+            extent = [
+                region_transform[2],
+                region_transform[2] + region_transform[0] * region_shape[2],
+                region_transform[5] + region_transform[4] * region_shape[1],
+                region_transform[5],
+            ]
+
+            # Sum the pixel values to get the total for the region
+            region_total = np.nansum(region_data)
+            print(title, region_total)
+
+            # Plot
+            A = 4  # We want figures to be A4
+            figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+            fig = plt.figure(figsize=figsize, dpi=144)
+            ax = plt.axes()
+            # Rainfall data
+            img = ax.imshow(region_data[0], extent=extent, cmap='Blues')
+            # Manually add colorbar
+            fig.colorbar(img, shrink=0.2, label='Rainfall [mm]')
+            # Shape data
+            gpd.GeoSeries(geometry).plot(ax=ax, color='none')
+            # Format
+            ax.set_title(f'{title} Rainfall')
+            ax.set_xlabel('Longitude')
+            ax.set_ylabel('Latitude')
+            # Adjust the aspect ratio to match this part of the Earth
+            ax.set_aspect(aspect_ratio)
+            # Export
+            path = Path(
+                base_dir, 'B Process Data', data_type, data_name, iso3,
+                f'Admin Level {admin_level}', title + '.png'
+            )
+            os.makedirs(path.parent, exist_ok=True)
+            plt.savefig(path)
+            plt.close()
+
+        else:
+            # There is no rainfall data for this region
+            region_total = 0
+            print(title, region_total)
+
+        # Add to output data frame
+        new_row['Rainfall'] = region_total
+        new_row_df = pd.DataFrame(new_row, index=[0])
+        output = pd.concat([output, new_row_df], ignore_index=True)
+
+    # Export
+    path = Path(
+        base_dir, 'B Process Data', data_type, data_name, iso3,
+        f'Admin Level {admin_level}', 'Rainfall.csv'
+    )
+    output.to_csv(path, index=False)
+
+
+def process_geospatial_sociodemographic_data(
+    data_name, admin_level, iso3, year, rt
+):
+    """Process Geospatial and Socio-Demographic Data."""
+    data_name_1 = 'GADM administrative map'
+    if data_name == [data_name_1, 'WorldPop population count']:
+        process_gadm_worldpoppopulation_data(admin_level, iso3, year, rt)
+    elif data_name == [data_name_1, 'WorldPop population density']:
+        process_gadm_worldpopdensity_data(admin_level, iso3, year, rt)
+    else:
+        raise ValueError(f'Unrecognised data names "{data_name}"')
+
+
+def process_gadm_worldpoppopulation_data(admin_level, iso3, year, rt):
+    """
+    Process GADM administrative map and WorldPop population count data.
+
+    Run times:
+
+    - `python3 process_data.py GADM "WorldPop pop count" -a 0`:
+        - 00:10.182
+    - `python3 process_data.py GADM "WorldPop pop count" -a 0 -3 PER`:
+        - 00:28.003
+        - 00:58.943
+    - `python3 process_data.py GADM "WorldPop pop count" -a 1`:
+        - 01:36.789
+    - `python3 process_data.py GADM "WorldPop pop count" -a 1 -3 PER`:
+        - 01:11.465
+        - 01:28.149
+    - `python3 process_data.py GADM "WorldPop pop count" -a 2`:
+        - 17:21.086
+    - `python3 process_data.py GADM "WorldPop pop count" -a 2 -3 PER`:
+        - 01:53.670
+    - `python3 process_data.py GADM "WorldPop pop count" -a 3 -3 PER`:
+        - 07:20.111
+    """
+    data_type = 'Geospatial and Socio-Demographic Data'
+    data_name = 'GADM administrative map and WorldPop population count'
+
+    # Import the TIFF file
+    filename = Path(f'{iso3}_{rt}_v2b_{year}_UNadj.tif')
+    path = Path(
+        base_dir, 'A Collate Data', 'Socio-Demographic Data',
+        'WorldPop population count', 'GIS', 'Population',
+        'Individual_countries', iso3
+    )
+    # Search for the actual folder that has the data
+    folders = [d for d in os.listdir(path) if d.endswith('_100m_Population')]
+    folder = folders[0]
+    # Now we can construct the full path
+    path = Path(path, folder, filename)
+    # Now we can import it
+    src = rasterio.open(path)
+    # Read the first band
+    data = src.read(1)
+    # Replace placeholder numbers with 0
+    data[data == -3.4028234663852886e+38] = 0
+    # Create a bounding box from raster bounds
+    bounds = src.bounds
+    raster_bbox = box(bounds.left, bounds.bottom, bounds.right, bounds.top)
+    # Sanity checking
+    if (iso3 == 'VNM') and (year == '2020'):
+        assert data.sum() == 96355088.0, \
+            f'{data.sum()} != 96355088.0'  # 96,355,088
+    if (iso3 == 'PER') and (year == '2020'):
+        assert data.sum() == 32434896.0, \
+            f'{data.sum()} != 32434896.0'  # 32,434,896
+
+    # Import the shape file
+    filename = f'gadm41_{iso3}_{admin_level}.shp'
+    path = Path(
+        base_dir, 'A Collate Data', 'Geospatial Data',
+        'GADM administrative map', iso3, f'gadm41_{iso3}_shp', filename
+    )
+    gdf = gpd.read_file(path)
+    # Transform the shape file to match the GeoTIFF's coordinate system
+    # EPSG:4326 - WGS 84: latitude/longitude coordinate system based on the
+    # Earth's center of mass
+    gdf = gdf.to_crs(src.crs)
+
+    # Get the aspect ratio for this region of the Earth
+    miny = gdf.bounds['miny'].values[0]
+    maxy = gdf.bounds['maxy'].values[0]
+    # Calculate the lengths of lines of latitude and longitude at the centroid
+    # of the polygon
+    centroid_lat = (miny + maxy) / 2.0
+    # Approximate length of one degree of latitude in meters
+    lat_length = 111.32 * 1000
+    # Approximate length of one degree of longitude in meters
+    lon_length = 111.32 * 1000 * math.cos(math.radians(centroid_lat))
+    # Calculate the stretch factor
+    aspect_ratio = lat_length / lon_length
+
+    # Initialise output data frame
+    output = pd.DataFrame()
+    # Iterate over the regions in the shape file
+    for _, region in gdf.iterrows():
+        geometry = region.geometry
+
+        # Initialise a new row for the output data frame
+        new_row = {}
+        new_row['Admin Level 0'] = region['COUNTRY']
+        # Initialise the title
+        title = region['COUNTRY']
+        # Update the new row and the title if the admin level is high enough
+        if int(admin_level) >= 1:
+            new_row['Admin Level 1'] = region['NAME_1']
+            title = region['NAME_1']
+        if int(admin_level) >= 2:
+            new_row['Admin Level 2'] = region['NAME_2']
+            title = region['NAME_2']
+        if int(admin_level) >= 3:
+            new_row['Admin Level 3'] = region['NAME_3']
+            title = region['NAME_3']
+
+        # Check if the population data intersects this region
+        if raster_bbox.intersects(geometry):
+            # There is population data for this region
+            # Clip the data using the polygon of the current region
+            region_data, region_transform = mask(src, [geometry], crop=True)
+            # Replace negative values (if any exist)
+            region_data = np.where(region_data < 0, np.nan, region_data)
+            region_shape = region_data.shape
+            # Define the extent
+            extent = [
+                region_transform[2],
+                region_transform[2] + region_transform[0] * region_shape[2],
+                region_transform[5] + region_transform[4] * region_shape[1],
+                region_transform[5],
+            ]
+
+            # Sum the pixel values to get the total for the region
+            region_total = np.nansum(region_data)
+            print(title, region_total)
+
+            # Plot
+            A = 5  # We want figures to be A5
+            figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+            fig = plt.figure(figsize=figsize, dpi=144)
+            ax = plt.axes()
+            # Rainfall data
+            img = ax.imshow(region_data[0], extent=extent, cmap='viridis')
+            # Manually add colorbar
+            fig.colorbar(img, shrink=0.2, label=f'Population [{rt}]')
+            # Shape data
+            gpd.GeoSeries(geometry).plot(ax=ax, color='none')
+            # Format
+            ax.set_title(f'{title} Population')
+            ax.set_xlabel('Longitude')
+            ax.set_ylabel('Latitude')
+            # Adjust the aspect ratio to match this part of the Earth
+            ax.set_aspect(aspect_ratio)
+            # Export
+            path = Path(
+                base_dir, 'B Process Data', data_type, data_name, iso3,
+                f'Admin Level {admin_level}', title + '.png'
+            )
+            os.makedirs(path.parent, exist_ok=True)
+            plt.savefig(path)
+            plt.close()
+
+        else:
+            # There is no population data for this region
+            region_total = 0
+            print(title, region_total)
+
+        # Add to output data frame
+        new_row['Population'] = region_total
+        # Export
+        new_row_df = pd.DataFrame(new_row, index=[0])
+        output = pd.concat([output, new_row_df], ignore_index=True)
+
+    # Export
+    path = Path(
+        base_dir, 'B Process Data', data_type, data_name, iso3,
+        f'Admin Level {admin_level}', 'Population.csv'
+    )
+    output.to_csv(path, index=False)
+
+    # Calculate population density
+    # Import area
+    path = Path(
+        base_dir, 'B Process Data', 'Geospatial Data',
+        'GADM administrative map', iso3, f'Admin Level {admin_level}',
+        'Area.csv'
+    )
+    area = pd.read_csv(path)
+    # Merge
+    level = int(admin_level)
+    on = [f'Admin Level {x}' for x in range(level, level + 1)]
+    df = pd.merge(output, area, how='outer', on=on)
+    # Calculate
+    df['Population Density'] = df['Population'] / df['Area [km²]']
+    # Export
+    path = Path(
+        base_dir, 'B Process Data', data_type, data_name, iso3,
+        f'Admin Level {admin_level}', 'Population Density.csv'
+    )
+    df.to_csv(path, index=False)
+
+
+def process_gadm_worldpopdensity_data(admin_level, iso3, year, rt):
+    """
+    Process GADM administrative map and WorldPop population density data.
+
+    Run times:
+
+    - `python3 process_data.py "GADM admin map" "WorldPop pop density" -a 0`
+        - 00:01.688
+    - `python3 process_data.py "GADM admin map" "WorldPop pop density" -a 1`
+        - 00:13.474
+    - `python3 process_data.py "GADM admin map" "WorldPop pop density" -a 2`
+        - 02:12.969
+    - `python3 process_data.py "GADM admin map" "WorldPop pop density" -a 3`
+        - 21:20.179
+    """
+    data_type = 'Geospatial and Socio-Demographic Data'
+    data_name = 'GADM administrative map and WorldPop population density'
+
+    # Import the population density data
+    filename = Path(f'{iso3.lower()}_pd_{year}_1km_UNadj.tif')
+    path = Path(
+        base_dir, 'A Collate Data', 'Socio-Demographic Data',
+        'WorldPop population density', 'GIS', 'Population_Density',
+        'Global_2000_2020_1km_UNadj', year, iso3, filename
+    )
+    src = rasterio.open(path)
+    # Read data from band 1
+    data = src.read(1)
+    # Replace placeholder numbers with 0
+    data[data < 0] = 0
+
+    # Import the relevant shape file
+    filename = f'gadm41_{iso3}_{admin_level}.shp'
+    path = Path(
+        base_dir, 'A Collate Data', 'Geospatial Data',
+        'GADM administrative map', iso3, f'gadm41_{iso3}_shp', filename
+    )
+    gdf = gpd.read_file(path)
+
+    # Iterate over the regions in the shape file
+    for _, region in gdf.iterrows():
+        # Initialise new row
+        new_row = {}
+        new_row['Admin Level 0'] = region['COUNTRY']
+        # Initialise the title
+        title = region['COUNTRY']
+        # Update the new row and the title if the admin level is high enough
+        if 'NAME_1' in list(gdf):
+            new_row['Admin Level 1'] = region['NAME_1']
+            title = region['NAME_1']
+        if 'NAME_2' in list(gdf):
+            new_row['Admin Level 2'] = region['NAME_2']
+            title = region['NAME_2']
+        if 'NAME_3' in list(gdf):
+            new_row['Admin Level 3'] = region['NAME_3']
+            title = region['NAME_3']
+        print(title)
+        # Look at the polygons in the shapefile
+        mask = geometry_mask(
+            [region['geometry']], out_shape=data.shape,
+            transform=src.transform, invert=True
+        )
+        # Use the mask to extract the region
+        region_data = data * mask
+
+        # Plot
+        A = 3  # We want figures to be A3
+        figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+        fig = plt.figure(figsize=figsize, dpi=144)
+        ax = plt.axes()
+        if admin_level == 0:
+            arr = region_data
+            arr[arr == 0] = np.nan
+            # Re-scale
+            arr = arr**0.01
+            z = arr
+        else:
+            df = pd.DataFrame(region_data)
+            df = df.replace(0, np.nan)
+            df = df.dropna(how='all', axis=0)
+            df = df.dropna(how='all', axis=1)
+            # Re-scale
+            df = df**0.01
+            z = df
+        img = ax.imshow(z, cmap='GnBu')
+        # Manually create the colour bar
+        ticks = np.linspace(z.min().min(), z.max().max(), 5)
+        ticklabels = ticks**(1 / 0.01)
+        ticklabels = ticklabels.astype(int)
+        fig.colorbar(
+            img,
+            ticks=ticks,
+            format=mticker.FixedFormatter(ticklabels),
+            shrink=0.2,
+            label=f'Population Density {year}, UN Adjusted (pop/km²)'
+        )
+        # Format axes
+        ax.set_ylabel('Latitude')
+        ax.set_xlabel('Longitude')
+        plt.axis('off')
+        # Export
+        path = Path(
+            base_dir, 'B Process Data', data_type, data_name, iso3,
+            f'Admin Level {admin_level}', title + '.png'
+        )
+        os.makedirs(path.parent, exist_ok=True)
+        plt.savefig(path)
+        plt.close()
+
+
 class EmptyObject:
     """Define an empty object for creating a fake args object for Sphinx."""
 
@@ -1018,53 +1487,68 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=desc)
 
     # Add positional arguments
-    message = 'The name of the data field to be processed.'
-    default = ''
-    parser.add_argument('data_name', nargs='?', default=default, help=message)
+    message = 'The name of the data field(s) to be processed.'
+    default = []
+    parser.add_argument('data_name', nargs='*', default=default, help=message)
 
     # Add optional arguments
     message = '''Some data fields have different data for each administrative
     level'''
-    parser.add_argument('--admin_level', '-a', default='1', help=message)
+    parser.add_argument('--admin_level', '-a', help=message)
     message = '''Some data fields have data available for multiple years.'''
-    parser.add_argument('--year', '-y', default='2020', help=message)
+    parser.add_argument('--year', '-y', help=message)
     message = '''"ppp" (people per pixel) or "pph" (people per hectare).'''
-    parser.add_argument('--resolution_type', '-r', default='ppp', help=message)
+    parser.add_argument('--resolution_type', '-r', help=message)
     message = '''Country code in "ISO 3166-1 alpha-3" format.'''
-    parser.add_argument('--country_iso3', '-c', default='VNM', help=message)
+    parser.add_argument('--iso3', '-3', help=message)
+    message = '''Show information to help with debugging.'''
+    parser.add_argument('--debug', '-d', help=message, action='store_true')
 
     # Parse arguments from terminal
     args = parser.parse_args()
 
     # Check
-    if True:
+    if args.debug:
         print('Arguments:')
         for arg in vars(args):
             print(f'{arg + ":":20s} {vars(args)[arg]}')
 
     # Extract the arguments
     data_name = args.data_name
+    iso3 = args.iso3
     admin_level = args.admin_level
     year = args.year
     rt = args.resolution_type
-    country_iso3 = args.country_iso3.upper()
 
     # Convert shorthand names to full names
-    if data_name in shorthand_to_data_name.keys():
-        data_name = shorthand_to_data_name[data_name]
+    for i, name in enumerate(data_name):
+        if name in shorthand_to_data_name.keys():
+            data_name[i] = shorthand_to_data_name[name]
     # Get macro data type
-    data_type = ''
-    if data_name in data_name_to_type.keys():
-        data_type = data_name_to_type[data_name]
+    data_type = []
+    for name in data_name:
+        if name in data_name_to_type.keys():
+            data_type.append(data_name_to_type[name])
 
-    if data_name == '':
+    if data_name == []:
         print('No data name has been provided. Exiting the programme.')
-    elif data_type == 'Geospatial Data':
-        process_geospatial_data(data_name, admin_level, country_iso3)
-    elif data_type == 'Meteorological Data':
-        process_meteorological_data(data_name)
-    elif data_type == 'Socio-Demographic Data':
-        process_socio_demographic_data(data_name, year, country_iso3, rt)
+    elif data_type == ['Epidemiological Data']:
+        process_epidemiological_data(data_name[0], iso3, admin_level)
+    elif data_type == ['Geospatial Data']:
+        process_geospatial_data(data_name[0], admin_level, iso3)
+    elif data_type == ['Meteorological Data']:
+        process_meteorological_data(data_name[0])
+    elif data_type == ['Socio-Demographic Data']:
+        process_socio_demographic_data(data_name[0], year, iso3, rt)
+
+    elif data_type == ['Geospatial Data', 'Meteorological Data']:
+        process_geospatial_meteorological_data(
+            data_name, admin_level, iso3, year, rt
+        )
+    elif data_type == ['Geospatial Data', 'Socio-Demographic Data']:
+        process_geospatial_sociodemographic_data(
+            data_name, admin_level, iso3, year, rt
+        )
 
     else:
         raise ValueError(f'Unrecognised data type "{data_type}"')
@@ -1074,264 +1558,3 @@ else:
     # Create a fake args object so Sphinx doesn't complain it doesn't have
     # command-line arguments
     args = EmptyObject()
-
-# TODO
-
-"""
-Geospatial and Socio-Demographic Data
- └ GADM administrative map and WorldPop population count
-
-time python3 process_data.py --data_name "GADM administrative map and
-WorldPop population count" --admin_level 0
-10.182s
-
-time python3 process_data.py --data_name "GADM administrative map and
-WorldPop population count" --admin_level 1
-1m36.789s
-
-time python3 process_data.py --data_name "GADM administrative map and
-WorldPop population count" --admin_level 2
-17m21.086s
-"""
-if args.data_name == 'GADM administrative map and WorldPop population count':
-    # Get the year for which data will be loaded
-    if args.year == '':
-        year = '2020'
-    else:
-        year = args.year
-
-    # Get the other arguments
-    admin_level = args.admin_level
-    iso3 = args.country_iso3
-    rt = args.resolution_type
-
-    # Import the TIFF file
-    relative_path = Path(
-        'Socio-Demographic Data', 'WorldPop population count',
-        'Population Counts', 'Individual countries', 'Vietnam',
-        'Viet_Nam_100m_Population'
-    )
-    filename = Path(f'{iso3}_{rt}_v2b_{year}_UNadj.tif')
-    path = Path(base_dir, 'A Collate Data', relative_path, filename)
-    src = rasterio.open(path)
-    # Get the coordinate reference system (CRS) of the GeoTIFF
-    crs = src.crs
-    print('Coordinate Reference System (CRS) of the GeoTIFF file:', crs)
-    # Read data from band 1
-    population_data = src.read(1)
-    # Replace placeholder numbers with 0
-    mask = population_data == -3.4028234663852886e+38
-    population_data[mask] = 0
-    # Sanity checking
-    assert population_data.sum() == 96355088.0, \
-        f'{population_data.sum()} != 96355088.0'  # 96,355,088
-
-    # Import the shape file
-    relative_path = Path(
-        'Geospatial Data', 'GADM administrative map', 'gadm41_VNM_shp',
-    )
-    filename = f'gadm41_VNM_{admin_level}.shp'
-    path = Path(base_dir, 'A Collate Data', relative_path, filename)
-    gdf = gpd.read_file(path)
-    # Get the coordinate reference system (CRS) of the GeoDataFrame
-    crs = gdf.crs
-    print('Coordinate Reference System (CRS) of the shapefile:', crs)
-
-    # Initialise output data frame
-    output = pd.DataFrame()
-    # Iterate over the regions in the shape file
-    total_pop = 0
-    for i, row in gdf.iterrows():
-        # Initialise new row
-        new_row = {}
-        # Populate the new row
-        new_row['country'] = row['COUNTRY']
-        title = row['COUNTRY']
-        if 'NAME_1' in list(gdf):
-            new_row['name_1'] = row['NAME_1']
-            title = row['NAME_1']
-        if 'NAME_2' in list(gdf):
-            new_row['name_2'] = row['NAME_2']
-            title = row['NAME_2']
-        if 'NAME_3' in list(gdf):
-            new_row['name_3'] = row['NAME_3']
-            title = row['NAME_3']
-        # Look at the polygons in the shapefile
-        mask = geometry_mask(
-            [row['geometry']], out_shape=population_data.shape,
-            transform=src.transform, invert=True
-        )
-        # Use the mask to extract the region
-        region_population_data = population_data * mask
-        # Sum the pixel values to get the population for the region
-        region_population = region_population_data.sum()
-        print(title, region_population)
-        # Add to output data frame
-        new_row['population'] = region_population
-        new_row_df = pd.DataFrame(new_row, index=[1])
-        output = pd.concat([output, new_row_df], ignore_index=True)
-        # Add to running count
-        total_pop += region_population
-
-        # Plot
-        fig = plt.figure(figsize=(10, 10))
-        ax = plt.axes()
-        if title == 'Vietnam':
-            arr = region_population_data
-            arr[arr == 0] = np.nan
-            img = ax.imshow(arr, cmap='GnBu')
-        else:
-            df = pd.DataFrame(region_population_data)
-            df = df.replace(0, np.nan)
-            df = df.dropna(how='all', axis=0)
-            df = df.dropna(how='all', axis=1)
-            img = ax.imshow(df, cmap='GnBu')
-        plt.colorbar(img, label='Population', shrink=0.8)
-        ax.set_title(title)
-        # Export
-        relative_path = Path(
-            'Geospatial and Socio-Demographic Data',
-            'GADM administrative map and WorldPop population count',
-            filename.removesuffix(Path(filename).suffix)
-        )
-        path = Path(base_dir, 'B Process Data', relative_path, title)
-        os.makedirs(path.parent, exist_ok=True)
-        plt.savefig(path)
-        plt.close()
-
-    # Export
-    print(f'Total population: {total_pop}')
-    path = Path(base_dir, 'B Process Data', relative_path, 'Population.csv')
-    output.to_csv(path, index=False)
-
-"""
-Geospatial and Socio-Demographic Data
- └ GADM administrative map and WorldPop population density
-
-Run times
----------
-
-### If the labelled population density data does not exist
-
-time python3 process_data.py -n "GADM administrative map and WorldPop
-population density"
-
-- 31m52.408s
-- 11m30.10s
-
-### If the labelled population density data exists
-
-time python3 process_data.py -n "GADM administrative map and WorldPop
-population density"
-
-- 0m16.145s
-- 0m15.953s
-"""
-if args.data_name == 'GADM administrative map and WorldPop population density':
-    # Get the year for which data will be loaded
-    if args.year == '':
-        year = '2020'
-    else:
-        year = args.year
-
-    # Get the admin level
-    print('Only admin level 2 is currently implemented')
-    admin_level = args.admin_level
-    admin_level = 2
-
-    # Get the other argument
-    iso3 = args.country_iso3
-
-    # Import the population density data for Vietnam
-    relative_path = Path(
-        'Socio-Demographic Data', 'WorldPop population density', 'GIS',
-        'Population_Density', 'Global_2000_2020_1km_UNadj', '2020', 'VNM'
-    )
-    filename = Path(f'{iso3.lower()}_pd_{year}_1km_UNadj_ASCII_XYZ.zip')
-    path = Path(base_dir, 'A Collate Data', relative_path, filename)
-    df = pd.read_csv(path)
-
-    # Import the coordinates of the borders of Vietnam's regions
-    relative_path = Path('Geospatial Data', 'GADM administrative map')
-    filename = f'gadm41_{iso3}_{admin_level}.json'
-    path = Path(base_dir, 'A Collate Data', relative_path, filename)
-    with open(path) as file:
-        geojson = json.load(file)
-
-    # Check if the labelled population density data exists
-    relative_path = Path(
-        'Geospatial and Socio-Demographic Data',
-        'GADM administrative map and WorldPop population density'
-    )
-    filename = 'Vietnam.csv'
-    path = Path(base_dir, 'B Process Data', relative_path, filename)
-    if path.exists():
-        # Import the labelled data
-        df = pd.read_csv(path)
-
-        # Plot whole country
-        plot_pop_density(df, path.parent, 'Vietnam.png')
-
-        # Initialise output dictionaries
-        dct_admin_2 = {}
-        dct_admin_3 = {}
-
-        # Create the output folders
-        path = Path(path.parent, 'Admin 2')
-        os.makedirs(path, exist_ok=True)
-
-        # Analyse each province/city
-        for admin_2 in df['Admin 2'].unique():
-            if admin_2 is not np.nan:
-                subset = df[df['Admin 2'] == admin_2].copy()
-                print(admin_2)
-                plot_pop_density(subset, path, f'{admin_2}.png')
-                dct_admin_2[admin_2] = subset['Z'].mean()
-                for admin_3 in subset['Admin 3'].unique():
-                    if admin_3 is not np.nan:
-                        ssubset = subset[subset['Admin 3'] == admin_3].copy()
-                        dct_admin_3[admin_3] = ssubset['Z'].mean()
-        # Export
-        filename = 'WorldPop population density - Admin 2.json'
-        path = Path(base_dir, 'B Process Data', relative_path, filename)
-        with open(path, 'w') as file:
-            json.dump(dct_admin_2, file)
-        filename = 'WorldPop population density - Admin 3.json'
-        path = Path(base_dir, 'B Process Data', relative_path, filename)
-        with open(path, 'w') as file:
-            json.dump(dct_admin_3, file)
-    else:
-        # Classify the location of each coordinate
-        df['Country'] = None
-        df['Admin 2'] = None
-        df['Admin 3'] = None
-        # Pre-construct the polygons
-        polygons = []
-        regions = []
-        for feature in geojson['features']:
-            polygon = Polygon(feature['geometry']['coordinates'][0][0])
-            polygons.append(polygon)
-            region = (
-                feature['properties']['COUNTRY'],
-                feature['properties']['NAME_1'],
-                feature['properties']['NAME_2']
-            )
-            regions.append(region)
-        # Iterate over the coordinates
-        for i, row in df.iterrows():
-            # Update the user
-            if i % 100 == 0:
-                print(f'{i} / {len(df)}')
-            point = Point(df.loc[i, 'X'], df.loc[i, 'Y'])
-            for j, polygon in enumerate(polygons):
-                # Check if the coordinate is in this region
-                if point.within(polygon):
-                    # We have found the region this coordinate is in
-                    df.loc[i, 'Country'] = regions[j][0]
-                    df.loc[i, 'Admin 2'] = regions[j][1]
-                    df.loc[i, 'Admin 3'] = regions[j][2]
-                    # Move to the next line of the data frame
-                    break
-        # Export
-        path.parent.mkdir(parents=True, exist_ok=True)
-        df.to_csv(path, index=False)
