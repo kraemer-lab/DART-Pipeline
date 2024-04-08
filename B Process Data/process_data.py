@@ -182,16 +182,16 @@ def process_gadm_admin_map_data(admin_level, country_iso3):
 
     Run times:
 
-    - `time python3 process_data.py "GADM admin map" -a 0`: 0m1.036s
-    - `time python3 process_data.py "GADM admin map"`: 0m3.830s
-    - `time python3 process_data.py "GADM admin map" -a 2`: 0m33.953s
-    - `time python3 process_data.py "GADM admin map" -a 3`: 12m30.51s
+    - `time python3 process_data.py "GADM admin map" -a 0`: 00:01.036
+    - `time python3 process_data.py "GADM admin map"`: 00:03.830
+    - `time python3 process_data.py "GADM admin map" -a 2`: 00:33.953
+    - `time python3 process_data.py "GADM admin map" -a 3`: 12:30.51
     """
     filenames = [f'gadm41_{country_iso3}_{admin_level}.shp']
     for filename in filenames:
         filename = Path(filename)
         relative_path = Path(
-            'Geospatial Data', 'GADM administrative map',
+            'Geospatial Data', 'GADM administrative map', 'VNM',
             f'gadm41_{country_iso3}_shp'
         )
 
@@ -278,7 +278,7 @@ def process_aphrodite_precipitation_data():
 
     Run times:
 
-    - `time python3 process_data.py "APHRODITE precipitation"`: 0m1.150s
+    - `time python3 process_data.py "APHRODITE precipitation"`: 00:01.150
     """
     for res in ['025deg', '050deg']:
         dir_path = Path(
@@ -368,7 +368,7 @@ def process_aphrodite_temperature_data():
 
     Run times:
 
-    - `time python3 process_data.py "APHRODITE temperature"`: 0m3.018s
+    - `time python3 process_data.py "APHRODITE temperature"`: 00:03.018
     """
     for res in ['005deg', '025deg', '050deg_nc']:
         # Directory where data is stored
@@ -470,7 +470,7 @@ def process_chirps_rainfall_data():
 
     Run times:
 
-    - `time python3 process_data.py "CHIRPS rainfall"`: s2m14.596s (one file)
+    - `time python3 process_data.py "CHIRPS rainfall"`: 02:14.596 (one file)
     """
     path = Path(
         base_dir, 'A Collate Data', 'Meteorological Data',
@@ -562,7 +562,7 @@ def process_era5_reanalysis_data():
 
     Run times:
 
-    - `time python3 process_data.py "ERA5 reanalysis"`: 0m2.265s
+    - `time python3 process_data.py "ERA5 reanalysis"`: 00:02.265
     """
     path = Path(
         base_dir, 'A Collate Data', 'Meteorological Data',
@@ -622,7 +622,7 @@ def process_terraclimate_data():
 
     Run times:
 
-    - `time python3 process_data.py "TerraClimate data"`: 8m59.88s
+    - `time python3 process_data.py "TerraClimate data"`: 08:59.88
     """
     metrics = [
         'aet',  # water_evaporation_amount_mm
@@ -727,7 +727,7 @@ def process_worldpop_pop_count_data(year, country_iso3, rt):
     path = Path(
         base_dir, 'A Collate Data', 'Socio-Demographic Data',
         'WorldPop population count', 'GIS', 'Population',
-        'Individual_countries', country_iso3, filename
+        'Individual_countries', country_iso3, filename,
     )
     # Load the data
     src = rasterio.open(path)

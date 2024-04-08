@@ -433,9 +433,8 @@ def download_aphrodite_precipitation_data(
 
     Run times:
 
-    - `time python3 collate_data.py "APHRODITE precipitation"`: 9m20.565s
-    - `time python3 collate_data.py "APHRODITE precipitation" -1`: 35.674s
-    - `time python3 collate_data.py "APHRODITE precipitation" -1 -d`: 35.674s
+    - `time python3 collate_data.py "APHRODITE precipitation"`: 00:44.318
+    - `time python3 collate_data.py "APHRODITE precipitation" -1`: 00:35.674
     """
     data_type = 'Meteorological Data'
     data_name = 'APHRODITE Daily accumulated precipitation (V1901)'
@@ -494,9 +493,9 @@ def download_aphrodite_temperature_data(
 
     Run times:
 
-    - `time python3 collate_data.py "APHRODITE temperature"`: 87m58.039s
-    - `time python3 collate_data.py "APHRODITE temperature" -1`: 6m36.88s
-    - `time python3 collate_data.py "APHRODITE temperature" -1 -d`: 4.144s
+    - `time python3 collate_data.py "APHRODITE temperature"`: 87:58.039
+    - `time python3 collate_data.py "APHRODITE temperature" -1`: 06:36.88
+    - `time python3 collate_data.py "APHRODITE temperature" -1 -d`: 00:04.144
     """
     data_type = 'Meteorological Data'
     data_name = 'APHRODITE Daily mean temperature product (V1808)'

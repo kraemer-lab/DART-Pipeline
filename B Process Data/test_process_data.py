@@ -6,62 +6,222 @@ Past runs
 - 2024-02-08 on Ubuntu 22.04 using Python 3.12: Ran 2 tests in 0.824s
 - 2024-02-09 on macOS Sonoma using Python 3.12: Ran 2 tests in 0.833s
 """
+# External libraries
 import rasterio
-import unittest
-from process_data import plot_pop_density, pixel_to_latlon
-from pathlib import Path
 import pandas as pd
+# Built-in modules
+from datetime import datetime, timedelta
+import unittest
+from pathlib import Path
+# Custom modules
+from process_data import \
+    days_to_date, \
+    plot_pop_density, \
+    pixel_to_latlon, \
+    process_geospatial_data, \
+    process_gadm_admin_map_data, \
+    process_meteorological_data, \
+    process_aphrodite_precipitation_data, \
+    process_aphrodite_temperature_data, \
+    process_chirps_rainfall_data, \
+    process_era5_reanalysis_data, \
+    process_terraclimate_data, \
+    process_socio_demographic_data, \
+    process_worldpop_pop_count_data, \
+    process_worldpop_pop_density_data, \
+    process_geospatial_meteorological_data, \
+    process_gadm_chirps_data, \
+    process_geospatial_sociodemographic_data, \
+    process_gadm_worldpoppopulation_data, \
+    process_gadm_worldpopdensity_data
 import utils
 
 
 class TestCases(unittest.TestCase):
 
-    def test_plot_pop_density(self):
-        # Set up
-        out_dir = Path('tests')
-        out_dir.mkdir(parents=True, exist_ok=True)
+    # def test_days_to_date(self):
+    #     expected = datetime(1970, 1, 1)
+    #     actual = days_to_date(25567)
+    #     self.assertEqual(expected, actual)
 
-        # Plot whole country
-        base_dir = str(utils.get_base_directory())
-        relative_path = Path(
-            'B Process Data',
-            'Geospatial and Socio-Demographic Data',
-            'GADM administrative map and WorldPop population density',
-            'Vietnam.csv'
+    # def test_plot_pop_density(self):
+    #     # Set up
+    #     out_dir = Path('tests')
+    #     out_dir.mkdir(parents=True, exist_ok=True)
+
+    #     # Plot whole country
+    #     base_dir = str(utils.get_base_directory())
+    #     relative_path = Path(
+    #         'B Process Data',
+    #         'Geospatial and Socio-Demographic Data',
+    #         'GADM administrative map and WorldPop population density',
+    #         'Vietnam.csv'
+    #     )
+    #     path = Path(base_dir, relative_path)
+    #     df = pd.read_csv(path)
+    #     plot_pop_density(df, out_dir, 'Vietnam.png')
+
+    #     # Check if the file has been created
+    #     expected = True
+    #     path = Path(out_dir, 'Vietnam.png')
+    #     actual = path.exists()
+
+    #     # Perform the test
+    #     self.assertEqual(expected, actual)
+
+    #     # Tear down
+    #     path.unlink()
+    #     Path('tests/').rmdir()
+
+    # def test_pixel_to_latlon(self):
+    #     x = [0]
+    #     y = [0]
+    #     transform = [
+    #         102.14, 0.00, 0.00,
+    #         23.39, 0.00, -0.00,
+    #     ]
+    #     affine_transform = rasterio.Affine.from_gdal(*transform)
+    #     lat, lon = pixel_to_latlon(x, y, affine_transform)
+
+    #     # Perform the test
+    #     expected = [[23.39]], [[102.14]]
+    #     actual = lat, lon
+    #     self.assertEqual(expected, actual)
+
+    # def test_process_geospatial_data(self):
+    #     process_geospatial_data('GADM administrative map', '0', 'VNM')
+    #     self.test_process_gadm_admin_map_data()
+
+    # def test_process_gadm_admin_map_data(self):
+    #     process_gadm_admin_map_data('0', 'VNM')
+    #     base_dir = utils.get_base_directory()
+    #     path = Path(
+    #         base_dir, 'B Process Data', 'Geospatial Data',
+    #         'GADM administrative map', 'VNM', 'gadm41_VNM_shp', 'gadm41_VNM_0',
+    #         'Vietnam.png'
+    #     )
+    #     expected = True
+    #     actual = path.exists()
+    #     self.assertEqual(expected, actual)
+
+    # def test_process_meteorological_data(self):
+    #     data_name = 'APHRODITE Daily accumulated precipitation (V1901)'
+    #     process_meteorological_data(data_name)
+    #     self.test_process_aphrodite_precipitation_data()
+
+    #     data_name = 'APHRODITE Daily mean temperature product (V1808'
+    #     process_meteorological_data(data_name)
+    #     self.test_process_aphrodite_temperature_data()
+
+    #     data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and ' + \
+    #         'Satellite Observations'
+    #     process_meteorological_data(data_name)
+    #     self.test_process_chirps_rainfall_data()
+
+    #     data_name = 'ERA5 atmospheric reanalysis'
+    #     process_meteorological_data(data_name)
+    #     self.test_process_era5_reanalysis_data()
+
+    #     data_name = 'TerraClimate gridded temperature, precipitation, and ' + \
+    #         'other'
+    #     process_meteorological_data(data_name)
+    #     self.test_process_terraclimate_data()
+
+    # def test_process_aphrodite_precipitation_data(self):
+    #     process_aphrodite_precipitation_data()
+    #     base_dir = utils.get_base_directory()
+    #     path = Path(
+    #         base_dir, 'B Process Data', 'Meteorological Data',
+    #         'APHRODITE Daily accumulated precipitation (V1901)',
+    #         '025deg.csv'
+    #     )
+    #     expected = True
+    #     actual = path.exists()
+    #     self.assertEqual(expected, actual)
+
+    # def test_process_aphrodite_temperature_data(self):
+    #     process_aphrodite_temperature_data()
+    #     base_dir = utils.get_base_directory()
+    #     path = Path(
+    #         base_dir, 'B Process Data', 'Meteorological Data',
+    #         'APHRODITE Daily mean temperature product (V1808)',
+    #         '005deg.csv'
+    #     )
+    #     expected = True
+    #     actual = path.exists()
+    #     self.assertEqual(expected, actual)
+
+    # def test_process_chirps_rainfall_data(self):
+
+    # def test_process_era5_reanalysis_data(self):
+    #     process_era5_reanalysis_data()
+    #     base_dir = utils.get_base_directory()
+    #     path = Path(
+    #         base_dir, 'B Process Data', 'Meteorological Data',
+    #         'ERA5 atmospheric reanalysis', 'ERA5-ml-temperature-subarea.csv'
+    #     )
+    #     expected = True
+    #     actual = path.exists()
+    #     self.assertEqual(expected, actual)
+
+    # def test_process_terraclimate_data(self):
+    #     process_terraclimate_data()
+    #     base_dir = utils.get_base_directory()
+    #     path = Path(
+    #         base_dir, 'B Process Data', 'Meteorological Data',
+    #         'TerraClimate', '2023',
+    #         '2023-12-01/water_evaporation_amount_mm.csv'
+    #     )
+    #     expected = True
+    #     actual = path.exists()
+    #     self.assertEqual(expected, actual)
+
+    def test_process_socio_demographic_data(self):
+        data_name = 'WorldPop population count'
+        process_socio_demographic_data(data_name, '2020', 'VNM', 'ppp')
+        self.test_process_worldpop_pop_count_data()
+
+        data_name = 'WorldPop population density'
+        process_socio_demographic_data(data_name, '2020', 'VNM', 'ppp')
+        self.test_process_worldpop_pop_density_data()
+
+    def test_process_worldpop_pop_count_data(self):
+        process_worldpop_pop_count_data('2020', 'VNM', 'ppp')
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data', 'Socio-Demographic Data',
+            'WorldPop population count', 'VNM',
+            'VNM_ppp_v2b_2020_UNadj - Log Scale.png'
         )
-        path = Path(base_dir, relative_path)
-        df = pd.read_csv(path)
-        plot_pop_density(df, out_dir, 'Vietnam.png')
-
-        # Check if the file has been created
         expected = True
-        path = Path(out_dir, 'Vietnam.png')
         actual = path.exists()
-
-        # Perform the test
         self.assertEqual(expected, actual)
 
-        # Tear down
-        path.unlink()
-        Path('tests/').rmdir()
-
-    def test_pixel_to_latlon(self):
-        x = [0]
-        y = [0]
-        transform = [
-            102.14, 0.00, 0.00,
-            23.39, 0.00, -0.00,
-        ]
-        affine_transform = rasterio.Affine.from_gdal(*transform)
-        lat, lon = pixel_to_latlon(x, y, affine_transform)
-
-        # Perform the test
-        expected = [[23.39]], [[102.14]]
-        actual = lat, lon
+    def test_process_worldpop_pop_density_data(self):
+        process_worldpop_pop_density_data('2020', 'VNM')
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data', 'Socio-Demographic Data',
+            'WorldPop population density', 'VNM',
+            'vnm_pd_2020_1km_UNadj_ASCII_XYZ - Log Transformed.png'
+        )
+        expected = True
+        actual = path.exists()
         self.assertEqual(expected, actual)
 
-    def process_geospatial_data():
-        pass
+    # def test_process_geospatial_meteorological_data(self):
+
+
+    # def test_process_gadm_chirps_data(self):
+
+
+    # def test_process_geospatial_sociodemographic_data(self):
+
+
+    # def test_process_gadm_worldpoppopulation_data(self):
+
+
+    # def test_process_gadm_worldpopdensity_data(self):
 
 
 if __name__ == '__main__':
