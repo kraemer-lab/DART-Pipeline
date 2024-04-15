@@ -192,6 +192,8 @@ class TestCases(unittest.TestCase):
         Path(out_dir, 'gadm41_VNM_1.json').unlink()
         Path('tests/').rmdir()
 
+    def test_download_economic_data(self):
+
     def test_download_meteorological_data(self):
         only_one = True
         dry_run = True

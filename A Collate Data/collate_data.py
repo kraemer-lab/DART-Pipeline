@@ -348,6 +348,73 @@ def unpack_file(path, same_folder=False):
             shutil.unpack_archive(path, str(path).removesuffix('.zip'))
 
 
+def download_economic_data(data_name, iso3, only_one, dry_run):
+    """Download economic data."""
+    if data_name == 'Relative Wealth Index':
+        download_relative_wealth_index_data(iso3, only_one, dry_run)
+    else:
+        raise ValueError(f'Unrecognised data name "{data_name}"')
+
+
+def download_relative_wealth_index_data(iso3, only_one, dry_run):
+    """
+    Download Relative Wealth Index.
+
+    Run times:
+
+    - `python3 collate_data.py RWI -3 VNM`: 00:09.409
+    - `python3 collate_data.py RWI -3 ZAF`: 00:05.656
+    """
+    data_type = 'Economic Data'
+    data_name = 'Relative Wealth Index'
+    if not iso3:
+        raise ValueError('No ISO3 code has been provided; use the `-3` flag')
+
+    # Inform the user
+    print(f'Data type: {data_type}')
+    print(f'Data name: {data_name}')
+    print(f'ISO3:      {iso3}')
+    if only_one:
+        print('Only one download')
+    if dry_run:
+        print('Dry run')
+
+    # Main webpage
+    url = 'https://data.humdata.org/dataset/relative-wealth-index'
+    # Send a GET request to the URL to fetch the HTML content
+    response = requests.get(url)
+    # Check if the request was successful (status code 200)
+    if response.status_code == 200:
+        # Search for a URL in the HTML content
+        soup = BeautifulSoup(response.text, 'html.parser')
+        # Find all anchor tags (<a>) with href attribute containing the ISO3
+        target = iso3.lower()
+        links = soup.find_all('a', href=lambda href: href and target in href)
+        # Return the first link found
+        if links:
+            csv_url = links[0]['href']
+            csv_url = 'https://data.humdata.org' + csv_url
+            # Download CSV file from the found URL
+            csv_response = requests.get(csv_url)
+            if csv_response.status_code == 200:
+                path = Path(
+                    base_dir, 'A Collate Data', data_type, data_name,
+                    iso3 + '.csv'
+                )
+                path.parent.mkdir(parents=True, exist_ok=True)
+                print(f'Saving "{path}"')
+                # Open a file in binary write mode and write the contents to it
+                with open(path, 'wb') as f:
+                    f.write(csv_response.content)
+            else:
+                code = csv_response.status_code
+                raise ValueError(f'Bad response for CSV: "{code}"')
+        else:
+            raise ValueError(f'Could not find a link containing "{target}"')
+    else:
+        raise ValueError(f'Bad response for page: "{response.status_code}"')
+
+
 def download_epidemiological_data(data_name, only_one, dry_run, year, iso3):
     """Download Epidemiological Data."""
     if data_name == 'Ministerio de Salud (Peru) data':
@@ -921,6 +988,9 @@ class EmptyObject:
 
 
 shorthand_to_data_name = {
+    # Economic data
+    'RWI': 'Relative Wealth Index',
+
     # Epidemiological Data
     'Peru': 'Ministerio de Salud (Peru) data',
 
@@ -945,6 +1015,9 @@ shorthand_to_data_name = {
 }
 
 data_name_to_type = {
+    # Economic data
+    'Relative Wealth Index': 'Economic Data',
+
     # Epidemiological Data
     'Ministerio de Salud (Peru) data': 'Epidemiological Data',
 
@@ -1038,6 +1111,8 @@ if __name__ == '__main__':
 
     if data_name == '':
         print('No data name has been provided. Exiting the programme.')
+    elif data_type == 'Economic Data':
+        download_economic_data(data_name, iso3, only_one, dry_run)
     elif data_type == 'Epidemiological Data':
         download_epidemiological_data(data_name, only_one, dry_run, year, iso3)
     elif data_type == 'Geospatial Data':
