@@ -65,6 +65,7 @@ import cdsapi
 import gzip
 import py7zr
 import requests
+import pycountry
 # Built-in modules
 from datetime import date
 from pathlib import Path
@@ -410,7 +411,7 @@ def download_relative_wealth_index_data(iso3, dry_run):
                     path.touch()
                 else:
                     print(f'Saving "{path}"')
-                    # Open a file in binary write mode and write the contents to it
+                    # Open a file in binary write mode and write the contents
                     with open(path, 'wb') as f:
                         f.write(csv_response.content)
             else:
@@ -876,12 +877,81 @@ def download_terraclimate_data(only_one, dry_run, year):
 
 def download_socio_demographic_data(data_name, only_one, dry_run, iso3):
     """Download socio-demographic data."""
-    if data_name == 'WorldPop population density':
+    if data_name == 'Meta population density':
+        download_meta_pop_density_data(iso3, dry_run)
+    elif data_name == 'WorldPop population density':
         download_worldpop_pop_density_data(only_one, dry_run, iso3)
     elif data_name == 'WorldPop population count':
         download_worldpop_pop_count_data(only_one, dry_run, iso3)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
+
+
+def download_meta_pop_density_data(iso3, dry_run):
+    """
+    Download Relative Wealth Index.
+
+    Run times:
+
+    - `time python3 collate_data.py "Meta pop density" -3 VNM`:
+    """
+    # Sanitise the inputs
+    data_type = 'Socio-Demographic Data'
+    data_name = 'Meta population density'
+    if not iso3:
+        raise ValueError('No ISO3 code has been provided; use the `-3` flag')
+
+    # Inform the user
+    print(f'Data type: {data_type}')
+    print(f'Data name: {data_name}')
+    country = pycountry.countries.get(alpha_3=iso3).common_name
+    print(f'Country:   {country}')
+    if dry_run:
+        print('Dry run')
+
+    # Main webpage
+    url = 'https://data.humdata.org/dataset/' + \
+        f'{country.lower()}-high-resolution-population-' + \
+        'density-maps-demographic-estimates'
+    # Send a GET request to the URL to fetch the HTML content
+    response = requests.get(url)
+    # Check if the request was successful (status code 200)
+    if response.status_code == 200:
+        # Search for a URL in the HTML content
+        soup = BeautifulSoup(response.text, 'html.parser')
+        # Find all anchor tags (<a>) with href attribute containing the ISO3
+        target = iso3.lower()
+        links = soup.find_all('a', href=lambda href: href and target in href)
+        # Return the links that were found
+        if links:
+            for link in [x for x in links if x['href'].endswith('.zip')]:
+                zip_url = link['href']
+                zip_url = 'https://data.humdata.org' + zip_url
+                zip_name = zip_url.split('/')[-1]
+                # Download ZIP file from the found URL
+                zip_response = requests.get(zip_url)
+                if zip_response.status_code == 200:
+                    path = Path(
+                        base_dir, 'A Collate Data', data_type, data_name,
+                        iso3, zip_name
+                    )
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    if dry_run:
+                        print(f'Touching "{path}"')
+                        path.touch()
+                    else:
+                        print(f'Saving "{path}"')
+                        # Open a file in binary write mode and save to it
+                        with open(path, 'wb') as f:
+                            f.write(zip_response.content)
+                        unpack_file(path, same_folder=True)
+                else:
+                    code = zip_response.status_code
+                    raise ValueError(f'Bad response for CSV: "{code}"')
+        else:
+            raise ValueError(f'Could not find a link containing "{target}"')
+    else:
+        raise ValueError(f'Bad response for page: "{response.status_code}"')
 
 
 def download_worldpop_pop_density_data(only_one, dry_run, iso3):
@@ -1014,6 +1084,7 @@ shorthand_to_data_name = {
     'ERA5 atmospheric reanalysis',
 
     # Socio-Demographic Data
+    'Meta pop density': 'Meta population density',
     'WorldPop pop density': 'WorldPop population density',
     'WorldPop pop count': 'WorldPop population count',
 
@@ -1038,6 +1109,7 @@ data_name_to_type = {
     'ERA5 atmospheric reanalysis': 'Meteorological Data',
 
     # Socio-Demographic Data
+    'Meta population density': 'Socio-Demographic Data',
     'WorldPop population density': 'Socio-Demographic Data',
     'WorldPop population count': 'Socio-Demographic Data',
 

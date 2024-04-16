@@ -147,7 +147,7 @@ def process_relative_wealth_index_data(iso3):
     data_name = 'Relative Wealth Index'
     print(f'Data name:   {data_name}')
     country = pycountry.countries.get(alpha_3=iso3).common_name
-    print(f'Country:     {iso3}')
+    print(f'Country:     {country}')
 
     # Import raw data
     path = Path(
@@ -1623,6 +1623,18 @@ def process_gadm_worldpopdensity_data(admin_level, iso3, year, rt):
         plt.close()
 
 
+def process_economic_geospatial_sociodemographic_data(data_name, iso3):
+    """Process Economic, Geospatial and Socio-Demographic Data."""
+    data_name_1 = ''
+    data_name_2 = 'GADM administrative map'
+    data_name_3 = ''
+    'Economic Data', 'Geospatial Data', 'Socio-Demographic Data'
+    if data_name == [data_name_1, data_name_2, data_name_3]:
+        process_gadm_worldpoppopulation_data(admin_level, iso3, year, rt)
+    else:
+        raise ValueError(f'Unrecognised data names "{data_name}"')
+
+
 class EmptyObject:
     """Define an empty object for creating a fake args object for Sphinx."""
 
@@ -1761,6 +1773,13 @@ if __name__ == '__main__':
     elif data_type == ['Geospatial Data', 'Socio-Demographic Data']:
         process_geospatial_sociodemographic_data(
             data_name, admin_level, iso3, year, rt
+        )
+
+    elif data_type == [
+        'Economic Data', 'Geospatial Data', 'Socio-Demographic Data'
+    ]:
+        process_economic_geospatial_sociodemographic_data(
+            data_name, iso3
         )
 
     else:
