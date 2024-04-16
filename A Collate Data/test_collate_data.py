@@ -23,17 +23,19 @@ from collate_data import \
     download_gadm_data, \
     download_file, \
     unpack_file, \
+    download_economic_data, \
+    download_relative_wealth_index_data, \
+    download_geospatial_data, \
+    download_gadm_admin_map_data, \
     download_meteorological_data, \
     download_aphrodite_temperature_data, \
     download_aphrodite_precipitation_data, \
     download_chirps_rainfall_data, \
-    download_terraclimate_data, \
     download_era5_reanalysis_data, \
+    download_terraclimate_data, \
     download_socio_demographic_data, \
-    download_worldpop_pop_density_data, \
     download_worldpop_pop_count_data, \
-    download_geospatial_data, \
-    download_gadm_admin_map_data
+    download_worldpop_pop_density_data
 
 
 class TestCases(unittest.TestCase):
@@ -193,6 +195,28 @@ class TestCases(unittest.TestCase):
         Path('tests/').rmdir()
 
     def test_download_economic_data(self):
+        data_name = 'Relative Wealth Index'
+        download_economic_data(data_name, 'VNM', True)
+        self.test_download_relative_wealth_index_data()
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'A Collate Data', 'Economic Data',
+            'Relative Wealth Index', 'VNM.csv'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
+    def test_download_relative_wealth_index_data(self):
+        download_relative_wealth_index_data(iso3='VNM', dry_run=True)
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'A Collate Data', 'Economic Data',
+            'Relative Wealth Index', 'VNM.csv'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
     def test_download_meteorological_data(self):
         only_one = True

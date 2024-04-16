@@ -348,15 +348,15 @@ def unpack_file(path, same_folder=False):
             shutil.unpack_archive(path, str(path).removesuffix('.zip'))
 
 
-def download_economic_data(data_name, iso3, only_one, dry_run):
+def download_economic_data(data_name, iso3, dry_run):
     """Download economic data."""
     if data_name == 'Relative Wealth Index':
-        download_relative_wealth_index_data(iso3, only_one, dry_run)
+        download_relative_wealth_index_data(iso3, dry_run)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
 
-def download_relative_wealth_index_data(iso3, only_one, dry_run):
+def download_relative_wealth_index_data(iso3, dry_run):
     """
     Download Relative Wealth Index.
 
@@ -374,8 +374,6 @@ def download_relative_wealth_index_data(iso3, only_one, dry_run):
     print(f'Data type: {data_type}')
     print(f'Data name: {data_name}')
     print(f'ISO3:      {iso3}')
-    if only_one:
-        print('Only one download')
     if dry_run:
         print('Dry run')
 
@@ -402,10 +400,14 @@ def download_relative_wealth_index_data(iso3, only_one, dry_run):
                     iso3 + '.csv'
                 )
                 path.parent.mkdir(parents=True, exist_ok=True)
-                print(f'Saving "{path}"')
-                # Open a file in binary write mode and write the contents to it
-                with open(path, 'wb') as f:
-                    f.write(csv_response.content)
+                if dry_run:
+                    print(f'Touching "{path}"')
+                    path.touch()
+                else:
+                    print(f'Saving "{path}"')
+                    # Open a file in binary write mode and write the contents to it
+                    with open(path, 'wb') as f:
+                        f.write(csv_response.content)
             else:
                 code = csv_response.status_code
                 raise ValueError(f'Bad response for CSV: "{code}"')
@@ -1112,7 +1114,7 @@ if __name__ == '__main__':
     if data_name == '':
         print('No data name has been provided. Exiting the programme.')
     elif data_type == 'Economic Data':
-        download_economic_data(data_name, iso3, only_one, dry_run)
+        download_economic_data(data_name, iso3, dry_run)
     elif data_type == 'Epidemiological Data':
         download_epidemiological_data(data_name, only_one, dry_run, year, iso3)
     elif data_type == 'Geospatial Data':
