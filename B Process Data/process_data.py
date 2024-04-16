@@ -336,14 +336,14 @@ def process_gadm_admin_map_data(admin_level, iso3):
 
     Run times:
 
-    - `time python3 process_data.py "GADM admin map" -a 0`: 0:01.036
-    - `time python3 process_data.py "GADM admin map" -a 1`: 0:03.830
-    - `time python3 process_data.py "GADM admin map" -a 2`: 0:33.953
-    - `time python3 process_data.py "GADM admin map" -a 3`: 12:30.51
-    - `time python3 process_data.py "GADM admin map" -a 0 -3 "PER"`: 0:01.036
-    - `time python3 process_data.py "GADM admin map" -a 1 -3 "PER"`: 0:02.080
-    - `time python3 process_data.py "GADM admin map" -a 2 -3 "PER"`: 0:09.854
-    - `time python3 process_data.py "GADM admin map" -a 3 -3 "PER"`: 1:27.87
+    - `time python3 process_data.py "GADM admin map" -a 0 -3 VNM`: 00:01.036
+    - `time python3 process_data.py "GADM admin map" -a 1 -3 VNM`: 00:03.830
+    - `time python3 process_data.py "GADM admin map" -a 2 -3 VNM`: 00:33.953
+    - `time python3 process_data.py "GADM admin map" -a 3 -3 VNM`: 12:30.51
+    - `time python3 process_data.py "GADM admin map" -a 0 -3 PER`: 00:01.036
+    - `time python3 process_data.py "GADM admin map" -a 1 -3 PER`: 00:02.080
+    - `time python3 process_data.py "GADM admin map" -a 2 -3 PER`: 00:09.854
+    - `time python3 process_data.py "GADM admin map" -a 3 -3 PER`: 01:27.87
     """
     data_type = 'Geospatial Data'
     data_name = 'GADM administrative map'
@@ -466,7 +466,7 @@ def process_aphrodite_precipitation_data():
 
     Run times:
 
-    - `time python3 process_data.py "APHRODITE precipitation"`: 0m1.150s
+    - `time python3 process_data.py "APHRODITE precipitation"`: 00:01.150
     """
     for res in ['025deg', '050deg']:
         dir_path = Path(
@@ -556,7 +556,7 @@ def process_aphrodite_temperature_data():
 
     Run times:
 
-    - `time python3 process_data.py "APHRODITE temperature"`: 0m3.018s
+    - `time python3 process_data.py "APHRODITE temperature"`: 00:03.018
     """
     for res in ['005deg', '025deg', '050deg_nc']:
         # Directory where data is stored
@@ -658,7 +658,7 @@ def process_chirps_rainfall_data():
 
     Run times:
 
-    - `time python3 process_data.py "CHIRPS rainfall"`: s2m14.596s (one file)
+    - `time python3 process_data.py "CHIRPS rainfall"`: 02:14.596 (one file)
     """
     path = Path(
         base_dir, 'A Collate Data', 'Meteorological Data',
@@ -750,7 +750,7 @@ def process_era5_reanalysis_data():
 
     Run times:
 
-    - `time python3 process_data.py "ERA5 reanalysis"`: 0m2.265s
+    - `time python3 process_data.py "ERA5 reanalysis"`: 00:02.265
     """
     path = Path(
         base_dir, 'A Collate Data', 'Meteorological Data',
@@ -810,7 +810,7 @@ def process_terraclimate_data():
 
     Run times:
 
-    - `time python3 process_data.py "TerraClimate data"`: 8m59.88s
+    - `time python3 process_data.py "TerraClimate data"`: 08:59.88
     """
     metrics = [
         'aet',  # water_evaporation_amount_mm
@@ -1173,18 +1173,14 @@ def process_gadm_chirps_data(admin_level, iso3, year, rt):
 
     Run times:
 
-    - `python3 process_data.py "GADM" "CHIRPS rainfall" -a 0`: 0:01.763
-    - `python3 process_data.py "GADM" "CHIRPS rainfall" -a 1`: 0:14.640
-    - `python3 process_data.py "GADM" "CHIRPS rainfall" -a 2`: 2:36.276
-    - `python3 process_data.py "GADM" "CHIRPS rainfall" -a 3`: 41:55.092
-    - `python3 process_data.py "GADM" "CHIRPS rainfall" -a 0 -3 "GBR"`:
-        - 0:12.027
-    - `python3 process_data.py "GADM" "CHIRPS rainfall" -a 1 -3 "GBR"`:
-        - 0:05.624
-    - `python3 process_data.py "GADM" "CHIRPS rainfall" -a 2 -3 "GBR"`:
-        - 0:05.626
-    - `python3 process_data.py "GADM" "CHIRPS rainfall" -a 3 -3 "GBR"`:
-        - 0:06.490
+    - `python3 process_data.py GADM "CHIRPS rainfall" -a 0`: 00:01.763
+    - `python3 process_data.py GADM "CHIRPS rainfall" -a 1`: 00:14.640
+    - `python3 process_data.py GADM "CHIRPS rainfall" -a 2`: 02:36.276
+    - `python3 process_data.py GADM "CHIRPS rainfall" -a 3`: 41:55.092
+    - `python3 process_data.py GADM "CHIRPS rainfall" -a 0 -3 GBR`: 00:12.027
+    - `python3 process_data.py GADM "CHIRPS rainfall" -a 1 -3 GBR`: 00:05.624
+    - `python3 process_data.py GADM "CHIRPS rainfall" -a 2 -3 GBR`: 00:05.626
+    - `python3 process_data.py GADM "CHIRPS rainfall" -a 3 -3 GBR`: 00:06.490
     """
     data_type = 'Geospatial and Meteorological Data'
     data_name = 'GADM administrative map and CHIRPS rainfall data'
@@ -1335,22 +1331,22 @@ def process_gadm_worldpoppopulation_data(admin_level, iso3, year, rt):
 
     Run times:
 
-    - `python3 process_data.py "GADM" "WorldPop pop count" -a 0`:
-        - 0:10.182
-    - `python3 process_data.py "GADM" "WorldPop pop count" -a 0 -3 "PER"`:
-        - 0:28.003
-        - 0:58.943
-    - `python3 process_data.py "GADM" "WorldPop pop count" -a 1`:
-        - 1:36.789
-    - `python3 process_data.py "GADM" "WorldPop pop count" -a 1 -3 "PER"`:
-        - 1:11.465
-        - 1:28.149
-    - `python3 process_data.py "GADM" "WorldPop pop count" -a 2`:
+    - `python3 process_data.py GADM "WorldPop pop count" -a 0`:
+        - 00:10.182
+    - `python3 process_data.py GADM "WorldPop pop count" -a 0 -3 PER`:
+        - 00:28.003
+        - 00:58.943
+    - `python3 process_data.py GADM "WorldPop pop count" -a 1`:
+        - 01:36.789
+    - `python3 process_data.py GADM "WorldPop pop count" -a 1 -3 PER`:
+        - 01:11.465
+        - 01:28.149
+    - `python3 process_data.py GADM "WorldPop pop count" -a 2`:
         - 17:21.086
-    - `python3 process_data.py "GADM" "WorldPop pop count" -a 2 -3 "PER"`:
-        - 1:53.670
-    - `python3 process_data.py "GADM" "WorldPop pop count" -a 3 -3 "PER"`:
-        - 7:20.111
+    - `python3 process_data.py GADM "WorldPop pop count" -a 2 -3 PER`:
+        - 01:53.670
+    - `python3 process_data.py GADM "WorldPop pop count" -a 3 -3 PER`:
+        - 07:20.111
     """
     data_type = 'Geospatial and Socio-Demographic Data'
     data_name = 'GADM administrative map and WorldPop population count'
@@ -1524,11 +1520,11 @@ def process_gadm_worldpopdensity_data(admin_level, iso3, year, rt):
     Run times:
 
     - `python3 process_data.py "GADM admin map" "WorldPop pop density" -a 0`
-        - 0:01.688
+        - 00:01.688
     - `python3 process_data.py "GADM admin map" "WorldPop pop density" -a 1`
-        - 0:13.474
+        - 00:13.474
     - `python3 process_data.py "GADM admin map" "WorldPop pop density" -a 2`
-        - 2:12.969
+        - 02:12.969
     - `python3 process_data.py "GADM admin map" "WorldPop pop density" -a 3`
         - 21:20.179
     """

@@ -149,6 +149,7 @@ def download_files(
     out_dir: str | Path = '.', username=None, password=None
 ):
     """Download multiple files in a list."""
+    successes = []
     # If the user requests it, only download the first file
     if only_one:
         files = files[:1]
@@ -162,10 +163,14 @@ def download_files(
             path = Path(path, file)
             print(f'Touching: "{path}"')
             path.touch()
+            success = True
         else:
             file_url = base_url + '/' + relative_url + '/' + file
             path = Path(path, file)
-            _ = download_file(file_url, path, username, password)
+            success = download_file(file_url, path, username, password)
+        successes.append(success)
+
+    return successes
 
 
 def walk(
@@ -595,9 +600,8 @@ def download_aphrodite_precipitation_data(
 
     Run times:
 
-    - `time python3 collate_data.py "APHRODITE precipitation"`: 9m20.565s
-    - `time python3 collate_data.py "APHRODITE precipitation" -1`: 35.674s
-    - `time python3 collate_data.py "APHRODITE precipitation" -1 -d`: 35.674s
+    - `time python3 collate_data.py "APHRODITE precipitation"`: 00:44.318
+    - `time python3 collate_data.py "APHRODITE precipitation" -1`: 00:35.674
     """
     data_type = 'Meteorological Data'
     data_name = 'APHRODITE Daily accumulated precipitation (V1901)'
@@ -656,9 +660,9 @@ def download_aphrodite_temperature_data(
 
     Run times:
 
-    - `time python3 collate_data.py "APHRODITE temperature"`: 87m58.039s
-    - `time python3 collate_data.py "APHRODITE temperature" -1`: 6m36.88s
-    - `time python3 collate_data.py "APHRODITE temperature" -1 -d`: 4.144s
+    - `time python3 collate_data.py "APHRODITE temperature"`: 87:58.039
+    - `time python3 collate_data.py "APHRODITE temperature" -1`: 06:36.88
+    - `time python3 collate_data.py "APHRODITE temperature" -1 -d`: 00:04.144
     """
     data_type = 'Meteorological Data'
     data_name = 'APHRODITE Daily mean temperature product (V1808)'
@@ -736,9 +740,9 @@ def download_chirps_rainfall_data(only_one, dry_run):
     Run times:
 
     - `time python3 collate_data.py "CHIRPS rainfall"`:
-        - 5:30.123 (2024-01-01 to 2024-03-07)
-        - 2:56.14 (2024-01-01 to 2024-03-11)
-        - 2:55.466 (2024-01-01 to 2024-02-29)
+        - 05:30.123 (2024-01-01 to 2024-03-07)
+        - 02:56.14 (2024-01-01 to 2024-03-11)
+        - 02:55.466 (2024-01-01 to 2024-02-29)
     """
     data_type = 'Meteorological Data'
     data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite ' + \
@@ -759,6 +763,7 @@ def download_chirps_rainfall_data(only_one, dry_run):
         # Walk through the folder structure
         walk(base_url, relative_url, only_one, dry_run, out_dir)
 
+    if not dry_run:
         # Unpack the data
         for dirpath, dirnames, filenames in os.walk(out_dir):
             for filename in filenames:
@@ -830,9 +835,9 @@ def download_terraclimate_data(only_one, dry_run, year):
     Run times:
 
     - `time python3 collate_data.py "TerraClimate data"`:
-        - 34m50.828s
-        - 11m35.25s
-    - `time python3 collate_data.py "TerraClimate data" -1 -d`: 4.606s
+        - 34:50.828
+        - 11:35.25
+    - `time python3 collate_data.py "TerraClimate data" -1 -d`: 00:04.606
     """
     data_type = 'Meteorological Data'
     data_name = 'TerraClimate gridded temperature, precipitation, and other'
