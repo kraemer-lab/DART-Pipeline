@@ -129,12 +129,12 @@ def pixel_to_latlon(x, y, transform):
 def process_economic_data(data_name, iso3):
     """Process economic data."""
     if data_name == 'Relative Wealth Index':
-        process_relative_wealth_index_data(data_name, iso3)
+        process_relative_wealth_index_data(iso3)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
 
-def process_relative_wealth_index_data(data_name, iso3):
+def process_relative_wealth_index_data(iso3):
     """
     Process Relative Wealth Index data.
 
