@@ -72,6 +72,7 @@ from rasterio.transform import xy
 from rasterio.mask import mask
 import netCDF4 as nc
 from shapely.geometry import box
+import pycountry
 # Built-in modules
 import argparse
 import os
@@ -123,6 +124,59 @@ def pixel_to_latlon(x, y, transform):
     lon, lat = transform * (x, y)
 
     return lat, lon
+
+
+def process_economic_data(data_name, iso3):
+    """Process economic data."""
+    if data_name == 'Relative Wealth Index':
+        process_relative_wealth_index_data(data_name, iso3)
+    else:
+        raise ValueError(f'Unrecognised data name "{data_name}"')
+
+
+def process_relative_wealth_index_data(data_name, iso3):
+    """
+    Process Relative Wealth Index data.
+
+    Run times:
+    - `time python3 process_data.py RWI -3 VNM`:
+    """
+    # Sanitise the inputs and update the user
+    data_type = 'Economic Data'
+    print(f'Data type:   {data_type}')
+    data_name = 'Relative Wealth Index'
+    print(f'Data name:   {data_name}')
+    country = pycountry.countries.get(alpha_3=iso3).common_name
+    print(f'Country:     {iso3}')
+
+    # Import raw data
+    path = Path(
+        base_dir, 'A Collate Data', 'Economic Data', 'Relative Wealth Index',
+        iso3 + '.csv'
+    )
+    df = pd.read_csv(path)
+
+    # Create plot
+    A = 4  # We want figures to be A4
+    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+    plt.figure(figsize=figsize)
+    plt.scatter(
+        df['longitude'], df['latitude'], c=df['rwi'], cmap='viridis', s=0.8,
+        marker='s'
+    )
+    # Add colourbar
+    plt.colorbar(label='RWI')
+    # Set labels and title
+    plt.xlabel('Longitude')
+    plt.ylabel('Latitude')
+    plt.title(f'{country}: Relative Wealth Index')
+    # Export
+    path = Path(
+        base_dir, 'B Process Data', 'Economic Data', 'Relative Wealth Index',
+        iso3 + '.png'
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(path)
 
 
 def process_epidemiological_data(data_name, iso3, admin_level):
@@ -1582,6 +1636,9 @@ class EmptyObject:
 
 
 shorthand_to_data_name = {
+    # Economic data
+    'RWI': 'Relative Wealth Index',
+
     # Epidemiological Data
     'Peru': 'Ministerio de Salud (Peru) data',
 
@@ -1607,6 +1664,9 @@ shorthand_to_data_name = {
 }
 
 data_name_to_type = {
+    # Economic data
+    'Relative Wealth Index': 'Economic Data',
+
     # Epidemiological Data
     'Ministerio de Salud (Peru) data': 'Epidemiological Data',
 
@@ -1687,6 +1747,8 @@ if __name__ == '__main__':
 
     if data_name == []:
         print('No data name has been provided. Exiting the programme.')
+    elif data_type == ['Economic Data']:
+        process_economic_data(data_name[0], iso3)
     elif data_type == ['Epidemiological Data']:
         process_epidemiological_data(data_name[0], iso3, admin_level)
     elif data_type == ['Geospatial Data']:
