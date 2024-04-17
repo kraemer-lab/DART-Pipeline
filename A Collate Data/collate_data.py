@@ -514,15 +514,15 @@ def download_ministerio_de_salud_peru_data():
                 f.write(decoded_bytes)
 
 
-def download_geospatial_data(data_name, only_one, dry_run, iso3):
+def download_geospatial_data(data_name, iso3, only_one, dry_run):
     """Download Geospatial data."""
     if data_name == 'GADM administrative map':
-        download_gadm_admin_map_data(only_one, dry_run, iso3)
+        download_gadm_admin_map_data(iso3, only_one, dry_run)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
 
-def download_gadm_admin_map_data(only_one, dry_run, iso3):
+def download_gadm_admin_map_data(iso3, only_one, dry_run):
     """
     Download GADM administrative map.
 
@@ -1084,6 +1084,7 @@ shorthand_to_data_name = {
     'WorldPop pop count': 'WorldPop population count',
 
     # Geospatial Data
+    'GADM': 'GADM administrative map',
     'GADM admin map': 'GADM administrative map',
 }
 
@@ -1109,7 +1110,6 @@ data_name_to_type = {
     'WorldPop population count': 'Socio-Demographic Data',
 
     # Geospatial Data
-    'GADM': 'GADM administrative map',
     'GADM administrative map': 'Geospatial Data',
 }
 
@@ -1160,11 +1160,11 @@ if __name__ == '__main__':
 
     # Extract the arguments
     data_name = args.data_name
+    iso3 = args.iso3.upper()
+    year = args.year
     only_one = args.only_one
     dry_run = args.dry_run
     credentials = args.credentials
-    year = args.year
-    iso3 = args.iso3.upper()
 
     # Check that the data name is recognised
     if data_name in shorthand_to_data_name.keys():
@@ -1189,9 +1189,9 @@ if __name__ == '__main__':
     elif data_type == 'Economic Data':
         download_economic_data(data_name, iso3, dry_run)
     elif data_type == 'Epidemiological Data':
-        download_epidemiological_data(data_name, only_one, dry_run, year, iso3)
+        download_epidemiological_data(data_name, iso3, year, only_one, dry_run)
     elif data_type == 'Geospatial Data':
-        download_geospatial_data(data_name, only_one, dry_run, iso3)
+        download_geospatial_data(data_name, iso3, only_one, dry_run)
     elif data_type == 'Meteorological Data':
         download_meteorological_data(
             data_name, only_one, dry_run, credentials, year
