@@ -783,15 +783,15 @@ def download_worldpop_pop_count_data(only_one, dry_run):
             unpack_file(path, same_folder=True)
 
 
-def download_geospatial_data(data_name, only_one=False, dry_run=False):
+def download_geospatial_data(data_name, iso3, only_one, dry_run):
     """Download Geospatial data."""
     if data_name == 'GADM administrative map':
-        download_gadm_admin_map_data(only_one, dry_run)
+        download_gadm_admin_map_data(iso3, only_one, dry_run)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
 
-def download_gadm_admin_map_data(only_one, dry_run, iso3):
+def download_gadm_admin_map_data(iso3, only_one, dry_run):
     """
     Download GADM administrative map.
 
@@ -807,7 +807,7 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
     if only_one:
         print('The --only_one/-1 flag has no effect for this metric')
     if iso3 == '':
-        raise ValueError(f'No ISO3 code has been provided; use the "-3" flag')
+        raise ValueError('No ISO3 code has been provided; use the "-3" flag')
 
     # Create output directory
     out_dir = Path(base_dir, 'A Collate Data', data_type, data_name, iso3)
@@ -849,6 +849,7 @@ shorthand_to_data_name = {
     'WorldPop pop count': 'WorldPop population count',
 
     # Geospatial Data
+    'GADM': 'GADM administrative map',
     'GADM admin map': 'GADM administrative map',
 }
 
@@ -867,7 +868,6 @@ data_name_to_type = {
     'WorldPop population count': 'Socio-Demographic Data',
 
     # Geospatial Data
-    'GADM': 'GADM administrative map',
     'GADM administrative map': 'Geospatial Data',
 }
 
@@ -904,6 +904,8 @@ if __name__ == '__main__':
     message = '''If data from multiple years is available, choose a year from
     which to download.'''
     parser.add_argument('--year', '-y', default=None, help=message)
+    message = '''Country code in "ISO 3166-1 alpha-3" format.'''
+    parser.add_argument('--iso3', '-3', default='', help=message)
 
     # Parse arguments from terminal
     args = parser.parse_args()
@@ -920,6 +922,7 @@ if __name__ == '__main__':
     dry_run = args.dry_run
     credentials = args.credentials
     year = args.year
+    iso3 = args.iso3
 
     # Check that the data name is recognised
     if data_name in shorthand_to_data_name.keys():
@@ -948,7 +951,7 @@ if __name__ == '__main__':
     elif data_type == 'Socio-Demographic Data':
         download_socio_demographic_data(data_name, only_one, dry_run)
     elif data_type == 'Geospatial Data':
-        download_geospatial_data(data_name, only_one, dry_run)
+        download_geospatial_data(data_name, iso3, only_one, dry_run)
     else:
         raise ValueError(f'Unrecognised data type "{data_type}"')
 
