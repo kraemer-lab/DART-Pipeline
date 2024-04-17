@@ -528,14 +528,9 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
 
     Run times:
 
-    - `time python3 collate_data.py "GADM admin map" -3 "VNM"`:
-        - 0:31.094
-        - 0:54.608
-    - `time python3 collate_data.py "GADM admin map" -3 "PER"`:
-        - 0:18.516
-        - 1:02.167
-    - `time python3 collate_data.py "GADM admin map" -3 "GBR"`:
-        - 13:22.114
+    - `time python3 collate_data.py GADM -3 VNM`: 00:54.608
+    - `time python3 collate_data.py GADM -3 PER`: 01:02.167
+    - `time python3 collate_data.py GADM -3 GBR`: 13:22.114
     """
     data_type = 'Geospatial Data'
     data_name = 'GADM administrative map'
@@ -543,7 +538,7 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
     if only_one:
         print('The --only_one/-1 flag has no effect for this metric')
     if iso3 == '':
-        raise ValueError(f'No ISO3 code has been provided; use the "-3" flag')
+        raise ValueError('No ISO3 code has been provided; use the "-3" flag')
 
     # Create output directory
     out_dir = Path(base_dir, 'A Collate Data', data_type, data_name, iso3)
@@ -1114,6 +1109,7 @@ data_name_to_type = {
     'WorldPop population count': 'Socio-Demographic Data',
 
     # Geospatial Data
+    'GADM': 'GADM administrative map',
     'GADM administrative map': 'Geospatial Data',
 }
 
