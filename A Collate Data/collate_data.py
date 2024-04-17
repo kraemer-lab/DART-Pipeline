@@ -797,14 +797,9 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
 
     Run times:
 
-    - `time python3 collate_data.py "GADM admin map" -3 VNM`:
-        - 00:31.094
-        - 00:54.608
-    - `time python3 collate_data.py "GADM admin map" -3 PER`:
-        - 00:18.516
-        - 01:02.167
-    - `time python3 collate_data.py "GADM admin map" -3 GBR`:
-        - 13:22.114
+    - `time python3 collate_data.py GADM -3 VNM`: 00:54.608
+    - `time python3 collate_data.py GADM -3 PER`: 01:02.167
+    - `time python3 collate_data.py GADM -3 GBR`: 13:22.114
     """
     data_type = 'Geospatial Data'
     data_name = 'GADM administrative map'
@@ -872,6 +867,7 @@ data_name_to_type = {
     'WorldPop population count': 'Socio-Demographic Data',
 
     # Geospatial Data
+    'GADM': 'GADM administrative map',
     'GADM administrative map': 'Geospatial Data',
 }
 
