@@ -1674,6 +1674,7 @@ def process_pop_weighted_relative_wealth_index_data(iso3, admin_level):
     Run times:
 
     - `time python3 process_data.py RWI GADM "Meta pop density" -3 VNM -a 2`:
+      00:05.510
     """
     # Sanitise the inputs
     if not iso3:

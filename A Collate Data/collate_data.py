@@ -889,7 +889,7 @@ def download_meta_pop_density_data(iso3, dry_run):
 
     Run times:
 
-    - `time python3 collate_data.py "Meta pop density" -3 VNM`:
+    - `time python3 collate_data.py "Meta pop density" -3 VNM`: 05:38.750
     """
     # Sanitise the inputs
     data_type = 'Socio-Demographic Data'
