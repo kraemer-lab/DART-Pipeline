@@ -159,7 +159,7 @@ def process_relative_wealth_index_data(iso3):
     df = pd.read_csv(path)
 
     # Create plot
-    A = 4  # We want figures to be A4
+    A = 5  # We want figures to be A5
     figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
     plt.figure(figsize=figsize)
     plt.scatter(
@@ -167,11 +167,14 @@ def process_relative_wealth_index_data(iso3):
         marker='s'
     )
     # Add colourbar
-    plt.colorbar(label='RWI')
+    plt.colorbar(shrink=0.3, label='Relative Wealth Index (RWI)')
     # Set labels and title
     plt.xlabel('Longitude')
     plt.ylabel('Latitude')
-    plt.title(f'{country}: Relative Wealth Index')
+    plt.title(
+        rf'\centering\bf Relative Wealth Index\\\normalfont {country}\par',
+        y=1.03
+    )
     # Export
     path = Path(
         base_dir, 'B Process Data', 'Economic Data', 'Relative Wealth Index',
@@ -179,6 +182,38 @@ def process_relative_wealth_index_data(iso3):
     )
     path.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(path)
+    plt.close()
+
+    # Plot using contextily
+    gdf = gpd.GeoDataFrame(
+        df, geometry=gpd.points_from_xy(df.longitude, df.latitude)
+    )
+    A = 5  # We want figures to be A5
+    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+    _, ax = plt.subplots(figsize=figsize)
+    gdf_plot = gdf.plot(
+        ax=ax, column='rwi', marker='o', markersize=1, legend=True,
+        legend_kwds={'shrink': 0.3, 'label': 'Relative Wealth Index (RWI)'}
+    )
+    contextily.add_basemap(
+        ax, crs={'init': 'epsg:4326'},
+        source=contextily.providers.OpenStreetMap.Mapnik
+    )
+    # Set labels and title
+    ax.set_xlabel('Longitude')
+    ax.set_ylabel('Latitude')
+    ax.set_title(
+        rf'\centering\bf Relative Wealth Index\\\normalfont {country}\par',
+        y=1.03
+    )
+    # Export
+    path = Path(
+        base_dir, 'B Process Data', 'Economic Data', 'Relative Wealth Index',
+        iso3 + ' - With Map.png'
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(path)
+    plt.close()
 
 
 def process_epidemiological_data(data_name, iso3, admin_level):
