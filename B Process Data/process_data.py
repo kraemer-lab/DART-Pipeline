@@ -141,7 +141,7 @@ def process_relative_wealth_index_data(iso3):
     Process Relative Wealth Index data.
 
     Run times:
-    - `time python3 process_data.py RWI -3 VNM`:
+    - `time python3 process_data.py RWI -3 VNM`: 00:04.725
     """
     # Sanitise the inputs and update the user
     data_type = 'Economic Data'
