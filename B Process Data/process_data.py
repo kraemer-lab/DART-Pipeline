@@ -181,6 +181,7 @@ def process_relative_wealth_index_data(iso3):
         iso3 + '.png'
     )
     path.parent.mkdir(parents=True, exist_ok=True)
+    print(f'Exporting "{path}"')
     plt.savefig(path)
     plt.close()
 
@@ -212,6 +213,7 @@ def process_relative_wealth_index_data(iso3):
         iso3 + ' - With Map.png'
     )
     path.parent.mkdir(parents=True, exist_ok=True)
+    print(f'Exporting "{path}"')
     plt.savefig(path)
     plt.close()
 
@@ -383,7 +385,12 @@ def process_gadm_admin_map_data(admin_level, iso3):
     - `time python3 process_data.py "GADM admin map" -a 3 -3 PER`: 01:27.87
     """
     data_type = 'Geospatial Data'
+    print(f'Data type:   {data_type}')
     data_name = 'GADM administrative map'
+    print(f'Data name:   {data_name}')
+    country = pycountry.countries.get(alpha_3=iso3).common_name
+    print(f'Country:     {country}')
+    print('Admin level:', admin_level)
 
     # Import the shape file
     filename = f'gadm41_{iso3}_{admin_level}.shp'
@@ -402,11 +409,16 @@ def process_gadm_admin_map_data(admin_level, iso3):
     gdf = gdf.to_crs(national_crs[iso3])
 
     # Plot
-    fig = plt.figure(figsize=(10, 10))
+    A = 5  # We want figures to be A5
+    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+    fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot()
-    gdf.plot(ax=ax)
+    gdf.plot(ax=ax, color='white', edgecolor='black')
     name = gdf.loc[0, 'COUNTRY']
-    plt.title(f'{name} - Admin Level {admin_level}')
+    plt.title(
+        rf'\centering\bf Admin Level {admin_level}\\\normalfont {country}\par',
+        y=1.03
+    )
     plt.xlabel('Longitude')
     plt.ylabel('Latitude')
     # Export
@@ -944,13 +956,19 @@ def process_worldpop_pop_count_data(year, iso3, rt):
 
     Run times:
 
-    - `time python3 process_data.py "WorldPop pop count"`: 43.332s
-    - `time python3 process_data.py "WorldPop pop count" -3 "PER"`:
-        - 2:05.13
-        - 3:27.575
+    - `python3 process_data.py "WorldPop pop count" -3 VNM -y 2020 -r ppp`:
+        - 00:43.332
+    - `python3 process_data.py "WorldPop pop count" -3 PER -y 2020`:
+        - 02:05.13
+        - 03:27.575
     """
     data_type = 'Socio-Demographic Data'
+    print(f'Data type:   {data_type}')
     data_name = 'WorldPop population count'
+    print(f'Data name:   {data_name}')
+    print(f'Year:        {year}')
+    country = pycountry.countries.get(alpha_3=iso3).common_name
+    print(f'Country:     {country}')
 
     # Import
     file = f'{iso3}_{rt}_v2b_{year}_UNadj.tif'
@@ -967,6 +985,7 @@ def process_worldpop_pop_count_data(year, iso3, rt):
     filename = Path(filename)
     # Load the data
     print(f'Processing "{file}"')
+    print(filepath)
     src = rasterio.open(filepath)
     # Get the affine transformation coefficients
     transform = src.transform
@@ -976,9 +995,16 @@ def process_worldpop_pop_count_data(year, iso3, rt):
     source_data = src.read(1)
 
     # Raw plot
+    A = 5  # We want figures to be A5
+    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+    plt.figure(figsize=figsize)
     plt.imshow(source_data, cmap='GnBu')
-    plt.title('WorldPop Population Count')
-    plt.colorbar(shrink=0.8, label='Population')
+    plt.title(
+        rf'\centering\bf WorldPop Population Count' +
+        rf'\\\normalfont {country} - {year}\par',
+        y=1.03
+    )
+    plt.colorbar(shrink=0.3, label='Population')
     # Export
     path = Path(
         base_dir, 'B Process Data', data_type, data_name, iso3,
@@ -1109,11 +1135,18 @@ def process_worldpop_pop_density_data(year, iso3):
 
     Run times:
 
-    - `time python3 process_data.py "WorldPop pop density"`: 0:02.026
-    - `time python3 process_data.py "WorldPop pop density" -3 "PER"`: 0:04.311
+    - `time python3 process_data.py "WorldPop pop density" -3 VNM -y 2020`:
+      0:02.026
+    - `time python3 process_data.py "WorldPop pop density" -3 PER -y 2020`:
+      0:04.311
     """
     data_type = 'Socio-Demographic Data'
+    print(f'Data type:   {data_type}')
     data_name = 'WorldPop population density'
+    print(f'Data name:   {data_name}')
+    print(f'Year:        {year}')
+    country = pycountry.countries.get(alpha_3=iso3).common_name
+    print(f'Country:     {country}')
 
     # Import the population density data
     iso3_lower = iso3.lower()
@@ -1135,17 +1168,18 @@ def process_worldpop_pop_density_data(year, iso3):
     df.to_csv(path, index=False)
 
     # Plot
-    A = 3  # We want figures to be A3
+    A = 5  # We want figures to be A5
     figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
     fig, ax = plt.subplots(figsize=figsize)
     pt = df.pivot_table(index='Y', columns='X', values='Z')
     im = ax.imshow(pt, cmap='GnBu')
     ax.invert_yaxis()
-    plt.title('Population Density')
+    plt.title(
+        rf'\centering\bf Population Density\\\normalfont {country}\par',
+        y=1.03
+    )
     label = f'Population Density {year}, UN Adjusted (pop/km²)'
-    plt.colorbar(im, shrink=0.2, label=label)
-    # Remove ticks and tick labels
-    plt.axis('off')
+    plt.colorbar(im, shrink=0.3, label=label)
     # Export
     path = Path(
         base_dir, 'B Process Data', data_type, data_name, iso3,
@@ -1157,10 +1191,14 @@ def process_worldpop_pop_density_data(year, iso3):
     plt.close()
 
     # Plot
-    A = 3  # We want figures to be A3
+    A = 5  # We want figures to be A5
     figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
     fig, ax = plt.subplots(figsize=figsize)
-    plt.title('Population Density - Log Transformed')
+    plt.title(
+        rf'\centering\bf Population Density - Log Transformed' +
+        rf'\\\normalfont {country}\par',
+        y=1.03
+    )
     # Re-scale
     df = df[df['Z'] > 0]
     df['Z_rescaled'] = np.log(df['Z'])
@@ -1175,11 +1213,9 @@ def process_worldpop_pop_density_data(year, iso3):
         im,
         ticks=ticks,
         format=mticker.FixedFormatter(ticklabels),
-        shrink=0.2,
+        shrink=0.3,
         label=f'Population Density {year}, UN Adjusted (pop/km²)'
     )
-    # Remove ticks and tick labels
-    plt.axis('off')
     # Export
     path = Path(
         base_dir, 'B Process Data', data_type, data_name, iso3,
@@ -1903,7 +1939,7 @@ if __name__ == '__main__':
     message = '''Country code in "ISO 3166-1 alpha-3" format.'''
     parser.add_argument('--iso3', '-3', help=message)
     message = '''Show information to help with debugging.'''
-    parser.add_argument('--debug', '-d', help=message, action='store_true')
+    parser.add_argument('--debug', help=message, action='store_true')
 
     # Parse arguments from terminal
     args = parser.parse_args()

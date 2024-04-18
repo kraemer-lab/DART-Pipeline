@@ -1031,8 +1031,8 @@ def download_worldpop_pop_count_data(only_one, dry_run, iso3):
 
     Run times:
 
-    - `time python3 collate_data.py "WorldPop pop count"`: 14:13.53
-    - `time python3 collate_data.py "WorldPop pop count" -3 "PER"`:
+    - `time python3 collate_data.py "WorldPop pop count" -3 VNM`: 14:13.53
+    - `time python3 collate_data.py "WorldPop pop count" -3 PER`:
         - 46:47.78
         - 1:15:44.285
     """
@@ -1149,12 +1149,14 @@ if __name__ == '__main__':
     parser.add_argument('--year', '-y', default=None, help=message)
     message = '''Country code in "ISO 3166-1 alpha-3" format.'''
     parser.add_argument('--iso3', '-3', default='', help=message)
+    message = '''Show information to help with debugging.'''
+    parser.add_argument('--debug', help=message, action='store_true')
 
     # Parse arguments from terminal
     args = parser.parse_args()
 
     # Check
-    if True:
+    if args.debug:
         print('Arguments:')
         for arg in vars(args):
             print(f'{arg + ":":20s} {vars(args)[arg]}')
