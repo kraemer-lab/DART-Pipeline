@@ -92,6 +92,10 @@ if os.environ.get('WAYLAND_DISPLAY') is not None:
     # Set the Matplotlib backend to one that is compatible with Wayland
     plt.switch_backend('Agg')
 
+# Settings
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
+
 
 def days_to_date(days_since_1900):
     base_date = datetime(1900, 1, 1)
@@ -1095,16 +1099,21 @@ def process_gadm_chirps_data(admin_level, iso3, year, rt):
                 # Plot
                 A = 5  # We want figures to be A5
                 figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
-                fig = plt.figure(figsize=figsize, dpi=144)
+                fig = plt.figure(figsize=figsize)
                 ax = plt.axes()
                 # Precipitation data
                 img = ax.imshow(region_data[0], extent=extent, cmap='Blues')
                 # Manually add colorbar
-                fig.colorbar(img, shrink=0.2, label='Precipitation [mm]')
+                fig.colorbar(img, shrink=0.3, label='Precipitation [mm]')
                 # Shape data
                 gpd.GeoSeries(geometry).plot(ax=ax, color='none')
                 # Format
-                ax.set_title(f'Precipitation on {date_obj} in {title}')
+                # ax.set_title(f'Precipitation on {date_obj} in {title}')
+                ax.set_title(
+                    rf'\centering\bf Precipitation' +
+                    rf'\\\normalfont {title} - {date_obj}\par',
+                    y=1.03
+                )
                 ax.set_xlabel('Longitude')
                 ax.set_ylabel('Latitude')
                 # Adjust the aspect ratio to match this part of the Earth
