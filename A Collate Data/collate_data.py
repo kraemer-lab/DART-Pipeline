@@ -368,8 +368,8 @@ def download_relative_wealth_index_data(iso3, dry_run):
 
     Run times:
 
-    - `python3 collate_data.py RWI -3 VNM`: 00:09.409
-    - `python3 collate_data.py RWI -3 ZAF`: 00:05.656
+    - `time python3 collate_data.py RWI -3 VNM`: 00:09.409
+    - `time python3 collate_data.py RWI -3 ZAF`: 00:05.656
     """
     data_type = 'Economic Data'
     data_name = 'Relative Wealth Index'
@@ -385,6 +385,7 @@ def download_relative_wealth_index_data(iso3, dry_run):
 
     # Main webpage
     url = 'https://data.humdata.org/dataset/relative-wealth-index'
+    print(f'Searching "{url}"')
     # Send a GET request to the URL to fetch the HTML content
     response = requests.get(url)
     # Check if the request was successful (status code 200)

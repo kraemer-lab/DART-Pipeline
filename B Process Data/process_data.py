@@ -71,8 +71,10 @@ from rasterio.features import geometry_mask
 from rasterio.transform import xy
 from rasterio.mask import mask
 import netCDF4 as nc
-from shapely.geometry import box
+from shapely.geometry import box, Point
 import pycountry
+from pyquadkey2 import quadkey
+import contextily
 # Built-in modules
 import argparse
 import os
@@ -1623,17 +1625,155 @@ def process_gadm_worldpopdensity_data(admin_level, iso3, year, rt):
         plt.close()
 
 
-def process_economic_geospatial_sociodemographic_data(data_name, iso3):
+def process_economic_geospatial_sociodemographic_data(
+    data_name, iso3, admin_level
+):
     """Process Economic, Geospatial and Socio-Demographic Data."""
-    data_name_1 = ''
+    data_name_1 = 'Relative Wealth Index'
     data_name_2 = 'GADM administrative map'
-    data_name_3 = ''
-    'Economic Data', 'Geospatial Data', 'Socio-Demographic Data'
+    data_name_3 = 'Meta population density'
     if data_name == [data_name_1, data_name_2, data_name_3]:
-        process_gadm_worldpoppopulation_data(admin_level, iso3, year, rt)
+        process_pop_weighted_relative_wealth_index_data(iso3, admin_level)
     else:
         raise ValueError(f'Unrecognised data names "{data_name}"')
 
+
+def get_admin_region(lat, lon, polygons):
+    """
+    Find the admin region in which a gridcell lies.
+
+    Return the ID of administrative region in which the centre (given by
+    latitude and longitude) of a 2.4km^2 gridcell lies.
+
+    Parameters
+    ----------
+    lat : double
+    lon : double
+    polygons : dict
+
+    Returns
+    -------
+    geo_id : str
+    """
+    point = Point(lon, lat)
+    for geo_id in polygons:
+        polygon = polygons[geo_id]
+        if polygon.contains(point):
+            return geo_id
+    return 'null'
+
+
+def process_pop_weighted_relative_wealth_index_data(iso3, admin_level):
+    """
+    Process Population Weighted Relative Wealth Index.
+
+    Adapted from:
+    https://dataforgood.facebook.com/dfg/docs/
+    tutorial-calculating-population-weighted-relative-wealth-index
+
+    Run times:
+
+    - `time python3 process_data.py RWI GADM "Meta pop density" -3 VNM -a 2`:
+    """
+    # Sanitise the inputs
+    if not iso3:
+        raise ValueError('No ISO3 code has been provided; use the `-3` flag')
+    if not admin_level:
+        raise ValueError('No admin level has been provided; use the `-a` flag')
+
+    # Inform the user
+    print('Data types:  Economic, Geospatial and Socio-Demographic')
+    print('Data names:  Relative Wealth Index, GADM administrative ', end='')
+    print('map and Meta population density')
+    country = pycountry.countries.get(alpha_3=iso3).common_name
+    print('Country:    ', country)
+    print('Admin level:', admin_level)
+
+    # Import raw data
+    shpfile = Path(
+        base_dir, 'A Collate Data', 'Geospatial Data',
+        'GADM administrative map', iso3, f'gadm41_{iso3}_shp',
+        f'gadm41_{iso3}_2.shp'
+    )
+    rwifile = Path(
+        base_dir, 'A Collate Data', 'Economic Data', 'Relative Wealth Index',
+        f'{iso3}.csv'
+    )
+    popfile = Path(
+        base_dir, 'A Collate Data', 'Socio-Demographic Data',
+        'Meta population density', iso3, f'{iso3.lower()}_general_2020.csv'
+    )
+
+    # Create a dictionary of polygons where the key is the ID of the polygon
+    # and the value is its geometry
+    shapefile = gpd.read_file(shpfile)
+    admin_geoid = f'GID_{admin_level}'
+    polygons = dict(zip(shapefile[admin_geoid], shapefile['geometry']))
+
+    # Classify the locations of the RWI values
+    print('Classifying locations of RWI values')
+    rwi = pd.read_csv(rwifile)
+    rwi['geo_id'] = rwi.apply(
+        lambda x: get_admin_region(x['latitude'], x['longitude'], polygons),
+        axis=1
+    )
+    rwi = rwi[rwi['geo_id'] != 'null']
+
+    # Convert population data from Meta into a data frame with the total
+    # population for tiles of zoom level 14 (Bing tiles) using quadkeys
+    population = pd.read_csv(popfile)
+    colname = f'{iso3.lower()}_general_2020'
+    population = population.rename(columns={colname: 'pop_2020'})
+    population['quadkey'] = population.apply(
+        lambda x: str(quadkey.from_geo((x['latitude'], x['longitude']), 14)),
+        axis=1
+    )
+    bing_tile_z14_pop = population.groupby(
+        'quadkey', as_index=False
+    )['pop_2020'].sum()
+    bing_tile_z14_pop['quadkey'] = bing_tile_z14_pop['quadkey'].astype(np.int64)
+
+    # Merge with the shape file
+    shapefile = gpd.read_file(shpfile)
+    rwi_pop = rwi.merge(
+        bing_tile_z14_pop[['quadkey', 'pop_2020']], on='quadkey', how='inner'
+    )
+    # Aggregate
+    geo_pop = rwi_pop.groupby('geo_id', as_index=False)['pop_2020'].sum()
+    geo_pop = geo_pop.rename(columns={'pop_2020': 'geo_2020'})
+    rwi_pop = rwi_pop.merge(geo_pop, on='geo_id', how='inner')
+    # Convert to *population weighted* RWI
+    rwi_pop['pop_weight'] = rwi_pop['pop_2020'] / rwi_pop['geo_2020']
+    rwi_pop['rwi_weight'] = rwi_pop['rwi'] * rwi_pop['pop_weight']
+    geo_rwi = rwi_pop.groupby('geo_id', as_index=False)['rwi_weight'].sum()
+    shapefile_rwi = shapefile.merge(
+        geo_rwi, left_on=admin_geoid, right_on='geo_id'
+    )
+
+    # Plot
+    fig, ax = plt.subplots(figsize=(15, 12))
+    shapefile_rwi.plot(
+        ax=ax, column='rwi_weight', marker = 'o', markersize=1,legend=True,
+        label='RWI score'
+    )
+    contextily.add_basemap(
+        ax, crs={'init': 'epsg:4326'},
+        source=contextily.providers.OpenStreetMap.Mapnik
+    )
+    plt.title('Relative Wealth Index')
+    subtitle = f'{country} - Admin Level {admin_level}'
+    plt.suptitle(subtitle, fontsize=12, fontweight='bold')
+    plt.legend()
+    path = Path(
+        base_dir, 'B Process Data',
+        'Economic, Geospatial and Socio-Demographic Data',
+        'Relative Wealth Index, GADM administrative map and ' +
+        'Meta population density',
+        iso3, f'Admin Level {admin_level}.png'
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    print(f'Saving figure to "{path}"')
+    plt.savefig(path, dpi=600)
 
 class EmptyObject:
     """Define an empty object for creating a fake args object for Sphinx."""
@@ -1663,6 +1803,7 @@ shorthand_to_data_name = {
     'ERA5 atmospheric reanalysis',
 
     # Socio-Demographic Data
+    'Meta pop density': 'Meta population density',
     'WorldPop pop density': 'WorldPop population density',
     'WorldPop pop count': 'WorldPop population count',
 
@@ -1688,6 +1829,7 @@ data_name_to_type = {
     'ERA5 atmospheric reanalysis': 'Meteorological Data',
 
     # Socio-Demographic Data
+    'Meta population density': 'Socio-Demographic Data',
     'WorldPop population density': 'Socio-Demographic Data',
     'WorldPop population count': 'Socio-Demographic Data',
 
@@ -1779,7 +1921,7 @@ if __name__ == '__main__':
         'Economic Data', 'Geospatial Data', 'Socio-Demographic Data'
     ]:
         process_economic_geospatial_sociodemographic_data(
-            data_name, iso3
+            data_name, iso3, admin_level
         )
 
     else:
