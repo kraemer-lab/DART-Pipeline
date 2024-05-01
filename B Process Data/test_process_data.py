@@ -10,7 +10,7 @@ Past runs
 import rasterio
 import pandas as pd
 # Built-in modules
-from datetime import datetime, timedelta
+from datetime import datetime
 import unittest
 from pathlib import Path
 # Custom modules
@@ -39,142 +39,152 @@ import utils
 
 class TestCases(unittest.TestCase):
 
-    # def test_days_to_date(self):
-    #     expected = datetime(1970, 1, 1)
-    #     actual = days_to_date(25567)
-    #     self.assertEqual(expected, actual)
+    def test_days_to_date(self):
+        expected = datetime(1970, 1, 1)
+        actual = days_to_date(25567)
+        self.assertEqual(expected, actual)
 
-    # def test_plot_pop_density(self):
-    #     # Set up
-    #     out_dir = Path('tests')
-    #     out_dir.mkdir(parents=True, exist_ok=True)
+    def test_plot_pop_density(self):
+        # Set up
+        out_dir = Path('tests')
+        out_dir.mkdir(parents=True, exist_ok=True)
 
-    #     # Plot whole country
-    #     base_dir = str(utils.get_base_directory())
-    #     relative_path = Path(
-    #         'B Process Data',
-    #         'Geospatial and Socio-Demographic Data',
-    #         'GADM administrative map and WorldPop population density',
-    #         'Vietnam.csv'
-    #     )
-    #     path = Path(base_dir, relative_path)
-    #     df = pd.read_csv(path)
-    #     plot_pop_density(df, out_dir, 'Vietnam.png')
+        # Plot whole country
+        base_dir = str(utils.get_base_directory())
+        relative_path = Path(
+            'B Process Data',
+            'Geospatial and Socio-Demographic Data',
+            'GADM administrative map and WorldPop population density',
+            'Vietnam.csv'
+        )
+        path = Path(base_dir, relative_path)
+        df = pd.read_csv(path)
+        plot_pop_density(df, out_dir, 'Vietnam.png')
 
-    #     # Check if the file has been created
-    #     expected = True
-    #     path = Path(out_dir, 'Vietnam.png')
-    #     actual = path.exists()
+        # Check if the file has been created
+        expected = True
+        path = Path(out_dir, 'Vietnam.png')
+        actual = path.exists()
 
-    #     # Perform the test
-    #     self.assertEqual(expected, actual)
+        # Perform the test
+        self.assertEqual(expected, actual)
 
-    #     # Tear down
-    #     path.unlink()
-    #     Path('tests/').rmdir()
+        # Tear down
+        path.unlink()
+        Path('tests/').rmdir()
 
-    # def test_pixel_to_latlon(self):
-    #     x = [0]
-    #     y = [0]
-    #     transform = [
-    #         102.14, 0.00, 0.00,
-    #         23.39, 0.00, -0.00,
-    #     ]
-    #     affine_transform = rasterio.Affine.from_gdal(*transform)
-    #     lat, lon = pixel_to_latlon(x, y, affine_transform)
+    def test_pixel_to_latlon(self):
+        x = [0]
+        y = [0]
+        transform = [
+            102.14, 0.00, 0.00,
+            23.39, 0.00, -0.00,
+        ]
+        affine_transform = rasterio.Affine.from_gdal(*transform)
+        lat, lon = pixel_to_latlon(x, y, affine_transform)
 
-    #     # Perform the test
-    #     expected = [[23.39]], [[102.14]]
-    #     actual = lat, lon
-    #     self.assertEqual(expected, actual)
+        # Perform the test
+        expected = [[23.39]], [[102.14]]
+        actual = lat, lon
+        self.assertEqual(expected, actual)
 
-    # def test_process_geospatial_data(self):
-    #     process_geospatial_data('GADM administrative map', '0', 'VNM')
-    #     self.test_process_gadm_admin_map_data()
+    def test_process_geospatial_data(self):
+        process_geospatial_data('GADM administrative map', '0', 'VNM')
+        self.test_process_gadm_admin_map_data()
 
-    # def test_process_gadm_admin_map_data(self):
-    #     process_gadm_admin_map_data('0', 'VNM')
-    #     base_dir = utils.get_base_directory()
-    #     path = Path(
-    #         base_dir, 'B Process Data', 'Geospatial Data',
-    #         'GADM administrative map', 'VNM', 'gadm41_VNM_shp', 'gadm41_VNM_0',
-    #         'Vietnam.png'
-    #     )
-    #     expected = True
-    #     actual = path.exists()
-    #     self.assertEqual(expected, actual)
+    def test_process_gadm_admin_map_data(self):
+        process_gadm_admin_map_data('0', 'VNM')
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data', 'Geospatial Data',
+            'GADM administrative map', 'VNM', 'gadm41_VNM_shp', 'gadm41_VNM_0',
+            'Vietnam.png'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
-    # def test_process_meteorological_data(self):
-    #     data_name = 'APHRODITE Daily accumulated precipitation (V1901)'
-    #     process_meteorological_data(data_name)
-    #     self.test_process_aphrodite_precipitation_data()
+    def test_process_meteorological_data(self):
+        data_name = 'APHRODITE Daily accumulated precipitation (V1901)'
+        process_meteorological_data(data_name, None, None, None)
+        self.test_process_aphrodite_precipitation_data()
 
-    #     data_name = 'APHRODITE Daily mean temperature product (V1808'
-    #     process_meteorological_data(data_name)
-    #     self.test_process_aphrodite_temperature_data()
+        data_name = 'APHRODITE Daily mean temperature product (V1808)'
+        process_meteorological_data(data_name, None, None, None)
+        self.test_process_aphrodite_temperature_data()
 
-    #     data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and ' + \
-    #         'Satellite Observations'
-    #     process_meteorological_data(data_name)
-    #     self.test_process_chirps_rainfall_data()
+        data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and ' + \
+            'Satellite Observations'
+        process_meteorological_data(data_name, '2024', None, True)
+        self.test_process_chirps_rainfall_data()
 
-    #     data_name = 'ERA5 atmospheric reanalysis'
-    #     process_meteorological_data(data_name)
-    #     self.test_process_era5_reanalysis_data()
+        data_name = 'ERA5 atmospheric reanalysis'
+        process_meteorological_data(data_name, None, None, None)
+        self.test_process_era5_reanalysis_data()
 
-    #     data_name = 'TerraClimate gridded temperature, precipitation, and ' + \
-    #         'other'
-    #     process_meteorological_data(data_name)
-    #     self.test_process_terraclimate_data()
+        data_name = 'TerraClimate gridded temperature, precipitation, and ' + \
+            'other'
+        process_meteorological_data(data_name, '2023', '11', None)
+        self.test_process_terraclimate_data()
 
-    # def test_process_aphrodite_precipitation_data(self):
-    #     process_aphrodite_precipitation_data()
-    #     base_dir = utils.get_base_directory()
-    #     path = Path(
-    #         base_dir, 'B Process Data', 'Meteorological Data',
-    #         'APHRODITE Daily accumulated precipitation (V1901)',
-    #         '025deg.csv'
-    #     )
-    #     expected = True
-    #     actual = path.exists()
-    #     self.assertEqual(expected, actual)
+    def test_process_aphrodite_precipitation_data(self):
+        process_aphrodite_precipitation_data()
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data', 'Meteorological Data',
+            'APHRODITE Daily accumulated precipitation (V1901)',
+            '025deg.csv'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
-    # def test_process_aphrodite_temperature_data(self):
-    #     process_aphrodite_temperature_data()
-    #     base_dir = utils.get_base_directory()
-    #     path = Path(
-    #         base_dir, 'B Process Data', 'Meteorological Data',
-    #         'APHRODITE Daily mean temperature product (V1808)',
-    #         '005deg.csv'
-    #     )
-    #     expected = True
-    #     actual = path.exists()
-    #     self.assertEqual(expected, actual)
+    def test_process_aphrodite_temperature_data(self):
+        process_aphrodite_temperature_data()
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data', 'Meteorological Data',
+            'APHRODITE Daily mean temperature product (V1808)',
+            '005deg.csv'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
-    # def test_process_chirps_rainfall_data(self):
+    def test_process_chirps_rainfall_data(self):
+        process_chirps_rainfall_data('2024', True)
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data', 'Meteorological Data',
+            'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
+            'Observations', 'chirps-v2.0.2024.01.28.png'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
-    # def test_process_era5_reanalysis_data(self):
-    #     process_era5_reanalysis_data()
-    #     base_dir = utils.get_base_directory()
-    #     path = Path(
-    #         base_dir, 'B Process Data', 'Meteorological Data',
-    #         'ERA5 atmospheric reanalysis', 'ERA5-ml-temperature-subarea.csv'
-    #     )
-    #     expected = True
-    #     actual = path.exists()
-    #     self.assertEqual(expected, actual)
+    def test_process_era5_reanalysis_data(self):
+        process_era5_reanalysis_data()
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data', 'Meteorological Data',
+            'ERA5 atmospheric reanalysis', 'ERA5-ml-temperature-subarea.csv'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
-    # def test_process_terraclimate_data(self):
-    #     process_terraclimate_data()
-    #     base_dir = utils.get_base_directory()
-    #     path = Path(
-    #         base_dir, 'B Process Data', 'Meteorological Data',
-    #         'TerraClimate', '2023',
-    #         '2023-12-01/water_evaporation_amount_mm.csv'
-    #     )
-    #     expected = True
-    #     actual = path.exists()
-    #     self.assertEqual(expected, actual)
+    def test_process_terraclimate_data(self):
+        process_terraclimate_data('2023', '11')
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data', 'Meteorological Data',
+            'TerraClimate', '2023-11',
+            'Water Potential Evaporation Amount.png'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
     def test_process_socio_demographic_data(self):
         data_name = 'WorldPop population count'
@@ -211,15 +221,11 @@ class TestCases(unittest.TestCase):
 
     # def test_process_geospatial_meteorological_data(self):
 
-
     # def test_process_gadm_chirps_data(self):
-
 
     # def test_process_geospatial_sociodemographic_data(self):
 
-
     # def test_process_gadm_worldpoppopulation_data(self):
-
 
     # def test_process_gadm_worldpopdensity_data(self):
 
