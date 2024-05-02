@@ -1037,19 +1037,19 @@ def process_worldpop_pop_density_data(year, country_iso3):
 
 
 def process_geospatial_meteorological_data(
-    data_name, admin_level, iso3, year, rt
+    data_name, admin_level, iso3, year
 ):
     """Process Geospatial and Meteorological Data."""
     data_name_1 = 'GADM administrative map'
     data_name_2 = \
         'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations'
     if data_name == [data_name_1, data_name_2]:
-        process_gadm_chirps_data(admin_level, iso3, year, rt)
+        process_gadm_chirps_data(admin_level, iso3, year)
     else:
         raise ValueError(f'Unrecognised data names "{data_name}"')
 
 
-def process_gadm_chirps_data(admin_level, iso3, year, rt):
+def process_gadm_chirps_data(admin_level, iso3, year):
     """
     Process GADM administrative map and CHIRPS rainfall data.
 
@@ -1064,8 +1064,23 @@ def process_gadm_chirps_data(admin_level, iso3, year, rt):
     - `python3 process_data.py GADM "CHIRPS rainfall" -a 2 -3 GBR`: 00:05.626
     - `python3 process_data.py GADM "CHIRPS rainfall" -a 3 -3 GBR`: 00:06.490
     """
+    # Sanitise the inputs
     data_type = 'Geospatial and Meteorological Data'
     data_name = 'GADM administrative map and CHIRPS rainfall data'
+    if not admin_level:
+        admin_level = '0'
+    if not iso3:
+        iso3 = 'VNM'
+    country = pycountry.countries.get(alpha_3=iso3).name
+    if not year:
+        year = '2024'
+
+    # Inform the user
+    print('Data type:  ', data_type)
+    print('Data names: ', data_name)
+    print('Admin level:', admin_level)
+    print('Country:    ', country)
+    print('Year:       ', year)
 
     # Import the TIFF file
     filename = Path('chirps-v2.0.2024.01.01.tif')
@@ -1531,6 +1546,7 @@ shorthand_to_data_name = {
     'WorldPop pop count': 'WorldPop population count',
 
     # Geospatial Data
+    'GADM': 'GADM administrative map',
     'GADM admin map': 'GADM administrative map',
 }
 
@@ -1627,7 +1643,7 @@ if __name__ == '__main__':
 
     elif data_type == ['Geospatial Data', 'Meteorological Data']:
         process_geospatial_meteorological_data(
-            data_name, admin_level, iso3, year, rt
+            data_name, admin_level, iso3, year
         )
     elif data_type == ['Geospatial Data', 'Socio-Demographic Data']:
         process_geospatial_sociodemographic_data(

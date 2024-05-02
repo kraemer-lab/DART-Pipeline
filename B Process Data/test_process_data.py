@@ -219,9 +219,34 @@ class TestCases(unittest.TestCase):
         actual = path.exists()
         self.assertEqual(expected, actual)
 
-    # def test_process_geospatial_meteorological_data(self):
+    def test_process_geospatial_meteorological_data(self):
+        data_name = [
+            'GADM administrative map',
+            'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite ' +
+            'Observations'
+        ]
+        process_geospatial_meteorological_data(data_name, '0', 'VNM', '2024')
+        self.test_process_gadm_chirps_data()
 
-    # def test_process_gadm_chirps_data(self):
+    def test_process_gadm_chirps_data(self):
+        process_gadm_chirps_data('0', 'VNM', '2024')
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data', 'Geospatial and Meteorological Data',
+            'GADM administrative map and CHIRPS rainfall data', 'VNM',
+            'Admin Level 0', 'Rainfall.csv'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+        path = Path(
+            base_dir, 'B Process Data', 'Geospatial and Meteorological Data',
+            'GADM administrative map and CHIRPS rainfall data', 'VNM',
+            'Admin Level 0', 'Vietnam.png'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
     # def test_process_geospatial_sociodemographic_data(self):
 
