@@ -1245,8 +1245,26 @@ def process_gadm_worldpoppopulation_data(admin_level, iso3, year, rt):
     - `python3 process_data.py GADM "WorldPop pop count" -a 3 -3 PER`:
         - 07:20.111
     """
+    # Sanitise the inputs
     data_type = 'Geospatial and Socio-Demographic Data'
     data_name = 'GADM administrative map and WorldPop population count'
+    if not admin_level:
+        admin_level = '0'
+    if not iso3:
+        iso3 = 'VNM'
+    country = pycountry.countries.get(alpha_3=iso3).name
+    if not year:
+        year = '2020'
+    if not rt:
+        rt = 'ppp'
+
+    # Inform the user
+    print('Data type:  ', data_type)
+    print('Data names: ', data_name)
+    print('Admin level:', admin_level)
+    print('Country:    ', country)
+    print('Year:       ', year)
+    print('Resolution: ', rt)
 
     # Import the TIFF file
     filename = Path(f'{iso3}_{rt}_v2b_{year}_UNadj.tif')
@@ -1388,26 +1406,26 @@ def process_gadm_worldpoppopulation_data(admin_level, iso3, year, rt):
     )
     output.to_csv(path, index=False)
 
-    # Calculate population density
-    # Import area
-    path = Path(
-        base_dir, 'B Process Data', 'Geospatial Data',
-        'GADM administrative map', iso3, f'Admin Level {admin_level}',
-        'Area.csv'
-    )
-    area = pd.read_csv(path)
-    # Merge
-    level = int(admin_level)
-    on = [f'Admin Level {x}' for x in range(level, level + 1)]
-    df = pd.merge(output, area, how='outer', on=on)
-    # Calculate
-    df['Population Density'] = df['Population'] / df['Area [km²]']
-    # Export
-    path = Path(
-        base_dir, 'B Process Data', data_type, data_name, iso3,
-        f'Admin Level {admin_level}', 'Population Density.csv'
-    )
-    df.to_csv(path, index=False)
+    # # Calculate population density
+    # # Import area
+    # path = Path(
+    #     base_dir, 'B Process Data', 'Geospatial Data',
+    #     'GADM administrative map', iso3, f'Admin Level {admin_level}',
+    #     'Area.csv'
+    # )
+    # area = pd.read_csv(path)
+    # # Merge
+    # level = int(admin_level)
+    # on = [f'Admin Level {x}' for x in range(level, level + 1)]
+    # df = pd.merge(output, area, how='outer', on=on)
+    # # Calculate
+    # df['Population Density'] = df['Population'] / df['Area [km²]']
+    # # Export
+    # path = Path(
+    #     base_dir, 'B Process Data', data_type, data_name, iso3,
+    #     f'Admin Level {admin_level}', 'Population Density.csv'
+    # )
+    # df.to_csv(path, index=False)
 
 
 def process_gadm_worldpopdensity_data(admin_level, iso3, year, rt):
@@ -1416,17 +1434,35 @@ def process_gadm_worldpopdensity_data(admin_level, iso3, year, rt):
 
     Run times:
 
-    - `python3 process_data.py "GADM admin map" "WorldPop pop density" -a 0`
+    - `time python3 process_data.py GADM "WorldPop pop density" -a 0`
         - 00:01.688
-    - `python3 process_data.py "GADM admin map" "WorldPop pop density" -a 1`
+    - `time python3 process_data.py GADM "WorldPop pop density" -a 1`
         - 00:13.474
-    - `python3 process_data.py "GADM admin map" "WorldPop pop density" -a 2`
+    - `time python3 process_data.py GADM "WorldPop pop density" -a 2`
         - 02:12.969
-    - `python3 process_data.py "GADM admin map" "WorldPop pop density" -a 3`
+    - `time python3 process_data.py GADM "WorldPop pop density" -a 3`
         - 21:20.179
     """
+    # Sanitise the inputs
     data_type = 'Geospatial and Socio-Demographic Data'
     data_name = 'GADM administrative map and WorldPop population density'
+    if not admin_level:
+        admin_level = '0'
+    if not iso3:
+        iso3 = 'VNM'
+    country = pycountry.countries.get(alpha_3=iso3).name
+    if not year:
+        year = '2020'
+    if not rt:
+        rt = 'ppp'
+
+    # Inform the user
+    print('Data type:  ', data_type)
+    print('Data names: ', data_name)
+    print('Admin level:', admin_level)
+    print('Country:    ', country)
+    print('Year:       ', year)
+    print('Resolution: ', rt)
 
     # Import the population density data
     filename = Path(f'{iso3.lower()}_pd_{year}_1km_UNadj.tif')
@@ -1441,7 +1477,7 @@ def process_gadm_worldpopdensity_data(admin_level, iso3, year, rt):
     # Replace placeholder numbers with 0
     data[data < 0] = 0
 
-    # Import the relevant shape file
+    # Import the shape file
     filename = f'gadm41_{iso3}_{admin_level}.shp'
     path = Path(
         base_dir, 'A Collate Data', 'Geospatial Data',
@@ -1449,8 +1485,23 @@ def process_gadm_worldpopdensity_data(admin_level, iso3, year, rt):
     )
     gdf = gpd.read_file(path)
 
+    # Get the aspect ratio for this region of the Earth
+    miny = gdf.bounds['miny'].values[0]
+    maxy = gdf.bounds['maxy'].values[0]
+    # Calculate the lengths of lines of latitude and longitude at the centroid
+    # of the polygon
+    centroid_lat = (miny + maxy) / 2.0
+    # Approximate length of one degree of latitude in meters
+    lat_length = 111.32 * 1000
+    # Approximate length of one degree of longitude in meters
+    lon_length = 111.32 * 1000 * math.cos(math.radians(centroid_lat))
+    # Calculate the stretch factor
+    aspect_ratio = lat_length / lon_length
+
     # Iterate over the regions in the shape file
     for _, region in gdf.iterrows():
+        geometry = region.geometry
+
         # Initialise new row
         new_row = {}
         new_row['Admin Level 0'] = region['COUNTRY']
@@ -1467,21 +1518,27 @@ def process_gadm_worldpopdensity_data(admin_level, iso3, year, rt):
             new_row['Admin Level 3'] = region['NAME_3']
             title = region['NAME_3']
         print(title)
-        # Look at the polygons in the shapefile
-        mask = geometry_mask(
-            [region['geometry']], out_shape=data.shape,
-            transform=src.transform, invert=True
-        )
-        # Use the mask to extract the region
-        region_data = data * mask
+
+        # Clip the data using the polygon of the current region
+        region_data, region_transform = mask(src, [geometry], crop=True)
+        # Replace negative values (if any exist)
+        region_data = np.where(region_data < 0, np.nan, region_data)
+        region_shape = region_data.shape
+        # Define the extent
+        extent = [
+            region_transform[2],
+            region_transform[2] + region_transform[0] * region_shape[2],
+            region_transform[5] + region_transform[4] * region_shape[1],
+            region_transform[5],
+        ]
 
         # Plot
-        A = 3  # We want figures to be A3
+        A = 5  # We want figures to be A5
         figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
         fig = plt.figure(figsize=figsize, dpi=144)
         ax = plt.axes()
-        if admin_level == 0:
-            arr = region_data
+        if admin_level == '0':
+            arr = region_data[0]
             arr[arr == 0] = np.nan
             # Re-scale
             arr = arr**0.01
@@ -1494,9 +1551,9 @@ def process_gadm_worldpopdensity_data(admin_level, iso3, year, rt):
             # Re-scale
             df = df**0.01
             z = df
-        img = ax.imshow(z, cmap='GnBu')
+        img = ax.imshow(z, extent=extent, cmap='GnBu')
         # Manually create the colour bar
-        ticks = np.linspace(z.min().min(), z.max().max(), 5)
+        ticks = np.linspace(np.nanmin(z), np.nanmax(z), 5)
         ticklabels = ticks**(1 / 0.01)
         ticklabels = ticklabels.astype(int)
         fig.colorbar(
@@ -1506,10 +1563,14 @@ def process_gadm_worldpopdensity_data(admin_level, iso3, year, rt):
             shrink=0.2,
             label=f'Population Density {year}, UN Adjusted (pop/km²)'
         )
+        # Shape data
+        gpd.GeoSeries(geometry).plot(ax=ax, color='none')
         # Format axes
+        ax.set_title(f'{title} Population Density')
         ax.set_ylabel('Latitude')
         ax.set_xlabel('Longitude')
-        plt.axis('off')
+        # Adjust the aspect ratio to match this part of the Earth
+        ax.set_aspect(aspect_ratio)
         # Export
         path = Path(
             base_dir, 'B Process Data', data_type, data_name, iso3,

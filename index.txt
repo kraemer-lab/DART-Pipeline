@@ -88,9 +88,9 @@ DART-Pipeline
     │  ├ ✅ test_process_worldpop_pop_density_data()
     │  ├ ✅ test_process_geospatial_meteorological_data()
     │  ├ ✅ test_process_gadm_chirps_data()
-    │  ├ ⏳ test_process_geospatial_sociodemographic_data()
-    │  ├ ⏳ test_process_gadm_worldpoppopulation_data()
-    │  └ ⏳ test_process_gadm_worldpopdensity_data()
+    │  ├ ✅ test_process_geospatial_sociodemographic_data()
+    │  ├ ✅ test_process_gadm_worldpoppopulation_data()
+    │  └ ✅ test_process_gadm_worldpopdensity_data()
     ├ utils.py
     │  ├ ✅ get_base_directory()
     │  ├ ✅ check_os()

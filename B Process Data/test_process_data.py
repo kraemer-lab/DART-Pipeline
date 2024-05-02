@@ -248,11 +248,59 @@ class TestCases(unittest.TestCase):
         actual = path.exists()
         self.assertEqual(expected, actual)
 
-    # def test_process_geospatial_sociodemographic_data(self):
+    def test_process_geospatial_sociodemographic_data(self):
+        data_name = [
+            'GADM administrative map',
+            'WorldPop population count'
+        ]
+        process_geospatial_sociodemographic_data(
+            data_name, '0', 'VNM', '2020', 'ppp'
+        )
+        self.test_process_gadm_worldpoppopulation_data()
 
-    # def test_process_gadm_worldpoppopulation_data(self):
+        data_name = [
+            'GADM administrative map',
+            'WorldPop population density'
+        ]
+        process_geospatial_sociodemographic_data(
+            data_name, '0', 'VNM', '2020', 'ppp'
+        )
+        self.test_process_gadm_worldpopdensity_data()
 
-    # def test_process_gadm_worldpopdensity_data(self):
+    def test_process_gadm_worldpoppopulation_data(self):
+        process_gadm_worldpoppopulation_data('0', 'VNM', '2020', 'ppp')
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data',
+            'Geospatial and Socio-Demographic Data',
+            'GADM administrative map and WorldPop population count', 'VNM',
+            'Admin Level 0', 'Population.csv'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+        path = Path(
+            base_dir, 'B Process Data',
+            'Geospatial and Socio-Demographic Data',
+            'GADM administrative map and WorldPop population count', 'VNM',
+            'Admin Level 0', 'Vietnam.png'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
+    def test_process_gadm_worldpopdensity_data(self):
+        process_gadm_worldpopdensity_data('0', 'VNM', '2020', 'ppp')
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data',
+            'Geospatial and Socio-Demographic Data',
+            'GADM administrative map and WorldPop population density',
+            'VNM', 'Admin Level 0', 'Vietnam.png'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
 
 if __name__ == '__main__':
