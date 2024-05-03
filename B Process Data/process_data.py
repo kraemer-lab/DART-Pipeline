@@ -644,9 +644,9 @@ def process_terraclimate_data(year, month):
 
     Run times:
 
-    - `time python3 process_data.py "TerraClimate data"`: 08:59.88
+    - `time python3 process_data.py "TerraClimate data"`: 00:33.99
     - `time python3 process_data.py "TerraClimate data" -y 2023 -m 11`:
-      00:23.644
+      00:20.51
     """
     # Sanitise the inputs
     data_type = 'Meteorological Data'
