@@ -3,10 +3,11 @@ Run unit tests on utils.py.
 
 Past Runs
 ---------
-- 2024-02-09 on macOS Sonoma with Python 3.12: Ran 17 tests in 0.010s
-- 2024-02-12 on Ubuntu 22 with Python 3.12: Ran 15 tests in 0.050s
-- 2024-02-14 on macOS Sonoma with Python 3.12: Ran 15 tests in 0.008s
-- 2024-04-23 on Ubuntu 22 with Python 3.12: Ran 15 tests in 0.086s
+- 2024-02-09 on macOS Sonoma with Python 3.12: Ran 17 tests in 00:00.010
+- 2024-02-12 on Ubuntu 22 with Python 3.12: Ran 15 tests in 00:00.050
+- 2024-02-14 on macOS Sonoma with Python 3.12: Ran 15 tests in 00:00.008
+- 2024-04-23 on Ubuntu 22 with Python 3.12: Ran 15 tests in 00:00.086
+- 2024-05-08 on Ubuntu 20 with Python 3.12: Ran 15 tests in 00:00.045
 """
 import unittest
 from unittest.mock import patch

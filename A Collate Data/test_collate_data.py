@@ -13,6 +13,7 @@ Past Runs
     - Ran 18 tests in 00:41.872
 - 2024-04-23 on Ubuntu 22.04 using Python 3.12: Ran 17 tests in 00:31.534
 - 2024-05-08 on Ubuntu 22.04 using Python 3.12: Ran 17 tests in 01:00.448
+- 2024-05-08 on Ubuntu 20.04 using Python 3.12: Ran 17 tests in 00:21.853
 """
 import unittest
 from unittest.mock import patch
@@ -328,18 +329,15 @@ class TestCases(unittest.TestCase):
     def test_download_chirps_rainfall_data(self):
         download_chirps_rainfall_data(only_one=True, dry_run=True)
         base_dir = utils.get_base_directory()
-        root = Path(
+        path = Path(
             base_dir, 'A Collate Data', 'Meteorological Data',
             'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
             'Observations', 'products', 'CHIRPS-2.0', 'global_daily', 'tifs',
-            'p05'
+            'p05', '2024', 'chirps-v2.0.2024.01.01.tif.gz'
         )
-        for branch in [
-            Path('2023', 'chirps-v2.0.2023.01.01.tif.gz'),
-        ]:
-            expected = True
-            actual = Path(root, branch).exists()
-            self.assertEqual(expected, actual)
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
     def test_download_terraclimate_data(self):
         download_terraclimate_data(True, True, '2023')
@@ -359,16 +357,13 @@ class TestCases(unittest.TestCase):
     def test_download_era5_reanalysis_data(self):
         download_era5_reanalysis_data(only_one=True, dry_run=True)
         base_dir = utils.get_base_directory()
-        root = Path(
+        path = Path(
             base_dir, 'A Collate Data', 'Meteorological Data',
-            'ERA5 atmospheric reanalysis',
+            'ERA5 atmospheric reanalysis', 'ERA5-ml-temperature-subarea.nc'
         )
-        for branch in [
-            Path('ERA5-ml-temperature-subarea.nc'),
-        ]:
-            expected = True
-            actual = Path(root, branch).exists()
-            self.assertEqual(expected, actual)
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
     def test_download_socio_demographic_data(self):
         data_name = 'WorldPop population density'

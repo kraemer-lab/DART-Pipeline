@@ -106,8 +106,14 @@ def get_credentials(metric, base_dir='..', credentials=None):
     else:
         path = Path(credentials)
     # Open and parse the credentials file
-    with open(path, 'r') as f:
-        credentials = json.load(f)
+    try:
+        with open(path, 'r') as f:
+            credentials = json.load(f)
+    except FileNotFoundError:
+        msg = 'No credentials.json file was found. Either you have not ' + \
+            'created one or it is not in the specified location (the ' + \
+            'default location is the DART-Pipeline folder)'
+        raise FileNotFoundError(msg)
     # Catch errors
     if metric not in credentials.keys():
         msg = f'No credentials for "{metric}" exists in the credentials ' + \
@@ -570,9 +576,11 @@ def download_chirps_rainfall_data(only_one, dry_run):
 
     Run times:
 
+    - `time python3 collate_data.py "CHIRPS rainfall" -1 -d`: 00:01.087
     - `time python3 collate_data.py "CHIRPS rainfall"`:
         - 05:30.123 (2024-01-01 to 2024-03-07)
         - 02:56.14 (2024-01-01 to 2024-03-11)
+        - 04:15.394 (2024-01-01 to 2024-03-31)
     """
     data_type = 'Meteorological Data'
     data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite ' + \
@@ -609,17 +617,15 @@ def download_era5_reanalysis_data(only_one, dry_run):
     How to use the Climate Data Store (CDS) Application Program Interface
     (API): https://cds.climate.copernicus.eu/api-how-to
 
-    ```bash
-    python3 -m pip install cdsapi
-    cd ~/DART-Pipeline
-    export PASSWORD_STORE_DIR=$PWD/.password-store
-    pass insert "ERA5 atmospheric reanalysis"
-    pass "ERA5 atmospheric reanalysis"
-    ```
+    Install and configure `cdsapi` by following the instructions here:
+    https://pypi.org/project/cdsapi/
+
+    A Climate Data Store account is needed.
 
     Run times:
 
-    - `time python3 collate_data.py "ERA5 reanalysis"`: 0m1.484s
+    - `time python3 collate_data.py "ERA5 reanalysis" -1 -d`: 00:00.213
+    - `time python3 collate_data.py "ERA5 reanalysis"`: 00:01.484
     """
     data_type = 'Meteorological Data'
     data_name = 'ERA5 atmospheric reanalysis'
