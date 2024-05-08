@@ -3,8 +3,9 @@ Run unit tests on process_data.py.
 
 Past runs
 ---------
-- 2024-02-08 on Ubuntu 22.04 using Python 3.12: Ran 2 tests in 0.824s
-- 2024-02-09 on macOS Sonoma using Python 3.12: Ran 2 tests in 0.833s
+- 2024-02-08 on Ubuntu 22.04 using Python 3.12: Ran 2 tests in 00:00.824
+- 2024-02-09 on macOS Sonoma using Python 3.12: Ran 2 tests in 00:00.833
+- 2024-05-08 on Ubuntu 20.04 using Python 3.12: Ran 18 tests in 07:01.735
 """
 # External libraries
 import rasterio
@@ -182,7 +183,7 @@ class TestCases(unittest.TestCase):
         path = Path(
             base_dir, 'B Process Data', 'Socio-Demographic Data',
             'WorldPop population density', '2020', 'VNM',
-            'vnm_pd_2020_1km_UNadj_ASCII_XYZ - Log Transformed.png'
+            'vnm_pd_2020_1km_UNadj_ASCII_XYZ - Naive.png'
         )
         expected = True
         actual = path.exists()

@@ -681,6 +681,7 @@ def download_terraclimate_data(only_one, dry_run, year):
     - `time python3 collate_data.py "TerraClimate data"`:
         - 34:50.828/31:43.878
         - 11:35.25
+        - 14:16.896
     - `time python3 collate_data.py "TerraClimate data" -1 -d`: 00:04.606
     """
     data_type = 'Meteorological Data'
@@ -800,7 +801,9 @@ def download_worldpop_pop_count_data(only_one, dry_run):
 
     Run times:
 
-    - `time python3 collate_data.py "WorldPop pop count"`: 06:46.2
+    - `time python3 collate_data.py "WorldPop pop count"`:
+        - 06:46.2
+        - 17:40.154
     """
     data_type = 'Socio-Demographic Data'
     data_name = 'WorldPop population count'
