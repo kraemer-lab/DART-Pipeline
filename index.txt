@@ -49,7 +49,6 @@ DART-Pipeline
  └ B Process Data
     ├ process_data.py
     │  ├ ✅ days_to_date()
-    │  ├ ✅ plot_pop_density()
     │  ├ ✅ pixel_to_latlon()
     │  ├ ⏳ process_epidemiological_data()
     │  │  └ ⏳ process_ministerio_de_salud_peru_data()
@@ -71,7 +70,6 @@ DART-Pipeline
     │     └ ✅ process_gadm_worldpopdensity_data()
     ├ test_process_data.py
     │  ├ ✅ test_days_to_date()
-    │  ├ ✅ test_plot_pop_density()
     │  ├ ✅ test_pixel_to_latlon()
     │  ├ ⏳ test_process_epidemiological_data()
     │  ├ ⏳ test_process_ministerio_de_salud_peru_data()

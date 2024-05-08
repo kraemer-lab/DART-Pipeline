@@ -8,7 +8,6 @@ Past runs
 """
 # External libraries
 import rasterio
-import pandas as pd
 # Built-in modules
 from datetime import datetime
 import unittest
@@ -16,7 +15,6 @@ from pathlib import Path
 # Custom modules
 from process_data import \
     days_to_date, \
-    plot_pop_density, \
     pixel_to_latlon, \
     process_geospatial_data, \
     process_gadm_admin_map_data, \
@@ -43,35 +41,6 @@ class TestCases(unittest.TestCase):
         expected = datetime(1970, 1, 1)
         actual = days_to_date(25567)
         self.assertEqual(expected, actual)
-
-    def test_plot_pop_density(self):
-        # Set up
-        out_dir = Path('tests')
-        out_dir.mkdir(parents=True, exist_ok=True)
-
-        # Plot whole country
-        base_dir = str(utils.get_base_directory())
-        relative_path = Path(
-            'B Process Data',
-            'Geospatial and Socio-Demographic Data',
-            'GADM administrative map and WorldPop population density',
-            'Vietnam.csv'
-        )
-        path = Path(base_dir, relative_path)
-        df = pd.read_csv(path)
-        plot_pop_density(df, out_dir, 'Vietnam.png')
-
-        # Check if the file has been created
-        expected = True
-        path = Path(out_dir, 'Vietnam.png')
-        actual = path.exists()
-
-        # Perform the test
-        self.assertEqual(expected, actual)
-
-        # Tear down
-        path.unlink()
-        Path('tests/').rmdir()
 
     def test_pixel_to_latlon(self):
         x = [0]
@@ -212,7 +181,7 @@ class TestCases(unittest.TestCase):
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Socio-Demographic Data',
-            'WorldPop population density', 'VNM',
+            'WorldPop population density', '2020', 'VNM',
             'vnm_pd_2020_1km_UNadj_ASCII_XYZ - Log Transformed.png'
         )
         expected = True

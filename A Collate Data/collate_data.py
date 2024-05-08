@@ -364,9 +364,7 @@ def download_gadm_admin_map_data(only_one, dry_run=True):
 
     Run times:
 
-    - `time python3 collate_data.py "GADM admin map"`:
-        - 2m0.457s
-        - 0m31.094s
+    - `time python3 collate_data.py GADM`: 02:22.392
     """
     data_type = 'Geospatial Data'
     data_name = 'GADM administrative map'
@@ -855,6 +853,7 @@ shorthand_to_data_name = {
     'WorldPop pop count': 'WorldPop population count',
 
     # Geospatial Data
+    'GADM': 'GADM administrative map',
     'GADM admin map': 'GADM administrative map',
 }
 

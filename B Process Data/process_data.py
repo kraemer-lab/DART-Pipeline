@@ -102,53 +102,6 @@ def days_to_date(days_since_1900):
     return target_date
 
 
-def plot_pop_density(df, folderpath, filename):
-    """
-    Plot the population for a region.
-
-    Parameters
-    ----------
-    df : DataFrame
-        The data to plot.
-    folderpath : str or pathlib.Path
-        The parent directory for the output plot.
-    filename : str or pathlib.Path
-        The filename for the output plot.
-    """
-    # Plot
-    A = 3  # We want figures to be A3
-    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
-    fig = plt.figure(figsize=figsize, dpi=144)
-    ax = plt.axes()
-    # Re-scale
-    df['Z_rescaled'] = df['Z']**0.01
-    # Plot
-    pivotted = df.pivot(index='Y', columns='X', values='Z_rescaled')
-    cax = plt.imshow(pivotted, cmap='GnBu')
-    # Manually create the colour bar
-    ticks = np.linspace(df['Z_rescaled'].min(), df['Z_rescaled'].max(), 5)
-    ticklabels = ticks**(1 / 0.01)
-    ticklabels = ticklabels.astype(int)
-    fig.colorbar(
-        cax,
-        ticks=ticks,
-        format=mticker.FixedFormatter(ticklabels),
-        shrink=0.2,
-        label='Population Density 2020, UN Adjusted (pop/km²)'
-    )
-    # Turn upside down
-    plt.gca().invert_yaxis()
-    # Remove ticks and tick labels
-    plt.axis('off')
-    # Correct aspect ratio
-    ax.set_aspect('equal', adjustable='datalim')
-    ax.autoscale()
-    # Save
-    path = Path(folderpath, filename)
-    plt.savefig(path)
-    plt.close()
-
-
 def pixel_to_latlon(x, y, transform):
     """
     Convert pixel coordinates to latitude and longitude.
@@ -186,10 +139,10 @@ def process_gadm_admin_map_data(admin_level, country_iso3):
 
     Run times:
 
-    - `time python3 process_data.py "GADM admin map" -a 0`: 00:01.036
-    - `time python3 process_data.py "GADM admin map"`: 00:03.830
-    - `time python3 process_data.py "GADM admin map" -a 2`: 00:33.953
-    - `time python3 process_data.py "GADM admin map" -a 3`: 12:30.51
+    - `time python3 process_data.py GADM -a 0 -3 VNM`: 00:01.036
+    - `time python3 process_data.py GADM -3 VNM`: 00:03.830
+    - `time python3 process_data.py GADM -a 2 -3 VNM`: 00:33.953
+    - `time python3 process_data.py GADM -a 3 -3 VNM`: 12:30.51
     """
     filenames = [f'gadm41_{country_iso3}_{admin_level}.shp']
     for filename in filenames:
@@ -955,7 +908,8 @@ def process_worldpop_pop_density_data(year, country_iso3):
 
     Run times:
 
-    - `time python3 process_data.py "WorldPop pop density"`: 1.954s
+    - `time python3 process_data.py "WorldPop pop density" -y 2020 -3 VNM`:
+        - 00:01.954
     """
     # Import the population density data
     relative_path = Path(

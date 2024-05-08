@@ -3,15 +3,16 @@ Run unit tests on collate_data.py.
 
 Past Runs
 ---------
-- 2024-01-15 on Ubuntu 22.04 using Python 3.12: Ran 5 tests in 13.366s
-- 2024-01-17 on macOS Sonoma using Python 3.12: Ran 5 tests in 4.376s
-- 2024-02-08 on Ubuntu 22.04 using Python 3.12: Ran 4 tests in 10.968s
-- 2024-02-09 on macOS Sonoma using Python 3.12: Ran 4 tests in 6.190s
-- 2024-02-13 on Ubuntu 22.04 using Python 3.12: Ran 16 tests in 64.283s
+- 2024-01-15 on Ubuntu 22.04 using Python 3.12: Ran 5 tests in 00:13.366
+- 2024-01-17 on macOS Sonoma using Python 3.12: Ran 5 tests in 00:04.376
+- 2024-02-08 on Ubuntu 22.04 using Python 3.12: Ran 4 tests in 00:10.968
+- 2024-02-09 on macOS Sonoma using Python 3.12: Ran 4 tests in 00:06.190
+- 2024-02-13 on Ubuntu 22.04 using Python 3.12: Ran 16 tests in 01:04.283
 - 2024-02-14 on macOS Sonoma using Python 3.12:
-    - Ran 18 tests in 42.751s
-    - Ran 18 tests in 41.872s
-- 2024-04-23 on Ubuntu 22.04 using Python 3.12: Ran 17 tests in 31.534s
+    - Ran 18 tests in 00:42.751
+    - Ran 18 tests in 00:41.872
+- 2024-04-23 on Ubuntu 22.04 using Python 3.12: Ran 17 tests in 00:31.534
+- 2024-05-08 on Ubuntu 22.04 using Python 3.12: Ran 17 tests in 01:00.448
 """
 import unittest
 from unittest.mock import patch
