@@ -450,6 +450,7 @@ def process_chirps_rainfall_data(year, debug):
     filepaths = list(path.iterdir())
     # Only process the GeoTIF files
     filepaths = [f for f in filepaths if f.suffix == '.tif']
+    filepaths.sort()
 
     for filepath in filepaths:
         print(f'Processing "{filepath.name}"')

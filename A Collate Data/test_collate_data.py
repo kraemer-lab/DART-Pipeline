@@ -12,8 +12,9 @@ Past Runs
     - Ran 18 tests in 00:42.751
     - Ran 18 tests in 00:41.872
 - 2024-04-23 on Ubuntu 22.04 using Python 3.12: Ran 17 tests in 00:31.534
-- 2024-05-08 on Ubuntu 22.04 using Python 3.12: Ran 17 tests in 01:00.448
-- 2024-05-08 on Ubuntu 20.04 using Python 3.12: Ran 17 tests in 00:21.853
+- 2024-05-08:
+    - On Ubuntu 22.04 using Python 3.12: Ran 17 tests in 01:00.448
+    - On Ubuntu 20.04 using Python 3.12: Ran 17 tests in 00:21.853
 """
 import unittest
 from unittest.mock import patch

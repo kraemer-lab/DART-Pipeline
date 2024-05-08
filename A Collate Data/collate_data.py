@@ -679,7 +679,7 @@ def download_terraclimate_data(only_one, dry_run, year):
     Run times:
 
     - `time python3 collate_data.py "TerraClimate data"`:
-        - 34:50.828
+        - 34:50.828/31:43.878
         - 11:35.25
     - `time python3 collate_data.py "TerraClimate data" -1 -d`: 00:04.606
     """
@@ -737,10 +737,10 @@ def download_worldpop_pop_density_data(only_one, dry_run):
 
     Run times:
 
-    - `time python3 collate_data.py "WorldPop pop density" -d`: 0m0.732s
+    - `time python3 collate_data.py "WorldPop pop density" -d`: 00:00.732
     - `time python3 collate_data.py "WorldPop pop density":
-        - 0m2.860s
-        - 0m0.29s
+        - 00:02.860
+        - 00:00.29
     """
     data_type = 'Socio-Demographic Data'
     data_name = 'WorldPop population density'
@@ -800,7 +800,7 @@ def download_worldpop_pop_count_data(only_one, dry_run):
 
     Run times:
 
-    - `time python3 collate_data.py "WorldPop pop count"`: 406.2s
+    - `time python3 collate_data.py "WorldPop pop count"`: 06:46.2
     """
     data_type = 'Socio-Demographic Data'
     data_name = 'WorldPop population count'
