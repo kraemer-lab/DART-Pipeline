@@ -26,6 +26,3 @@ with the syntax). For example:
 ```
 will run the `climate` service every minute, the `epi` services once a day at 1am (local
 time), and the `flight` service every Wednesday at 3:30am.
-
-> script for initial build (queries username, password and db name)
-> procedure for adding new users

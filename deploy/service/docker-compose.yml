@@ -1,9 +1,3 @@
-
-# Some problems:
-#  The containers all seem to work, but aren't waiting for each other (either creation,
-#  which is problematic because the database does not exist yet), or for the analysis
-#  (which is less important at this time)
-
 services:
 
   db:
