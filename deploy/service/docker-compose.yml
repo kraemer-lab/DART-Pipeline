@@ -1,0 +1,63 @@
+
+# Some problems:
+#  The containers all seem to work, but aren't waiting for each other (either creation,
+#  which is problematic because the database does not exist yet), or for the analysis
+#  (which is less important at this time)
+
+services:
+
+  db:
+    image: postgis/postgis:16-3.4
+    restart: always
+    ports:
+      - 5432:5432
+    volumes:
+      - ../data/db:/var/lib/postgresql/data
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  models_model1:
+    build:
+      context: ../models/model1
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["python", "app.py"]
+
+  climate:
+    build:
+      context: ../ingestion/climate
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+    # pass 'db' as HOST to the entrypoint script (this is remapped by docker-compose).
+    # not sure why this doesn't work just using the 'environment' directive though.
+    command: ["python", "app.py"]
+
+  epi:
+    build:
+      context: ../ingestion/epi
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["python", "app.py"]
