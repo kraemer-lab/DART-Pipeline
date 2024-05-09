@@ -17,12 +17,13 @@ services:
 
   models_model1:
     build:
-      context: ../models/model1
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: models/model1/Dockerfile
     env_file:
       - .env
     environment:
       POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
     depends_on:
       db:
         condition: service_healthy
@@ -30,27 +31,27 @@ services:
 
   climate:
     build:
-      context: ../ingestion/climate
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: ingestion/climate/Dockerfile
     env_file:
       - .env
     environment:
       POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
     depends_on:
       db:
         condition: service_healthy
-    # pass 'db' as HOST to the entrypoint script (this is remapped by docker-compose).
-    # not sure why this doesn't work just using the 'environment' directive though.
     command: ["python", "app.py"]
 
   epi:
     build:
-      context: ../ingestion/epi
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: ingestion/epi/Dockerfile
     env_file:
       - .env
     environment:
       POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
     depends_on:
       db:
         condition: service_healthy

@@ -1,70 +1,54 @@
 import os
-import psycopg2
+from schema import Database, Epi
 
-POSTGRES_HOST = os.getenv('POSTGRES_HOST')
-POSTGRES_USER = os.getenv('POSTGRES_USER')
-POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD')
-POSTGRES_DB = os.getenv('POSTGRES_DB')
+POSTGRES_HOST = os.getenv("POSTGRES_HOST")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT")
+POSTGRES_USER = os.getenv("POSTGRES_USER")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
+POSTGRES_DB = os.getenv("POSTGRES_DB")
 
-if not all([POSTGRES_HOST, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB]):
-    raise ValueError('Please set the environment variables POSTGRES_HOST, '
-                     'POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB')
-
-
-def populate():
-    commands = (
-
-        """
-        DROP TABLE IF EXISTS epi;
-        """,
-
-        """
-        CREATE TABLE epi (
-            id SERIAL PRIMARY KEY,
-            datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            metric1 FLOAT
-        );
-        """,
-
-        """
-        INSERT INTO epi (
-            id,
-            datetime,
-            metric1
-        ) VALUES
-            (1, '2021-01-01 01:00:00', 1.0),
-            (2, '2021-02-02 02:00:00', 2.0),
-            (3, '2021-03-03 03:00:00', 3.0),
-            (4, '2021-04-04 04:00:00', 4.0),
-            (5, '2021-05-05 05:00:00', 5.0),
-            (6, '2021-06-06 06:00:00', 6.0),
-            (7, '2021-07-07 07:00:00', 7.0),
-            (8, '2021-08-08 08:00:00', 8.0),
-            (9, '2021-09-09 09:00:00', 9.0),
-            (10, '2021-10-10 10:00:00', 10.0)
-        ;
-        """,
+if not all(
+    [POSTGRES_HOST, POSTGRES_PORT, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB]
+):
+    raise ValueError(
+        "Please set the environment variables POSTGRES_HOST, "
+        "POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB"
     )
-    config = {
-        'host': POSTGRES_HOST,
-        'user': POSTGRES_USER,
-        'password': POSTGRES_PASSWORD,
-        'dbname': POSTGRES_DB
-    }
-    try:
-        with psycopg2.connect(**config) as conn:
-            with conn.cursor() as cur:
-                for command in commands:
-                    print(f"Executing command: {command.split()[0]}")
-                    cur.execute(command)
-                print("Fetching data from epi table")
-                cur.execute("SELECT * FROM epi;")
-                rows = cur.fetchall()
-                for row in rows:
-                    print(row)
-    except (Exception, psycopg2.DatabaseError) as error:
-        print("Error: ", error)
+
+connection = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
 
 
-if __name__ == '__main__':
-    populate()
+def populate(db):
+    """
+    Populate the Epi table with some data
+    """
+
+    session = db.Session()
+
+    line1 = Epi(1.0)  # metric1
+    line2 = Epi(2.0)
+    line3 = Epi(3.0)
+
+    session.add(line1)
+    session.add(line2)
+    session.add(line3)
+
+    session.commit()
+    session.close()
+
+
+def query(db):
+    session = db.Session()
+    count = session.query(Epi).count()
+    query = session.query(Epi).all()
+    print(f"Epi data (n={count})")
+    for row in query:
+        print(row.metric1)
+    session.close()
+
+
+if __name__ == "__main__":
+    db = Database(connection)
+    db.init_tables()  # create tables
+    populate(db)
+    query(db)
