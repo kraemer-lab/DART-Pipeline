@@ -109,8 +109,14 @@ def get_credentials(metric, base_dir='..', credentials=None):
     else:
         path = Path(credentials)
     # Open and parse the credentials file
-    with open(path, 'r') as f:
-        credentials = json.load(f)
+    try:
+        with open(path, 'r') as f:
+            credentials = json.load(f)
+    except FileNotFoundError:
+        msg = 'No credentials.json file was found. Either you have not ' + \
+            'created one or it is not in the specified location (the ' + \
+            'default location is the DART-Pipeline folder)'
+        raise FileNotFoundError(msg)
     # Catch errors
     if metric not in credentials.keys():
         msg = f'No credentials for "{metric}" exists in the credentials ' + \
@@ -149,6 +155,7 @@ def download_files(
     out_dir: str | Path = '.', username=None, password=None
 ):
     """Download multiple files in a list."""
+    successes = []
     # If the user requests it, only download the first file
     if only_one:
         files = files[:1]
@@ -162,10 +169,14 @@ def download_files(
             path = Path(path, file)
             print(f'Touching: "{path}"')
             path.touch()
+            success = True
         else:
             file_url = base_url + '/' + relative_url + '/' + file
             path = Path(path, file)
-            _ = download_file(file_url, path, username, password)
+            success = download_file(file_url, path, username, password)
+        successes.append(success)
+
+    return successes
 
 
 def walk(
@@ -453,14 +464,14 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
 
     Run times:
 
-    - `time python3 collate_data.py "GADM admin map" -3 "VNM"`:
+    - `time python3 collate_data.py GADM`: 02:22.392
+    - `time python3 collate_data.py GADM -3 VNM`:
         - 0:31.094
         - 0:54.608
-    - `time python3 collate_data.py "GADM admin map" -3 "PER"`:
+    - `time python3 collate_data.py GADM -3 PER`:
         - 0:18.516
         - 1:02.167
-    - `time python3 collate_data.py "GADM admin map" -3 "GBR"`:
-        - 13:22.114
+    - `time python3 collate_data.py GADM -3 GBR`: 13:22.114
     """
     data_type = 'Geospatial Data'
     data_name = 'GADM administrative map'
@@ -526,9 +537,8 @@ def download_aphrodite_precipitation_data(
 
     Run times:
 
-    - `time python3 collate_data.py "APHRODITE precipitation"`: 9m20.565s
-    - `time python3 collate_data.py "APHRODITE precipitation" -1`: 35.674s
-    - `time python3 collate_data.py "APHRODITE precipitation" -1 -d`: 35.674s
+    - `time python3 collate_data.py "APHRODITE precipitation"`: 00:44.318
+    - `time python3 collate_data.py "APHRODITE precipitation" -1`: 00:35.674
     """
     data_type = 'Meteorological Data'
     data_name = 'APHRODITE Daily accumulated precipitation (V1901)'
@@ -587,9 +597,9 @@ def download_aphrodite_temperature_data(
 
     Run times:
 
-    - `time python3 collate_data.py "APHRODITE temperature"`: 87m58.039s
-    - `time python3 collate_data.py "APHRODITE temperature" -1`: 6m36.88s
-    - `time python3 collate_data.py "APHRODITE temperature" -1 -d`: 4.144s
+    - `time python3 collate_data.py "APHRODITE temperature"`: 1:27:58.039
+    - `time python3 collate_data.py "APHRODITE temperature" -1`: 06:36.88
+    - `time python3 collate_data.py "APHRODITE temperature" -1 -d`: 00:04.144
     """
     data_type = 'Meteorological Data'
     data_name = 'APHRODITE Daily mean temperature product (V1808)'
@@ -666,10 +676,11 @@ def download_chirps_rainfall_data(only_one, dry_run):
 
     Run times:
 
+    - `time python3 collate_data.py "CHIRPS rainfall" -1 -d`: 00:01.087
     - `time python3 collate_data.py "CHIRPS rainfall"`:
-        - 5:30.123 (2024-01-01 to 2024-03-07)
-        - 2:56.14 (2024-01-01 to 2024-03-11)
-        - 2:55.466 (2024-01-01 to 2024-02-29)
+        - 05:30.123 (2024-01-01 to 2024-03-07)
+        - 02:56.14 (2024-01-01 to 2024-03-11)
+        - 04:15.394 (2024-01-01 to 2024-03-31)
     """
     data_type = 'Meteorological Data'
     data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite ' + \
@@ -690,6 +701,7 @@ def download_chirps_rainfall_data(only_one, dry_run):
         # Walk through the folder structure
         walk(base_url, relative_url, only_one, dry_run, out_dir)
 
+    if not dry_run:
         # Unpack the data
         for dirpath, dirnames, filenames in os.walk(out_dir):
             for filename in filenames:
@@ -705,9 +717,15 @@ def download_era5_reanalysis_data(only_one, dry_run):
     How to use the Climate Data Store (CDS) Application Program Interface
     (API): https://cds.climate.copernicus.eu/api-how-to
 
+    Install and configure `cdsapi` by following the instructions here:
+    https://pypi.org/project/cdsapi/
+
+    A Climate Data Store account is needed.
+
     Run times:
 
-    - `time python3 collate_data.py "ERA5 reanalysis"`: 0m1.484s
+    - `time python3 collate_data.py "ERA5 reanalysis" -1 -d`: 00:00.213
+    - `time python3 collate_data.py "ERA5 reanalysis"`: 00:01.484
     """
     data_type = 'Meteorological Data'
     data_name = 'ERA5 atmospheric reanalysis'
@@ -761,9 +779,10 @@ def download_terraclimate_data(only_one, dry_run, year):
     Run times:
 
     - `time python3 collate_data.py "TerraClimate data"`:
-        - 34m50.828s
-        - 11m35.25s
-    - `time python3 collate_data.py "TerraClimate data" -1 -d`: 4.606s
+        - 34:50.828/31:43.878
+        - 11:35.25
+        - 14:16.896
+    - `time python3 collate_data.py "TerraClimate data" -1 -d`: 00:04.606
     """
     data_type = 'Meteorological Data'
     data_name = 'TerraClimate gridded temperature, precipitation, and other'
@@ -819,12 +838,10 @@ def download_worldpop_pop_density_data(only_one, dry_run, iso3):
 
     Run times:
 
-    - `time python3 collate_data.py "WorldPop pop density" -d -3 "VNM"`:
-        - 0:00.732
-    - `time python3 collate_data.py "WorldPop pop density" -3 "VNM"`:
+    - `time python3 collate_data.py "WorldPop pop density" -3 VNM`:
         - 0:02.860
         - 0:04.349
-    - `time python3 collate_data.py "WorldPop pop density" -3 "PER"`:
+    - `time python3 collate_data.py "WorldPop pop density" -3 PER`:
         - 0:06.723
         - 0:18.760
     """
@@ -891,6 +908,9 @@ def download_worldpop_pop_count_data(only_one, dry_run, iso3):
 
     Run times:
 
+    - `time python3 collate_data.py "WorldPop pop count"`:
+        - 06:46.2
+        - 17:40.154
     - `time python3 collate_data.py "WorldPop pop count" -3 VNM`: 23:17.052
     - `time python3 collate_data.py "WorldPop pop count" -3 PER`:
         - 46:47.78
@@ -941,6 +961,7 @@ shorthand_to_data_name = {
     'WorldPop pop count': 'WorldPop population count',
 
     # Geospatial Data
+    'GADM': 'GADM administrative map',
     'GADM admin map': 'GADM administrative map',
 }
 

@@ -32,40 +32,25 @@ Documentation
     $ cd ~/DART-Pipeline/docs
     $ make singlehtml
 
-Progress
-========
-collate_data.py
-
-- download_epidemiological_data()
-    - ✅ download_ministerio_de_salud_peru_data()
-- download_geospatial_data()
-    - ✅ download_gadm_admin_map_data()
-- download_meteorological_data()
-    - ✅ download_aphrodite_precipitation_data()
-    - ✅ download_aphrodite_temperature_data()
-    - ✅ download_chirps_rainfall_data()
-    - ✅ download_era5_reanalysis_data()
-    - ✅ download_terraclimate_data()
-- download_socio_demographic_data()
-    - ✅ download_worldpop_pop_density_data()
-    - ✅ download_worldpop_pop_count_data()
-
-process_data.py
-
-- process_geospatial_data()
-    - ✅ process_gadm_admin_map_data()
-- process_meteorological_data()
-    - ✅ process_aphrodite_precipitation_data()
-    - ✅ process_aphrodite_temperature_data()
-    - ✅ process_chirps_rainfall_data()
-    - ✅ process_era5_reanalysis_data()
-    - ✅ process_terraclimate_data()
-- process_socio_demographic_data()
-    - ✅ process_worldpop_pop_count_data()
-    - ✅ process_worldpop_pop_density_data()
-- process_geospatial_sociodemographic_data()
-    - ✅ process_gadm_worldpoppopulation_data()
-
+Testing
+=======
+- Clone the repository: `git clone git@github.com:kraemer-lab/DART-Pipeline.git`
+- Create a `credentials.json` file in the newly-cloned `DART-Pipeline` folder
+- `cd` into the A folder and run the tests:
+    - `python3 test_collate_data.py`
+    - `python3 test_utils.py`
+- Still in the A folder, collate the data needed to test the B scripts:
+    - `python3 collate_data.py GADM`
+    - `python3 collate_data.py "APHRODITE precipitation"`
+    - `python3 collate_data.py "APHRODITE temperature"`
+    - `python3 collate_data.py "CHIRPS rainfall"`
+    - `python3 collate_data.py "ERA5 reanalysis"`
+    - `python3 collate_data.py "TerraClimate data"`
+    - `python3 collate_data.py "WorldPop pop density"`
+    - `python3 collate_data.py "WorldPop pop count"`
+- `cd` into the B folder and run the tests:
+    - `python3 test_process_data.py`
+    - `python3 test_utils.py`
 
 Contributing
 ============
