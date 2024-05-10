@@ -362,18 +362,19 @@ def unpack_file(path, same_folder=False):
 def download_epidemiological_data(data_name, only_one, dry_run, year, iso3):
     """Download Epidemiological Data."""
     if data_name == 'Ministerio de Salud (Peru) data':
-        download_ministerio_de_salud_peru_data()
+        download_ministerio_de_salud_peru_data(only_one, dry_run)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
 
-def download_ministerio_de_salud_peru_data():
+def download_ministerio_de_salud_peru_data(only_one, dry_run):
     """
     Download data from the Ministerio de Salud (Peru).
 
     Run times:
 
-    - `time python3 collate_data.py "Peru"`:
+    - `time python3 collate_data.py Peru -1 -d`: 01:41.93
+    - `time python3 collate_data.py Peru`:
         - 26:11.34
         - 13:34.151
     """
@@ -405,6 +406,9 @@ def download_ministerio_de_salud_peru_data():
         'sala_dengue_UCAYALI',
         'Nacional_dengue',
     ]
+    # If the user specifies that only one dataset should be downloaded
+    if only_one:
+        pages = pages[:1]
     for page in pages:
         url = 'https://www.dge.gob.pe/sala-situacional-dengue/uploads/' + \
             f'{page}.html'
@@ -439,15 +443,21 @@ def download_ministerio_de_salud_peru_data():
                 # Just use the page name for the file
                 filename = page + '.xlsx'
 
-            # Decode and export the data
-            decoded_bytes = base64.b64decode(base64_string)
+            # Export
             path = Path(
                 base_dir, 'A Collate Data', data_type, data_name, filename
             )
             path.parent.mkdir(parents=True, exist_ok=True)
-            with open(path, 'wb') as f:
-                print(f'Exporting "{path}"')
-                f.write(decoded_bytes)
+            if dry_run:
+                # If doing a dry run, just touch the files
+                print(f'Touching: "{path}"')
+                path.touch()
+            else:
+                # Decode and export the data
+                decoded_bytes = base64.b64decode(base64_string)
+                with open(path, 'wb') as f:
+                    print(f'Exporting "{path}"')
+                    f.write(decoded_bytes)
 
 
 def download_geospatial_data(data_name, only_one, dry_run, iso3):
@@ -1021,15 +1031,11 @@ if __name__ == '__main__':
     parser.add_argument('--year', '-y', default=None, help=message)
     message = '''Country code in "ISO 3166-1 alpha-3" format.'''
     parser.add_argument('--iso3', '-3', default='', help=message)
+    message = '''Show information to help with debugging.'''
+    parser.add_argument('--verbose', '-v', help=message, action='store_true')
 
     # Parse arguments from terminal
     args = parser.parse_args()
-
-    # Check
-    if True:
-        print('Arguments:')
-        for arg in vars(args):
-            print(f'{arg + ":":20s} {vars(args)[arg]}')
 
     # Extract the arguments
     data_name = args.data_name
@@ -1038,6 +1044,13 @@ if __name__ == '__main__':
     credentials = args.credentials
     year = args.year
     iso3 = args.iso3.upper()
+    verbose = args.verbose
+
+    # Check
+    if verbose:
+        print('Arguments:')
+        for arg in vars(args):
+            print(f'{arg + ":":20s} {vars(args)[arg]}')
 
     # Check that the data name is recognised
     if data_name in shorthand_to_data_name.keys():

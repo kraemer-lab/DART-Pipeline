@@ -152,7 +152,9 @@ def process_ministerio_de_salud_peru_data(admin_level):
     Process data from the Ministerio de Salud - Peru.
 
     Run times:
+
     - `time python3 process_data.py Peru`: 00:02.798
+    - `time python3 process_data.py Peru -a 1`: 00:21.144
     """
     # Sanitise the inputs and update the user
     data_type = 'Epidemiological Data'
@@ -160,7 +162,8 @@ def process_ministerio_de_salud_peru_data(admin_level):
     data_name = 'Ministerio de Salud (Peru) data'
     print(f'Data name:   {data_name}')
     iso3 = 'PER'
-    print(f'Country:     {iso3}')
+    country = pycountry.countries.get(alpha_3=iso3).name
+    print(f'Country:     {country}')
     if not admin_level:
         admin_level = '0'
         print(f'Admin level: None, defaulting to {admin_level}')
@@ -411,14 +414,14 @@ def process_gadm_admin_map_data(admin_level, iso3):
     output.to_csv(path, index=False)
 
 
-def process_meteorological_data(data_name, year, month, debug):
+def process_meteorological_data(data_name, year, month, verbose):
     """Process meteorological data."""
     if data_name == 'APHRODITE Daily accumulated precipitation (V1901)':
         process_aphrodite_precipitation_data()
     elif data_name == 'APHRODITE Daily mean temperature product (V1808)':
         process_aphrodite_temperature_data()
     elif data_name.startswith('CHIRPS: Rainfall Estimates from Rain Gauge an'):
-        process_chirps_rainfall_data(year, debug)
+        process_chirps_rainfall_data(year, verbose)
     elif data_name == 'ERA5 atmospheric reanalysis':
         process_era5_reanalysis_data()
     elif data_name.startswith('TerraClimate gridded temperature, precipitati'):
@@ -616,7 +619,7 @@ def process_aphrodite_temperature_data():
         df.to_csv(path)
 
 
-def process_chirps_rainfall_data(year, debug):
+def process_chirps_rainfall_data(year, verbose):
     """
     Process CHIRPS Rainfall data.
 
@@ -724,7 +727,7 @@ def process_chirps_rainfall_data(year, debug):
         plt.savefig(path)
 
         # If you're testing or debugging, only do one file
-        if debug:
+        if verbose:
             break
 
 
@@ -1837,7 +1840,7 @@ if __name__ == '__main__':
     message = '''Country code in "ISO 3166-1 alpha-3" format.'''
     parser.add_argument('--iso3', '-3', help=message)
     message = '''Show information to help with debugging.'''
-    parser.add_argument('--debug', '-d', help=message, action='store_true')
+    parser.add_argument('--verbose', '-v', help=message, action='store_true')
 
     # Parse arguments from terminal
     args = parser.parse_args()
@@ -1849,10 +1852,10 @@ if __name__ == '__main__':
     year = args.year
     month = args.month
     rt = args.resolution_type
-    debug = args.debug
+    verbose = args.verbose
 
     # Check
-    if debug:
+    if verbose:
         print('Arguments:')
         for arg in vars(args):
             print(f'{arg + ":":20s} {vars(args)[arg]}')
@@ -1874,7 +1877,7 @@ if __name__ == '__main__':
     elif data_type == ['Geospatial Data']:
         process_geospatial_data(data_name[0], admin_level, iso3)
     elif data_type == ['Meteorological Data']:
-        process_meteorological_data(data_name[0], year, month, debug)
+        process_meteorological_data(data_name[0], year, month, verbose)
     elif data_type == ['Socio-Demographic Data']:
         process_socio_demographic_data(data_name[0], year, iso3, rt)
 
