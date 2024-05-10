@@ -382,7 +382,7 @@ def download_gadm_admin_map_data(only_one, dry_run=True):
     iso3 = 'VNM'
 
     # Create output directory
-    out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
+    out_dir = Path(base_dir, 'A Collate Data', data_type, data_name, iso3)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     download_gadm_data('Geopackage', out_dir, iso3, dry_run)
@@ -497,7 +497,7 @@ def download_aphrodite_temperature_data(
 
     Run times:
 
-    - `time python3 collate_data.py "APHRODITE temperature"`: 87:58.039
+    - `time python3 collate_data.py "APHRODITE temperature"`: 1:27:58.039
     - `time python3 collate_data.py "APHRODITE temperature" -1`: 06:36.88
     - `time python3 collate_data.py "APHRODITE temperature" -1 -d`: 00:04.144
     """
@@ -831,7 +831,7 @@ def download_worldpop_pop_count_data(only_one, dry_run):
         succeded = download_file(url, path)
         # Unpack file
         if succeded:
-            unpack_file(path, same_folder=True)
+            unpack_file(path, same_folder=False)
 
 
 class EmptyObject:
