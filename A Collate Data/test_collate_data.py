@@ -15,6 +15,7 @@ Past Runs
 - 2024-05-08:
     - On Ubuntu 22.04 using Python 3.12: Ran 17 tests in 01:00.448
     - On Ubuntu 20.04 using Python 3.12: Ran 17 tests in 00:21.853
+- 2024-05-10: on macOS Sonoma using Python 3.12: Ran 17 tests in 00:37.624
 """
 import unittest
 from unittest.mock import patch

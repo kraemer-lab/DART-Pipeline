@@ -8,6 +8,7 @@ Past Runs
 - 2024-02-14 on macOS Sonoma using Python 3.12: Ran 15 tests in 00:00.008
 - 2024-04-23 on Ubuntu 22.04 using Python 3.12: Ran 15 tests in 00:00.086
 - 2024-05-08 on Ubuntu 20.04 using Python 3.12: Ran 15 tests in 00:00.045
+- 2024-05-10 on macOS Sonoma using Python 3.12: Ran 15 tests in 00:00.012
 """
 import unittest
 from unittest.mock import patch
