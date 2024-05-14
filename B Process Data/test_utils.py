@@ -3,14 +3,18 @@ Run unit tests on utils.py.
 
 Past Runs
 ---------
-- 2024-02-09 on macOS Sonoma with Python 3.12: Ran 17 tests in 0.010s
-- 2024-02-12 on Ubuntu 22 with Python 3.12: Ran 15 tests in 0.050s
+- 2024-02-09 on macOS Sonoma using Python 3.12: Ran 17 tests in 00:00.010
+- 2024-02-12 on Ubuntu 22.04 using Python 3.12: Ran 15 tests in 00:00.050
+- 2024-02-14 on macOS Sonoma using Python 3.12: Ran 15 tests in 00:00.008
+- 2024-04-23 on Ubuntu 22.04 using Python 3.12: Ran 15 tests in 00:00.046
+- 2024-05-08 on Ubuntu 20.04 using Python 3.12: Ran 15 tests in 00:00.043
 """
 import unittest
 from unittest.mock import patch
 import utils
 from pathlib import Path
 import warnings
+import os
 
 
 class TestCases(unittest.TestCase):
@@ -25,7 +29,7 @@ class TestCases(unittest.TestCase):
 
         This tests the default behaviour.
         """
-        expected = str(Path('~/DART-Pipeline').expanduser())
+        expected = str(Path.cwd().parent)
         actual = utils.get_base_directory()
         self.assertEqual(expected, actual)
 
@@ -36,7 +40,7 @@ class TestCases(unittest.TestCase):
         This tests a directory in a Git project that is not the default
         input.
         """
-        expected = str(Path('~/DART-Pipeline').expanduser())
+        expected = str(Path.cwd().parent)
         actual = utils.get_base_directory('..')
         self.assertEqual(expected, actual)
 
@@ -47,7 +51,7 @@ class TestCases(unittest.TestCase):
         - This tests an input which is a Path object, not a string.
         - This tests a directory that is not in a Git project.
         """
-        expected = None
+        expected = os.path.abspath(Path('..', '..'))
         actual = utils.get_base_directory(Path('..', '..'))
         self.assertEqual(expected, actual)
 

@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 
 
-def get_base_directory(starting_path: str | Path = '.') -> str | None:
+def get_base_directory(starting_path: str | Path = '.') -> str:
     """
     Get the base directory for a Git project.
 
@@ -18,10 +18,10 @@ def get_base_directory(starting_path: str | Path = '.') -> str | None:
 
     Returns
     -------
-    str, or None
+    str
         The path to the directory which contains the `.git` folder and which is
         also a parent directory of `starting_path`. If no such directory
-        exists, returns None.
+        exists, return the starting path.
     """
     path = os.path.abspath(starting_path)
     while True:
@@ -29,7 +29,7 @@ def get_base_directory(starting_path: str | Path = '.') -> str | None:
             return path
         if path == os.path.dirname(path):
             # If the current directory is the computer's root, break the loop
-            return None
+            return os.path.abspath(starting_path)
         path = os.path.dirname(path)
 
 
