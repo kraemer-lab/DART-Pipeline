@@ -64,6 +64,7 @@ from lxml import html
 import cdsapi
 import gzip
 import py7zr
+import gzip
 import requests
 # Built-in modules
 from datetime import date
@@ -363,8 +364,6 @@ def download_epidemiological_data(data_name, only_one, dry_run, year, iso3):
     """Download Epidemiological Data."""
     if data_name == 'Ministerio de Salud (Peru) data':
         download_ministerio_de_salud_peru_data(only_one, dry_run)
-    else:
-        raise ValueError(f'Unrecognised data name "{data_name}"')
 
 
 def download_ministerio_de_salud_peru_data(only_one, dry_run):
@@ -476,11 +475,11 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
 
     - `time python3 collate_data.py GADM`: 02:22.392
     - `time python3 collate_data.py GADM -3 VNM`:
-        - 0:31.094
-        - 0:54.608
+        - 00:31.094
+        - 00:54.608
     - `time python3 collate_data.py GADM -3 PER`:
-        - 0:18.516
-        - 1:02.167
+        - 00:18.516
+        - 01:02.167
     - `time python3 collate_data.py GADM -3 GBR`: 13:22.114
     """
     data_type = 'Geospatial Data'
@@ -831,10 +830,10 @@ def download_terraclimate_data(only_one, dry_run, year):
 
 def download_socio_demographic_data(data_name, only_one, dry_run, iso3):
     """Download socio-demographic data."""
-    if data_name == 'WorldPop population density':
-        download_worldpop_pop_density_data(only_one, dry_run, iso3)
-    elif data_name == 'WorldPop population count':
+    if data_name == 'WorldPop population count':
         download_worldpop_pop_count_data(only_one, dry_run, iso3)
+    elif data_name == 'WorldPop population density':
+        download_worldpop_pop_density_data(only_one, dry_run, iso3)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
@@ -928,6 +927,9 @@ def download_worldpop_pop_count_data(only_one, dry_run, iso3):
     """
     data_type = 'Socio-Demographic Data'
     data_name = 'WorldPop population count'
+
+    if only_one:
+        print('The --only_one/-1 flag has no effect for this metric')
 
     # Download files
     # Example URLs:

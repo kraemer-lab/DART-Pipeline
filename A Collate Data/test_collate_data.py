@@ -15,9 +15,13 @@ Past Runs
 - 2024-05-08:
     - On Ubuntu 22.04 using Python 3.12: Ran 17 tests in 01:00.448
     - On Ubuntu 20.04 using Python 3.12: Ran 17 tests in 00:21.853
+<<<<<<< HEAD
 - 2024-05-10: on macOS Sonoma using Python 3.12:
     - Ran 17 tests in 00:37.624
     - Ran 19 tests in 05:37.731
+=======
+- 2024-05-10: on macOS Sonoma using Python 3.12: Ran 17 tests in 00:37.624
+>>>>>>> origin/main
 """
 import unittest
 from unittest.mock import patch
@@ -31,19 +35,32 @@ from collate_data import \
     walk, \
     download_gadm_data, \
     unpack_file, \
+<<<<<<< HEAD
     download_epidemiological_data, \
     download_ministerio_de_salud_peru_data, \
     download_geospatial_data, \
     download_gadm_admin_map_data, \
+=======
+>>>>>>> origin/main
     download_meteorological_data, \
     download_aphrodite_temperature_data, \
     download_aphrodite_precipitation_data, \
     download_chirps_rainfall_data, \
+<<<<<<< HEAD
     download_era5_reanalysis_data, \
     download_terraclimate_data, \
     download_socio_demographic_data, \
     download_worldpop_pop_count_data, \
     download_worldpop_pop_density_data
+=======
+    download_terraclimate_data, \
+    download_era5_reanalysis_data, \
+    download_socio_demographic_data, \
+    download_worldpop_pop_density_data, \
+    download_worldpop_pop_count_data, \
+    download_geospatial_data, \
+    download_gadm_admin_map_data
+>>>>>>> origin/main
 
 
 class TestCases(unittest.TestCase):
@@ -243,6 +260,7 @@ class TestCases(unittest.TestCase):
         Path(out_dir, 'gadm41_VNM_1.json').unlink()
         Path('tests/').rmdir()
 
+<<<<<<< HEAD
     def test_download_epidemiological_data(self):
         data_name = 'Ministerio de Salud (Peru) data'
         download_epidemiological_data(data_name, True, True, None, None)
@@ -266,6 +284,15 @@ class TestCases(unittest.TestCase):
 
     def test_download_gadm_admin_map_data(self):
         download_gadm_admin_map_data(False, True, 'VNM')
+=======
+    def test_download_geospatial_data(self):
+        data_name = 'GADM administrative map'
+        download_geospatial_data(data_name, only_one=False, dry_run=True)
+        self.test_download_gadm_admin_map_data()
+
+    def test_download_gadm_admin_map_data(self):
+        download_gadm_admin_map_data(only_one=False, dry_run=True)
+>>>>>>> origin/main
         base_dir = utils.get_base_directory()
         root = Path(
             base_dir, 'A Collate Data', 'Geospatial Data',
@@ -389,6 +416,7 @@ class TestCases(unittest.TestCase):
 
     def test_download_socio_demographic_data(self):
         data_name = 'WorldPop population density'
+<<<<<<< HEAD
         download_socio_demographic_data(data_name, False, True, 'VNM')
         self.test_download_worldpop_pop_density_data()
 
@@ -398,6 +426,17 @@ class TestCases(unittest.TestCase):
 
     def test_download_worldpop_pop_density_data(self):
         download_worldpop_pop_density_data(False, True, 'VNM')
+=======
+        download_socio_demographic_data(data_name, False, True)
+        self.test_download_worldpop_pop_density_data()
+
+        data_name = 'WorldPop population count'
+        download_socio_demographic_data(data_name, False, True)
+        self.test_download_worldpop_pop_count_data()
+
+    def test_download_worldpop_pop_density_data(self):
+        download_worldpop_pop_density_data(only_one=False, dry_run=True)
+>>>>>>> origin/main
         base_dir = utils.get_base_directory()
         root = Path(
             base_dir, 'A Collate Data', 'Socio-Demographic Data',
@@ -413,7 +452,11 @@ class TestCases(unittest.TestCase):
             self.assertEqual(expected, actual)
 
     def test_download_worldpop_pop_count_data(self):
+<<<<<<< HEAD
         download_worldpop_pop_count_data(False, True, 'VNM')
+=======
+        download_worldpop_pop_count_data(only_one=False, dry_run=True)
+>>>>>>> origin/main
         base_dir = utils.get_base_directory()
         root = Path(
             base_dir, 'A Collate Data', 'Socio-Demographic Data',

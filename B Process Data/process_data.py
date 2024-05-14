@@ -64,13 +64,17 @@ format for country codes.
 from matplotlib import pyplot as plt
 from rasterio.features import geometry_mask
 from rasterio.mask import mask
+<<<<<<< HEAD
 from rasterio.mask import mask
+=======
+>>>>>>> origin/main
 from rasterio.transform import xy
 from shapely.geometry import box
 import geopandas as gpd
 import matplotlib.ticker as mticker
 import netCDF4 as nc
 import numpy as np
+<<<<<<< HEAD
 import rasterio
 # Built-in modules
 from datetime import date, datetime, timedelta
@@ -83,6 +87,8 @@ import matplotlib.ticker as mticker
 import netCDF4 as nc
 import numpy as np
 import os
+=======
+>>>>>>> origin/main
 import pandas as pd
 import pycountry
 import rasterio
@@ -109,7 +115,10 @@ plt.rc('font', family='serif')
 
 
 def days_to_date(days_since_1900):
+<<<<<<< HEAD
     """Convert a of number of days since 1900-01-01 into a date."""
+=======
+>>>>>>> origin/main
     base_date = datetime(1900, 1, 1)
     target_date = base_date + timedelta(days=days_since_1900)
 
@@ -139,14 +148,22 @@ def pixel_to_latlon(x, y, transform):
     return lat, lon
 
 
+<<<<<<< HEAD
 def process_epidemiological_data(data_name, iso3, admin_level):
     """Process Epidemiological Data."""
     if data_name == 'Ministerio de Salud (Peru) data':
         process_ministerio_de_salud_peru_data(admin_level)
+=======
+def process_geospatial_data(data_name, admin_level, country_iso3):
+    """Process Geospatial data."""
+    if data_name == 'GADM administrative map':
+        process_gadm_admin_map_data(admin_level, country_iso3)
+>>>>>>> origin/main
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
 
+<<<<<<< HEAD
 def process_ministerio_de_salud_peru_data(admin_level):
     """
     Process data from the Ministerio de Salud - Peru.
@@ -310,6 +327,19 @@ def process_gadm_admin_map_data(admin_level, iso3):
     """
     data_type = 'Geospatial Data'
     data_name = 'GADM administrative map'
+=======
+def process_gadm_admin_map_data(admin_level, country_iso3):
+    """
+    Process GADM administrative map data.
+
+    Run times:
+
+    - `time python3 process_data.py GADM -a 0 -3 VNM`: 00:01.036
+    - `time python3 process_data.py GADM -3 VNM`: 00:03.830
+    - `time python3 process_data.py GADM -a 2 -3 VNM`: 00:33.953
+    - `time python3 process_data.py GADM -a 3 -3 VNM`: 12:30.51
+    """
+>>>>>>> origin/main
     filenames = [f'gadm41_{country_iso3}_{admin_level}.shp']
     for filename in filenames:
         filename = Path(filename)
@@ -318,6 +348,7 @@ def process_gadm_admin_map_data(admin_level, iso3):
             f'gadm41_{country_iso3}_shp'
         )
 
+<<<<<<< HEAD
     # Import the shape file
     filename = f'gadm41_{iso3}_{admin_level}.shp'
     path = Path(
@@ -426,10 +457,586 @@ def process_meteorological_data(data_name, year, month, verbose):
         process_era5_reanalysis_data()
     elif data_name.startswith('TerraClimate gridded temperature, precipitati'):
         process_terraclimate_data(year, month)
+=======
+        # Import the shape file
+        path = Path(base_dir, 'A Collate Data', relative_path, filename)
+        gdf = gpd.read_file(path)
+
+        # Plot
+        fig = plt.figure(figsize=(10, 10))
+        ax = fig.add_subplot()
+        gdf.plot(ax=ax)
+        name = gdf.loc[0, 'COUNTRY']
+        plt.title(f'{name} - Admin Level {admin_level}')
+        plt.xlabel('Longitude')
+        plt.ylabel('Latitude')
+        # Export
+        path = Path(base_dir, 'B Process Data', relative_path, filename.stem)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        print(f'Exporting "{path}"')
+        plt.savefig(path)
+        plt.close()
+
+        # Iterate over the regions in the shape file
+        for i, row in gdf.iterrows():
+            # Initialise new row
+            new_row = {}
+            # Populate the new row
+            new_row['country'] = row['COUNTRY']
+            title = row['COUNTRY']
+            if 'NAME_1' in list(gdf):
+                new_row['name_1'] = row['NAME_1']
+                title = row['NAME_1']
+            if 'NAME_2' in list(gdf):
+                new_row['name_2'] = row['NAME_2']
+                title = row['NAME_2']
+            if 'NAME_3' in list(gdf):
+                new_row['name_3'] = row['NAME_3']
+                title = row['NAME_3']
+
+            # Plot
+            fig = plt.figure()
+            ax = fig.add_subplot()
+            if row['geometry'].geom_type == 'MultiPolygon':
+                for polygon in row['geometry'].geoms:
+                    x, y = polygon.exterior.xy
+                    plt.plot(x, y)
+            elif row['geometry'].geom_type == 'Polygon':
+                x, y = row['geometry'].exterior.xy
+                plt.plot(x, y)
+            ax.set_aspect('equal')
+            plt.title(title)
+            plt.xlabel('Longitude')
+            plt.ylabel('Latitude')
+            # Export
+            path = Path(
+                base_dir, 'B Process Data', relative_path, filename.stem,
+                str(title) + '.png'
+            )
+            path.parent.mkdir(parents=True, exist_ok=True)
+            print(f'Exporting "{path}"')
+            plt.savefig(path)
+            plt.close()
+
+
+def process_meteorological_data(data_name, year, month, debug):
+    """Process meteorological data."""
+    if data_name == 'APHRODITE Daily accumulated precipitation (V1901)':
+        process_aphrodite_precipitation_data()
+    elif data_name == 'APHRODITE Daily mean temperature product (V1808)':
+        process_aphrodite_temperature_data()
+    elif data_name.startswith('CHIRPS: Rainfall Estimates from Rain Gauge an'):
+        process_chirps_rainfall_data(year, debug)
+    elif data_name == 'ERA5 atmospheric reanalysis':
+        process_era5_reanalysis_data()
+    elif data_name.startswith('TerraClimate gridded temperature, precipitati'):
+        process_terraclimate_data(year, month)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
 
+def process_aphrodite_precipitation_data():
+    """
+    Process APHRODITE Daily accumulated precipitation (V1901) data.
+
+    Run times:
+
+    - `time python3 process_data.py "APHRODITE precipitation"`: 00:01.150
+    """
+    for res in ['025deg', '050deg']:
+        dir_path = Path(
+            base_dir, 'A Collate Data', 'Meteorological Data',
+            'APHRODITE Daily accumulated precipitation (V1901)', 'product',
+            'APHRO_V1901', 'APHRO_MA', res,
+        )
+
+        # Version of AphorTemp
+        version = 'V1901'
+
+        if res == '025deg':
+            nx = 360
+            ny = 280
+        elif res == '050deg':
+            nx = 180
+            ny = 140
+        else:
+            raise ValueError('ERROR: Invalid resolution specified')
+
+        year = 2015
+        # Check leap year
+        if (year % 4 == 0 and year % 100 != 0) or year % 400 == 0:
+            nday = 366
+        else:
+            nday = 365
+        # Construct filename
+        fname = Path(dir_path, f'APHRO_MA_{res}_{version}.{year}.gz')
+
+        # Initialise output lists
+        temp = []
+        rstn = []
+
+        print(f'Reading: {fname}')
+        print('iday', 'temp', 'rstn')
+        for iday in range(1, nday + 1):
+            try:
+                with open(fname, 'rb') as f:
+                    # Seek to the appropriate position in the file for the
+                    # current day's data
+                    # 4 bytes per float, 2 variables (temp and rstn)
+                    f.seek((iday - 1) * nx * ny * 4 * 2)
+                    # Read the data for the current day
+                    # 2 variables (temp and rstn)
+                    data = np.fromfile(f, dtype=np.float32, count=nx * ny * 2)
+                    # Replace undefined values with NaN
+                    data = np.where(data == -99.9, np.nan, data)
+                    data = np.where(data == -np.inf, np.nan, data)
+                    data = np.where(data == np.inf, np.nan, data)
+                    data = np.where(abs(data) < 0.000000001, np.nan, data)
+                    data = np.where(abs(data) > 99999999999, np.nan, data)
+                    # Reshape the data based on Fortran's column-major order
+                    data = data.reshape((2, nx, ny), order='F')
+                    temp_data = data[0, :, :]
+                    rstn_data = data[1, :, :]
+                    # Get the averages
+                    mean_temp = np.nanmean(temp_data)
+                    mean_rstn = np.nanmean(rstn_data)
+                    # Print average values for temp and rstn
+                    print(f'Day {iday}: ', end='')
+                    print(f'Temp average = {mean_temp:.2f}, ', end='')
+                    print(f'Rstn average = {mean_rstn:.2f}')
+                    temp.append(mean_temp)
+                    rstn.append(mean_rstn)
+            except FileNotFoundError:
+                print(f'ERROR: File not found - {fname}')
+            except ValueError:
+                pass
+
+        # Convert lists to DataFrame
+        dct = {'temp': temp, 'rstn': rstn}
+        df = pd.DataFrame(dct)
+
+        # Export
+        path = Path(
+            base_dir, 'B Process Data', 'Meteorological Data',
+            'APHRODITE Daily accumulated precipitation (V1901)',
+            f'{res}.csv'
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(path)
+
+
+def process_aphrodite_temperature_data():
+    """
+    Process APHRODITE Daily mean temperature product (V1808) data.
+
+    Run times:
+
+    - `time python3 process_data.py "APHRODITE temperature"`: 00:03.018
+    """
+    for res in ['005deg', '025deg', '050deg_nc']:
+        # Directory where data is stored
+        dir_path = Path(
+            base_dir, 'A Collate Data', 'Meteorological Data',
+            'APHRODITE Daily mean temperature product (V1808)', 'product',
+            'APHRO_V1808_TEMP', 'APHRO_MA', res,
+        )
+
+        # Version of AphorTemp
+        version = 'V1808'
+
+        # Product name
+        # The name of the product uses the template "TAVE_YYYdeg" were YYY is
+        # 025 or 050
+        if res == '005deg':
+            product = 'TAVE_CLM_005deg'
+            nx = 1800
+            ny = 1400
+        elif res == '025deg':
+            product = 'TAVE_025deg'
+            nx = 360
+            ny = 280
+        elif res == '050deg_nc':
+            product = 'TAVE_050deg'
+            nx = 180
+            ny = 140
+        else:
+            raise ValueError('ERROR: Invalid resolution specified')
+
+        # Number of days and filename
+        if product == 'TAVE_CLM_005deg':
+            nday = 366
+            # Construct filename
+            fname = Path(dir_path, f'APHRO_MA_{product}_{version}.grd.gz')
+        elif product == 'TAVE_025deg':
+            year = 2015
+            # Check leap year
+            if (year % 4 == 0 and year % 100 != 0) or year % 400 == 0:
+                nday = 366
+            else:
+                nday = 365
+            # Construct filename
+            fname = Path(dir_path, f'APHRO_MA_{product}_{version}.{year}.gz')
+        elif product == 'TAVE_050deg':
+            year = 2015
+            # Check leap year
+            if (year % 4 == 0 and year % 100 != 0) or year % 400 == 0:
+                nday = 366
+            else:
+                nday = 365
+            # Construct filename
+            fname = f'APHRO_MA_{product}_{version}.{year}.nc.gz'
+            fname = Path(dir_path, fname)
+        else:
+            raise ValueError('ERROR: Invalid product specified')
+
+        # Initialise output lists
+        temp = []
+        rstn = []
+
+        try:
+            with open(fname, 'rb') as f:
+                print(f'Reading: {fname}')
+                print('iday', 'temp', 'rstn')
+                for iday in range(1, nday + 1):
+                    temp_data = np.fromfile(f, dtype=np.float32, count=nx * ny)
+                    rstn_data = np.fromfile(f, dtype=np.float32, count=nx * ny)
+                    temp_data = temp_data.reshape((nx, ny))
+                    rstn_data = rstn_data.reshape((nx, ny))
+                    print(iday, temp_data[0, 0], rstn_data[0, 0])
+                    temp.append(temp_data[0, 0])
+                    rstn.append(rstn_data[0, 0])
+        except FileNotFoundError:
+            print(f'ERROR: File not found - {fname}')
+        except ValueError:
+            pass
+
+        # Convert lists to DataFrame
+        dct = {'temp': temp, 'rstn': rstn}
+        df = pd.DataFrame(dct)
+
+        # Export
+        path = Path(
+            base_dir, 'B Process Data', 'Meteorological Data',
+            'APHRODITE Daily mean temperature product (V1808)',
+            f'{res}.csv'
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(path)
+
+
+def process_chirps_rainfall_data(year, debug):
+    """
+    Process CHIRPS Rainfall data.
+
+    "CHIRPS" stands for Climate Hazards Group InfraRed Precipitation with
+    Station.
+
+    Run times:
+
+    - `time python3 process_data.py "CHIRPS rainfall" -d`: 02:07.085 (one file)
+    """
+    # Sanitise the inputs
+    data_type = 'Meteorological Data'
+    data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and ' + \
+        'Satellite Observations'
+    if not year:
+        year = '2024'
+
+    # Inform the user
+    print('Data type:  ', data_type)
+    print('Data names: ', data_name)
+    print('Year:       ', year)
+
+    path = Path(
+        base_dir, 'A Collate Data', 'Meteorological Data',
+        'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
+        'Observations', 'products', 'CHIRPS-2.0', 'global_daily', 'tifs',
+        'p05', year
+    )
+    filepaths = list(path.iterdir())
+    # Only process the GeoTIF files
+    filepaths = [f for f in filepaths if f.suffix == '.tif']
+    filepaths.sort()
+
+    for filepath in filepaths:
+        print(f'Processing "{filepath.name}"')
+        # Open the CHIRPS .tif file
+        src = rasterio.open(filepath)
+        num_bands = src.count
+        if num_bands != 1:
+            msg = f'There is a number of bands other than 1: {num_bands}'
+            raise ValueError(msg)
+
+        # Get the data in the first band as an array
+        data = src.read(1)
+        # Get the affine transformation coefficients
+        transform = src.transform
+        # Get the size of the image
+        rows, cols = src.height, src.width
+
+        # Reshape the data into a 1D array
+        rainfall = data.flatten()
+        # Construct the coordinates for each pixel
+        all_rows, all_cols = np.indices((rows, cols))
+        lon, lat = xy(transform, all_rows.flatten(), all_cols.flatten())
+
+        # Create a data frame
+        df = pd.DataFrame({
+            'longitude': lon,
+            'latitude': lat,
+            'rainfall': rainfall,
+        })
+        # Export
+        path = Path(
+            'Meteorological Data',
+            'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
+            'Observations', Path(filepath.name).with_suffix('.csv')
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(path, index=False)
+
+        # Plot
+        plt.figure(figsize=(20, 8))
+        extent = [np.min(lon), np.max(lon), np.min(lat), np.max(lat)]
+        # Hide nulls
+        data[data == -9999] = 0
+        cmap = plt.cm.get_cmap('Blues')
+        plt.imshow(data, extent=extent, cmap=cmap)
+        plt.colorbar(label='Rainfall [mm]')
+        plt.xlabel('Longitude')
+        plt.ylabel('Latitude')
+        plt.title('Rainfall Estimates')
+        plt.grid(True)
+        path = Path(
+            'Meteorological Data',
+            'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
+            'Observations', Path(filepath.name).with_suffix('.png')
+        )
+        plt.savefig(path)
+
+        # Plot - log transformed
+        plt.figure(figsize=(20, 8))
+        extent = [np.min(lon), np.max(lon), np.min(lat), np.max(lat)]
+        # Hide nulls
+        data[data == -9999] = 0
+        # Log transform
+        data = np.log(data)
+        cmap = plt.cm.get_cmap('Blues')
+        plt.imshow(data, extent=extent, cmap=cmap)
+        plt.colorbar(shrink=0.8, label='Rainfall [mm, log transformed]')
+        plt.xlabel('Longitude')
+        plt.ylabel('Latitude')
+        plt.title('Rainfall Estimates - Log Transformed')
+        plt.grid(True)
+        path = str(path).removesuffix('.png') + ' - Log Transformed.png'
+        plt.savefig(path)
+
+        # If you're testing or debugging, only do one file
+        if debug:
+            break
+
+
+def process_era5_reanalysis_data():
+    """
+    Process ERA5 atmospheric reanalysis data.
+
+    Run times:
+
+    - `time python3 process_data.py "ERA5 reanalysis"`: 00:02.265
+    """
+    path = Path(
+        base_dir, 'A Collate Data', 'Meteorological Data',
+        'ERA5 atmospheric reanalysis', 'ERA5-ml-temperature-subarea.nc'
+    )
+    file = nc.Dataset(path, 'r')
+
+    # Import variables as arrays
+    longitude = file.variables['longitude'][:]
+    latitude = file.variables['latitude'][:]
+    level = file.variables['level'][:]
+    time = file.variables['time'][:]
+    temp = file.variables['t'][:]
+    # Convert Kelvin to Celcius
+    temp = temp - 273.15
+
+    longitudes = []
+    latitudes = []
+    levels = []
+    times = []
+    temperatures = []
+    for i, lon in enumerate(longitude):
+        for j, lat in enumerate(latitude):
+            for k, lev in enumerate(level):
+                for l, t in enumerate(time):
+                    longitudes.append(lon)
+                    latitudes.append(lat)
+                    levels.append(lev)
+                    times.append(t)
+                    temperatures.append(temp[l, k, j, i])
+
+    # Convert lists to DataFrame
+    dct = {
+        'longitude': longitudes,
+        'latitude': latitudes,
+        'level': levels,
+        'time': times,
+        'temperature': temperatures,
+    }
+    df = pd.DataFrame(dct)
+
+    # Export
+    path = Path(
+        base_dir, 'B Process Data', 'Meteorological Data',
+        'ERA5 atmospheric reanalysis', 'ERA5-ml-temperature-subarea.csv'
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(path, index=False)
+
+    # Close the file
+    file.close()
+
+
+def process_terraclimate_data(year, month):
+    """
+    Process TerraClimate gridded temperature, precipitation, etc.
+
+    These raw data files are in the netCDF4 (`.nc`) format.
+
+    Run times:
+
+    - `time python3 process_data.py "TerraClimate data" -y 2023 -m 11`:
+      00:23.644
+    """
+    # Inform the user
+    msg = datetime(int(year), int(month), 1)
+    msg = msg.strftime('%B %Y')
+    print(f'Processing data for {msg}')
+
+    metrics = [
+        'aet',  # water_evaporation_amount_mm
+        'def',  # water_potential_evaporation_amount_minus_water_evaporation_
+        'pdsi',  # palmer_drought_severity_index (unitless)
+        'pet',  # water_potential_evaporation_amount_mm
+        'ppt',  # precipitation_amount_mm
+        'q',  # runoff_amount_mm
+        'soil',  # soil_moisture_content_mm
+        'srad',  # downwelling_shortwave_flux_in_air_W_per_m_squared
+        'swe',  # liquid_water_content_of_surface_snow_mm
+        'tmax',  # air_temperature_max_degC
+        'tmin',  # air_temperature_min_degC
+        'vap',  # water_vapor_partial_pressure_in_air_kPa
+        'vpd',  # vapor_pressure_deficit_kPa
+        'ws',  # wind_speed_m_per_s
+    ]
+    for year in [year]:
+        for metric in metrics:
+            filename = f'TerraClimate_{metric}_{year}.nc'
+            print(f'Processing "{filename}"')
+            path = Path(
+                base_dir, 'A Collate Data', 'Meteorological Data',
+                'TerraClimate gridded temperature, precipitation, and other',
+                'TERRACLIMATE-DATA', filename
+            )
+            file = nc.Dataset(path, 'r')
+            # print(file.variables.keys())
+            # dict_keys(['lat', 'lon', 'time', 'crs', 'aet'])
+
+            # Construct the metric name and unit
+            if metric == 'pdsi':
+                metric_name = 'Palmer Drought Severity Index'
+                units = 'unitless'
+            elif metric == 'tmax':
+                metric_name = 'Maximum Air Temperature'
+                units = '°C'
+            elif metric == 'tmin':
+                metric_name = 'Minimum Air Temperature'
+                units = '°C'
+            else:
+                metric_name = file[metric].long_name
+                metric_name = metric_name.replace('_', ' ').title()
+                units = file[metric].units
+                units = units.replace('W/m^2', 'W/m²')
+
+            # Import variables as arrays
+            longitude = file.variables['lon'][:]  # shape = (8640,)
+            latitude = file.variables['lat'][:]  # shape = (4320,)
+            time = file.variables['time']  # shape = (12,)
+            raw_data = file.variables[metric]  # shape = (12, 4320, 8640)
+
+            for month in [month]:
+                # Convert the month number to an index
+                i = int(month) - 1
+
+                # Get the number of days since 1900-01-01
+                t = int(time[i])
+
+                # Get the date this data represents
+                date = days_to_date(t)
+
+                # Get the data for this timepoint, for all lat and lon
+                data = raw_data[i, :, :]
+
+                # Downsample to save memory
+                data = data[::2, ::2]
+                lon = longitude[::2]
+                lat = latitude[::2]
+
+                # Plot data
+                A = 5  # We want figures to be A5
+                figsize = (46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A))
+                fig = plt.figure(figsize=figsize)
+                ax = plt.axes()
+                img = ax.imshow(data, cmap='GnBu')
+                # Create the colour bar
+                label = f'{metric_name} [{units}]'
+                fig.colorbar(img, label=label, shrink=0.4)
+                # Get the tick locations
+                ylocs, _ = plt.yticks()
+                xlocs, _ = plt.xticks()
+                # Trim
+                ylocs = ylocs[1:-1]
+                xlocs = xlocs[1:-1]
+                # Use the tick locations as indexes to get the lat and lon
+                lat = lat[ylocs.astype(int)].round()
+                lon = lon[xlocs.astype(int)].round()
+                # Convert the axis ticks from pixels into lat and lon
+                plt.yticks(ylocs, lat)
+                plt.xticks(xlocs, lon)
+                # Add labels
+                plt.xlabel('Longitude')
+                plt.ylabel('Latitude')
+                B_Y = date.strftime('%B %Y')
+                ax.set_title(
+                    rf'\centering\bf {metric_name}\\\normalfont {B_Y}\par',
+                    y=1.1
+                )
+                plt.tight_layout()
+                # Export
+                Y_m = date.strftime('%Y-%m')
+                path = Path(
+                    base_dir, 'B Process Data', 'Meteorological Data',
+                    'TerraClimate', Y_m, metric_name
+                )
+                path.parent.mkdir(parents=True, exist_ok=True)
+                plt.savefig(path)
+                plt.close()
+
+            # Close the file
+            file.close()
+
+
+def process_socio_demographic_data(data_name, year, country_iso3, rt):
+    """Process socio-demographic data."""
+    if data_name == 'WorldPop population count':
+        process_worldpop_pop_count_data(year, country_iso3, rt)
+    elif data_name == 'WorldPop population density':
+        process_worldpop_pop_density_data(year, country_iso3)
+>>>>>>> origin/main
+    else:
+        raise ValueError(f'Unrecognised data name "{data_name}"')
+
+
+<<<<<<< HEAD
 def process_aphrodite_precipitation_data():
     """
     Process APHRODITE Daily accumulated precipitation (V1901) data.
@@ -930,6 +1537,8 @@ def process_socio_demographic_data(data_name, year, iso3, rt):
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
 
+=======
+>>>>>>> origin/main
 def process_worldpop_pop_count_data(year, iso3, rt):
     """
     Process WorldPop population count.
@@ -940,9 +1549,12 @@ def process_worldpop_pop_count_data(year, iso3, rt):
 
     Run times:
 
+<<<<<<< HEAD
     - `python3 process_data.py "WorldPop pop count" -3 PER`:
         - 02:05.13
         - 03:27.575
+=======
+>>>>>>> origin/main
     - `python3 process_data.py "WorldPop pop count" -y 2020 -3 VNM -r ppp`:
         - 00:43.332
     """
@@ -971,6 +1583,7 @@ def process_worldpop_pop_count_data(year, iso3, rt):
     path = Path(
         base_dir, 'A Collate Data', data_type, data_name, 'GIS', 'Population',
         'Individual_countries', iso3, foldername, filename,
+<<<<<<< HEAD
 
     )
     # Find the file in the folder
@@ -983,6 +1596,11 @@ def process_worldpop_pop_count_data(year, iso3, rt):
     # Load the data
     print(f'Processing "{file}"')
     src = rasterio.open(filepath)
+=======
+    )
+    # Load the data
+    src = rasterio.open(path)
+>>>>>>> origin/main
     # Get the affine transformation coefficients
     transform = src.transform
     # Read data from band 1
@@ -996,8 +1614,13 @@ def process_worldpop_pop_count_data(year, iso3, rt):
     plt.colorbar(shrink=0.8, label='Population')
     # Export
     path = Path(
+<<<<<<< HEAD
         base_dir, 'B Process Data', data_type, data_name, iso3,
         filename.stem + ' - Raw.png'
+=======
+        base_dir, 'B Process Data', 'Socio-Demographic Data',
+        'WorldPop population count', iso3, filename.stem + ' - Naive.png'
+>>>>>>> origin/main
     )
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -1036,8 +1659,13 @@ def process_worldpop_pop_count_data(year, iso3, rt):
 
     # Plot - no normalisation
     path = Path(
+<<<<<<< HEAD
         base_dir, 'B Process Data', data_type, data_name, iso3,
         filename.stem + '.png'
+=======
+        base_dir, 'B Process Data', 'Socio-Demographic Data',
+        'WorldPop population count', iso3, filename.stem + '.png'
+>>>>>>> origin/main
     )
     if not path.exists():
         plt.imshow(population_data, cmap='GnBu')
@@ -1060,8 +1688,13 @@ def process_worldpop_pop_count_data(year, iso3, rt):
 
     # Plot - log transformed
     path = Path(
+<<<<<<< HEAD
         base_dir, 'B Process Data', data_type, data_name, iso3,
         filename.stem + ' - Log Scale.png'
+=======
+        base_dir, 'B Process Data', 'Socio-Demographic Data',
+        'WorldPop population count', iso3, filename.stem + ' - Log Scale.png'
+>>>>>>> origin/main
     )
     if not path.exists():
         population_data = np.log(population_data)
@@ -1095,8 +1728,13 @@ def process_worldpop_pop_count_data(year, iso3, rt):
     df = pd.DataFrame(source_data, index=lat, columns=lon)
     # Export
     path = Path(
+<<<<<<< HEAD
         base_dir, 'B Process Data', data_type, data_name, iso3,
         filename.stem + '.csv'
+=======
+        base_dir, 'B Process Data', 'Socio-Demographic Data',
+        'WorldPop population count', iso3, filename.stem + '.csv'
+>>>>>>> origin/main
     )
     if not path.exists():
         print(f'Exporting "{path}"')
@@ -1107,8 +1745,13 @@ def process_worldpop_pop_count_data(year, iso3, rt):
 
     # Plot - transformed
     path = Path(
+<<<<<<< HEAD
         base_dir, 'B Process Data', data_type, data_name, iso3,
         filename.stem + ' - Transformed.png'
+=======
+        base_dir, 'B Process Data', 'Socio-Demographic Data',
+        'WorldPop population count', iso3, filename.stem + ' - Transformed.png'
+>>>>>>> origin/main
     )
     if not path.exists():
         plt.imshow(df, cmap='GnBu')
@@ -1118,12 +1761,17 @@ def process_worldpop_pop_count_data(year, iso3, rt):
         plt.close()
 
 
+<<<<<<< HEAD
 def process_worldpop_pop_density_data(year, iso3):
+=======
+def process_worldpop_pop_density_data(year, country_iso3):
+>>>>>>> origin/main
     """
     Process WorldPop population density.
 
     Run times:
 
+<<<<<<< HEAD
     - `time python3 process_data.py "WorldPop pop density"`: 00:02.026
     - `time python3 process_data.py "WorldPop pop density" -3 PER`: 00:04.311
     - `time python3 process_data.py "WorldPop pop density" -y 2020 -3 VNM`:
@@ -1146,6 +1794,27 @@ def process_worldpop_pop_density_data(year, iso3):
     path = Path(
         base_dir, 'B Process Data', data_type, data_name, iso3,
         Path(filename).with_suffix('.csv')
+=======
+    - `time python3 process_data.py "WorldPop pop density" -y 2020 -3 VNM`:
+        - 00:01.954
+    """
+    # Import the population density data
+    relative_path = Path(
+        'Socio-Demographic Data', 'WorldPop population density', 'GIS',
+        'Population_Density', 'Global_2000_2020_1km_UNadj', year, country_iso3,
+    )
+    iso3_lower = country_iso3.lower()
+    filename = Path(f'{iso3_lower}_pd_{year}_1km_UNadj_ASCII_XYZ.zip')
+    path = Path(base_dir, 'A Collate Data', relative_path, filename)
+    df = pd.read_csv(path)
+
+    # Export as-is
+    filename = Path(filename.stem + '.csv')
+    path = Path(
+        base_dir, 'B Process Data', 'Socio-Demographic Data',
+        'WorldPop population density', year, country_iso3,
+        str(filename.stem) + '.csv'
+>>>>>>> origin/main
     )
     path.parent.mkdir(parents=True, exist_ok=True)
     print(f'Exporting "{path}"')
@@ -1158,15 +1827,25 @@ def process_worldpop_pop_density_data(year, iso3):
     pt = df.pivot_table(index='Y', columns='X', values='Z')
     im = ax.imshow(pt, cmap='GnBu')
     ax.invert_yaxis()
+<<<<<<< HEAD
     plt.title('Population Density')
+=======
+    plt.title('Population Density - Naive')
+>>>>>>> origin/main
     label = f'Population Density {year}, UN Adjusted (pop/km²)'
     plt.colorbar(im, shrink=0.2, label=label)
     # Remove ticks and tick labels
     plt.axis('off')
     # Export
     path = Path(
+<<<<<<< HEAD
         base_dir, 'B Process Data', data_type, data_name, iso3,
         Path(filename).with_suffix('.png')
+=======
+        base_dir, 'B Process Data', 'Socio-Demographic Data',
+        'WorldPop population density', year, country_iso3,
+        str(filename.stem) + ' - Naive.png'
+>>>>>>> origin/main
     )
     path.parent.mkdir(parents=True, exist_ok=True)
     print(f'Exporting "{path}"')
@@ -1177,16 +1856,26 @@ def process_worldpop_pop_density_data(year, iso3):
     A = 3  # We want figures to be A3
     figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
     fig, ax = plt.subplots(figsize=figsize)
+<<<<<<< HEAD
     plt.title('Population Density - Log Transformed')
     # Re-scale
     df = df[df['Z'] > 0]
     df['Z_rescaled'] = np.log(df['Z'])
+=======
+    plt.title('Population Density - Re-Scaled')
+    # Re-scale
+    df['Z_rescaled'] = df['Z']**0.01
+>>>>>>> origin/main
     pt = df.pivot_table(index='Y', columns='X', values='Z_rescaled')
     im = ax.imshow(pt, cmap='GnBu')
     ax.invert_yaxis()
     # Manually create the colour bar
     ticks = np.linspace(df['Z_rescaled'].min(), df['Z_rescaled'].max(), 5)
+<<<<<<< HEAD
     ticklabels = np.exp(ticks)
+=======
+    ticklabels = ticks**(1 / 0.01)
+>>>>>>> origin/main
     ticklabels = ticklabels.astype(int)
     fig.colorbar(
         im,
@@ -1199,8 +1888,14 @@ def process_worldpop_pop_density_data(year, iso3):
     plt.axis('off')
     # Export
     path = Path(
+<<<<<<< HEAD
         base_dir, 'B Process Data', data_type, data_name, iso3,
         Path(filename + ' - Log Transformed').with_suffix('.png')
+=======
+        base_dir, 'B Process Data', 'Socio-Demographic Data',
+        'WorldPop population density', year, country_iso3,
+        str(filename.stem) + ' - Re-Scaled.png'
+>>>>>>> origin/main
     )
     path.parent.mkdir(parents=True, exist_ok=True)
     print(f'Exporting "{path}"')
@@ -1209,19 +1904,31 @@ def process_worldpop_pop_density_data(year, iso3):
 
 
 def process_geospatial_meteorological_data(
+<<<<<<< HEAD
     data_name, admin_level, iso3, year, rt
+=======
+    data_name, admin_level, iso3, year
+>>>>>>> origin/main
 ):
     """Process Geospatial and Meteorological Data."""
     data_name_1 = 'GADM administrative map'
     data_name_2 = \
         'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations'
     if data_name == [data_name_1, data_name_2]:
+<<<<<<< HEAD
         process_gadm_chirps_data(admin_level, iso3, year, rt)
+=======
+        process_gadm_chirps_data(admin_level, iso3, year)
+>>>>>>> origin/main
     else:
         raise ValueError(f'Unrecognised data names "{data_name}"')
 
 
+<<<<<<< HEAD
 def process_gadm_chirps_data(admin_level, iso3, year, rt):
+=======
+def process_gadm_chirps_data(admin_level, iso3, year):
+>>>>>>> origin/main
     """
     Process GADM administrative map and CHIRPS rainfall data.
 
@@ -1649,7 +2356,11 @@ def process_gadm_worldpopdensity_data(admin_level, iso3, year, rt):
     # Replace placeholder numbers with 0
     data[data < 0] = 0
 
+<<<<<<< HEAD
     # Import the relevant shape file
+=======
+    # Import the shape file
+>>>>>>> origin/main
     filename = f'gadm41_{iso3}_{admin_level}.shp'
     path = Path(
         base_dir, 'A Collate Data', 'Geospatial Data',
@@ -1762,6 +2473,7 @@ class EmptyObject:
 
 
 shorthand_to_data_name = {
+<<<<<<< HEAD
     # Epidemiological Data
     'Peru': 'Ministerio de Salud (Peru) data',
 
@@ -1804,6 +2516,43 @@ data_name_to_type = {
     'WorldPop population density': 'Socio-Demographic Data',
     'WorldPop population count': 'Socio-Demographic Data',
 
+=======
+    # Meteorological Data
+    'APHRODITE precipitation':
+    'APHRODITE Daily accumulated precipitation (V1901)',
+    'APHRODITE temperature':
+    'APHRODITE Daily mean temperature product (V1808)',
+    'CHIRPS rainfall':
+    'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations',
+    'TerraClimate data':
+    'TerraClimate gridded temperature, precipitation, and other',
+    'ERA5 reanalysis':
+    'ERA5 atmospheric reanalysis',
+
+    # Socio-Demographic Data
+    'WorldPop pop density': 'WorldPop population density',
+    'WorldPop pop count': 'WorldPop population count',
+
+    # Geospatial Data
+    'GADM': 'GADM administrative map',
+    'GADM admin map': 'GADM administrative map',
+}
+
+data_name_to_type = {
+    # Meteorological Data
+    'APHRODITE Daily mean temperature product (V1808)': 'Meteorological Data',
+    'APHRODITE Daily accumulated precipitation (V1901)': 'Meteorological Data',
+    'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations':
+    'Meteorological Data',
+    'TerraClimate gridded temperature, precipitation, and other':
+    'Meteorological Data',
+    'ERA5 atmospheric reanalysis': 'Meteorological Data',
+
+    # Socio-Demographic Data
+    'WorldPop population density': 'Socio-Demographic Data',
+    'WorldPop population count': 'Socio-Demographic Data',
+
+>>>>>>> origin/main
     # Geospatial Data
     'GADM administrative map': 'Geospatial Data',
 }
@@ -1840,7 +2589,11 @@ if __name__ == '__main__':
     message = '''Country code in "ISO 3166-1 alpha-3" format.'''
     parser.add_argument('--iso3', '-3', help=message)
     message = '''Show information to help with debugging.'''
+<<<<<<< HEAD
     parser.add_argument('--verbose', '-v', help=message, action='store_true')
+=======
+    parser.add_argument('--debug', '-d', help=message, action='store_true')
+>>>>>>> origin/main
 
     # Parse arguments from terminal
     args = parser.parse_args()
@@ -1852,10 +2605,17 @@ if __name__ == '__main__':
     year = args.year
     month = args.month
     rt = args.resolution_type
+<<<<<<< HEAD
     verbose = args.verbose
 
     # Check
     if verbose:
+=======
+    debug = args.debug
+
+    # Check
+    if debug:
+>>>>>>> origin/main
         print('Arguments:')
         for arg in vars(args):
             print(f'{arg + ":":20s} {vars(args)[arg]}')
@@ -1872,18 +2632,31 @@ if __name__ == '__main__':
 
     if data_name == []:
         print('No data name has been provided. Exiting the programme.')
+<<<<<<< HEAD
     elif data_type == ['Epidemiological Data']:
         process_epidemiological_data(data_name[0], iso3, admin_level)
     elif data_type == ['Geospatial Data']:
         process_geospatial_data(data_name[0], admin_level, iso3)
     elif data_type == ['Meteorological Data']:
         process_meteorological_data(data_name[0], year, month, verbose)
+=======
+    # elif data_type == ['Epidemiological Data']:
+    #     process_epidemiological_data(data_name[0], iso3, admin_level)
+    elif data_type == ['Geospatial Data']:
+        process_geospatial_data(data_name[0], admin_level, iso3)
+    elif data_type == ['Meteorological Data']:
+        process_meteorological_data(data_name[0], year, month, debug)
+>>>>>>> origin/main
     elif data_type == ['Socio-Demographic Data']:
         process_socio_demographic_data(data_name[0], year, iso3, rt)
 
     elif data_type == ['Geospatial Data', 'Meteorological Data']:
         process_geospatial_meteorological_data(
+<<<<<<< HEAD
             data_name, admin_level, iso3, year, rt
+=======
+            data_name, admin_level, iso3, year
+>>>>>>> origin/main
         )
     elif data_type == ['Geospatial Data', 'Socio-Demographic Data']:
         process_geospatial_sociodemographic_data(
