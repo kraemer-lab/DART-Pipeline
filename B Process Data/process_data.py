@@ -140,8 +140,8 @@ def process_ministerio_de_salud_peru_data(admin_level):
 
     Run times:
 
-    - `time python3 process_data.py Peru`: 00:02.798
-    - `time python3 process_data.py Peru -a 1`: 00:21.144
+    - `time python3 process_data.py Peru`: 00:01.378
+    - `time python3 process_data.py Peru -a 1`: 00:04.377
 
     Parameters
     ----------
