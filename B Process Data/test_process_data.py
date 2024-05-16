@@ -3,18 +3,20 @@ Run unit tests on process_data.py.
 
 Past runs
 ---------
-- 2024-02-08 on Ubuntu 22.04 using Python 3.12: Ran 2 tests in 0.824s
-- 2024-02-09 on macOS Sonoma using Python 3.12: Ran 2 tests in 0.833s
+- 2024-02-08 on Ubuntu 22.04 using Python 3.12: Ran 2 tests in 00:00.824
+- 2024-02-09 on macOS Sonoma using Python 3.12: Ran 2 tests in 00:00.833
+- 2024-05-08 on Ubuntu 20.04 using Python 3.12: Ran 18 tests in 07:01.735
+- 2024-05-09 on Ubuntu 22.04 using Python 3.12: Ran 18 tests in 14:58.102
+- 2024-05-10 on macOS Sonoma using Python 3.12: Ran 18 tests in 04:41.547
 """
 # External libraries
 import rasterio
-import pandas as pd
 # Built-in modules
 from datetime import datetime, timedelta
-import time
-import unittest
 from pathlib import Path
 import os
+import time
+import unittest
 # Custom modules
 from process_data import \
     days_to_date, \
@@ -32,13 +34,16 @@ from process_data import \
     process_era5_reanalysis_data, \
     process_terraclimate_data, \
     process_socio_demographic_data, \
+    process_meta_pop_density_data, \
     process_worldpop_pop_count_data, \
     process_worldpop_pop_density_data, \
     process_geospatial_meteorological_data, \
     process_gadm_chirps_data, \
     process_geospatial_sociodemographic_data, \
     process_gadm_worldpoppopulation_data, \
-    process_gadm_worldpopdensity_data
+    process_gadm_worldpopdensity_data,\
+    process_economic_geospatial_sociodemographic_data, \
+    process_pop_weighted_relative_wealth_index_data
 import utils
 
 
@@ -48,35 +53,6 @@ class TestCases(unittest.TestCase):
         expected = datetime(1970, 1, 1)
         actual = days_to_date(25567)
         self.assertEqual(expected, actual)
-
-    def test_plot_pop_density(self):
-        # Set up
-        out_dir = Path('tests')
-        out_dir.mkdir(parents=True, exist_ok=True)
-
-        # Plot whole country
-        base_dir = str(utils.get_base_directory())
-        relative_path = Path(
-            'B Process Data',
-            'Geospatial and Socio-Demographic Data',
-            'GADM administrative map and WorldPop population density',
-            'Vietnam.csv'
-        )
-        path = Path(base_dir, relative_path)
-        df = pd.read_csv(path)
-        plot_pop_density(df, out_dir, 'Vietnam.png')
-
-        # Check if the file has been created
-        expected = True
-        path = Path(out_dir, 'Vietnam.png')
-        actual = path.exists()
-
-        # Perform the test
-        self.assertEqual(expected, actual)
-
-        # Tear down
-        path.unlink()
-        Path('tests/').rmdir()
 
     def test_pixel_to_latlon(self):
         x = [0]
@@ -127,11 +103,31 @@ class TestCases(unittest.TestCase):
         actual = unix_time < modification_time
         self.assertEqual(expected, actual)
 
-    # TODO
-    # def test_process_epidemiological_data()
+    def test_process_epidemiological_data(self):
+        process_epidemiological_data(
+            'Ministerio de Salud (Peru) data', 'PER', '0'
+        )
+        self.test_process_ministerio_de_salud_peru_data()
 
-    # TODO
-    # def test_process_ministerio_de_salud_peru_data()
+    def test_process_ministerio_de_salud_peru_data(self):
+        process_ministerio_de_salud_peru_data('0')
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data', 'Epidemiological Data',
+            'Ministerio de Salud (Peru) data', 'Admin Level 0',
+            'Admin Level 0.csv'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+        path = Path(
+            base_dir, 'B Process Data', 'Epidemiological Data',
+            'Ministerio de Salud (Peru) data', 'Admin Level 0',
+            'Peru.png'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
     def test_process_geospatial_data(self):
         process_geospatial_data('GADM administrative map', '0', 'VNM')
@@ -151,25 +147,25 @@ class TestCases(unittest.TestCase):
 
     def test_process_meteorological_data(self):
         data_name = 'APHRODITE Daily accumulated precipitation (V1901)'
-        process_meteorological_data(data_name)
+        process_meteorological_data(data_name, None, None, None)
         self.test_process_aphrodite_precipitation_data()
 
-        data_name = 'APHRODITE Daily mean temperature product (V1808'
-        process_meteorological_data(data_name)
+        data_name = 'APHRODITE Daily mean temperature product (V1808)'
+        process_meteorological_data(data_name, None, None, None)
         self.test_process_aphrodite_temperature_data()
 
         data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and ' + \
             'Satellite Observations'
-        process_meteorological_data(data_name)
+        process_meteorological_data(data_name, '2024', None, True)
         self.test_process_chirps_rainfall_data()
 
         data_name = 'ERA5 atmospheric reanalysis'
-        process_meteorological_data(data_name)
+        process_meteorological_data(data_name, None, None, None)
         self.test_process_era5_reanalysis_data()
 
         data_name = 'TerraClimate gridded temperature, precipitation, and ' + \
             'other'
-        process_meteorological_data(data_name)
+        process_meteorological_data(data_name, '2023', '11', None)
         self.test_process_terraclimate_data()
 
     def test_process_aphrodite_precipitation_data(self):
@@ -196,8 +192,17 @@ class TestCases(unittest.TestCase):
         actual = path.exists()
         self.assertEqual(expected, actual)
 
-    # TODO
-    # def test_process_chirps_rainfall_data(self):
+    def test_process_chirps_rainfall_data(self):
+        process_chirps_rainfall_data('2024', True)
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data', 'Meteorological Data',
+            'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
+            'Observations', 'chirps-v2.0.2024.01.01.png'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
     def test_process_era5_reanalysis_data(self):
         process_era5_reanalysis_data()
@@ -223,6 +228,9 @@ class TestCases(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_process_socio_demographic_data(self):
+        # TODO
+        # test_process_meta_pop_density_data()
+
         data_name = 'WorldPop population count'
         process_socio_demographic_data(data_name, '2020', 'VNM', 'ppp')
         self.test_process_worldpop_pop_count_data()
@@ -230,6 +238,9 @@ class TestCases(unittest.TestCase):
         data_name = 'WorldPop population density'
         process_socio_demographic_data(data_name, '2020', 'VNM', 'ppp')
         self.test_process_worldpop_pop_density_data()
+
+    # TODO
+    # test_process_meta_pop_density_data()
 
     def test_process_worldpop_pop_count_data(self):
         process_worldpop_pop_count_data('2020', 'VNM', 'ppp')
@@ -248,27 +259,101 @@ class TestCases(unittest.TestCase):
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Socio-Demographic Data',
-            'WorldPop population density', 'VNM',
-            'vnm_pd_2020_1km_UNadj_ASCII_XYZ - Log Transformed.png'
+            'WorldPop population density', '2020', 'VNM',
+            'vnm_pd_2020_1km_UNadj_ASCII_XYZ - Naive.png'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
+    def test_process_geospatial_meteorological_data(self):
+        data_name = [
+            'GADM administrative map',
+            'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite ' +
+            'Observations'
+        ]
+        process_geospatial_meteorological_data(data_name, '0', 'VNM', '2024')
+        self.test_process_gadm_chirps_data()
+
+    def test_process_gadm_chirps_data(self):
+        process_gadm_chirps_data('0', 'VNM', '2024')
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data', 'Geospatial and Meteorological Data',
+            'GADM administrative map and CHIRPS rainfall data', 'VNM',
+            'Admin Level 0', 'Rainfall.csv'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+        path = Path(
+            base_dir, 'B Process Data', 'Geospatial and Meteorological Data',
+            'GADM administrative map and CHIRPS rainfall data', 'VNM',
+            'Admin Level 0', 'Vietnam.png'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
+    def test_process_geospatial_sociodemographic_data(self):
+        data_name = [
+            'GADM administrative map',
+            'WorldPop population count'
+        ]
+        process_geospatial_sociodemographic_data(
+            data_name, '0', 'VNM', '2020', 'ppp'
+        )
+        self.test_process_gadm_worldpoppopulation_data()
+
+        data_name = [
+            'GADM administrative map',
+            'WorldPop population density'
+        ]
+        process_geospatial_sociodemographic_data(
+            data_name, '0', 'VNM', '2020', 'ppp'
+        )
+        self.test_process_gadm_worldpopdensity_data()
+
+    def test_process_gadm_worldpoppopulation_data(self):
+        process_gadm_worldpoppopulation_data('0', 'VNM', '2020', 'ppp')
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data',
+            'Geospatial and Socio-Demographic Data',
+            'GADM administrative map and WorldPop population count', 'VNM',
+            'Admin Level 0', 'Population.csv'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+        path = Path(
+            base_dir, 'B Process Data',
+            'Geospatial and Socio-Demographic Data',
+            'GADM administrative map and WorldPop population count', 'VNM',
+            'Admin Level 0', 'Vietnam.png'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
+    def test_process_gadm_worldpopdensity_data(self):
+        process_gadm_worldpopdensity_data('0', 'VNM', '2020', 'ppp')
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data',
+            'Geospatial and Socio-Demographic Data',
+            'GADM administrative map and WorldPop population density',
+            'VNM', 'Admin Level 0', 'Vietnam.png'
         )
         expected = True
         actual = path.exists()
         self.assertEqual(expected, actual)
 
     # TODO
-    # def test_process_geospatial_meteorological_data(self):
+    # test_process_economic_geospatial_sociodemographic_data()
 
     # TODO
-    # def test_process_gadm_chirps_data(self):
-
-    # TODO
-    # def test_process_geospatial_sociodemographic_data(self):
-
-    # TODO
-    # def test_process_gadm_worldpoppopulation_data(self):
-
-    # TODO
-    # def test_process_gadm_worldpopdensity_data(self):
+    # test_process_pop_weighted_relative_wealth_index_data()
 
 
 if __name__ == '__main__':

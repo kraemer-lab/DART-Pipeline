@@ -3,14 +3,21 @@ Run unit tests on collate_data.py.
 
 Past Runs
 ---------
-- 2024-01-15 on Ubuntu 22.04 using Python 3.12: Ran 5 tests in 13.366s
-- 2024-01-17 on macOS Sonoma using Python 3.12: Ran 5 tests in 4.376s
-- 2024-02-08 on Ubuntu 22.04 using Python 3.12: Ran 4 tests in 10.968s
-- 2024-02-09 on macOS Sonoma using Python 3.12: Ran 4 tests in 6.190s
-- 2024-02-13 on Ubuntu 22.04 using Python 3.12: Ran 16 tests in 64.283s
+- 2024-01-15 on Ubuntu 22.04 using Python 3.12: Ran 5 tests in 00:13.366
+- 2024-01-17 on macOS Sonoma using Python 3.12: Ran 5 tests in 00:04.376
+- 2024-02-08 on Ubuntu 22.04 using Python 3.12: Ran 4 tests in 00:10.968
+- 2024-02-09 on macOS Sonoma using Python 3.12: Ran 4 tests in 00:06.190
+- 2024-02-13 on Ubuntu 22.04 using Python 3.12: Ran 16 tests in 01:04.283
 - 2024-02-14 on macOS Sonoma using Python 3.12:
-    - Ran 18 tests in 42.751s
-    - Ran 18 tests in 41.872s
+    - Ran 18 tests in 00:42.751
+    - Ran 18 tests in 00:41.872
+- 2024-04-23 on Ubuntu 22.04 using Python 3.12: Ran 17 tests in 00:31.534
+- 2024-05-08:
+    - On Ubuntu 22.04 using Python 3.12: Ran 17 tests in 01:00.448
+    - On Ubuntu 20.04 using Python 3.12: Ran 17 tests in 00:21.853
+- 2024-05-10: on macOS Sonoma using Python 3.12:
+    - Ran 17 tests in 00:37.624
+    - Ran 19 tests in 05:37.731
 """
 import unittest
 from unittest.mock import patch
@@ -26,6 +33,8 @@ from collate_data import \
     unpack_file, \
     download_economic_data, \
     download_relative_wealth_index_data, \
+    download_epidemiological_data, \
+    download_ministerio_de_salud_peru_data, \
     download_geospatial_data, \
     download_gadm_admin_map_data, \
     download_meteorological_data, \
@@ -260,13 +269,29 @@ class TestCases(unittest.TestCase):
         actual = path.exists()
         self.assertEqual(expected, actual)
 
+    def test_download_epidemiological_data(self):
+        data_name = 'Ministerio de Salud (Peru) data'
+        download_epidemiological_data(data_name, True, True, None, None)
+        self.test_download_ministerio_de_salud_peru_data()
+
+    def test_download_ministerio_de_salud_peru_data(self):
+        download_ministerio_de_salud_peru_data(True, True)
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'A Collate Data', 'Epidemiological Data',
+            'Ministerio de Salud (Peru) data', 'casos_dengue_AMAZONAS.xlsx'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
     def test_download_geospatial_data(self):
         data_name = 'GADM administrative map'
-        download_geospatial_data(data_name, only_one=False, dry_run=True)
+        download_geospatial_data(data_name, False, True, 'VNM')
         self.test_download_gadm_admin_map_data()
 
     def test_download_gadm_admin_map_data(self):
-        download_gadm_admin_map_data(only_one=False, dry_run=True)
+        download_gadm_admin_map_data(False, True, 'VNM')
         base_dir = utils.get_base_directory()
         root = Path(
             base_dir, 'A Collate Data', 'Geospatial Data',
@@ -352,18 +377,26 @@ class TestCases(unittest.TestCase):
     def test_download_chirps_rainfall_data(self):
         download_chirps_rainfall_data(only_one=True, dry_run=True)
         base_dir = utils.get_base_directory()
-        root = Path(
+        path = Path(
             base_dir, 'A Collate Data', 'Meteorological Data',
             'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
             'Observations', 'products', 'CHIRPS-2.0', 'global_daily', 'tifs',
-            'p05'
+            'p05', '2024', 'chirps-v2.0.2024.01.01.tif.gz'
         )
-        for branch in [
-            Path('2023', 'chirps-v2.0.2023.01.01.tif.gz'),
-        ]:
-            expected = True
-            actual = Path(root, branch).exists()
-            self.assertEqual(expected, actual)
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
+    def test_download_era5_reanalysis_data(self):
+        download_era5_reanalysis_data(only_one=True, dry_run=True)
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'A Collate Data', 'Meteorological Data',
+            'ERA5 atmospheric reanalysis', 'ERA5-ml-temperature-subarea.nc'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
     def test_download_terraclimate_data(self):
         download_terraclimate_data(True, True, '2023')
@@ -380,31 +413,20 @@ class TestCases(unittest.TestCase):
             actual = Path(root, branch).exists()
             self.assertEqual(expected, actual)
 
-    def test_download_era5_reanalysis_data(self):
-        download_era5_reanalysis_data(only_one=True, dry_run=True)
-        base_dir = utils.get_base_directory()
-        root = Path(
-            base_dir, 'A Collate Data', 'Meteorological Data',
-            'ERA5 atmospheric reanalysis',
-        )
-        for branch in [
-            Path('ERA5-ml-temperature-subarea.nc'),
-        ]:
-            expected = True
-            actual = Path(root, branch).exists()
-            self.assertEqual(expected, actual)
-
     def test_download_socio_demographic_data(self):
         data_name = 'WorldPop population density'
-        download_socio_demographic_data(data_name, False, True)
+        download_socio_demographic_data(data_name, False, True, 'VNM')
         self.test_download_worldpop_pop_density_data()
 
         data_name = 'WorldPop population count'
-        download_socio_demographic_data(data_name, False, True)
+        download_socio_demographic_data(data_name, False, True, 'VNM')
         self.test_download_worldpop_pop_count_data()
 
+    # TODO
+    # def test_download_meta_pop_density_data(self):
+
     def test_download_worldpop_pop_density_data(self):
-        download_worldpop_pop_density_data(only_one=False, dry_run=True)
+        download_worldpop_pop_density_data(False, True, 'VNM')
         base_dir = utils.get_base_directory()
         root = Path(
             base_dir, 'A Collate Data', 'Socio-Demographic Data',
@@ -420,7 +442,7 @@ class TestCases(unittest.TestCase):
             self.assertEqual(expected, actual)
 
     def test_download_worldpop_pop_count_data(self):
-        download_worldpop_pop_count_data(only_one=False, dry_run=True)
+        download_worldpop_pop_count_data(False, True, 'VNM')
         base_dir = utils.get_base_directory()
         root = Path(
             base_dir, 'A Collate Data', 'Socio-Demographic Data',
