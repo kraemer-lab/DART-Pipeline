@@ -19,6 +19,8 @@ services:
     build:
       context: ..
       dockerfile: models/model1/Dockerfile
+    volumes:
+      - ../logs/models/model1:/app/logs
     env_file:
       - .env
     environment:
@@ -33,6 +35,9 @@ services:
     build:
       context: ..
       dockerfile: ingestion/climate/Dockerfile
+    volumes:
+      - ../data/ingestion/climate:/app/data
+      - ../logs/ingestion/climate:/app/logs
     env_file:
       - .env
     environment:
@@ -42,11 +47,17 @@ services:
       db:
         condition: service_healthy
     command: ["python", "app.py"]
+    #stdin_open: true # docker run -i
+    #tty: true        # docker run -t
+    #entrypoint: ["/bin/sh"]
 
   epi:
     build:
       context: ..
       dockerfile: ingestion/epi/Dockerfile
+    volumes:
+      - ../data/ingestion/epi:/app/data
+      - ../logs/ingestion/epi:/app/logs
     env_file:
       - .env
     environment:
