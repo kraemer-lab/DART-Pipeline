@@ -1,5 +1,9 @@
 services:
 
+  ###############################################
+  # DATABASE
+  ###############################################
+
   db:
     image: postgis/postgis:16-3.4
     restart: always
@@ -15,28 +19,30 @@ services:
       timeout: 10s
       retries: 3
 
-  models_model1:
+  ###############################################
+  # STARTUP SERVICES
+  ###############################################
+
+  # Download GADM shapefiles (initialisation only)
+  map:
     build:
       context: ..
-      dockerfile: models/model1/Dockerfile
+      dockerfile: startup/map/Dockerfile
     volumes:
-      - ../logs/models/model1:/app/logs
-    env_file:
-      - .env
-    environment:
-      POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
-    depends_on:
-      db:
-        condition: service_healthy
+      - ../data/common:/app/data
+      - ../logs/startup/map:/app/logs
     command: ["python", "app.py"]
+
+  ###############################################
+  # INGESTION SERVICES
+  ###############################################
 
   climate:
     build:
       context: ..
       dockerfile: ingestion/climate/Dockerfile
     volumes:
-      - ../data/ingestion/climate:/app/data
+      - ../data/common:/app/data
       - ../logs/ingestion/climate:/app/logs
     env_file:
       - .env
@@ -46,6 +52,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      map:
+        condition: service_completed_successfully
     command: ["python", "app.py"]
     #stdin_open: true # docker run -i
     #tty: true        # docker run -t
@@ -56,8 +64,28 @@ services:
       context: ..
       dockerfile: ingestion/epi/Dockerfile
     volumes:
-      - ../data/ingestion/epi:/app/data
+      - ../data/common:/app/data
       - ../logs/ingestion/epi:/app/logs
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["python", "app.py"]
+  
+  ###############################################
+  # MODELS
+  ###############################################
+
+  models_model1:
+    build:
+      context: ..
+      dockerfile: models/model1/Dockerfile
+    volumes:
+      - ../logs/models/model1:/app/logs
     env_file:
       - .env
     environment:
