@@ -142,6 +142,11 @@ def process_ministerio_de_salud_peru_data(admin_level):
 
     - `time python3 process_data.py Peru`: 00:02.798
     - `time python3 process_data.py Peru -a 1`: 00:21.144
+
+    Parameters
+    ----------
+    admin_level : {'0', '1'}
+        The admin level as a string.
     """
     # Sanitise the inputs and update the user
     data_type = 'Epidemiological Data'
@@ -160,28 +165,21 @@ def process_ministerio_de_salud_peru_data(admin_level):
         raise ValueError(f'Invalid admin level: {admin_level}')
 
     # Find the raw data
-    filepaths = []
     path = Path(base_dir, 'A Collate Data', data_type, data_name)
-    for dirpath, dirnames, filenames in os.walk(path):
-        filenames.sort()
-        for filename in filenames:
-            # Skip hidden files
-            if filename.startswith('.'):
-                continue
-            # Skip admin levels that have not been requested for analysis
-            if admin_level == '0':
-                if filename != 'casos_dengue_nacional.xlsx':
+    if admin_level == '0':
+        filepaths = [Path(path, 'casos_dengue_nacional.xlsx')]
+    else:
+        filepaths = []
+        for dirpath, _, filenames in os.walk(path):
+            filenames.sort()
+            for filename in filenames:
+                # Skip hidden files
+                if filename.startswith('.'):
                     continue
-            if admin_level == '1':
+                # Skip admin levels that have not been requested for analysis
                 if filename == 'casos_dengue_nacional.xlsx':
                     continue
-            filepaths.append(Path(dirpath, filename))
-
-    # Initialise a master figure
-    if admin_level != '0':
-        A = 6  # We want figures to be A6
-        figsize = (46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A))
-        fig_all, ax_all = plt.subplots(figsize=figsize)
+                filepaths.append(Path(dirpath, filename))
 
     # Initialise an output data frame
     master = pd.DataFrame()
@@ -192,14 +190,13 @@ def process_ministerio_de_salud_peru_data(admin_level):
 
         # Get the name of the administrative divisions
         filename = filepath.name
-        region = filename.removesuffix('.xlsx').split('_')[-1].capitalize()
-        print(f'Processing {region} data')
+        name = filename.removesuffix('.xlsx').split('_')[-1].capitalize()
+        print(f'Processing {name} data')
         # Add to the output data frame
         df['admin_level_0'] = 'Peru'
-        if admin_level == '0':
-            region = 'Peru'
         if admin_level == '1':
-            df['admin_level_1'] = region
+            df['admin_level_1'] = name
+        region = df[f'admin_level_{admin_level}'].head(1)[0]
 
         # Convert 'year' and 'week' to datetime format
         df['date'] = pd.to_datetime(
@@ -215,8 +212,8 @@ def process_ministerio_de_salud_peru_data(admin_level):
         fig_region, ax_region = plt.subplots(figsize=figsize)
         bl = df['tipo_dx'] == 'C'
         ax_region.plot(df[bl]['date'], df[bl]['n'], c='k', lw=1.2)
-        ax_region.set_title(f'Dengue Cases in {region}')
-        ax_region.set_ylabel('Confirmed Dengue Cases')
+        ax_region.set_title(f'Confirmed Dengue Cases in {region}')
+        ax_region.set_ylabel('Cases')
         ax_region.set_xlabel('Year')
         try:
             ax_region.set_xlim(df[bl]['date'].min(), df[bl]['date'].max())
@@ -226,50 +223,64 @@ def process_ministerio_de_salud_peru_data(admin_level):
             # is infinite and a ValueError is triggered
             pass
         path = Path(
-            base_dir, 'B Process Data', 'Epidemiological Data',
-            'Ministerio de Salud - Peru', f'Admin Level {admin_level}',
-            region + '.png'
+            base_dir, 'B Process Data', data_type, data_name,
+            f'Admin Level {admin_level}', region + '.png'
         )
         path.parent.mkdir(parents=True, exist_ok=True)
         print(f'Exporting "{path}"')
         fig_region.savefig(path)
         plt.close(fig_region)
 
-        # Plot on master plot
-        if admin_level != '0':
+    # Export
+    path = Path(
+        base_dir, 'B Process Data', data_type, data_name,
+        f'Admin Level {admin_level}', f'Admin Level {admin_level}.csv'
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    print(f'Exporting "{path}"')
+    master.to_csv(path, index=False)
+
+    # Create a master plot
+    if admin_level != '0':
+        A = 6  # We want figures to be A6
+        figsize = (46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A))
+        fig_all, ax_all = plt.subplots(figsize=figsize)
+
+        for filepath in filepaths:
+            df = pd.read_excel(filepath)
+
+            # Get the name of the administrative divisions
+            filename = filepath.name
+            region = filename.removesuffix('.xlsx').split('_')[-1].capitalize()
+
+            # Convert 'year' and 'week' to datetime format
+            df['date'] = pd.to_datetime(
+                df['ano'].astype(str) + '-' + df['semana'].astype(str) + '-1',
+                format='%G-%V-%u'
+            )
+
+            # Plot on master plot
             bl = df['tipo_dx'] == 'C'
             ax_all.plot(df[bl]['date'], df[bl]['n'], label=region)
 
-    # Finish master plot
-    if admin_level != '0':
-        ax_all.set_title('Dengue Cases in Peru')
+        # Finish master plot
+        ax_all.set_title('Confirmed Dengue Cases in Peru')
         ax_all.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
         plt.subplots_adjust(right=0.75)
-        ax_all.set_ylabel('Confirmed Dengue Cases')
+        ax_all.set_ylabel('Cases')
         ax_all.set_xlabel('Year')
         ax_all.set_xlim(df[bl]['date'].min(), df[bl]['date'].max())
         y_limits = ax_all.get_ylim()
         ax_all.set_ylim(0, y_limits[1])
         # Export
         path = Path(
-            base_dir, 'B Process Data', 'Epidemiological Data',
-            'Ministerio de Salud - Peru', f'Admin Level {admin_level}',
-            f'Admin Level {admin_level}.png'
+            base_dir, 'B Process Data', data_type, data_name,
+            f'Admin Level {admin_level}', f'Admin Level {admin_level}.png'
         )
         path.parent.mkdir(parents=True, exist_ok=True)
         print(f'Exporting "{path}"')
         fig_all.savefig(path)
         plt.close(fig_all)
-
-    # Export
-    path = Path(
-        base_dir, 'B Process Data', 'Epidemiological Data',
-        'Ministerio de Salud - Peru', f'Admin Level {admin_level}',
-        f'Admin Level {admin_level}.csv'
-    )
-    path.parent.mkdir(parents=True, exist_ok=True)
-    print(f'Exporting "{path}"')
-    master.to_csv(path, index=False)
 
 
 def process_geospatial_data(data_name, admin_level, iso3):

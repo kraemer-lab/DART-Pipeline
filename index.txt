@@ -50,8 +50,8 @@ DART-Pipeline
     ├ process_data.py
     │  ├ ✅ days_to_date()
     │  ├ ✅ pixel_to_latlon()
-    │  ├ ⏳ process_epidemiological_data()
-    │  │  └ ⏳ process_ministerio_de_salud_peru_data()
+    │  ├ ✅ process_epidemiological_data()
+    │  │  └ ✅ process_ministerio_de_salud_peru_data()
     │  ├ ✅ process_geospatial_data()
     │  │  └ ✅ process_gadm_admin_map_data()
     │  ├ ✅ process_meteorological_data()
@@ -71,8 +71,8 @@ DART-Pipeline
     ├ test_process_data.py
     │  ├ ✅ test_days_to_date()
     │  ├ ✅ test_pixel_to_latlon()
-    │  ├ ⏳ test_process_epidemiological_data()
-    │  ├ ⏳ test_process_ministerio_de_salud_peru_data()
+    │  ├ ✅ test_process_epidemiological_data()
+    │  ├ ✅ test_process_ministerio_de_salud_peru_data()
     │  ├ ✅ test_process_geospatial_data()
     │  ├ ✅ test_process_gadm_admin_map_data()
     │  ├ ✅ test_process_meteorological_data()
