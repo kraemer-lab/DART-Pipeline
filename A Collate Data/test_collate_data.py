@@ -296,7 +296,7 @@ class TestCases(unittest.TestCase):
         base_dir = utils.get_base_directory()
         root = Path(
             base_dir, 'A Collate Data', 'Geospatial Data',
-            'GADM administrative map',
+            'GADM administrative map', 'VNM'
         )
         for branch in [
             Path('gadm41_VNM.gpkg'),
@@ -432,7 +432,8 @@ class TestCases(unittest.TestCase):
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'A Collate Data', 'Socio-Demographic Data',
-            'Meta population density', 'VNM', 'vnm_general_2020.csv'
+            'Meta population density', 'VNM',
+            'vnm_children_under_five_2020_csv'
         )
         expected = True
         actual = path.exists()
