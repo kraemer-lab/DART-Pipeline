@@ -62,6 +62,7 @@ format for country codes.
 """
 # External libraries
 from matplotlib import pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 from pyquadkey2 import quadkey
 from rasterio.features import geometry_mask
 from rasterio.mask import mask
@@ -150,6 +151,7 @@ def process_relative_wealth_index_data(iso3):
     print(f'Data name:   {data_name}')
     country = pycountry.countries.get(alpha_3=iso3).common_name
     print(f'Country:     {country}')
+    print('')
 
     # Import raw data
     path = Path(
@@ -1015,12 +1017,124 @@ def process_terraclimate_data(year, month):
 
 def process_socio_demographic_data(data_name, year, iso3, rt):
     """Process socio-demographic data."""
-    if data_name == 'WorldPop population count':
+    if data_name == 'Meta population density':
+        process_meta_pop_density_data(year, iso3)
+    elif data_name == 'WorldPop population count':
         process_worldpop_pop_count_data(year, iso3, rt)
     elif data_name == 'WorldPop population density':
         process_worldpop_pop_density_data(year, iso3)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
+
+
+def process_meta_pop_density_data(year, iso3):
+    """
+    Process Population Density Maps from Data for Good at Meta.
+
+    Documentation: https://dataforgood.facebook.com/dfg/docs/
+    high-resolution-population-density-maps-demographic-estimates-documentation
+
+    Run times:
+
+    - `python3 process_data.py "Meta pop density" -y 2020 -3 VNM`: 00:13.251
+    """
+    # Sanitise the inputs
+    data_type = 'Socio-Demographic Data'
+    print(f'Data type: {data_type}')
+    data_name = 'Meta population density'
+    print(f'Data name: {data_name}')
+    print(f'Year:      {year}')
+    if not iso3:
+        raise ValueError('No ISO3 code has been provided; use the `-3` flag')
+    country = pycountry.countries.get(alpha_3=iso3).common_name
+    print(f'Country:   {country}')
+    print('')
+
+    metric = f'{iso3.lower()}_general_{year}'
+
+    # Import the data
+    path = Path(
+        base_dir, 'A Collate Data', data_type, data_name, iso3,
+        f'{metric}.csv'
+    )
+    df = pd.read_csv(path)
+
+    # Log scale
+    df = df[df[metric] > 0]
+    metric_log = f'{metric}_log'
+    df[metric_log] = np.log(df[metric])
+
+    # Define the grid for the heatmap
+    n = round(df['latitude'].max() - df['latitude'].min()) * 100
+    lat_bins = np.linspace(df['latitude'].min(), df['latitude'].max(), n)
+    n = round(df['longitude'].max() - df['longitude'].min()) * 100
+    lon_bins = np.linspace(df['longitude'].min(), df['longitude'].max(), n)
+    # Create a 2D histogram of the data
+    heatmap, xedges, yedges = np.histogram2d(
+        df['latitude'], df['longitude'],
+        bins=[lat_bins, lon_bins],
+        weights=df[metric_log],
+        density=False
+    )
+
+    # Re-scale
+    heatmap = (heatmap - heatmap.min()) / (heatmap.max() - heatmap.min())
+    heatmap = heatmap * df[metric_log].max()
+
+    # Create a custom colourmap
+    # Define number of colours in the white and green regions of the colormap
+    n_white = 40
+    n_colours = 256 - n_white
+    # Create the white section of the colormap
+    # RGBA, A = 1 for opaque
+    white = np.ones((n_white, 4))
+    # Get the Greens colourmap data
+    greens = plt.get_cmap('Greens', n_colours)
+    # Combine the white and Greens colourmap data
+    colours = np.vstack((white, greens(np.linspace(0.2, 1, n_colours))))
+    # Create a new colormap
+    cmap = LinearSegmentedColormap.from_list('WhiteGreens', colours)
+
+    # Plot the heatmap
+    A = 5  # We want figures to be A5
+    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+    fig, ax = plt.subplots(figsize=figsize)
+    im = ax.imshow(
+        heatmap, origin='lower', cmap=cmap,
+        extent=[
+            df['longitude'].min(), df['longitude'].max(),
+            df['latitude'].min(), df['latitude'].max()
+        ]
+    )
+    plt.xlabel('Longitude')
+    plt.ylabel('Latitude')
+    plt.title(
+        rf'\centering\bf Population Density' +
+        rf'\\\normalfont {country} - {year}\par',
+        y=1.03
+    )
+
+    # Manually create the colour bar
+    ticks = np.linspace(df[metric_log].min(), df[metric_log].max(), 5)
+    ticklabels = np.exp(ticks)
+    ticklabels = ticklabels.astype(int)
+    fig.colorbar(
+        im,
+        ticks=ticks,
+        format=mticker.FixedFormatter(ticklabels),
+        shrink=0.3,
+        label='Number of People per square arcsecond'
+    )
+
+    # Export
+    path = Path(
+        base_dir, 'B Process Data', data_type, data_name, iso3, year,
+        f'{country}.png'
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    print(f'Exporting "{path}"')
+    plt.savefig(path)
+    plt.close()
 
 
 def process_worldpop_pop_count_data(year, iso3, rt):
@@ -1906,17 +2020,15 @@ def process_pop_weighted_relative_wealth_index_data(iso3, admin_level):
       00:05.510
     """
     # Sanitise the inputs
-    if not iso3:
-        raise ValueError('No ISO3 code has been provided; use the `-3` flag')
-    if not admin_level:
-        raise ValueError('No admin level has been provided; use the `-a` flag')
-
-    # Inform the user
     print('Data types:  Economic, Geospatial and Socio-Demographic')
     print('Data names:  Relative Wealth Index, GADM administrative ', end='')
     print('map and Meta population density')
+    if not iso3:
+        raise ValueError('No ISO3 code has been provided; use the `-3` flag')
     country = pycountry.countries.get(alpha_3=iso3).common_name
     print('Country:    ', country)
+    if not admin_level:
+        raise ValueError('No admin level has been provided; use the `-a` flag')
     print('Admin level:', admin_level)
     print('')
 
@@ -1982,9 +2094,11 @@ def process_pop_weighted_relative_wealth_index_data(iso3, admin_level):
     )
 
     # Plot
-    fig, ax = plt.subplots(figsize=(15, 12))
+    A = 5  # We want figures to be A5
+    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+    fig, ax = plt.subplots(figsize=figsize)
     shapefile_rwi.plot(
-        ax=ax, column='rwi_weight', marker = 'o', markersize=1,legend=True,
+        ax=ax, column='rwi_weight', marker='o', markersize=1, legend=True,
         label='RWI score'
     )
     contextily.add_basemap(

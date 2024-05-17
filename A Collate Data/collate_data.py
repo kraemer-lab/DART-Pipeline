@@ -922,7 +922,10 @@ def download_socio_demographic_data(data_name, only_one, dry_run, iso3):
 
 def download_meta_pop_density_data(only_one, dry_run, iso3):
     """
-    Download Meta Population Density Maps.
+    Download Population Density Maps from Data for Good at Meta.
+
+    Documentation: https://dataforgood.facebook.com/dfg/docs/
+    high-resolution-population-density-maps-demographic-estimates-documentation
 
     Run times:
 

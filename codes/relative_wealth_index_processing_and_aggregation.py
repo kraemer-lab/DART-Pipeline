@@ -67,9 +67,9 @@ def get_point_in_polygon(lat, lon, polygons):
 	return 'null'
 
 
-shpfile = '/Users/user/Documents/Codes/Vietnam Data Streams Processing/DART-Pipeline/data/gadm41_VNM_shp/gadm41_VNM_2.shp'
-rwifile = '/Users/user/Documents/Codes/Vietnam Data Streams Processing/DART-Pipeline/data/vnm_relative_wealth_index.csv'
-popfile = '/Users/user/Documents/Codes/Vietnam Data Streams Processing/DART-Pipeline/data/vnm_general_2020.csv'
+shpfile = '/home/rowan/DART-Pipeline/A Collate Data/Geospatial Data/GADM administrative map/VNM/gadm41_VNM_shp//gadm41_VNM_2.shp'
+rwifile = '/home/rowan/DART-Pipeline/A Collate Data/Economic Data/Relative Wealth Index/VNM.csv'
+popfile = '/home/rowan/DART-Pipeline/A Collate Data/Socio-Demographic Data/Meta population density/VNM//vnm_general_2020.csv'
 
 shapefile = gpd.read_file(shpfile)
 polygons = get_polygons_from_shapefile(shapefile, 'GID_2')
