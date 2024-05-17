@@ -44,6 +44,7 @@ from collate_data import \
     download_era5_reanalysis_data, \
     download_terraclimate_data, \
     download_socio_demographic_data, \
+    download_meta_pop_density_data, \
     download_worldpop_pop_count_data, \
     download_worldpop_pop_density_data
 
@@ -414,6 +415,10 @@ class TestCases(unittest.TestCase):
             self.assertEqual(expected, actual)
 
     def test_download_socio_demographic_data(self):
+        data_name = 'Meta population density'
+        download_socio_demographic_data(data_name, True, True, 'VNM')
+        self.test_download_meta_pop_density_data()
+
         data_name = 'WorldPop population density'
         download_socio_demographic_data(data_name, False, True, 'VNM')
         self.test_download_worldpop_pop_density_data()
@@ -422,8 +427,16 @@ class TestCases(unittest.TestCase):
         download_socio_demographic_data(data_name, False, True, 'VNM')
         self.test_download_worldpop_pop_count_data()
 
-    # TODO
-    # def test_download_meta_pop_density_data(self):
+    def test_download_meta_pop_density_data(self):
+        download_meta_pop_density_data(True, True, 'VNM')
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'A Collate Data', 'Socio-Demographic Data',
+            'Meta population density', 'VNM', 'vnm_general_2020.csv'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
     def test_download_worldpop_pop_density_data(self):
         download_worldpop_pop_density_data(False, True, 'VNM')

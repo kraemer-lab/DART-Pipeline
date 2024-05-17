@@ -379,16 +379,16 @@ def download_relative_wealth_index_data(iso3, dry_run):
     - `time python3 collate_data.py RWI -3 ZAF`: 00:05.656
     """
     data_type = 'Economic Data'
+    print(f'Data type: {data_type}')
     data_name = 'Relative Wealth Index'
+    print(f'Data name: {data_name}')
     if not iso3:
         raise ValueError('No ISO3 code has been provided; use the `-3` flag')
-
-    # Inform the user
-    print(f'Data type: {data_type}')
-    print(f'Data name: {data_name}')
-    print(f'ISO3:      {iso3}')
+    country = pycountry.countries.get(alpha_3=iso3).common_name
+    print(f'Country:   {country}')
     if dry_run:
         print('Dry run')
+    print('')
 
     # Main webpage
     url = 'https://data.humdata.org/dataset/relative-wealth-index'
@@ -905,7 +905,7 @@ def download_terraclimate_data(only_one, dry_run, year):
 def download_socio_demographic_data(data_name, only_one, dry_run, iso3):
     """Download socio-demographic data."""
     if data_name == 'Meta population density':
-        download_meta_pop_density_data(iso3, dry_run)
+        download_meta_pop_density_data(only_one, dry_run, iso3)
     elif data_name == 'WorldPop population count':
         download_worldpop_pop_count_data(only_one, dry_run, iso3)
     elif data_name == 'WorldPop population density':
@@ -914,27 +914,31 @@ def download_socio_demographic_data(data_name, only_one, dry_run, iso3):
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
 
-def download_meta_pop_density_data(iso3, dry_run):
+def download_meta_pop_density_data(only_one, dry_run, iso3):
     """
-    Download Relative Wealth Index.
+    Download Meta Population Density Maps.
 
     Run times:
 
-    - `time python3 collate_data.py "Meta pop density" -3 VNM`: 05:38.750
+    - `time python3 collate_data.py "Meta pop density" -d -1 -3 VNM`: 01:07.656
+    - `time python3 collate_data.py "Meta pop density" -3 VNM`:
+        - 05:38.750
+        - 07:01.330
     """
     # Sanitise the inputs
     data_type = 'Socio-Demographic Data'
+    print(f'Data type: {data_type}')
     data_name = 'Meta population density'
+    print(f'Data name: {data_name}')
     if not iso3:
         raise ValueError('No ISO3 code has been provided; use the `-3` flag')
-
-    # Inform the user
-    print(f'Data type: {data_type}')
-    print(f'Data name: {data_name}')
     country = pycountry.countries.get(alpha_3=iso3).common_name
     print(f'Country:   {country}')
     if dry_run:
         print('Dry run')
+    if only_one:
+        print('Only one file being downloaded')
+    print('')
 
     # Main webpage
     url = 'https://data.humdata.org/dataset/' + \
@@ -951,7 +955,10 @@ def download_meta_pop_density_data(iso3, dry_run):
         links = soup.find_all('a', href=lambda href: href and target in href)
         # Return the links that were found
         if links:
-            for link in [x for x in links if x['href'].endswith('.zip')]:
+            links = [x for x in links if x['href'].endswith('.zip')]
+            if only_one:
+                links = links[:1]
+            for link in links:
                 zip_url = link['href']
                 zip_url = 'https://data.humdata.org' + zip_url
                 zip_name = zip_url.split('/')[-1]
