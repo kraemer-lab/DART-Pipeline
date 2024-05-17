@@ -532,7 +532,7 @@ def download_ministerio_de_salud_peru_data(only_one, dry_run):
                     f.write(decoded_bytes)
 
 
-def download_geospatial_data(data_name, iso3, only_one, dry_run):
+def download_geospatial_data(data_name, only_one, dry_run, iso3):
     """Download Geospatial data."""
     if data_name == 'GADM administrative map':
         download_gadm_admin_map_data(only_one, dry_run, iso3)
@@ -546,7 +546,6 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
 
     Run times:
 
-    - `time python3 collate_data.py GADM`: 02:22.392
     - `time python3 collate_data.py GADM -3 VNM`:
         - 00:31.094
         - 00:54.608
@@ -555,13 +554,20 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
         - 01:02.167
     - `time python3 collate_data.py GADM -3 GBR`: 13:22.114
     """
+    # Sanitise the inputs
     data_type = 'Geospatial Data'
+    print(f'Data type: {data_type}')
     data_name = 'GADM administrative map'
-
+    print(f'Data name: {data_name}')
+    if not iso3:
+        raise ValueError('No ISO3 code has been provided; use the `-3` flag')
+    country = pycountry.countries.get(alpha_3=iso3).common_name
+    print(f'Country:   {country}')
+    if dry_run:
+        print('Dry run')
     if only_one:
         print('The --only_one/-1 flag has no effect for this metric')
-    if iso3 == '':
-        raise ValueError('No ISO3 code has been provided; use the "-3" flag')
+    print('')
 
     # Create output directory
     out_dir = Path(base_dir, 'A Collate Data', data_type, data_name, iso3)
