@@ -1918,6 +1918,7 @@ def process_pop_weighted_relative_wealth_index_data(iso3, admin_level):
     country = pycountry.countries.get(alpha_3=iso3).common_name
     print('Country:    ', country)
     print('Admin level:', admin_level)
+    print('')
 
     # Import raw data
     shpfile = Path(
@@ -2004,6 +2005,7 @@ def process_pop_weighted_relative_wealth_index_data(iso3, admin_level):
     path.parent.mkdir(parents=True, exist_ok=True)
     print(f'Saving figure to "{path}"')
     plt.savefig(path, dpi=600)
+
 
 class EmptyObject:
     """Define an empty object for creating a fake args object for Sphinx."""
