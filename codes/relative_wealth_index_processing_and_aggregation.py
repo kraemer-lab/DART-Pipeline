@@ -68,7 +68,7 @@ def get_point_in_polygon(lat, lon, polygons):
 
 
 shpfile = '/home/rowan/DART-Pipeline/A Collate Data/Geospatial Data/GADM administrative map/VNM/gadm41_VNM_shp//gadm41_VNM_2.shp'
-rwifile = '/home/rowan/DART-Pipeline/A Collate Data/Economic Data/Relative Wealth Index/VNM.csv'
+rwifile = '/home/rowan/DART-Pipeline/data/vnm_relative_wealth_index.csv'
 popfile = '/home/rowan/DART-Pipeline/A Collate Data/Socio-Demographic Data/Meta population density/VNM//vnm_general_2020.csv'
 
 shapefile = gpd.read_file(shpfile)
@@ -90,5 +90,5 @@ fig, ax = plt.subplots(figsize=(15,12))
 shapefile_rwi.plot(ax=ax, column = 'rwi_weight', marker = 'o', markersize=1,legend=True, label='RWI score')
 contextily.add_basemap(ax,crs={'init':'epsg:4326'},source=contextily.providers.OpenStreetMap.Mapnik)
 plt.title('Relative Wealth Index scores of admin3 regions in Vietnam')
-plt.legend()
+# plt.legend()
 plt.savefig('rwi_weight_admin3.png', dpi=600)
