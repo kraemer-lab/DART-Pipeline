@@ -2053,14 +2053,26 @@ def process_pop_weighted_relative_wealth_index_data(iso3, admin_level):
     admin_geoid = f'GID_{admin_level}'
     polygons = dict(zip(shapefile[admin_geoid], shapefile['geometry']))
 
-    # Classify the locations of the RWI values
-    print('Classifying locations of RWI values')
-    rwi = pd.read_csv(rwifile)
-    rwi['geo_id'] = rwi.apply(
-        lambda x: get_admin_region(x['latitude'], x['longitude'], polygons),
-        axis=1
+    # Classify the locations of the RWI values if this has not been done
+    path = Path(
+        base_dir, 'B Process Data', 'Economic Data', 'Relative Wealth Index',
+        f'{iso3}.csv'
     )
-    rwi = rwi[rwi['geo_id'] != 'null']
+    if path.exists():
+        print('Locations of RWI values are already classified')
+        rwi = pd.read_csv(path)
+    else:
+        print('Classifying locations of RWI values')
+        rwi = pd.read_csv(rwifile)
+        rwi['geo_id'] = rwi.apply(
+            lambda x: get_admin_region(
+                x['latitude'], x['longitude'], polygons
+            ), axis=1
+        )
+        rwi = rwi[rwi['geo_id'] != 'null']
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        rwi.to_csv(path)
 
     # Convert population data from Meta into a data frame with the total
     # population for tiles of zoom level 14 (Bing tiles) using quadkeys
@@ -2074,7 +2086,8 @@ def process_pop_weighted_relative_wealth_index_data(iso3, admin_level):
     bing_tile_z14_pop = population.groupby(
         'quadkey', as_index=False
     )['pop_2020'].sum()
-    bing_tile_z14_pop['quadkey'] = bing_tile_z14_pop['quadkey'].astype(np.int64)
+    bing_tile_z14_pop['quadkey'] = \
+        bing_tile_z14_pop['quadkey'].astype(np.int64)
 
     # Merge with the shape file
     shapefile = gpd.read_file(shpfile)
