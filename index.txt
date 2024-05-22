@@ -77,8 +77,8 @@ DART-Pipeline
     │  ├ ✅ process_geospatial_sociodemographic_data()
     │  │  ├ ✅ process_gadm_worldpoppopulation_data()
     │  │  └ ✅ process_gadm_worldpopdensity_data()
-    │  └ ⏳ process_economic_geospatial_sociodemographic_data()
-    │     └ ⏳ process_pop_weighted_relative_wealth_index_data()
+    │  └ ✅ process_economic_geospatial_sociodemographic_data()
+    │     └ ✅ process_pop_weighted_relative_wealth_index_data()
     ├ test_process_data.py
     │  ├ ✅ test_days_to_date()
     │  ├ ✅ test_pixel_to_latlon()

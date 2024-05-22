@@ -2017,7 +2017,8 @@ def process_pop_weighted_relative_wealth_index_data(iso3, admin_level):
     Run times:
 
     - `time python3 process_data.py RWI GADM "Meta pop density" -3 VNM -a 2`:
-      06:19.994
+        - 6m19.994s
+        - 5m48.570s
     """
     # Sanitise the inputs
     print('Data types:  Economic, Geospatial and Socio-Demographic')
