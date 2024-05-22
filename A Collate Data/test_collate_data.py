@@ -433,7 +433,7 @@ class TestCases(unittest.TestCase):
         path = Path(
             base_dir, 'A Collate Data', 'Socio-Demographic Data',
             'Meta population density', 'VNM',
-            'vnm_children_under_five_2020_csv'
+            'vnm_children_under_five_2020_csv.zip'
         )
         expected = True
         actual = path.exists()

@@ -2017,7 +2017,7 @@ def process_pop_weighted_relative_wealth_index_data(iso3, admin_level):
     Run times:
 
     - `time python3 process_data.py RWI GADM "Meta pop density" -3 VNM -a 2`:
-      00:05.510
+      06:19.994
     """
     # Sanitise the inputs
     print('Data types:  Economic, Geospatial and Socio-Demographic')
@@ -2039,8 +2039,7 @@ def process_pop_weighted_relative_wealth_index_data(iso3, admin_level):
         f'gadm41_{iso3}_2.shp'
     )
     rwifile = Path(
-        base_dir, 'A Collate Data', 'Economic Data', 'Relative Wealth Index',
-        f'{iso3}.csv'
+        base_dir, 'data', 'vnm_relative_wealth_index.csv'
     )
     popfile = Path(
         base_dir, 'A Collate Data', 'Socio-Demographic Data',
@@ -2121,7 +2120,6 @@ def process_pop_weighted_relative_wealth_index_data(iso3, admin_level):
     plt.title('Relative Wealth Index')
     subtitle = f'{country} - Admin Level {admin_level}'
     plt.suptitle(subtitle, fontsize=12, fontweight='bold')
-    plt.legend()
     path = Path(
         base_dir, 'B Process Data',
         'Economic, Geospatial and Socio-Demographic Data',
