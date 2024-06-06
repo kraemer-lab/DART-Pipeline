@@ -958,21 +958,13 @@ def process_worldpop_pop_count_data(year, iso3, rt):
     # Import
     foldername = country.replace(' ', '_') + '_100m_Population'
     filename = Path(f'{iso3}_{rt}_v2b_{year}_UNadj.tif')
-    print(f'Processing "{filename}"')
     path = Path(
         base_dir, 'A Collate Data', data_type, data_name, 'GIS', 'Population',
         'Individual_countries', iso3, foldername, filename,
     )
-    # Find the file in the folder
-    for dirpath, dirnames, filenames in os.walk(path):
-        for filename in filenames:
-            if filename == file:
-                filepath = Path(dirpath, filename)
-                break
-    filename = Path(filename)
     # Load the data
-    print(f'Processing "{file}"')
-    src = rasterio.open(filepath)
+    print(f'Processing "{filename}"')
+    src = rasterio.open(path)
 
     # Get the affine transformation coefficients
     transform = src.transform
