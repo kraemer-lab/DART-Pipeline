@@ -372,10 +372,10 @@ def download_ministerio_de_salud_peru_data(only_one, dry_run):
 
     Run times:
 
-    - `time python3 collate_data.py Peru -1 -d`: 01:41.93
+    - `time python3 collate_data.py Peru -1 -d`: 1m41.93s
     - `time python3 collate_data.py Peru`:
-        - 26:11.34
-        - 13:34.151
+        - 26m11.34s
+        - 13m34.151s
     """
     data_type = 'Epidemiological Data'
     data_name = 'Ministerio de Salud (Peru) data'
@@ -474,12 +474,12 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
     Run times:
 
     - `time python3 collate_data.py GADM -3 VNM`:
-        - 00:31.094
-        - 00:54.608
+        - 31.094s
+        - 54.608s
     - `time python3 collate_data.py GADM -3 PER`:
-        - 00:18.516
-        - 01:02.167
-    - `time python3 collate_data.py GADM -3 GBR`: 13:22.114
+        - 18.516s
+        - 1m2.167s
+    - `time python3 collate_data.py GADM -3 GBR`: 13m22.114s
     """
     data_type = 'Geospatial Data'
     data_name = 'GADM administrative map'
@@ -545,8 +545,8 @@ def download_aphrodite_precipitation_data(
 
     Run times:
 
-    - `time python3 collate_data.py "APHRODITE precipitation"`: 00:44.318
-    - `time python3 collate_data.py "APHRODITE precipitation" -1`: 00:35.674
+    - `time python3 collate_data.py "APHRODITE precipitation"`: 44.318s
+    - `time python3 collate_data.py "APHRODITE precipitation" -1`: 35.674s
     """
     data_type = 'Meteorological Data'
     data_name = 'APHRODITE Daily accumulated precipitation (V1901)'
@@ -605,9 +605,9 @@ def download_aphrodite_temperature_data(
 
     Run times:
 
-    - `time python3 collate_data.py "APHRODITE temperature"`: 1:27:58.039
-    - `time python3 collate_data.py "APHRODITE temperature" -1`: 06:36.88
-    - `time python3 collate_data.py "APHRODITE temperature" -1 -d`: 00:04.144
+    - `time python3 collate_data.py "APHRODITE temperature"`: 1h27m58.039s
+    - `time python3 collate_data.py "APHRODITE temperature" -1`: 6m36.88s
+    - `time python3 collate_data.py "APHRODITE temperature" -1 -d`: 4.144s
     """
     data_type = 'Meteorological Data'
     data_name = 'APHRODITE Daily mean temperature product (V1808)'
@@ -684,11 +684,11 @@ def download_chirps_rainfall_data(only_one, dry_run):
 
     Run times:
 
-    - `time python3 collate_data.py "CHIRPS rainfall" -1 -d`: 00:01.087
+    - `time python3 collate_data.py "CHIRPS rainfall" -1 -d`: 1.087s
     - `time python3 collate_data.py "CHIRPS rainfall"`:
-        - 05:30.123 (2024-01-01 to 2024-03-07)
-        - 02:56.14 (2024-01-01 to 2024-03-11)
-        - 04:15.394 (2024-01-01 to 2024-03-31)
+        - 5m30.123s (2024-01-01 to 2024-03-07)
+        - 2m56.14s (2024-01-01 to 2024-03-11)
+        - 4m15.394s (2024-01-01 to 2024-03-31)
     """
     data_type = 'Meteorological Data'
     data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite ' + \
@@ -732,8 +732,8 @@ def download_era5_reanalysis_data(only_one, dry_run):
 
     Run times:
 
-    - `time python3 collate_data.py "ERA5 reanalysis" -1 -d`: 00:00.213
-    - `time python3 collate_data.py "ERA5 reanalysis"`: 00:01.484
+    - `time python3 collate_data.py "ERA5 reanalysis" -1 -d`: 0.213s
+    - `time python3 collate_data.py "ERA5 reanalysis"`: 1.484s
     """
     data_type = 'Meteorological Data'
     data_name = 'ERA5 atmospheric reanalysis'
@@ -787,10 +787,10 @@ def download_terraclimate_data(only_one, dry_run, year):
     Run times:
 
     - `time python3 collate_data.py "TerraClimate data"`:
-        - 34:50.828/31:43.878
-        - 11:35.25
-        - 14:16.896
-    - `time python3 collate_data.py "TerraClimate data" -1 -d`: 00:04.606
+        - 34m50.828s/31m43.878s
+        - 11m35.25s
+        - 14m16.896s
+    - `time python3 collate_data.py "TerraClimate data" -1 -d`: 4.606s
     """
     data_type = 'Meteorological Data'
     data_name = 'TerraClimate gridded temperature, precipitation, and other'
@@ -847,11 +847,11 @@ def download_worldpop_pop_density_data(only_one, dry_run, iso3):
     Run times:
 
     - `time python3 collate_data.py "WorldPop pop density" -3 VNM`:
-        - 0:02.860
-        - 0:04.349
+        - 2.860s
+        - 4.349s
     - `time python3 collate_data.py "WorldPop pop density" -3 PER`:
-        - 0:06.723
-        - 0:18.760
+        - 6.723s
+        - 18.760s
     """
     data_type = 'Socio-Demographic Data'
     data_name = 'WorldPop population density'
@@ -917,12 +917,12 @@ def download_worldpop_pop_count_data(only_one, dry_run, iso3):
     Run times:
 
     - `time python3 collate_data.py "WorldPop pop count"`:
-        - 06:46.2
-        - 17:40.154
-    - `time python3 collate_data.py "WorldPop pop count" -3 VNM`: 23:17.052
+        - 6m46.2s
+        - 17m40.154s
+    - `time python3 collate_data.py "WorldPop pop count" -3 VNM`: 23m17.052s
     - `time python3 collate_data.py "WorldPop pop count" -3 PER`:
-        - 46:47.78
-        - 1:15:44.285
+        - 46m47.78s
+        - 1h15m44.285s
     """
     data_type = 'Socio-Demographic Data'
     data_name = 'WorldPop population count'
