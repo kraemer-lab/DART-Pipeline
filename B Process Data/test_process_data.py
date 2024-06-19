@@ -12,13 +12,17 @@ Past runs
 # External libraries
 import rasterio
 # Built-in modules
-from datetime import datetime
-import unittest
+from datetime import datetime, timedelta
 from pathlib import Path
+import os
+import time
+import unittest
 # Custom modules
 from process_data import \
     days_to_date, \
     pixel_to_latlon, \
+    process_economic_data, \
+    process_relative_wealth_index_data, \
     process_epidemiological_data, \
     process_ministerio_de_salud_peru_data, \
     process_geospatial_data, \
@@ -30,13 +34,16 @@ from process_data import \
     process_era5_reanalysis_data, \
     process_terraclimate_data, \
     process_socio_demographic_data, \
+    process_meta_pop_density_data, \
     process_worldpop_pop_count_data, \
     process_worldpop_pop_density_data, \
     process_geospatial_meteorological_data, \
     process_gadm_chirps_data, \
     process_geospatial_sociodemographic_data, \
     process_gadm_worldpoppopulation_data, \
-    process_gadm_worldpopdensity_data
+    process_gadm_worldpopdensity_data,\
+    process_economic_geospatial_sociodemographic_data, \
+    process_pop_weighted_relative_wealth_index_data
 import utils
 
 
@@ -60,6 +67,40 @@ class TestCases(unittest.TestCase):
         # Perform the test
         expected = [[23.39]], [[102.14]]
         actual = lat, lon
+        self.assertEqual(expected, actual)
+
+    def test_process_economic_data(self):
+        # Current time
+        unix_time = time.time()
+        # Process the data
+        process_economic_data('Relative Wealth Index', 'VNM')
+        # Check the modification time of the output
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data', 'Economic Data',
+            'Relative Wealth Index', 'VNM.png'
+        )
+        modification_time = os.path.getmtime(path)
+        # Has the output file been modified since this test started running?
+        expected = True
+        actual = unix_time < modification_time
+        self.assertEqual(expected, actual)
+
+    def test_process_relative_wealth_index_data(self):
+        # Current time
+        unix_time = time.time()
+        # Process the data
+        process_relative_wealth_index_data(iso3='VNM')
+        # Check the modification time of the output
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data', 'Economic Data',
+            'Relative Wealth Index', 'VNM.png'
+        )
+        modification_time = os.path.getmtime(path)
+        # Has the output file been modified since this test started running?
+        expected = True
+        actual = unix_time < modification_time
         self.assertEqual(expected, actual)
 
     def test_process_epidemiological_data(self):
@@ -175,18 +216,21 @@ class TestCases(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_process_terraclimate_data(self):
-        process_terraclimate_data('2023', '11')
+        process_terraclimate_data()
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Meteorological Data',
-            'TerraClimate', '2023-11',
-            'Water Potential Evaporation Amount.png'
+            'TerraClimate', '2023',
+            '2023-12-01/water_evaporation_amount_mm.csv'
         )
         expected = True
         actual = path.exists()
         self.assertEqual(expected, actual)
 
     def test_process_socio_demographic_data(self):
+        # TODO
+        # test_process_meta_pop_density_data()
+
         data_name = 'WorldPop population count'
         process_socio_demographic_data(data_name, '2020', 'VNM', 'ppp')
         self.test_process_worldpop_pop_count_data()
@@ -194,6 +238,9 @@ class TestCases(unittest.TestCase):
         data_name = 'WorldPop population density'
         process_socio_demographic_data(data_name, '2020', 'VNM', 'ppp')
         self.test_process_worldpop_pop_density_data()
+
+    # TODO
+    # test_process_meta_pop_density_data()
 
     def test_process_worldpop_pop_count_data(self):
         process_worldpop_pop_count_data('2020', 'VNM', 'ppp')
@@ -301,6 +348,12 @@ class TestCases(unittest.TestCase):
         expected = True
         actual = path.exists()
         self.assertEqual(expected, actual)
+
+    # TODO
+    # test_process_economic_geospatial_sociodemographic_data()
+
+    # TODO
+    # test_process_pop_weighted_relative_wealth_index_data()
 
 
 if __name__ == '__main__':

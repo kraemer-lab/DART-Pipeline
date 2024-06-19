@@ -32,6 +32,8 @@ from collate_data import \
     walk, \
     download_gadm_data, \
     unpack_file, \
+    download_economic_data, \
+    download_relative_wealth_index_data, \
     download_epidemiological_data, \
     download_ministerio_de_salud_peru_data, \
     download_geospatial_data, \
@@ -43,6 +45,7 @@ from collate_data import \
     download_era5_reanalysis_data, \
     download_terraclimate_data, \
     download_socio_demographic_data, \
+    download_meta_pop_density_data, \
     download_worldpop_pop_count_data, \
     download_worldpop_pop_density_data
 
@@ -244,6 +247,30 @@ class TestCases(unittest.TestCase):
         Path(out_dir, 'gadm41_VNM_1.json').unlink()
         Path('tests/').rmdir()
 
+    def test_download_economic_data(self):
+        data_name = 'Relative Wealth Index'
+        download_economic_data(data_name, 'VNM', True)
+        self.test_download_relative_wealth_index_data()
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'A Collate Data', 'Economic Data',
+            'Relative Wealth Index', 'VNM.csv'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
+    def test_download_relative_wealth_index_data(self):
+        download_relative_wealth_index_data(iso3='VNM', dry_run=True)
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'A Collate Data', 'Economic Data',
+            'Relative Wealth Index', 'VNM.csv'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
     def test_download_epidemiological_data(self):
         data_name = 'Ministerio de Salud (Peru) data'
         download_epidemiological_data(data_name, True, True, None, None)
@@ -362,6 +389,17 @@ class TestCases(unittest.TestCase):
         actual = path.exists()
         self.assertEqual(expected, actual)
 
+    def test_download_era5_reanalysis_data(self):
+        download_era5_reanalysis_data(only_one=True, dry_run=True)
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'A Collate Data', 'Meteorological Data',
+            'ERA5 atmospheric reanalysis', 'ERA5-ml-temperature-subarea.nc'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
     def test_download_terraclimate_data(self):
         download_terraclimate_data(True, True, '2023')
         base_dir = utils.get_base_directory()
@@ -377,18 +415,11 @@ class TestCases(unittest.TestCase):
             actual = Path(root, branch).exists()
             self.assertEqual(expected, actual)
 
-    def test_download_era5_reanalysis_data(self):
-        download_era5_reanalysis_data(only_one=True, dry_run=True)
-        base_dir = utils.get_base_directory()
-        path = Path(
-            base_dir, 'A Collate Data', 'Meteorological Data',
-            'ERA5 atmospheric reanalysis', 'ERA5-ml-temperature-subarea.nc'
-        )
-        expected = True
-        actual = path.exists()
-        self.assertEqual(expected, actual)
-
     def test_download_socio_demographic_data(self):
+        data_name = 'Meta population density'
+        download_socio_demographic_data(data_name, True, True, 'VNM')
+        self.test_download_meta_pop_density_data()
+
         data_name = 'WorldPop population density'
         download_socio_demographic_data(data_name, False, True, 'VNM')
         self.test_download_worldpop_pop_density_data()
@@ -396,6 +427,18 @@ class TestCases(unittest.TestCase):
         data_name = 'WorldPop population count'
         download_socio_demographic_data(data_name, False, True, 'VNM')
         self.test_download_worldpop_pop_count_data()
+
+    def test_download_meta_pop_density_data(self):
+        download_meta_pop_density_data(True, True, 'VNM')
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'A Collate Data', 'Socio-Demographic Data',
+            'Meta population density', 'VNM',
+            'vnm_children_under_five_2020_csv.zip'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
     def test_download_worldpop_pop_density_data(self):
         download_worldpop_pop_density_data(False, True, 'VNM')
