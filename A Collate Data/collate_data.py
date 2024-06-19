@@ -370,6 +370,8 @@ def download_ministerio_de_salud_peru_data(only_one, dry_run):
     """
     Download data from the Ministerio de Salud (Peru).
 
+    https://www.dge.gob.pe/sala-situacional-dengue
+
     Run times:
 
     - `time python3 collate_data.py Peru -1 -d`: 1m41.93s
@@ -418,10 +420,15 @@ def download_ministerio_de_salud_peru_data(only_one, dry_run):
         response.raise_for_status()
         # Parse HTML content
         soup = BeautifulSoup(response.content, 'html.parser')
-        # Find links with the onclick attribute
-        onclick_links = soup.find_all('a', onclick=True)
-        # Extract link URLs
-        links = [link.get('onclick') for link in onclick_links]
+        # Find links with the onclick attribute in both <a> and <button> tags
+        onclick_elements = soup.find_all(
+            lambda tag: tag.name in ['a', 'button'] and tag.has_attr('onclick')
+        )
+        # Extract the onclick attribute values
+        links = [element.get('onclick') for element in onclick_elements]
+        # Raise an error if no links are found
+        if len(links) == 0:
+            raise ValueError('No links found on the page')
 
         for link in links:
             # Search the link for the data embedded in it
