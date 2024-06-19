@@ -903,7 +903,7 @@ def process_terraclimate_data(year, month):
     Run times:
 
     - `time python3 process_data.py "TerraClimate data" -y 2023 -m 11`:
-      00:23.644
+      23.644s
     """
     # Inform the user
     msg = datetime(int(year), int(month), 1)
