@@ -59,18 +59,22 @@ This will create a `Meteorological Data` folder inside the A folder into which
 data will be downloaded.
 """
 # External libraries
-import cdsapi
+from bs4 import BeautifulSoup
 from lxml import html
+import cdsapi
+import gzip
 import py7zr
 import gzip
 import requests
 # Built-in modules
-import os
-import shutil
+from datetime import date
 from pathlib import Path
 import argparse
+import base64
 import json
-from datetime import date
+import os
+import re
+import shutil
 # Custom modules
 import utils
 # Create the requirements file from the terminal with:
@@ -265,7 +269,7 @@ def walk(
 
 def download_gadm_data(file_format, out_dir, iso3, dry_run, level=None):
     """
-    Download and unpack data from GADM.
+    Download and unpack GADM (Database of Global Administrative Areas) data.
 
     Parameters
     ----------
@@ -356,30 +360,141 @@ def unpack_file(path, same_folder=False):
             shutil.unpack_archive(path, str(path).removesuffix('.zip'))
 
 
-def download_geospatial_data(data_name, only_one=False, dry_run=False):
+def download_epidemiological_data(data_name, only_one, dry_run, year, iso3):
+    """Download Epidemiological Data."""
+    if data_name == 'Ministerio de Salud (Peru) data':
+        download_ministerio_de_salud_peru_data(only_one, dry_run)
+
+
+def download_ministerio_de_salud_peru_data(only_one, dry_run):
+    """
+    Download data from the Ministerio de Salud (Peru).
+
+    https://www.dge.gob.pe/sala-situacional-dengue
+
+    Run times:
+
+    - `time python3 collate_data.py Peru -1 -d`: 1m41.93s
+    - `time python3 collate_data.py Peru`:
+        - 26m11.34s
+        - 13m34.151s
+    """
+    data_type = 'Epidemiological Data'
+    data_name = 'Ministerio de Salud (Peru) data'
+
+    pages = [
+        'sala_dengue_AMAZONAS',
+        'sala_dengue_ANCASH',
+        'sala_dengue_AREQUIPA',
+        'sala_dengue_AYACUCHO',
+        'sala_dengue_CAJAMARCA',
+        'sala_dengue_CALLAO',
+        'sala_dengue_CUSCO',
+        'sala_dengue_HUANUCO',
+        'sala_dengue_ICA',
+        'sala_dengue_JUNIN',
+        'sala_dengue_LA LIBERTAD',
+        'sala_dengue_LAMBAYEQUE',
+        'sala_dengue_LIMA',
+        'sala_dengue_LORETO',
+        'sala_dengue_MADRE DE DIOS',
+        'sala_dengue_MOQUEGUA',
+        'sala_dengue_PASCO',
+        'sala_dengue_PIURA',
+        'sala_dengue_PUNO',
+        'sala_dengue_SAN MARTIN',
+        'sala_dengue_TUMBES',
+        'sala_dengue_UCAYALI',
+        'Nacional_dengue',
+    ]
+    # If the user specifies that only one dataset should be downloaded
+    if only_one:
+        pages = pages[:1]
+    for page in pages:
+        url = 'https://www.dge.gob.pe/sala-situacional-dengue/uploads/' + \
+            f'{page}.html'
+        print(f'Accessing "{url}"')
+        # Fetch webpage content
+        response = requests.get(url)
+        # Raise an exception for bad response status
+        response.raise_for_status()
+        # Parse HTML content
+        soup = BeautifulSoup(response.content, 'html.parser')
+        # Find links with the onclick attribute in both <a> and <button> tags
+        onclick_elements = soup.find_all(
+            lambda tag: tag.name in ['a', 'button'] and tag.has_attr('onclick')
+        )
+        # Extract the onclick attribute values
+        links = [element.get('onclick') for element in onclick_elements]
+        # Raise an error if no links are found
+        if len(links) == 0:
+            raise ValueError('No links found on the page')
+
+        for link in links:
+            # Search the link for the data embedded in it
+            regex_pattern = r"base64,(.*?)(?='\).then)"
+            matches = re.findall(regex_pattern, link, re.DOTALL)
+            if matches:
+                base64_string = matches[0]
+            else:
+                raise ValueError('No data found embedded in the link')
+
+            # Search the link for the filename
+            regex_pattern = r"a\.download = '(.*?)';\s*a\.click"
+            matches = re.findall(regex_pattern, link)
+            if matches:
+                # There is an actual filename for this data
+                filename = matches[0]
+            else:
+                # Just use the page name for the file
+                filename = page + '.xlsx'
+
+            # Export
+            path = Path(
+                base_dir, 'A Collate Data', data_type, data_name, filename
+            )
+            path.parent.mkdir(parents=True, exist_ok=True)
+            if dry_run:
+                # If doing a dry run, just touch the files
+                print(f'Touching: "{path}"')
+                path.touch()
+            else:
+                # Decode and export the data
+                decoded_bytes = base64.b64decode(base64_string)
+                with open(path, 'wb') as f:
+                    print(f'Exporting "{path}"')
+                    f.write(decoded_bytes)
+
+
+def download_geospatial_data(data_name, only_one, dry_run, iso3):
     """Download Geospatial data."""
     if data_name == 'GADM administrative map':
-        download_gadm_admin_map_data(only_one, dry_run)
+        download_gadm_admin_map_data(only_one, dry_run, iso3)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
 
-def download_gadm_admin_map_data(only_one, dry_run=True):
+def download_gadm_admin_map_data(only_one, dry_run, iso3):
     """
     Download GADM administrative map.
 
     Run times:
 
-    - `time python3 collate_data.py GADM`: 02:22.392
+    - `time python3 collate_data.py GADM -3 VNM`:
+        - 31.094s
+        - 54.608s
+    - `time python3 collate_data.py GADM -3 PER`:
+        - 18.516s
+        - 1m2.167s
+    - `time python3 collate_data.py GADM -3 GBR`: 13m22.114s
     """
     data_type = 'Geospatial Data'
     data_name = 'GADM administrative map'
 
     if only_one:
         print('The --only_one/-1 flag has no effect for this metric')
-
-    # Set additional parameters
-    iso3 = 'VNM'
+    if iso3 == '':
+        raise ValueError(f'No ISO3 code has been provided; use the "-3" flag')
 
     # Create output directory
     out_dir = Path(base_dir, 'A Collate Data', data_type, data_name, iso3)
@@ -437,8 +552,8 @@ def download_aphrodite_precipitation_data(
 
     Run times:
 
-    - `time python3 collate_data.py "APHRODITE precipitation"`: 00:44.318
-    - `time python3 collate_data.py "APHRODITE precipitation" -1`: 00:35.674
+    - `time python3 collate_data.py "APHRODITE precipitation"`: 44.318s
+    - `time python3 collate_data.py "APHRODITE precipitation" -1`: 35.674s
     """
     data_type = 'Meteorological Data'
     data_name = 'APHRODITE Daily accumulated precipitation (V1901)'
@@ -447,7 +562,6 @@ def download_aphrodite_precipitation_data(
     username, password = get_credentials(data_name, base_dir, credentials)
 
     # Create output directory
->>>>>>> origin/main
     out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -577,12 +691,12 @@ def download_chirps_rainfall_data(only_one, dry_run):
 
     Run times:
 
-    - `time python3 collate_data.py "CHIRPS rainfall" -1 -d`: 00:01.087
+    - `time python3 collate_data.py "CHIRPS rainfall" -1 -d`: 1.087s
     - `time python3 collate_data.py "CHIRPS rainfall"`:
-        - 05:30.123 (2024-01-01 to 2024-03-07)
-        - 02:56.14 (2024-01-01 to 2024-03-11)
-        - 02:55.466 (2024-01-01 to 2024-02-29)
-        - 04:15.394 (2024-01-01 to 2024-03-31)
+        - 2m55.466s (2024-01-01 to 2024-02-29)
+        - 5m30.123s (2024-01-01 to 2024-03-07)
+        - 2m56.14s (2024-01-01 to 2024-03-11)
+        - 4m15.394s (2024-01-01 to 2024-03-31)
     """
     data_type = 'Meteorological Data'
     data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite ' + \
@@ -638,7 +752,6 @@ def download_era5_reanalysis_data(only_one, dry_run):
 
     - `time python3 collate_data.py "ERA5 reanalysis" -1 -d`: 0.213s
     - `time python3 collate_data.py "ERA5 reanalysis"`: 1.484s
-
     """
     data_type = 'Meteorological Data'
     data_name = 'ERA5 atmospheric reanalysis'
@@ -732,17 +845,57 @@ def download_terraclimate_data(only_one, dry_run, year):
     download_files(base_url, relative_url, files, only_one, dry_run, out_dir)
 
 
-def download_socio_demographic_data(data_name, only_one=False, dry_run=False):
+def download_socio_demographic_data(data_name, only_one, dry_run, iso3):
     """Download socio-demographic data."""
-    if data_name == 'WorldPop population density':
-        download_worldpop_pop_density_data(only_one, dry_run)
-    elif data_name == 'WorldPop population count':
-        download_worldpop_pop_count_data(only_one, dry_run)
+    if data_name == 'WorldPop population count':
+        download_worldpop_pop_count_data(only_one, dry_run, iso3)
+    elif data_name == 'WorldPop population density':
+        download_worldpop_pop_density_data(only_one, dry_run, iso3)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
 
-def download_worldpop_pop_density_data(only_one, dry_run):
+def download_worldpop_pop_count_data(only_one, dry_run, iso3):
+    """
+    Download WorldPop population count.
+
+    All available WorldPop datasets are detailed here:
+    https://www.worldpop.org/rest/data
+
+    This function will download population data in GeoTIFF format (as files
+    with the .tif extension) along with metadata files. A zipped file (with the
+    .7z extension) will also be downloaded; this will contain the same GeoTIFF
+    files along with .tfw and .tif.aux.xml files. Most users will not find
+    these files useful and so unzipping the .7z file is usually unnecessary.
+
+    Run times:
+
+    - `time python3 collate_data.py "WorldPop pop count"`:
+        - 6m46.2s
+        - 17m40.154s
+    - `time python3 collate_data.py "WorldPop pop count" -3 VNM`: 23m17.052s
+    - `time python3 collate_data.py "WorldPop pop count" -3 PER`:
+        - 46m47.78s
+        - 1h15m44.285s
+    """
+    data_type = 'Socio-Demographic Data'
+    data_name = 'WorldPop population count'
+
+    if only_one:
+        print('The --only_one/-1 flag has no effect for this metric')
+
+    # Download files
+    # Example URLs:
+    # - https://data.worldpop.org/GIS/Population/Individual_countries/VNM/
+    # - https://data.worldpop.org/GIS/Population/Individual_countries/PER/
+    base_url = 'https://data.worldpop.org'
+    relative_url = f'GIS/Population/Individual_countries/{iso3}'
+    out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    walk(base_url, relative_url, only_one, dry_run, out_dir)
+
+
+def download_worldpop_pop_density_data(only_one, dry_run, iso3):
     """
     Download WorldPop population density.
 
@@ -751,10 +904,12 @@ def download_worldpop_pop_density_data(only_one, dry_run):
 
     Run times:
 
-    - `time python3 collate_data.py "WorldPop pop density" -d`: 0m0.732s
-    - `time python3 collate_data.py "WorldPop pop density":
+    - `time python3 collate_data.py "WorldPop pop density" -3 VNM`:
         - 2.860s
-        - 0.29s
+        - 4.349s
+    - `time python3 collate_data.py "WorldPop pop density" -3 PER`:
+        - 6.723s
+        - 18.760s
     """
     data_type = 'Socio-Demographic Data'
     data_name = 'WorldPop population density'
@@ -764,7 +919,6 @@ def download_worldpop_pop_density_data(only_one, dry_run):
 
     # Set additional parameters
     year = '2020'
-    iso3 = 'VNM'
     base_url = 'https://data.worldpop.org'
 
     #
@@ -805,80 +959,6 @@ def download_worldpop_pop_density_data(only_one, dry_run):
         download_file(url, path)
 
 
-def download_worldpop_pop_count_data(only_one, dry_run):
-    """
-    Download WorldPop population count.
-
-    All available datasets are detailed here:
-    https://www.worldpop.org/rest/data
-
-    Run times:
-
-<<<<<<< HEAD
-    - `time python3 collate_data.py "WorldPop pop count"`: 406.2s
-=======
-    - `time python3 collate_data.py "WorldPop pop count"`:
-        - 06:46.2
-        - 17:40.154
->>>>>>> origin/main
-    """
-    data_type = 'Socio-Demographic Data'
-    data_name = 'WorldPop population count'
-
-    if only_one:
-        print('The --only_one/-1 flag has no effect for this metric')
-
-    # Set additional parameter
-    base_url = 'https://data.worldpop.org'
-
-    # Download GeoDataFrame file
-    relative_url = 'GIS/Population/Individual_countries/VNM/' + \
-        'Viet_Nam_100m_Population.7z'
-    url = os.path.join(base_url, relative_url)
-    path = Path(
-        base_dir, 'A Collate Data', data_type, data_name, relative_url
-    )
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if dry_run:
-        print(f'Touching: "{path}"')
-        path.touch()
-    else:
-        print('Downloading', url)
-        print('to', path)
-        succeded = download_file(url, path)
-        # Unpack file
-        if succeded:
-            unpack_file(path, same_folder=False)
-
-
-<<<<<<< HEAD
-def download_geospatial_data(data_name, only_one=False, dry_run=False):
-    """Download Geospatial data."""
-    if data_name == 'GADM administrative map':
-        download_gadm_admin_map_data(only_one, dry_run)
-    else:
-        raise ValueError(f'Unrecognised data name "{data_name}"')
-
-
-def download_gadm_admin_map_data(only_one, dry_run=True):
-    """
-    Download GADM administrative map.
-
-    Run times:
-
-    - `time python3 collate_data.py "GADM admin map"`:
-        - 2m0.457s
-        - 0m31.094s
-    """
-    data_type = 'Geospatial Data'
-    data_name = 'GADM administrative map'
-
-    if only_one:
-        print('The --only_one/-1 flag has no effect for this metric')
-
-    # Set additional parameters
-    iso3 = 'VNM'
-=======
 class EmptyObject:
     """Define an empty object for creating a fake args object for Sphinx."""
 
@@ -890,6 +970,9 @@ class EmptyObject:
 
 
 shorthand_to_data_name = {
+    # Epidemiological Data
+    'Peru': 'Ministerio de Salud (Peru) data',
+
     # Meteorological Data
     'APHRODITE temperature':
     'APHRODITE Daily mean temperature product (V1808)',
@@ -912,6 +995,9 @@ shorthand_to_data_name = {
 }
 
 data_name_to_type = {
+    # Epidemiological Data
+    'Ministerio de Salud (Peru) data': 'Epidemiological Data',
+
     # Meteorological Data
     'APHRODITE Daily mean temperature product (V1808)': 'Meteorological Data',
     'APHRODITE Daily accumulated precipitation (V1901)': 'Meteorological Data',
@@ -932,6 +1018,7 @@ data_name_to_type = {
 # Establish the base directory
 path = Path(__file__)
 base_dir = utils.get_base_directory(path.parent)
+
 
 # If running directly
 if __name__ == '__main__':
@@ -962,15 +1049,13 @@ if __name__ == '__main__':
     message = '''If data from multiple years is available, choose a year from
     which to download.'''
     parser.add_argument('--year', '-y', default=None, help=message)
+    message = '''Country code in "ISO 3166-1 alpha-3" format.'''
+    parser.add_argument('--iso3', '-3', default='', help=message)
+    message = '''Show information to help with debugging.'''
+    parser.add_argument('--verbose', '-v', help=message, action='store_true')
 
     # Parse arguments from terminal
     args = parser.parse_args()
-
-    # Check
-    if True:
-        print('Arguments:')
-        for arg in vars(args):
-            print(f'{arg + ":":20s} {vars(args)[arg]}')
 
     # Extract the arguments
     data_name = args.data_name
@@ -978,133 +1063,14 @@ if __name__ == '__main__':
     dry_run = args.dry_run
     credentials = args.credentials
     year = args.year
-
-    # Check that the data name is recognised
-    if data_name in shorthand_to_data_name.keys():
-        pass
-    elif data_name in shorthand_to_data_name.values():
-        pass
-    elif data_name == '':
-        pass
-    else:
-        raise ValueError(f'Unrecognised data name "{data_name}"')
->>>>>>> origin/main
-
-    # Convert shorthand names to full names
-    if data_name in shorthand_to_data_name.keys():
-        data_name = shorthand_to_data_name[data_name]
-    # Get macro data type
-    data_type = ''
-    if data_name in data_name_to_type.keys():
-        data_type = data_name_to_type[data_name]
-
-<<<<<<< HEAD
-    download_gadm_data('Geopackage', out_dir, iso3, dry_run)
-    download_gadm_data('Shapefile', out_dir, iso3, dry_run)
-    download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level0')
-    download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level1')
-    download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level2')
-    download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level3')
-
-
-class EmptyObject:
-    """Define an empty object for creating a fake args object for Sphinx."""
-
-    def __init__(self):
-        """Initialise."""
-        self.data_name = ''
-        self.only_one = False
-        self.dry_run = False
-
-
-shorthand_to_data_name = {
-    # Meteorological Data
-    'APHRODITE temperature':
-    'APHRODITE Daily mean temperature product (V1808)',
-    'APHRODITE precipitation':
-    'APHRODITE Daily accumulated precipitation (V1901)',
-    'CHIRPS rainfall':
-    'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations',
-    'TerraClimate data':
-    'TerraClimate gridded temperature, precipitation, and other',
-    'ERA5 reanalysis':
-    'ERA5 atmospheric reanalysis',
-
-    # Socio-Demographic Data
-    'WorldPop pop density': 'WorldPop population density',
-    'WorldPop pop count': 'WorldPop population count',
-
-    # Geospatial Data
-    'GADM admin map': 'GADM administrative map',
-}
-
-data_name_to_type = {
-    # Meteorological Data
-    'APHRODITE Daily mean temperature product (V1808)': 'Meteorological Data',
-    'APHRODITE Daily accumulated precipitation (V1901)': 'Meteorological Data',
-    'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations':
-    'Meteorological Data',
-    'TerraClimate gridded temperature, precipitation, and other':
-    'Meteorological Data',
-    'ERA5 atmospheric reanalysis': 'Meteorological Data',
-
-    # Socio-Demographic Data
-    'WorldPop population density': 'Socio-Demographic Data',
-    'WorldPop population count': 'Socio-Demographic Data',
-
-    # Geospatial Data
-    'GADM administrative map': 'Geospatial Data',
-}
-
-# Establish the base directory
-path = Path(__file__)
-base_dir = utils.get_base_directory(path.parent)
-
-# If running directly
-if __name__ == '__main__':
-    # Perform checks
-    utils.check_os()
-    utils.check_python()
-
-    # Create command-line argument parser
-    desc = 'Download data and store it locally for later processing.'
-    parser = argparse.ArgumentParser(description=desc)
-
-    # Add positional arguments
-    message = 'The name of the data field to be downloaded and collated.'
-    default = ''
-    parser.add_argument('data_name', nargs='?', default=default, help=message)
-
-    # Add optional arguments
-    message = '''If set, only one item from each folder in the raw data
-    will be downloaded/created.'''
-    parser.add_argument('--only_one', '-1', action='store_true', help=message)
-    message = '''If set, the raw data will not be downloaded. Instead, empty
-    files will be created with the correct names and locations.'''
-    parser.add_argument('--dry_run', '-d', action='store_true', help=message)
-    message = '''Path (including filename) to the credentials file.
-    Default is `credentials.json` in the `DART-Pipeline` directory.'''
-    default = '../credentials.json'
-    parser.add_argument('--credentials', '-c', default=default, help=message)
-    message = '''If data from multiple years is available, choose a year from
-    which to download.'''
-    parser.add_argument('--year', '-y', default=None, help=message)
-
-    # Parse arguments from terminal
-    args = parser.parse_args()
+    iso3 = args.iso3.upper()
+    verbose = args.verbose
 
     # Check
-    if True:
+    if verbose:
         print('Arguments:')
         for arg in vars(args):
             print(f'{arg + ":":20s} {vars(args)[arg]}')
-
-    # Extract the arguments
-    data_name = args.data_name
-    only_one = args.only_one
-    dry_run = args.dry_run
-    credentials = args.credentials
-    year = args.year
 
     # Check that the data name is recognised
     if data_name in shorthand_to_data_name.keys():
@@ -1126,23 +1092,17 @@ if __name__ == '__main__':
 
     if data_name == '':
         print('No data name has been provided. Exiting the programme.')
-=======
-    if data_name == '':
-        print('No data name has been provided. Exiting the programme.')
+
+    elif data_type == 'Epidemiological Data':
+        download_epidemiological_data(data_name, only_one, dry_run, year, iso3)
     elif data_type == 'Geospatial Data':
-        download_geospatial_data(data_name, only_one, dry_run)
->>>>>>> origin/main
+        download_geospatial_data(data_name, only_one, dry_run, iso3)
     elif data_type == 'Meteorological Data':
         download_meteorological_data(
             data_name, only_one, dry_run, credentials, year
         )
     elif data_type == 'Socio-Demographic Data':
-        download_socio_demographic_data(data_name, only_one, dry_run)
-<<<<<<< HEAD
-    elif data_type == 'Geospatial Data':
-        download_geospatial_data(data_name, only_one, dry_run)
-=======
->>>>>>> origin/main
+        download_socio_demographic_data(data_name, only_one, dry_run, iso3)
     else:
         raise ValueError(f'Unrecognised data type "{data_type}"')
 

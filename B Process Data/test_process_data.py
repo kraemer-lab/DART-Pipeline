@@ -3,11 +3,11 @@ Run unit tests on process_data.py.
 
 Past runs
 ---------
-- 2024-02-08 on Ubuntu 22.04 using Python 3.12: Ran 2 tests in 00:00.824
-- 2024-02-09 on macOS Sonoma using Python 3.12: Ran 2 tests in 00:00.833
-- 2024-05-08 on Ubuntu 20.04 using Python 3.12: Ran 18 tests in 07:01.735
-- 2024-05-09 on Ubuntu 22.04 using Python 3.12: Ran 18 tests in 14:58.102
-- 2024-05-10 on macOS Sonoma using Python 3.12: Ran 18 tests in 04:41.547
+- 2024-02-08 on Ubuntu 22.04 using Python 3.12: Ran 2 tests in 0.824s
+- 2024-02-09 on macOS Sonoma using Python 3.12: Ran 2 tests in 0.833s
+- 2024-05-08 on Ubuntu 20.04 using Python 3.12: Ran 18 tests in 7m1.735s
+- 2024-05-09 on Ubuntu 22.04 using Python 3.12: Ran 18 tests in 14m58.102s
+- 2024-05-10 on macOS Sonoma using Python 3.12: Ran 18 tests in 4m41.547s
 """
 # External libraries
 import rasterio
@@ -19,6 +19,8 @@ from pathlib import Path
 from process_data import \
     days_to_date, \
     pixel_to_latlon, \
+    process_epidemiological_data, \
+    process_ministerio_de_salud_peru_data, \
     process_geospatial_data, \
     process_gadm_admin_map_data, \
     process_meteorological_data, \
@@ -58,6 +60,32 @@ class TestCases(unittest.TestCase):
         # Perform the test
         expected = [[23.39]], [[102.14]]
         actual = lat, lon
+        self.assertEqual(expected, actual)
+
+    def test_process_epidemiological_data(self):
+        process_epidemiological_data(
+            'Ministerio de Salud (Peru) data', 'PER', '0'
+        )
+        self.test_process_ministerio_de_salud_peru_data()
+
+    def test_process_ministerio_de_salud_peru_data(self):
+        process_ministerio_de_salud_peru_data('0')
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data', 'Epidemiological Data',
+            'Ministerio de Salud (Peru) data', 'Admin Level 0',
+            'Admin Level 0.csv'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+        path = Path(
+            base_dir, 'B Process Data', 'Epidemiological Data',
+            'Ministerio de Salud (Peru) data', 'Admin Level 0',
+            'Peru.png'
+        )
+        expected = True
+        actual = path.exists()
         self.assertEqual(expected, actual)
 
     def test_process_geospatial_data(self):

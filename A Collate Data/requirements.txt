@@ -1,5 +1,6 @@
+beautifulsoup4==4.12.3
 cdsapi==0.6.1
 distro==1.8.0
 lxml==4.9.3
 py7zr==0.20.6
-Requests==2.31.0
+Requests==2.32.3
