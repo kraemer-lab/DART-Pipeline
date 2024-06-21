@@ -418,14 +418,14 @@ def process_gadm_admin_map_data(admin_level, iso3):
     output.to_csv(path, index=False)
 
 
-def process_meteorological_data(data_name, year, month, verbose):
+def process_meteorological_data(data_name, year, month, verbose, only_one):
     """Process meteorological data."""
     if data_name == 'APHRODITE Daily accumulated precipitation (V1901)':
         process_aphrodite_precipitation_data()
     elif data_name == 'APHRODITE Daily mean temperature product (V1808)':
         process_aphrodite_temperature_data()
     elif data_name.startswith('CHIRPS: Rainfall Estimates from Rain Gauge an'):
-        process_chirps_rainfall_data(year, verbose)
+        process_chirps_rainfall_data(year, month, verbose, only_one)
     elif data_name == 'ERA5 atmospheric reanalysis':
         process_era5_reanalysis_data()
     elif data_name.startswith('TerraClimate gridded temperature, precipitati'):
@@ -623,7 +623,7 @@ def process_aphrodite_temperature_data():
         df.to_csv(path)
 
 
-def process_chirps_rainfall_data(year, verbose):
+def process_chirps_rainfall_data(year, month, verbose, only_one):
     """
     Process CHIRPS Rainfall data.
 
@@ -632,26 +632,32 @@ def process_chirps_rainfall_data(year, verbose):
 
     Run times:
 
-    - `time python3 process_data.py "CHIRPS rainfall"`: 2m14.596s (one file)
-    - `time python3 process_data.py "CHIRPS rainfall" -d`: 2m07.085s (one file)
+    - `time python3 process_data.py CHIRPS -v -1`: 1m19.32s
     """
     # Sanitise the inputs
     data_type = 'Meteorological Data'
     data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and ' + \
         'Satellite Observations'
     if not year:
-        year = '2024'
+        print('No year provided, defaulting to "2023"')
+        year = '2023'
+    if not month:
+        print('No month provided, defaulting to "5"')
+        month = '5'
+    if only_one:
+        print('Only one file will be processed')
 
     # Inform the user
-    print('Data type:  ', data_type)
-    print('Data names: ', data_name)
-    print('Year:       ', year)
+    if verbose:
+        print('Data type:   ', data_type)
+        print('Data name(s):', data_name)
+        print('Year:        ', year)
+        print('Month:       ', month)
 
     path = Path(
         base_dir, 'A Collate Data', 'Meteorological Data',
         'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-        'Observations', 'products', 'CHIRPS-2.0', 'global_daily', 'tifs',
-        'p05', year
+        'Observations', 'global_daily', year, month
     )
     filepaths = list(path.iterdir())
     # Only process the GeoTIF files
@@ -732,7 +738,7 @@ def process_chirps_rainfall_data(year, verbose):
         plt.savefig(path)
 
         # If you're testing or debugging, only do one file
-        if verbose:
+        if only_one:
             break
 
 
@@ -1206,67 +1212,57 @@ def process_worldpop_pop_density_data(year, iso3):
 
 
 def process_geospatial_meteorological_data(
-    data_name, admin_level, iso3, year
+    data_name, admin_level, iso3, year, month, verbose, only_one
 ):
     """Process Geospatial and Meteorological Data."""
     data_name_1 = 'GADM administrative map'
     data_name_2 = \
         'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations'
     if data_name == [data_name_1, data_name_2]:
-        process_gadm_chirps_data(admin_level, iso3, year)
+        process_gadm_chirps_data(
+            admin_level, iso3, year, month, verbose, only_one
+        )
     else:
         raise ValueError(f'Unrecognised data names "{data_name}"')
 
 
-def process_gadm_chirps_data(admin_level, iso3, year):
+def process_gadm_chirps_data(
+    admin_level, iso3, year, month, verbose, only_one
+):
     """
     Process GADM administrative map and CHIRPS rainfall data.
 
     Run times:
 
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 0`: 1.763s
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 1`: 14.640s
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 2`: 2m36.276s
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 3`: 41m55.092s
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 0 -3 GBR`: 12.027s
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 1 -3 GBR`: 5.624s
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 2 -3 GBR`: 5.626s
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 3 -3 GBR`: 6.490s
+    - `time python3 process_data.py GADM CHIRPS -v -1`: 1.220s
     """
     # Sanitise the inputs
     data_type = 'Geospatial and Meteorological Data'
     data_name = 'GADM administrative map and CHIRPS rainfall data'
     if not admin_level:
+        print('No admin level provided, defaulting to "0"')
         admin_level = '0'
     if not iso3:
+        print('No country code provided, defaulting to "VNM"')
         iso3 = 'VNM'
     country = pycountry.countries.get(alpha_3=iso3).name
     if not year:
-        year = '2024'
+        print('No year provided, defaulting to "2023"')
+        year = '2023'
+    if not month:
+        print('No month provided, defaulting to "5"')
+        month = '5'
+    if only_one:
+        print('Only one file will be processed')
 
     # Inform the user
-    print('Data type:  ', data_type)
-    print('Data names: ', data_name)
-    print('Admin level:', admin_level)
-    print('Country:    ', country)
-    print('Year:       ', year)
-
-    # Import the TIFF file
-    path = Path(
-        base_dir, 'A Collate Data', 'Meteorological Data',
-        'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-        'Observations',
-        'products', 'CHIRPS-2.0', 'global_daily', 'tifs', 'p05', year,
-        f'chirps-v2.0.{year}.01.01.tif'
-    )
-    src = rasterio.open(path)
-    # Read the first band
-    data = src.read(1)
-    # Replace negative values (no rainfall measured) with zeros
-    data[data < 0] = 0
-    # Create a bounding box from raster bounds
-    bounds = src.bounds
-    raster_bbox = box(bounds.left, bounds.bottom, bounds.right, bounds.top)
+    if verbose:
+        print('Data type:  ', data_type)
+        print('Data names: ', data_name)
+        print('Admin level:', admin_level)
+        print('Country:    ', country)
+        print('Year:       ', year)
+        print('Month:      ', month)
 
     # Import the shape file
     path = Path(
@@ -1275,106 +1271,134 @@ def process_gadm_chirps_data(admin_level, iso3, year):
         f'gadm41_{iso3}_{admin_level}.shp'
     )
     gdf = gpd.read_file(path)
-    # Transform the shape file to match the GeoTIFF's coordinate system
-    gdf = gdf.to_crs(src.crs)
 
-    # Get the aspect ratio for this region of the Earth
-    miny = gdf.bounds['miny'].values[0]
-    maxy = gdf.bounds['maxy'].values[0]
-    # Calculate the lengths of lines of latitude and longitude at the centroid
-    # of the polygon
-    centroid_lat = (miny + maxy) / 2.0
-    # Approximate length of one degree of latitude in meters
-    lat_length = 111.32 * 1000
-    # Approximate length of one degree of longitude in meters
-    lon_length = 111.32 * 1000 * math.cos(math.radians(centroid_lat))
-    # Calculate the stretch factor
-    aspect_ratio = lat_length / lon_length
-
-    # Initialise the output file
-    output = pd.DataFrame()
-    # Iterate over each region in the shape file
-    for _, region in gdf.iterrows():
-        geometry = region.geometry
-
-        # Initialise a new row for the output data frame
-        new_row = {}
-        new_row['Admin Level 0'] = region['COUNTRY']
-        # Initialise the title
-        title = region['COUNTRY']
-        # Update the new row and the title if the admin level is high enough
-        if int(admin_level) >= 1:
-            new_row['Admin Level 1'] = region['NAME_1']
-            title = region['NAME_1']
-        if int(admin_level) >= 2:
-            new_row['Admin Level 2'] = region['NAME_2']
-            title = region['NAME_2']
-        if int(admin_level) >= 3:
-            new_row['Admin Level 3'] = region['NAME_3']
-            title = region['NAME_3']
-
-        # Check if the rainfall data intersects this region
-        if raster_bbox.intersects(geometry):
-            # There is rainfall data for this region
-            # Clip the data using the polygon of the current region
-            region_data, region_transform = mask(src, [geometry], crop=True)
-            # Replace negative values (where no rainfall was measured)
-            region_data = np.where(region_data < 0, np.nan, region_data)
-            region_shape = region_data.shape
-            # Define the extent
-            extent = [
-                region_transform[2],
-                region_transform[2] + region_transform[0] * region_shape[2],
-                region_transform[5] + region_transform[4] * region_shape[1],
-                region_transform[5],
-            ]
-
-            # Sum the pixel values to get the total for the region
-            region_total = np.nansum(region_data)
-            print(title, region_total)
-
-            # Plot
-            A = 4  # We want figures to be A4
-            figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
-            fig = plt.figure(figsize=figsize, dpi=144)
-            ax = plt.axes()
-            # Rainfall data
-            img = ax.imshow(region_data[0], extent=extent, cmap='Blues')
-            # Manually add colorbar
-            fig.colorbar(img, shrink=0.2, label='Rainfall [mm]')
-            # Shape data
-            gpd.GeoSeries(geometry).plot(ax=ax, color='none')
-            # Format
-            ax.set_title(f'{title} Rainfall')
-            ax.set_xlabel('Longitude')
-            ax.set_ylabel('Latitude')
-            # Adjust the aspect ratio to match this part of the Earth
-            ax.set_aspect(aspect_ratio)
-            # Export
-            path = Path(
-                base_dir, 'B Process Data', data_type, data_name, iso3,
-                f'Admin Level {admin_level}', title + '.png'
-            )
-            os.makedirs(path.parent, exist_ok=True)
-            plt.savefig(path)
-            plt.close()
-
-        else:
-            # There is no rainfall data for this region
-            region_total = 0
-            print(title, region_total)
-
-        # Add to output data frame
-        new_row['Rainfall'] = region_total
-        new_row_df = pd.DataFrame(new_row, index=[0])
-        output = pd.concat([output, new_row_df], ignore_index=True)
-
-    # Export
-    path = Path(
-        base_dir, 'B Process Data', data_type, data_name, iso3,
-        f'Admin Level {admin_level}', 'Rainfall.csv'
+    # Import the TIFF file
+    folderpath = Path(
+        base_dir, 'A Collate Data', 'Meteorological Data',
+        'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
+        'Observations', 'global_daily', year, month
     )
-    output.to_csv(path, index=False)
+    for path in sorted([x for x in folderpath.iterdir()]):
+        print(f'Processing "{path}"')
+        src = rasterio.open(path)
+        # Read the first band
+        data = src.read(1)
+        # Replace negative values (no rainfall measured) with zeros
+        data[data < 0] = 0
+        # Create a bounding box from raster bounds
+        bounds = src.bounds
+        raster_bbox = box(bounds.left, bounds.bottom, bounds.right, bounds.top)
+
+        # Transform the shape file to match the GeoTIFF's coordinate system
+        gdf_prime = gdf.to_crs(src.crs)
+
+        # Get the aspect ratio for this region of the Earth
+        miny = gdf_prime.bounds['miny'].values[0]
+        maxy = gdf_prime.bounds['maxy'].values[0]
+        # Calculate the lengths of lines of latitude and longitude at the centroid
+        # of the polygon
+        centroid_lat = (miny + maxy) / 2.0
+        # Approximate length of one degree of latitude in meters
+        lat_length = 111.32 * 1000
+        # Approximate length of one degree of longitude in meters
+        lon_length = 111.32 * 1000 * math.cos(math.radians(centroid_lat))
+        # Calculate the stretch factor
+        aspect_ratio = lat_length / lon_length
+
+        # Initialise the output file
+        output = pd.DataFrame()
+        # Iterate over each region in the shape file
+        for _, region in gdf_prime.iterrows():
+            geometry = region.geometry
+
+            # Initialise a new row for the output data frame
+            new_row = {}
+            new_row['Admin Level 0'] = region['COUNTRY']
+            # Initialise the title
+            title = region['COUNTRY']
+            # Update the new row and the title if the admin level is high enough
+            if int(admin_level) >= 1:
+                new_row['Admin Level 1'] = region['NAME_1']
+                title = region['NAME_1']
+            if int(admin_level) >= 2:
+                new_row['Admin Level 2'] = region['NAME_2']
+                title = region['NAME_2']
+            if int(admin_level) >= 3:
+                new_row['Admin Level 3'] = region['NAME_3']
+                title = region['NAME_3']
+
+            # Check if the rainfall data intersects this region
+            if raster_bbox.intersects(geometry):
+                # There is rainfall data for this region
+                # Clip the data using the polygon of the current region
+                region_data, region_transform = mask(src, [geometry], crop=True)
+                # Replace negative values (where no rainfall was measured)
+                region_data = np.where(region_data < 0, np.nan, region_data)
+                region_shape = region_data.shape
+                # Define the extent
+                extent = [
+                    region_transform[2],
+                    region_transform[2] + region_transform[0] * region_shape[2],
+                    region_transform[5] + region_transform[4] * region_shape[1],
+                    region_transform[5],
+                ]
+
+                # Sum the pixel values to get the total for the region
+                region_total = np.nansum(region_data)
+                if verbose:
+                    print(title, region_total)
+
+                # Plot
+                A = 4  # We want figures to be A4
+                figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+                fig = plt.figure(figsize=figsize, dpi=144)
+                ax = plt.axes()
+                # Rainfall data
+                img = ax.imshow(region_data[0], extent=extent, cmap='Blues')
+                # Manually add colorbar
+                fig.colorbar(img, shrink=0.2, label='Rainfall [mm]')
+                # Shape data
+                gpd.GeoSeries(geometry).plot(ax=ax, color='none')
+                # Format
+                ax.set_title(f'{title} Rainfall')
+                ax.set_xlabel('Longitude')
+                ax.set_ylabel('Latitude')
+                # Adjust the aspect ratio to match this part of the Earth
+                ax.set_aspect(aspect_ratio)
+                # Export
+                path = Path(
+                    base_dir, 'B Process Data', data_type, data_name, iso3,
+                    f'Admin Level {admin_level}', title + '.png'
+                )
+                os.makedirs(path.parent, exist_ok=True)
+                print(f'Saving "{path}"')
+                plt.savefig(path)
+                plt.close()
+
+            else:
+                # There is no rainfall data for this region
+                region_total = 0
+                print(title, region_total)
+
+            # Add to output data frame
+            new_row['Rainfall'] = region_total
+            new_row_df = pd.DataFrame(new_row, index=[0])
+            output = pd.concat([output, new_row_df], ignore_index=True)
+
+            # If the user has specified that only one file should be processed
+            if only_one:
+                break
+
+        # Export
+        path = Path(
+            base_dir, 'B Process Data', data_type, data_name, iso3,
+            f'Admin Level {admin_level}', 'Rainfall.csv'
+        )
+        print(f'Exporting "{path}"')
+        output.to_csv(path, index=False)
+
+        if only_one:
+            break
 
 
 def process_geospatial_sociodemographic_data(
@@ -1768,6 +1792,8 @@ shorthand_to_data_name = {
     'APHRODITE Daily mean temperature product (V1808)',
     'CHIRPS rainfall':
     'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations',
+    'CHIRPS':
+    'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations',
     'TerraClimate data':
     'TerraClimate gridded temperature, precipitation, and other',
     'ERA5 reanalysis':
@@ -1837,6 +1863,8 @@ if __name__ == '__main__':
     parser.add_argument('--iso3', '-3', help=message)
     message = '''Show information to help with debugging.'''
     parser.add_argument('--verbose', '-v', help=message, action='store_true')
+    message = '''If set, some functions will only process one file.'''
+    parser.add_argument('--only_one', '-1', action='store_true', help=message)
 
     # Parse arguments from terminal
     args = parser.parse_args()
@@ -1849,6 +1877,7 @@ if __name__ == '__main__':
     rt = args.resolution_type
     iso3 = args.iso3
     verbose = args.verbose
+    only_one = args.only_one
 
     # Check
     if verbose:
@@ -1873,13 +1902,15 @@ if __name__ == '__main__':
     elif data_type == ['Geospatial Data']:
         process_geospatial_data(data_name[0], admin_level, iso3)
     elif data_type == ['Meteorological Data']:
-        process_meteorological_data(data_name[0], year, month, verbose)
+        process_meteorological_data(
+            data_name[0], year, month, verbose, only_one
+        )
     elif data_type == ['Socio-Demographic Data']:
         process_socio_demographic_data(data_name[0], year, iso3, rt)
 
     elif data_type == ['Geospatial Data', 'Meteorological Data']:
         process_geospatial_meteorological_data(
-            data_name, admin_level, iso3, year
+            data_name, admin_level, iso3, year, month, verbose, only_one
         )
     elif data_type == ['Geospatial Data', 'Socio-Demographic Data']:
         process_geospatial_sociodemographic_data(

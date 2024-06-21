@@ -15,10 +15,11 @@ Past Runs
 - 2024-05-08:
     - On Ubuntu 22.04 using Python 3.12: Ran 17 tests in 1m00.448s
     - On Ubuntu 20.04 using Python 3.12: Ran 17 tests in 21.853s
-- 2024-05-10: on macOS Sonoma using Python 3.12:
+- 2024-05-10 on macOS Sonoma using Python 3.12:
     - Ran 17 tests in 37.624s
     - Ran 19 tests in 5m37.731s
-- 2024-06-06: on Ubuntu 22.04 using Python 3.12: Ran 19 tests in 5m4.979s
+- 2024-06-06 on Ubuntu 22.04 using Python 3.12: Ran 19 tests in 5m4.979s
+- 2024-06-20 on macOS Sonoma using Python 3.12: Ran 19 tests in 6m20.260s
 """
 import unittest
 from unittest.mock import patch
@@ -285,29 +286,28 @@ class TestCases(unittest.TestCase):
             self.assertEqual(expected, actual)
 
     def test_download_meteorological_data(self):
-        only_one = True
-        dry_run = True
+        file = '../credentials.json'
 
         data_name = 'APHRODITE Daily accumulated precipitation (V1901)'
-        download_meteorological_data(data_name, only_one, dry_run)
+        download_meteorological_data(data_name, True, True, file, '', '')
         self.test_download_aphrodite_precipitation_data()
 
         data_name = 'APHRODITE Daily mean temperature product (V1808)'
-        download_meteorological_data(data_name, only_one, dry_run)
+        download_meteorological_data(data_name, True, True, file, '', '')
         self.test_download_aphrodite_temperature_data()
 
         data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and ' + \
             'Satellite Observations'
-        download_meteorological_data(data_name, only_one, dry_run)
+        download_meteorological_data(data_name, True, True, file, '2023', '5')
         self.test_download_chirps_rainfall_data()
 
         data_name = 'TerraClimate gridded temperature, precipitation, and ' + \
             'other'
-        download_meteorological_data(data_name, only_one, dry_run)
+        download_meteorological_data(data_name, True, True, file, '', '')
         self.test_download_terraclimate_data()
 
         data_name = 'ERA5 atmospheric reanalysis'
-        download_meteorological_data(data_name, only_one, dry_run)
+        download_meteorological_data(data_name, True, True, file, '', '')
         self.test_download_era5_reanalysis_data()
 
     def test_download_aphrodite_precipitation_data(self):
@@ -350,13 +350,35 @@ class TestCases(unittest.TestCase):
             self.assertEqual(expected, actual)
 
     def test_download_chirps_rainfall_data(self):
-        download_chirps_rainfall_data(only_one=True, dry_run=True)
+        download_chirps_rainfall_data(True, True, '2023', '5')
         base_dir = utils.get_base_directory()
+
+        # Annual data
         path = Path(
             base_dir, 'A Collate Data', 'Meteorological Data',
             'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-            'Observations', 'products', 'CHIRPS-2.0', 'global_daily', 'tifs',
-            'p05', '2024', 'chirps-v2.0.2024.01.01.tif.gz'
+            'Observations', 'global_annual', 'chirps-v2.0.2023.tif'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
+        # Monthly data
+        path = Path(
+            base_dir, 'A Collate Data', 'Meteorological Data',
+            'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
+            'Observations', 'global_daily', '2023', '5',
+            'chirps-v2.0.2023.05.01.tif'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
+        # Daily data
+        path = Path(
+            base_dir, 'A Collate Data', 'Meteorological Data',
+            'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
+            'Observations', 'global_monthly', '2023', 'chirps-v2.0.2023.05.tif'
         )
         expected = True
         actual = path.exists()

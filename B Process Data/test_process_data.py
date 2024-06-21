@@ -8,6 +8,7 @@ Past runs
 - 2024-05-08 on Ubuntu 20.04 using Python 3.12: Ran 18 tests in 7m1.735s
 - 2024-05-09 on Ubuntu 22.04 using Python 3.12: Ran 18 tests in 14m58.102s
 - 2024-05-10 on macOS Sonoma using Python 3.12: Ran 18 tests in 4m41.547s
+- 2024-06-21 on macOS Sonoma using Python 3.12: Ran 20 tests in 4m56.833s
 """
 # External libraries
 import rasterio
@@ -106,25 +107,25 @@ class TestCases(unittest.TestCase):
 
     def test_process_meteorological_data(self):
         data_name = 'APHRODITE Daily accumulated precipitation (V1901)'
-        process_meteorological_data(data_name, None, None, None)
+        process_meteorological_data(data_name, None, None, None, True)
         self.test_process_aphrodite_precipitation_data()
 
         data_name = 'APHRODITE Daily mean temperature product (V1808)'
-        process_meteorological_data(data_name, None, None, None)
+        process_meteorological_data(data_name, None, None, None, True)
         self.test_process_aphrodite_temperature_data()
 
         data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and ' + \
             'Satellite Observations'
-        process_meteorological_data(data_name, '2024', None, True)
+        process_meteorological_data(data_name, '2023', '5', True, True)
         self.test_process_chirps_rainfall_data()
 
         data_name = 'ERA5 atmospheric reanalysis'
-        process_meteorological_data(data_name, None, None, None)
+        process_meteorological_data(data_name, None, None, None, True)
         self.test_process_era5_reanalysis_data()
 
         data_name = 'TerraClimate gridded temperature, precipitation, and ' + \
             'other'
-        process_meteorological_data(data_name, '2023', '11', None)
+        process_meteorological_data(data_name, '2023', '11', None, True)
         self.test_process_terraclimate_data()
 
     def test_process_aphrodite_precipitation_data(self):
@@ -152,7 +153,7 @@ class TestCases(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_process_chirps_rainfall_data(self):
-        process_chirps_rainfall_data('2024', True)
+        process_chirps_rainfall_data(None, None, None, True)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Meteorological Data',
@@ -225,11 +226,13 @@ class TestCases(unittest.TestCase):
             'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite ' +
             'Observations'
         ]
-        process_geospatial_meteorological_data(data_name, '0', 'VNM', '2024')
+        process_geospatial_meteorological_data(
+            data_name, None, None, None, None, None, True
+        )
         self.test_process_gadm_chirps_data()
 
     def test_process_gadm_chirps_data(self):
-        process_gadm_chirps_data('0', 'VNM', '2024')
+        process_gadm_chirps_data(None, None, None, None, None, True)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Geospatial and Meteorological Data',
