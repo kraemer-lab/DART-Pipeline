@@ -17,9 +17,10 @@ Past Runs
     - On Ubuntu 20.04 using Python 3.12: Ran 17 tests in 00:21.853
 - 2024-05-10: on macOS Sonoma using Python 3.12: Ran 17 tests in 00:37.624
 """
-import unittest
-from unittest.mock import patch
 from pathlib import Path
+from unittest.mock import patch
+import os
+import unittest
 # Custom modules
 import utils
 from collate_data import \
@@ -290,7 +291,12 @@ class TestCases(unittest.TestCase):
         self.test_download_era5_reanalysis_data()
 
     def test_download_aphrodite_precipitation_data(self):
-        download_aphrodite_precipitation_data(only_one=True, dry_run=True)
+        if 'CREDENTIALS_JSON' in os.environ:
+            # If running via GitHub Actions
+            download_aphrodite_precipitation_data(True, True, 'environ')
+        else:
+            # If running directly
+            download_aphrodite_precipitation_data(True, True, None)
         base_dir = utils.get_base_directory()
         root = Path(
             base_dir, 'A Collate Data', 'Meteorological Data',

@@ -65,12 +65,13 @@ import py7zr
 import gzip
 import requests
 # Built-in modules
-import os
-import shutil
+from datetime import date
+from io import StringIO
 from pathlib import Path
 import argparse
 import json
-from datetime import date
+import os
+import shutil
 # Custom modules
 import utils
 # Create the requirements file from the terminal with:
@@ -103,17 +104,28 @@ def get_credentials(metric, base_dir='..', credentials=None):
     # Construct the path to the credentials file
     if credentials is None:
         path = Path(base_dir, 'credentials.json')
+    elif credentials == 'environ':
+        path = None
     else:
         path = Path(credentials)
-    # Open and parse the credentials file
-    try:
-        with open(path, 'r') as f:
-            credentials = json.load(f)
-    except FileNotFoundError:
-        msg = 'No credentials.json file was found. Either you have not ' + \
-            'created one or it is not in the specified location (the ' + \
-            'default location is the DART-Pipeline folder)'
-        raise FileNotFoundError(msg)
+
+    # If the credentials are located in a file
+    if path:
+        # Open and parse the credentials file
+        try:
+            with open(path, 'r') as f:
+                credentials = json.load(f)
+        except FileNotFoundError:
+            msg = 'No credentials.json file was found. Either you have ' + \
+                'not created one or it is not in the specified location ' + \
+                '(the default location is the DART-Pipeline folder)'
+            raise FileNotFoundError(msg)
+
+    # If the credentials are in an environment variable
+    if not path:
+        io = StringIO(os.environ['CREDENTIALS_JSON'])
+        credentials = json.load(io)
+
     # Catch errors
     if metric not in credentials.keys():
         msg = f'No credentials for "{metric}" exists in the credentials ' + \
@@ -437,8 +449,10 @@ def download_aphrodite_precipitation_data(
 
     Run times:
 
-    - `time python3 collate_data.py "APHRODITE precipitation"`: 00:44.318
-    - `time python3 collate_data.py "APHRODITE precipitation" -1`: 00:35.674
+    - `time python3 collate_data.py "APHRODITE precipitation" -1 -d`: 0.222s
+    - `time python3 collate_data.py "APHRODITE precipitation" -1`: 35.674s
+    - `time python3 collate_data.py "APHRODITE precipitation"`: 44.318s
+    - `python3 collate_data.py "APHRODITE precipitation" -c environ`: 48.823s
     """
     data_type = 'Meteorological Data'
     data_name = 'APHRODITE Daily accumulated precipitation (V1901)'
