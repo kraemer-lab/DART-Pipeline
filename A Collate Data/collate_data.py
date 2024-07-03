@@ -100,6 +100,25 @@ def get_credentials(metric, base_dir='..', credentials=None):
     username, password : str
         The username and password associated with the entry in the credentials
         file will be returned.
+
+    Examples
+    --------
+    >>> get_credentials('APHRODITE Daily accumulated precipitation (V1901)')
+    ('example@email.com', '*******')
+
+    Using an environment variable to store the credentials:
+
+    $ export CREDENTIALS_JSON='{
+        "APHRODITE Daily accumulated precipitation (V1901)": {
+            "username": "example@email.com",
+            "password": "*******"
+        }
+    }'
+    $ python3
+    >>> from test_collate_data import get_credentials
+    >>> metric = 'APHRODITE Daily accumulated precipitation (V1901)'
+    >>> get_credentials(metric, credentials='environ')
+    ('example@email.com', '*******')
     """
     # Construct the path to the credentials file
     if credentials is None:

@@ -291,6 +291,17 @@ class TestCases(unittest.TestCase):
         self.test_download_era5_reanalysis_data()
 
     def test_download_aphrodite_precipitation_data(self):
+        """
+        Using an environment variable to store the credentials:
+
+        $ export CREDENTIALS_JSON='{
+            "APHRODITE Daily accumulated precipitation (V1901)": {
+                "username": "example@email.com",
+                "password": "*******"
+            }
+        }'
+        $ python3 test_collate_data.py
+        """
         if 'CREDENTIALS_JSON' in os.environ:
             # If running via GitHub Actions
             download_aphrodite_precipitation_data(True, True, 'environ')
@@ -315,7 +326,23 @@ class TestCases(unittest.TestCase):
             self.assertEqual(expected, actual)
 
     def test_download_aphrodite_temperature_data(self):
-        download_aphrodite_temperature_data(only_one=True, dry_run=True)
+        """
+        Using an environment variable to store the credentials:
+
+        $ export CREDENTIALS_JSON='{
+            "APHRODITE Daily mean temperature product (V1808)": {
+                "username": "example@email.com",
+                "password": "*******"
+            }
+        }'
+        $ python3 test_collate_data.py
+        """
+        if 'CREDENTIALS_JSON' in os.environ:
+            # If running via GitHub Actions
+            download_aphrodite_temperature_data(True, True, 'environ')
+        else:
+            # If running directly
+            download_aphrodite_temperature_data(True, True, None)
         base_dir = utils.get_base_directory()
         root = Path(
             base_dir, 'A Collate Data', 'Meteorological Data',
