@@ -250,7 +250,7 @@ class TestCases(unittest.TestCase):
         base_dir = utils.get_base_directory()
         root = Path(
             base_dir, 'A Collate Data', 'Geospatial Data',
-            'GADM administrative map',
+            'GADM administrative map', 'VNM'
         )
         for branch in [
             Path('gadm41_VNM.gpkg'),
