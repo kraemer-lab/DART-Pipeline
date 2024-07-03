@@ -42,6 +42,11 @@ jobs:
         CREDENTIALS_JSON: ${{ secrets.CREDENTIALS_JSON }}
       run: |
         echo "$CREDENTIALS_JSON" > credentials.json
+    - name: Create a Climate Data Store configuration file from a repository secret
+      env:
+        CDSAPIRC: ${{ secrets.CDSAPIRC }}
+      run: |
+        echo "$CDSAPIRC" > ~/.cdsapirc
     - name: Run unittest
       run: |
         python -m unittest discover -s 'A Collate Data'
