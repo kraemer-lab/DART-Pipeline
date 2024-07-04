@@ -242,27 +242,20 @@ class TestCases(unittest.TestCase):
 
     def test_download_geospatial_data(self):
         data_name = 'GADM administrative map'
-        download_geospatial_data(data_name, only_one=False, dry_run=True)
+        download_geospatial_data(data_name, only_one=True, dry_run=False)
         self.test_download_gadm_admin_map_data()
 
     def test_download_gadm_admin_map_data(self):
-        download_gadm_admin_map_data(only_one=False, dry_run=True)
+        download_gadm_admin_map_data(only_one=True, dry_run=False)
         base_dir = utils.get_base_directory()
-        root = Path(
+        path = Path(
             base_dir, 'A Collate Data', 'Geospatial Data',
-            'GADM administrative map', 'VNM'
+            'GADM administrative map', 'VNM', 'gadm41_VNM_shp',
+            'gadm41_VNM_0.shp'
         )
-        for branch in [
-            Path('gadm41_VNM.gpkg'),
-            Path('gadm41_VNM_shp.zip'),
-            Path('gadm41_VNM_0.json'),
-            Path('gadm41_VNM_1.json.zip'),
-            Path('gadm41_VNM_2.json.zip'),
-            Path('gadm41_VNM_3.json.zip'),
-        ]:
-            expected = True
-            actual = Path(root, branch).exists()
-            self.assertEqual(expected, actual)
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
     def test_download_meteorological_data(self):
         only_one = True
@@ -309,21 +302,15 @@ class TestCases(unittest.TestCase):
             # If running directly
             download_aphrodite_precipitation_data(True, True, None)
         base_dir = utils.get_base_directory()
-        root = Path(
+        path = Path(
             base_dir, 'A Collate Data', 'Meteorological Data',
             'APHRODITE Daily accumulated precipitation (V1901)',
-            'product', 'APHRO_V1901', 'APHRO_MA'
+            'product', 'APHRO_V1901', 'APHRO_MA', '050deg',
+            'APHRO_MA_050deg_V1901.2015.gz'
         )
-        for branch in [
-            Path('005deg', 'APHRO_MA_PREC_CLM_005deg_V1901.ctl.gz'),
-            Path('025deg', 'APHRO_MA_025deg_V1901.2015.gz'),
-            Path('025deg_nc', 'APHRO_MA_025deg_V1901.2015.nc.gz'),
-            Path('050deg', 'APHRO_MA_050deg_V1901.2015.gz'),
-            Path('050deg_nc', 'APHRO_MA_050deg_V1901.2015.nc.gz'),
-        ]:
-            expected = True
-            actual = Path(root, branch).exists()
-            self.assertEqual(expected, actual)
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
     def test_download_aphrodite_temperature_data(self):
         """
@@ -344,25 +331,18 @@ class TestCases(unittest.TestCase):
             # If running directly
             download_aphrodite_temperature_data(True, True, None)
         base_dir = utils.get_base_directory()
-        root = Path(
+        path = Path(
             base_dir, 'A Collate Data', 'Meteorological Data',
             'APHRODITE Daily mean temperature product (V1808)',
-            'product', 'APHRO_V1808_TEMP', 'APHRO_MA'
+            'product', 'APHRO_V1808_TEMP', 'APHRO_MA', '050deg_nc',
+            'APHRO_MA_TAVE_050deg_V1808.2015.nc.gz'
         )
-        for branch in [
-            Path('005deg', 'APHRO_MA_TAVE_CLM_005deg_V1808.ctl.gz'),
-            Path('005deg_nc', 'APHRO_MA_TAVE_CLM_005deg_V1808.nc.gz'),
-            Path('025deg', 'APHRO_MA_TAVE_025deg_V1808.2015.gz'),
-            Path('025deg_nc', 'APHRO_MA_TAVE_025deg_V1808.2015.nc.gz'),
-            Path('050deg', 'read_aphro_v1808.f90'),
-            Path('050deg_nc', 'APHRO_MA_TAVE_050deg_V1808.2015.nc.gz'),
-        ]:
-            expected = True
-            actual = Path(root, branch).exists()
-            self.assertEqual(expected, actual)
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
     def test_download_chirps_rainfall_data(self):
-        download_chirps_rainfall_data(only_one=True, dry_run=True)
+        download_chirps_rainfall_data(only_one=True, dry_run=False)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'A Collate Data', 'Meteorological Data',
@@ -374,8 +354,19 @@ class TestCases(unittest.TestCase):
         actual = path.exists()
         self.assertEqual(expected, actual)
 
+    def test_download_era5_reanalysis_data(self):
+        download_era5_reanalysis_data(only_one=True, dry_run=False)
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'A Collate Data', 'Meteorological Data',
+            'ERA5 atmospheric reanalysis', 'ERA5-ml-temperature-subarea.nc'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
     def test_download_terraclimate_data(self):
-        download_terraclimate_data(True, True, '2023')
+        download_terraclimate_data(only_one=True, dry_run=False, year='2023')
         base_dir = utils.get_base_directory()
         root = Path(
             base_dir, 'A Collate Data', 'Meteorological Data',
@@ -389,56 +380,40 @@ class TestCases(unittest.TestCase):
             actual = Path(root, branch).exists()
             self.assertEqual(expected, actual)
 
-    def test_download_era5_reanalysis_data(self):
-        download_era5_reanalysis_data(only_one=True, dry_run=True)
+    def test_download_socio_demographic_data(self):
+        data = 'WorldPop population count'
+        download_socio_demographic_data(data, only_one=True, dry_run=False)
+        self.test_download_worldpop_pop_count_data()
+
+        data = 'WorldPop population density'
+        download_socio_demographic_data(data, only_one=True, dry_run=False)
+        self.test_download_worldpop_pop_density_data()
+
+    def test_download_worldpop_pop_count_data(self):
+        download_worldpop_pop_count_data(only_one=True, dry_run=False)
         base_dir = utils.get_base_directory()
         path = Path(
-            base_dir, 'A Collate Data', 'Meteorological Data',
-            'ERA5 atmospheric reanalysis', 'ERA5-ml-temperature-subarea.nc'
+            base_dir, 'A Collate Data', 'Socio-Demographic Data',
+            'WorldPop population count', 'GIS', 'Population',
+            'Individual_countries', 'VNM', 'Viet_Nam_100m_Population',
+            'VNM_ppp_v2b_2020_UNadj.tif'
         )
         expected = True
         actual = path.exists()
         self.assertEqual(expected, actual)
 
-    def test_download_socio_demographic_data(self):
-        data_name = 'WorldPop population density'
-        download_socio_demographic_data(data_name, False, True)
-        self.test_download_worldpop_pop_density_data()
-
-        data_name = 'WorldPop population count'
-        download_socio_demographic_data(data_name, False, True)
-        self.test_download_worldpop_pop_count_data()
-
     def test_download_worldpop_pop_density_data(self):
-        download_worldpop_pop_density_data(only_one=False, dry_run=True)
+        download_worldpop_pop_density_data(only_one=True, dry_run=False)
         base_dir = utils.get_base_directory()
-        root = Path(
+        path = Path(
             base_dir, 'A Collate Data', 'Socio-Demographic Data',
             'WorldPop population density', 'GIS', 'Population_Density',
-            'Global_2000_2020_1km_UNadj', '2020', 'VNM'
+            'Global_2000_2020_1km_UNadj', '2020', 'VNM',
+            'vnm_pd_2020_1km_UNadj_ASCII_XYZ.zip'
         )
-        for branch in [
-            Path('vnm_pd_2020_1km_UNadj_ASCII_XYZ.zip'),
-            Path('vnm_pd_2020_1km_UNadj.tif'),
-        ]:
-            expected = True
-            actual = Path(root, branch).exists()
-            self.assertEqual(expected, actual)
-
-    def test_download_worldpop_pop_count_data(self):
-        download_worldpop_pop_count_data(only_one=False, dry_run=True)
-        base_dir = utils.get_base_directory()
-        root = Path(
-            base_dir, 'A Collate Data', 'Socio-Demographic Data',
-            'WorldPop population count', 'GIS', 'Population',
-            'Individual_countries', 'VNM'
-        )
-        for branch in [
-            Path('Viet_Nam_100m_Population.7z'),
-        ]:
-            expected = True
-            actual = Path(root, branch).exists()
-            self.assertEqual(expected, actual)
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
 
 if __name__ == '__main__':

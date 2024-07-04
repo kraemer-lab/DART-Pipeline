@@ -213,7 +213,7 @@ def process_gadm_admin_map_data(admin_level, country_iso3):
             plt.close()
 
 
-def process_meteorological_data(data_name, year, month, debug):
+def process_meteorological_data(data_name, year, month, debug, test=False):
     """Process meteorological data."""
     if data_name == 'APHRODITE Daily accumulated precipitation (V1901)':
         process_aphrodite_precipitation_data()
@@ -224,7 +224,7 @@ def process_meteorological_data(data_name, year, month, debug):
     elif data_name == 'ERA5 atmospheric reanalysis':
         process_era5_reanalysis_data()
     elif data_name.startswith('TerraClimate gridded temperature, precipitati'):
-        process_terraclimate_data(year, month)
+        process_terraclimate_data(year, month, None, test=test)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
@@ -474,21 +474,6 @@ def process_chirps_rainfall_data(year, debug):
         all_rows, all_cols = np.indices((rows, cols))
         lon, lat = xy(transform, all_rows.flatten(), all_cols.flatten())
 
-        # Create a data frame
-        df = pd.DataFrame({
-            'longitude': lon,
-            'latitude': lat,
-            'rainfall': rainfall,
-        })
-        # Export
-        path = Path(
-            'Meteorological Data',
-            'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-            'Observations', Path(filepath.name).with_suffix('.csv')
-        )
-        path.parent.mkdir(parents=True, exist_ok=True)
-        df.to_csv(path, index=False)
-
         # Plot
         plt.figure(figsize=(20, 8))
         extent = [np.min(lon), np.max(lon), np.min(lat), np.max(lat)]
@@ -508,6 +493,25 @@ def process_chirps_rainfall_data(year, debug):
         )
         plt.savefig(path)
 
+        # If you're testing or debugging, only do one file
+        if debug:
+            break
+
+        # Create a data frame
+        df = pd.DataFrame({
+            'longitude': lon,
+            'latitude': lat,
+            'rainfall': rainfall,
+        })
+        # Export
+        path = Path(
+            'Meteorological Data',
+            'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
+            'Observations', Path(filepath.name).with_suffix('.csv')
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(path, index=False)
+
         # Plot - log transformed
         plt.figure(figsize=(20, 8))
         extent = [np.min(lon), np.max(lon), np.min(lat), np.max(lat)]
@@ -524,10 +528,6 @@ def process_chirps_rainfall_data(year, debug):
         plt.grid(True)
         path = str(path).removesuffix('.png') + ' - Log Transformed.png'
         plt.savefig(path)
-
-        # If you're testing or debugging, only do one file
-        if debug:
-            break
 
 
 def process_era5_reanalysis_data():
@@ -590,7 +590,7 @@ def process_era5_reanalysis_data():
     file.close()
 
 
-def process_terraclimate_data(year, month):
+def process_terraclimate_data(year, month, debug, test=False):
     """
     Process TerraClimate gridded temperature, precipitation, etc.
 
@@ -606,22 +606,25 @@ def process_terraclimate_data(year, month):
     msg = msg.strftime('%B %Y')
     print(f'Processing data for {msg}')
 
-    metrics = [
-        'aet',  # water_evaporation_amount_mm
-        'def',  # water_potential_evaporation_amount_minus_water_evaporation_
-        'pdsi',  # palmer_drought_severity_index (unitless)
-        'pet',  # water_potential_evaporation_amount_mm
-        'ppt',  # precipitation_amount_mm
-        'q',  # runoff_amount_mm
-        'soil',  # soil_moisture_content_mm
-        'srad',  # downwelling_shortwave_flux_in_air_W_per_m_squared
-        'swe',  # liquid_water_content_of_surface_snow_mm
-        'tmax',  # air_temperature_max_degC
-        'tmin',  # air_temperature_min_degC
-        'vap',  # water_vapor_partial_pressure_in_air_kPa
-        'vpd',  # vapor_pressure_deficit_kPa
-        'ws',  # wind_speed_m_per_s
-    ]
+    if test:
+        metrics = ['aet']
+    else:
+        metrics = [
+            'aet',  # water_evaporation_amount_mm
+            'def',  # water_potential_evaporation_amount_minus_water_evaporatio
+            'pdsi',  # palmer_drought_severity_index (unitless)
+            'pet',  # water_potential_evaporation_amount_mm
+            'ppt',  # precipitation_amount_mm
+            'q',  # runoff_amount_mm
+            'soil',  # soil_moisture_content_mm
+            'srad',  # downwelling_shortwave_flux_in_air_W_per_m_squared
+            'swe',  # liquid_water_content_of_surface_snow_mm
+            'tmax',  # air_temperature_max_degC
+            'tmin',  # air_temperature_min_degC
+            'vap',  # water_vapor_partial_pressure_in_air_kPa
+            'vpd',  # vapor_pressure_deficit_kPa
+            'ws',  # wind_speed_m_per_s
+        ]
     for year in [year]:
         for metric in metrics:
             filename = f'TerraClimate_{metric}_{year}.nc'
@@ -719,17 +722,17 @@ def process_terraclimate_data(year, month):
             file.close()
 
 
-def process_socio_demographic_data(data_name, year, country_iso3, rt):
+def process_socio_demographic_data(data, year, country_iso3, rt, test=False):
     """Process socio-demographic data."""
-    if data_name == 'WorldPop population count':
-        process_worldpop_pop_count_data(year, country_iso3, rt)
-    elif data_name == 'WorldPop population density':
+    if data == 'WorldPop population count':
+        process_worldpop_pop_count_data(year, country_iso3, rt, test)
+    elif data == 'WorldPop population density':
         process_worldpop_pop_density_data(year, country_iso3)
     else:
-        raise ValueError(f'Unrecognised data name "{data_name}"')
+        raise ValueError(f'Unrecognised data name "{data}"')
 
 
-def process_worldpop_pop_count_data(year, iso3, rt):
+def process_worldpop_pop_count_data(year, iso3, rt, test=False):
     """
     Process WorldPop population count.
 
@@ -798,6 +801,9 @@ def process_worldpop_pop_count_data(year, iso3, rt):
     xlocs = xlocs[1:-1:2]
     # Finish
     plt.close()
+
+    if test:
+        return
 
     # Replace placeholder numbers with 0
     # (-3.4e+38 is the smallest single-precision floating-point number)
