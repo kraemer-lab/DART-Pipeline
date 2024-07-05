@@ -139,10 +139,9 @@ def process_gadm_admin_map_data(admin_level, country_iso3):
 
     Run times:
 
-    - `time python3 process_data.py GADM -a 0 -3 VNM`: 00:01.036
-    - `time python3 process_data.py GADM -3 VNM`: 00:03.830
-    - `time python3 process_data.py GADM -a 2 -3 VNM`: 00:33.953
-    - `time python3 process_data.py GADM -a 3 -3 VNM`: 12:30.51
+    - `time python3 process_data.py GADM -a 0 -3 VNM`: 1.036s
+    - `time python3 process_data.py GADM -a 2 -3 VNM`: 33.953s
+    - `time python3 process_data.py GADM -a 3 -3 VNM`: 12m30.51s
     """
     filenames = [f'gadm41_{country_iso3}_{admin_level}.shp']
     for filename in filenames:
@@ -161,6 +160,7 @@ def process_gadm_admin_map_data(admin_level, country_iso3):
         ax = fig.add_subplot()
         gdf.plot(ax=ax)
         name = gdf.loc[0, 'COUNTRY']
+        print(f'{name} - Admin Level {admin_level}')
         plt.title(f'{name} - Admin Level {admin_level}')
         plt.xlabel('Longitude')
         plt.ylabel('Latitude')
@@ -199,6 +199,7 @@ def process_gadm_admin_map_data(admin_level, country_iso3):
                 x, y = row['geometry'].exterior.xy
                 plt.plot(x, y)
             ax.set_aspect('equal')
+            print(title)
             plt.title(title)
             plt.xlabel('Longitude')
             plt.ylabel('Latitude')
@@ -301,7 +302,8 @@ def process_aphrodite_precipitation_data():
                     temp.append(mean_temp)
                     rstn.append(mean_rstn)
             except FileNotFoundError:
-                print(f'ERROR: File not found - {fname}')
+                # print(f'ERROR: File not found - {fname}')
+                pass
             except ValueError:
                 pass
 
@@ -400,7 +402,8 @@ def process_aphrodite_temperature_data():
                     temp.append(temp_data[0, 0])
                     rstn.append(rstn_data[0, 0])
         except FileNotFoundError:
-            print(f'ERROR: File not found - {fname}')
+            # print(f'ERROR: File not found - {fname}')
+            pass
         except ValueError:
             pass
 
