@@ -494,6 +494,7 @@ def process_chirps_rainfall_data(year, debug):
             'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
             'Observations', Path(filepath.name).with_suffix('.png')
         )
+        path.parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(path)
 
         # If you're testing or debugging, only do one file
