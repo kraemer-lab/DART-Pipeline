@@ -490,7 +490,7 @@ def process_chirps_rainfall_data(year, debug):
         plt.title('Rainfall Estimates')
         plt.grid(True)
         path = Path(
-            'Meteorological Data',
+            base_dir, 'B Process Data', 'Meteorological Data',
             'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
             'Observations', Path(filepath.name).with_suffix('.png')
         )

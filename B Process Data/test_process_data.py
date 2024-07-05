@@ -178,8 +178,7 @@ class TestCases(unittest.TestCase):
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Meteorological Data',
-            'TerraClimate', '2023-11',
-            'Water Potential Evaporation Amount.png'
+            'TerraClimate', '2023-11', 'Water Evaporation Amount.png'
         )
         expected = True
         actual = path.exists()
