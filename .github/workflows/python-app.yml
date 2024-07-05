@@ -26,7 +26,7 @@ jobs:
       with:
         python-version: "3.12"
     - name: Install LaTeX
-      run: sudo apt-get update && sudo apt-get install -y texlive texlive-latex-extra texlive-fonts-recommended dvipng
+      run: sudo apt-get update && sudo apt-get install -y texlive texlive-latex-extra texlive-fonts-recommended texlive-fonts-extra dvipng
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
