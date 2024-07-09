@@ -305,14 +305,14 @@ def process_gadm_admin_map_data(admin_level, iso3):
 
     Run times:
 
-    - `time python3 process_data.py GADM -a 0 -3 VNM`: 00:01.036
-    - `time python3 process_data.py GADM -a 1 -3 VNM`: 00:03.830
-    - `time python3 process_data.py GADM -a 2 -3 VNM`: 00:33.953
-    - `time python3 process_data.py GADM -a 3 -3 VNM`: 12:30.51
-    - `time python3 process_data.py GADM -a 0 -3 PER`: 00:01.036
-    - `time python3 process_data.py GADM -a 1 -3 PER`: 00:02.080
-    - `time python3 process_data.py GADM -a 2 -3 PER`: 00:09.854
-    - `time python3 process_data.py GADM -a 3 -3 PER`: 01:27.87
+    - `time python3 process_data.py GADM -a 0 -3 VNM`: 1.036s
+    - `time python3 process_data.py GADM -a 1 -3 VNM`: 3.830s
+    - `time python3 process_data.py GADM -a 2 -3 VNM`: 33.953s
+    - `time python3 process_data.py GADM -a 3 -3 VNM`: 12m30.51s
+    - `time python3 process_data.py GADM -a 0 -3 PER`: 1.036s
+    - `time python3 process_data.py GADM -a 1 -3 PER`: 2.080s
+    - `time python3 process_data.py GADM -a 2 -3 PER`: 9.854s
+    - `time python3 process_data.py GADM -a 3 -3 PER`: 1m27.87s
     """
     data_type = 'Geospatial Data'
     data_name = 'GADM administrative map'
@@ -413,18 +413,18 @@ def process_gadm_admin_map_data(admin_level, iso3):
     output.to_csv(path, index=False)
 
 
-def process_meteorological_data(data_name, year, month, verbose):
+def process_meteorological_data(data_name, year, month, verbose, test=False):
     """Process meteorological data."""
     if data_name == 'APHRODITE Daily accumulated precipitation (V1901)':
         process_aphrodite_precipitation_data()
     elif data_name == 'APHRODITE Daily mean temperature product (V1808)':
         process_aphrodite_temperature_data()
     elif data_name.startswith('CHIRPS: Rainfall Estimates from Rain Gauge an'):
-        process_chirps_rainfall_data(year, verbose)
+        process_chirps_rainfall_data(year, verbose, test)
     elif data_name == 'ERA5 atmospheric reanalysis':
         process_era5_reanalysis_data()
     elif data_name.startswith('TerraClimate gridded temperature, precipitati'):
-        process_terraclimate_data(year, month)
+        process_terraclimate_data(year, month, None, test=test)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
@@ -501,7 +501,8 @@ def process_aphrodite_precipitation_data():
                     temp.append(mean_temp)
                     rstn.append(mean_rstn)
             except FileNotFoundError:
-                print(f'ERROR: File not found - {fname}')
+                # print(f'ERROR: File not found - {fname}')
+                pass
             except ValueError:
                 pass
 
@@ -600,7 +601,8 @@ def process_aphrodite_temperature_data():
                     temp.append(temp_data[0, 0])
                     rstn.append(rstn_data[0, 0])
         except FileNotFoundError:
-            print(f'ERROR: File not found - {fname}')
+            # print(f'ERROR: File not found - {fname}')
+            pass
         except ValueError:
             pass
 
@@ -618,7 +620,7 @@ def process_aphrodite_temperature_data():
         df.to_csv(path)
 
 
-def process_chirps_rainfall_data(year, verbose):
+def process_chirps_rainfall_data(year, verbose, test):
     """
     Process CHIRPS Rainfall data.
 
@@ -674,6 +676,30 @@ def process_chirps_rainfall_data(year, verbose):
         all_rows, all_cols = np.indices((rows, cols))
         lon, lat = xy(transform, all_rows.flatten(), all_cols.flatten())
 
+        # Plot
+        plt.figure(figsize=(20, 8))
+        extent = [np.min(lon), np.max(lon), np.min(lat), np.max(lat)]
+        # Hide nulls
+        data[data == -9999] = 0
+        cmap = plt.cm.get_cmap('Blues')
+        plt.imshow(data, extent=extent, cmap=cmap)
+        plt.colorbar(label='Rainfall [mm]')
+        plt.xlabel('Longitude')
+        plt.ylabel('Latitude')
+        plt.title('Rainfall Estimates')
+        plt.grid(True)
+        path = Path(
+            base_dir, 'B Process Data', 'Meteorological Data',
+            'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
+            'Observations', Path(filepath.name).with_suffix('.png')
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(path)
+
+        # If you're testing, only do one file
+        if test:
+            break
+
         # Create a data frame
         df = pd.DataFrame({
             'longitude': lon,
@@ -688,25 +714,6 @@ def process_chirps_rainfall_data(year, verbose):
         )
         path.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(path, index=False)
-
-        # Plot
-        plt.figure(figsize=(20, 8))
-        extent = [np.min(lon), np.max(lon), np.min(lat), np.max(lat)]
-        # Hide nulls
-        data[data == -9999] = 0
-        cmap = plt.cm.get_cmap('Blues')
-        plt.imshow(data, extent=extent, cmap=cmap)
-        plt.colorbar(label='Rainfall [mm]')
-        plt.xlabel('Longitude')
-        plt.ylabel('Latitude')
-        plt.title('Rainfall Estimates')
-        plt.grid(True)
-        path = Path(
-            'Meteorological Data',
-            'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-            'Observations', Path(filepath.name).with_suffix('.png')
-        )
-        plt.savefig(path)
 
         # Plot - log transformed
         plt.figure(figsize=(20, 8))
@@ -725,8 +732,8 @@ def process_chirps_rainfall_data(year, verbose):
         path = str(path).removesuffix('.png') + ' - Log Transformed.png'
         plt.savefig(path)
 
-        # If you're testing or debugging, only do one file
-        if verbose:
+        # If you're testing, only do one file
+        if test:
             break
 
 
@@ -790,7 +797,7 @@ def process_era5_reanalysis_data():
     file.close()
 
 
-def process_terraclimate_data(year, month):
+def process_terraclimate_data(year, month, debug, test=False):
     """
     Process TerraClimate gridded temperature, precipitation, etc.
 
@@ -806,22 +813,25 @@ def process_terraclimate_data(year, month):
     msg = msg.strftime('%B %Y')
     print(f'Processing data for {msg}')
 
-    metrics = [
-        'aet',  # water_evaporation_amount_mm
-        'def',  # water_potential_evaporation_amount_minus_water_evaporation_
-        'pdsi',  # palmer_drought_severity_index (unitless)
-        'pet',  # water_potential_evaporation_amount_mm
-        'ppt',  # precipitation_amount_mm
-        'q',  # runoff_amount_mm
-        'soil',  # soil_moisture_content_mm
-        'srad',  # downwelling_shortwave_flux_in_air_W_per_m_squared
-        'swe',  # liquid_water_content_of_surface_snow_mm
-        'tmax',  # air_temperature_max_degC
-        'tmin',  # air_temperature_min_degC
-        'vap',  # water_vapor_partial_pressure_in_air_kPa
-        'vpd',  # vapor_pressure_deficit_kPa
-        'ws',  # wind_speed_m_per_s
-    ]
+    if test:
+        metrics = ['aet']
+    else:
+        metrics = [
+            'aet',  # water_evaporation_amount_mm
+            'def',  # water_potential_evaporation_amount_minus_water_evaporatio
+            'pdsi',  # palmer_drought_severity_index (unitless)
+            'pet',  # water_potential_evaporation_amount_mm
+            'ppt',  # precipitation_amount_mm
+            'q',  # runoff_amount_mm
+            'soil',  # soil_moisture_content_mm
+            'srad',  # downwelling_shortwave_flux_in_air_W_per_m_squared
+            'swe',  # liquid_water_content_of_surface_snow_mm
+            'tmax',  # air_temperature_max_degC
+            'tmin',  # air_temperature_min_degC
+            'vap',  # water_vapor_partial_pressure_in_air_kPa
+            'vpd',  # vapor_pressure_deficit_kPa
+            'ws',  # wind_speed_m_per_s
+        ]
     for year in [year]:
         for metric in metrics:
             filename = f'TerraClimate_{metric}_{year}.nc'
@@ -919,17 +929,17 @@ def process_terraclimate_data(year, month):
             file.close()
 
 
-def process_socio_demographic_data(data_name, year, iso3, rt):
+def process_socio_demographic_data(data_name, year, iso3, rt, test=False):
     """Process socio-demographic data."""
     if data_name == 'WorldPop population count':
-        process_worldpop_pop_count_data(year, iso3, rt)
+        process_worldpop_pop_count_data(year, iso3, rt, test)
     elif data_name == 'WorldPop population density':
         process_worldpop_pop_density_data(year, iso3)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
 
-def process_worldpop_pop_count_data(year, iso3, rt):
+def process_worldpop_pop_count_data(year, iso3, rt, test=False):
     """
     Process WorldPop population count.
 
@@ -1002,6 +1012,9 @@ def process_worldpop_pop_count_data(year, iso3, rt):
     xlocs = xlocs[1:-1:2]
     # Finish
     plt.close()
+
+    if test:
+        return
 
     # Replace placeholder numbers with 0
     # (-3.4e+38 is the smallest single-precision floating-point number)
