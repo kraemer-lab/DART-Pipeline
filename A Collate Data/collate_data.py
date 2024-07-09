@@ -414,6 +414,7 @@ def download_ministerio_de_salud_peru_data(only_one, dry_run):
     data_name = 'Ministerio de Salud (Peru) data'
 
     pages = [
+        'Nacional_dengue',
         'sala_dengue_AMAZONAS',
         'sala_dengue_ANCASH',
         'sala_dengue_AREQUIPA',
@@ -436,7 +437,6 @@ def download_ministerio_de_salud_peru_data(only_one, dry_run):
         'sala_dengue_SAN MARTIN',
         'sala_dengue_TUMBES',
         'sala_dengue_UCAYALI',
-        'Nacional_dengue',
     ]
     # If the user specifies that only one dataset should be downloaded
     if only_one:

@@ -247,15 +247,15 @@ class TestCases(unittest.TestCase):
 
     def test_download_epidemiological_data(self):
         data_name = 'Ministerio de Salud (Peru) data'
-        download_epidemiological_data(data_name, True, True, None, None)
+        download_epidemiological_data(data_name, True, False, None, None)
         self.test_download_ministerio_de_salud_peru_data()
 
     def test_download_ministerio_de_salud_peru_data(self):
-        download_ministerio_de_salud_peru_data(True, True)
+        download_ministerio_de_salud_peru_data(only_one=True, dry_run=False)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'A Collate Data', 'Epidemiological Data',
-            'Ministerio de Salud (Peru) data', 'casos_dengue_AMAZONAS.xlsx'
+            'Ministerio de Salud (Peru) data', 'casos_dengue_nacional.xlsx'
         )
         expected = True
         actual = path.exists()
@@ -263,11 +263,11 @@ class TestCases(unittest.TestCase):
 
     def test_download_geospatial_data(self):
         data_name = 'GADM administrative map'
-        download_geospatial_data(data_name, False, True, 'VNM')
+        download_geospatial_data(data_name, True, False, 'VNM')
         self.test_download_gadm_admin_map_data()
 
     def test_download_gadm_admin_map_data(self):
-        download_gadm_admin_map_data(False, True, 'VNM')
+        download_gadm_admin_map_data(True, False, 'VNM')
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'A Collate Data', 'Geospatial Data',
