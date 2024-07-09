@@ -402,7 +402,7 @@ class TestCases(unittest.TestCase):
 
     def test_download_socio_demographic_data(self):
         data_name = 'WorldPop population count'
-        download_socio_demographic_data(data_name, False, True, 'VNM')
+        download_socio_demographic_data(data_name, True, False, 'VNM')
         self.test_download_worldpop_pop_count_data()
 
         data = 'WorldPop population density'
@@ -411,7 +411,7 @@ class TestCases(unittest.TestCase):
         self.test_download_worldpop_pop_density_data()
 
     def test_download_worldpop_pop_count_data(self):
-        download_worldpop_pop_count_data(False, True, 'VNM')
+        download_worldpop_pop_count_data(True, False, 'VNM')
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'A Collate Data', 'Socio-Demographic Data',

@@ -405,10 +405,10 @@ def download_ministerio_de_salud_peru_data(only_one, dry_run):
 
     Run times:
 
-    - `time python3 collate_data.py Peru`:
-    - `time python3 collate_data.py Peru -1`:
-    - `time python3 collate_data.py Peru -d`:
-    - `time python3 collate_data.py Peru -1 -d`: 44.332s
+    - `time python3 collate_data.py Peru`: 35m52.881s
+    - `time python3 collate_data.py Peru -d`: 34m6.281s
+    - `time python3 collate_data.py Peru -1`: 2m16.905s
+    - `time python3 collate_data.py Peru -d -1`: 44.332s
     """
     data_type = 'Epidemiological Data'
     data_name = 'Ministerio de Salud (Peru) data'
@@ -918,14 +918,10 @@ def download_worldpop_pop_count_data(only_one, dry_run, iso3):
 
     Run times:
 
-    - `time python3 collate_data.py "WorldPop pop count"`:
-        - 6m46.2s
-        - 17m40.154s
+    - `time python3 collate_data.py "WorldPop pop count"`: 17m40.154s
     - `time python3 collate_data.py "WorldPop pop count" -3 VNM`: 23m17.052s
-    - `time python3 collate_data.py "WorldPop pop count" -3 PER`:
-        - 46m47.78s
-        - 1h15m44.285s
-    - `time python3 collate_data.py "WorldPop pop count" -1 -3 VNM`: 1m14.778s
+    - `time python3 collate_data.py "WorldPop pop count" -3 PER`: 1h15m44.285s
+    - `time python3 collate_data.py "WorldPop pop count" -1 -3 VNM`: 1m12.255s
     """
     data_type = 'Socio-Demographic Data'
     data_name = 'WorldPop population count'
