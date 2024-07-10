@@ -716,7 +716,7 @@ def process_aphrodite_temperature_data():
         df.to_csv(path)
 
 
-def process_chirps_rainfall_data(year, verbose, test):
+def process_chirps_rainfall_data(year, verbose=False, test=False):
     """
     Process CHIRPS Rainfall data.
 
