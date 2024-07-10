@@ -8,17 +8,14 @@ Past Runs
 - 2024-02-08 on Ubuntu 22.04 using Python 3.12: Ran 4 tests in 10.968s
 - 2024-02-09 on macOS Sonoma using Python 3.12: Ran 4 tests in 6.190s
 - 2024-02-13 on Ubuntu 22.04 using Python 3.12: Ran 16 tests in 1m4.283s
-- 2024-02-14 on macOS Sonoma using Python 3.12:
-    - Ran 18 tests in 42.751s
-    - Ran 18 tests in 41.872s
+- 2024-02-14 on macOS Sonoma using Python 3.12: Ran 18 tests in 41.872s
 - 2024-04-23 on Ubuntu 22.04 using Python 3.12: Ran 17 tests in 31.534s
-- 2024-05-08:
-    - On Ubuntu 22.04 using Python 3.12: Ran 17 tests in 1m00.448s
-    - On Ubuntu 20.04 using Python 3.12: Ran 17 tests in 21.853s
-- 2024-05-10: on macOS Sonoma using Python 3.12:
-    - Ran 17 tests in 37.624s
-    - Ran 19 tests in 5m37.731s
-- 2024-06-06: on Ubuntu 22.04 using Python 3.12: Ran 19 tests in 5m4.979s
+- 2024-05-08 on Ubuntu 22.04 using Python 3.12: Ran 17 tests in 1m00.448s
+- 2024-05-08 on Ubuntu 20.04 using Python 3.12: Ran 17 tests in 21.853s
+- 2024-05-10 on macOS Sonoma using Python 3.12: Ran 17 tests in 37.624s
+- 2024-05-10 on macOS Sonoma using Python 3.12: Ran 19 tests in 5m37.731s
+- 2024-06-06 on Ubuntu 22.04 using Python 3.12: Ran 19 tests in 5m4.979s
+- 2024-07-10 on Ubuntu 22.04 using Python 3.12: Ran 19 tests in 20m14.322s
 """
 from pathlib import Path
 from unittest.mock import patch
