@@ -260,7 +260,7 @@ class TestCases(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_download_relative_wealth_index_data(self):
-        download_relative_wealth_index_data(iso3='VNM', dry_run=True)
+        download_relative_wealth_index_data(iso3='VNM', dry_run=False)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'A Collate Data', 'Economic Data',
