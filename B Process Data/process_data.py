@@ -1166,10 +1166,10 @@ def process_worldpop_pop_count_data(year, iso3, rt, test=False):
     Run times:
 
     - `python3 process_data.py "WorldPop pop count" -3 VNM -y 2020 -r ppp`:
-        - 00:43.332
+        - 43.332s
     - `python3 process_data.py "WorldPop pop count" -3 PER -y 2020`:
-        - 02:05.13
-        - 03:27.575
+        - 2m5.13s
+        - 3m27.575s
     """
     # Sanitise the inputs
     data_type = 'Socio-Demographic Data'
@@ -1637,22 +1637,16 @@ def process_gadm_worldpoppopulation_data(admin_level, iso3, year, rt):
 
     Run times:
 
-    - `python3 process_data.py GADM "WorldPop pop count" -a 0`:
-        - 00:10.182
-    - `python3 process_data.py GADM "WorldPop pop count" -a 0 -3 PER`:
-        - 00:28.003
-        - 00:58.943
-    - `python3 process_data.py GADM "WorldPop pop count" -a 1`:
-        - 01:36.789
+    - `python3 process_data.py GADM "WorldPop pop count" -a 0`: 10.182s
+    - `python3 process_data.py GADM "WorldPop pop count" -a 0 -3 PER`: 58.943s
     - `python3 process_data.py GADM "WorldPop pop count" -a 1 -3 PER`:
-        - 01:11.465
-        - 01:28.149
-    - `python3 process_data.py GADM "WorldPop pop count" -a 2`:
-        - 17:21.086
+        - 1m28.149s
+    - `python3 process_data.py GADM "WorldPop pop count" -a 1`: 1m36.789s
+    - `python3 process_data.py GADM "WorldPop pop count" -a 2`: 17m21.086s
     - `python3 process_data.py GADM "WorldPop pop count" -a 2 -3 PER`:
-        - 01:53.670
+        - 1m53.670s
     - `python3 process_data.py GADM "WorldPop pop count" -a 3 -3 PER`:
-        - 07:20.111
+        - 7m20.111s
     """
     # Sanitise the inputs
     data_type = 'Geospatial and Socio-Demographic Data'
@@ -1844,13 +1838,13 @@ def process_gadm_worldpopdensity_data(admin_level, iso3, year, rt):
     Run times:
 
     - `time python3 process_data.py GADM "WorldPop pop density" -a 0`
-        - 00:01.688
+        - 1.688s
     - `time python3 process_data.py GADM "WorldPop pop density" -a 1`
-        - 00:13.474
+        - 13.474s
     - `time python3 process_data.py GADM "WorldPop pop density" -a 2`
-        - 02:12.969
+        - 2m12.969s
     - `time python3 process_data.py GADM "WorldPop pop density" -a 3`
-        - 21:20.179
+        - 21m20.179s
     """
     # Sanitise the inputs
     data_type = 'Geospatial and Socio-Demographic Data'

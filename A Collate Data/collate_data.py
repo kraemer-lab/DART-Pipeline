@@ -993,10 +993,8 @@ def download_meta_pop_density_data(only_one, dry_run, iso3):
 
     Run times:
 
-    - `time python3 collate_data.py "Meta pop density" -d -1 -3 VNM`: 01:07.656
-    - `time python3 collate_data.py "Meta pop density" -3 VNM`:
-        - 05:38.750
-        - 07:01.330
+    - `time python3 collate_data.py "Meta pop density" -3 VNM`: 7m1.330s
+    - `time python3 collate_data.py "Meta pop density" -d -1 -3 VNM`: 1m7.656s
     """
     # Sanitise the inputs
     data_type = 'Socio-Demographic Data'
@@ -1327,7 +1325,7 @@ if __name__ == '__main__':
     elif data_type == 'Economic Data':
         download_economic_data(data_name, iso3, dry_run)
     elif data_type == 'Epidemiological Data':
-        download_epidemiological_data(data_name, iso3, year, only_one, dry_run)
+        download_epidemiological_data(data_name, only_one, dry_run, year, iso3)
     elif data_type == 'Geospatial Data':
         download_geospatial_data(data_name, only_one, dry_run, iso3)
     elif data_type == 'Meteorological Data':

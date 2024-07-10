@@ -44,7 +44,7 @@ from process_data import \
     process_gadm_chirps_data, \
     process_geospatial_sociodemographic_data, \
     process_gadm_worldpoppopulation_data, \
-    process_gadm_worldpopdensity_data,\
+    process_gadm_worldpopdensity_data, \
     process_economic_geospatial_sociodemographic_data, \
     process_pop_weighted_relative_wealth_index_data
 import utils
