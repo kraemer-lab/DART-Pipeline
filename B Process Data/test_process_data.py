@@ -9,6 +9,8 @@ Past runs
 - 2024-05-09 on Ubuntu 22.04 using Python 3.12: Ran 18 tests in 14m58.102s
 - 2024-05-10 on macOS Sonoma using Python 3.12: Ran 18 tests in 4m41.547s
 - 2024-06-19 on macOS Sonoma using Python 3.12: Ran 22 tests in 4m51.553ss
+- 2024-07-04 on Ubuntu 22.04 using Python 3.12: Ran 18 tests in 5m39.803s
+- 2024-07-10 on Ubuntu 22.04 using Python 3.12: Ran 20 tests in 5m1.282s
 """
 # External libraries
 import rasterio
