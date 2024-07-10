@@ -38,8 +38,8 @@ from collate_data import \
     download_geospatial_data, \
     download_gadm_admin_map_data, \
     download_meteorological_data, \
-    download_aphrodite_temperature_data, \
     download_aphrodite_precipitation_data, \
+    download_aphrodite_temperature_data, \
     download_chirps_rainfall_data, \
     download_era5_reanalysis_data, \
     download_terraclimate_data, \
@@ -247,7 +247,7 @@ class TestCases(unittest.TestCase):
 
     def test_download_epidemiological_data(self):
         data_name = 'Ministerio de Salud (Peru) data'
-        download_epidemiological_data(data_name, True, False, None, None)
+        download_epidemiological_data(data_name, True, True, None, None)
         self.test_download_ministerio_de_salud_peru_data()
 
     def test_download_ministerio_de_salud_peru_data(self):
@@ -263,7 +263,7 @@ class TestCases(unittest.TestCase):
 
     def test_download_geospatial_data(self):
         data_name = 'GADM administrative map'
-        download_geospatial_data(data_name, True, False, 'VNM')
+        download_geospatial_data(data_name, True, True, 'VNM')
         self.test_download_gadm_admin_map_data()
 
     def test_download_gadm_admin_map_data(self):
@@ -271,7 +271,8 @@ class TestCases(unittest.TestCase):
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'A Collate Data', 'Geospatial Data',
-            'GADM administrative map', 'VNM'
+            'GADM administrative map', 'VNM', 'gadm41_VNM_shp',
+            'gadm41_VNM_0.shp'
         )
         expected = True
         actual = path.exists()
@@ -402,12 +403,11 @@ class TestCases(unittest.TestCase):
 
     def test_download_socio_demographic_data(self):
         data_name = 'WorldPop population count'
-        download_socio_demographic_data(data_name, True, False, 'VNM')
+        download_socio_demographic_data(data_name, True, True, 'VNM')
         self.test_download_worldpop_pop_count_data()
 
-        data = 'WorldPop population density'
         data_name = 'WorldPop population density'
-        download_socio_demographic_data(data_name, False, True, 'VNM')
+        download_socio_demographic_data(data_name, True, True, 'VNM')
         self.test_download_worldpop_pop_density_data()
 
     def test_download_worldpop_pop_count_data(self):
@@ -424,7 +424,7 @@ class TestCases(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_download_worldpop_pop_density_data(self):
-        download_worldpop_pop_density_data(False, True, 'VNM')
+        download_worldpop_pop_density_data(True, False, 'VNM')
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'A Collate Data', 'Socio-Demographic Data',
