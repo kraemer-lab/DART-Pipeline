@@ -9,6 +9,7 @@ Past runs
 - 2024-05-09 on Ubuntu 22.04 using Python 3.12: Ran 18 tests in 14m58.102s
 - 2024-05-10 on macOS Sonoma using Python 3.12: Ran 18 tests in 4m41.547s
 - 2024-07-04 on Ubuntu 22.04 using Python 3.12: Ran 18 tests in 5m39.803s
+- 2024-07-10 on Ubuntu 22.04 using Python 3.12: Ran 20 tests in 5m1.282s
 """
 # External libraries
 import rasterio
@@ -20,6 +21,8 @@ from pathlib import Path
 from process_data import \
     days_to_date, \
     pixel_to_latlon, \
+    process_epidemiological_data, \
+    process_ministerio_de_salud_peru_data, \
     process_geospatial_data, \
     process_gadm_admin_map_data, \
     process_meteorological_data, \
@@ -63,6 +66,32 @@ class TestCases(unittest.TestCase):
         actual = lat, lon
         self.assertEqual(expected, actual)
 
+    def test_process_epidemiological_data(self):
+        process_epidemiological_data(
+            'Ministerio de Salud (Peru) data', 'PER', '0'
+        )
+        self.test_process_ministerio_de_salud_peru_data()
+
+    def test_process_ministerio_de_salud_peru_data(self):
+        process_ministerio_de_salud_peru_data('0')
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data', 'Epidemiological Data',
+            'Ministerio de Salud (Peru) data', 'Admin Level 0',
+            'Admin Level 0.csv'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+        path = Path(
+            base_dir, 'B Process Data', 'Epidemiological Data',
+            'Ministerio de Salud (Peru) data', 'Admin Level 0',
+            'Peru.png'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
     def test_process_geospatial_data(self):
         process_geospatial_data('GADM administrative map', '0', 'VNM')
         self.test_process_gadm_admin_map_data()
@@ -76,8 +105,7 @@ class TestCases(unittest.TestCase):
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Geospatial Data',
-            'GADM administrative map', 'VNM', 'gadm41_VNM_shp', 'gadm41_VNM_0',
-            'Vietnam.png'
+            'GADM administrative map', 'VNM', 'Admin Level 0', 'Vietnam.png'
         )
         expected = True
         actual = path.exists()
@@ -143,7 +171,7 @@ class TestCases(unittest.TestCase):
         Prerequisite data: chirps-v2.0.2024.01.01.tif
         Download via: `python3 collate_data.py "CHIRPS rainfall" -1`
         """
-        process_chirps_rainfall_data('2024', True)
+        process_chirps_rainfall_data('2024', False, True)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Meteorological Data',
@@ -203,7 +231,7 @@ class TestCases(unittest.TestCase):
         path = Path(
             base_dir, 'B Process Data', 'Socio-Demographic Data',
             'WorldPop population count', 'VNM',
-            'VNM_ppp_v2b_2020_UNadj - Naive.png'
+            'VNM_ppp_v2b_2020_UNadj - Raw.png'
         )
         expected = True
         actual = path.exists()
@@ -218,8 +246,8 @@ class TestCases(unittest.TestCase):
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Socio-Demographic Data',
-            'WorldPop population density', '2020', 'VNM',
-            'vnm_pd_2020_1km_UNadj_ASCII_XYZ - Naive.png'
+            'WorldPop population density', 'VNM',
+            'vnm_pd_2020_1km_UNadj_ASCII_XYZ.png'
         )
         expected = True
         actual = path.exists()

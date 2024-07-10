@@ -3,19 +3,19 @@ Run unit tests on collate_data.py.
 
 Past Runs
 ---------
-- 2024-01-15 on Ubuntu 22.04 using Python 3.12: Ran 5 tests in 00:13.366
-- 2024-01-17 on macOS Sonoma using Python 3.12: Ran 5 tests in 00:04.376
-- 2024-02-08 on Ubuntu 22.04 using Python 3.12: Ran 4 tests in 00:10.968
-- 2024-02-09 on macOS Sonoma using Python 3.12: Ran 4 tests in 00:06.190
-- 2024-02-13 on Ubuntu 22.04 using Python 3.12: Ran 16 tests in 01:04.283
-- 2024-02-14 on macOS Sonoma using Python 3.12:
-    - Ran 18 tests in 00:42.751
-    - Ran 18 tests in 00:41.872
-- 2024-04-23 on Ubuntu 22.04 using Python 3.12: Ran 17 tests in 00:31.534
-- 2024-05-08:
-    - On Ubuntu 22.04 using Python 3.12: Ran 17 tests in 01:00.448
-    - On Ubuntu 20.04 using Python 3.12: Ran 17 tests in 00:21.853
-- 2024-05-10: on macOS Sonoma using Python 3.12: Ran 17 tests in 00:37.624
+- 2024-01-15 on Ubuntu 22.04 using Python 3.12: Ran 5 tests in 13.366s
+- 2024-01-17 on macOS Sonoma using Python 3.12: Ran 5 tests in 4.376s
+- 2024-02-08 on Ubuntu 22.04 using Python 3.12: Ran 4 tests in 10.968s
+- 2024-02-09 on macOS Sonoma using Python 3.12: Ran 4 tests in 6.190s
+- 2024-02-13 on Ubuntu 22.04 using Python 3.12: Ran 16 tests in 1m4.283s
+- 2024-02-14 on macOS Sonoma using Python 3.12: Ran 18 tests in 41.872s
+- 2024-04-23 on Ubuntu 22.04 using Python 3.12: Ran 17 tests in 31.534s
+- 2024-05-08 on Ubuntu 22.04 using Python 3.12: Ran 17 tests in 1m00.448s
+- 2024-05-08 on Ubuntu 20.04 using Python 3.12: Ran 17 tests in 21.853s
+- 2024-05-10 on macOS Sonoma using Python 3.12: Ran 17 tests in 37.624s
+- 2024-05-10 on macOS Sonoma using Python 3.12: Ran 19 tests in 5m37.731s
+- 2024-06-06 on Ubuntu 22.04 using Python 3.12: Ran 19 tests in 5m4.979s
+- 2024-07-10 on Ubuntu 22.04 using Python 3.12: Ran 19 tests in 20m14.322s
 """
 from pathlib import Path
 from unittest.mock import patch
@@ -30,17 +30,19 @@ from collate_data import \
     walk, \
     download_gadm_data, \
     unpack_file, \
-    download_meteorological_data, \
-    download_aphrodite_temperature_data, \
-    download_aphrodite_precipitation_data, \
-    download_chirps_rainfall_data, \
-    download_terraclimate_data, \
-    download_era5_reanalysis_data, \
-    download_socio_demographic_data, \
-    download_worldpop_pop_density_data, \
-    download_worldpop_pop_count_data, \
+    download_epidemiological_data, \
+    download_ministerio_de_salud_peru_data, \
     download_geospatial_data, \
-    download_gadm_admin_map_data
+    download_gadm_admin_map_data, \
+    download_meteorological_data, \
+    download_aphrodite_precipitation_data, \
+    download_aphrodite_temperature_data, \
+    download_chirps_rainfall_data, \
+    download_era5_reanalysis_data, \
+    download_terraclimate_data, \
+    download_socio_demographic_data, \
+    download_worldpop_pop_count_data, \
+    download_worldpop_pop_density_data
 
 
 class TestCases(unittest.TestCase):
@@ -240,13 +242,29 @@ class TestCases(unittest.TestCase):
         Path(out_dir, 'gadm41_VNM_1.json').unlink()
         Path('tests/').rmdir()
 
+    def test_download_epidemiological_data(self):
+        data_name = 'Ministerio de Salud (Peru) data'
+        download_epidemiological_data(data_name, True, True, None, None)
+        self.test_download_ministerio_de_salud_peru_data()
+
+    def test_download_ministerio_de_salud_peru_data(self):
+        download_ministerio_de_salud_peru_data(only_one=True, dry_run=False)
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'A Collate Data', 'Epidemiological Data',
+            'Ministerio de Salud (Peru) data', 'casos_dengue_nacional.xlsx'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
     def test_download_geospatial_data(self):
         data_name = 'GADM administrative map'
-        download_geospatial_data(data_name, only_one=True, dry_run=False)
+        download_geospatial_data(data_name, True, True, 'VNM')
         self.test_download_gadm_admin_map_data()
 
     def test_download_gadm_admin_map_data(self):
-        download_gadm_admin_map_data(only_one=True, dry_run=False)
+        download_gadm_admin_map_data(True, False, 'VNM')
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'A Collate Data', 'Geospatial Data',
@@ -381,16 +399,16 @@ class TestCases(unittest.TestCase):
             self.assertEqual(expected, actual)
 
     def test_download_socio_demographic_data(self):
-        data = 'WorldPop population count'
-        download_socio_demographic_data(data, only_one=True, dry_run=False)
+        data_name = 'WorldPop population count'
+        download_socio_demographic_data(data_name, True, True, 'VNM')
         self.test_download_worldpop_pop_count_data()
 
-        data = 'WorldPop population density'
-        download_socio_demographic_data(data, only_one=True, dry_run=False)
+        data_name = 'WorldPop population density'
+        download_socio_demographic_data(data_name, True, True, 'VNM')
         self.test_download_worldpop_pop_density_data()
 
     def test_download_worldpop_pop_count_data(self):
-        download_worldpop_pop_count_data(only_one=True, dry_run=False)
+        download_worldpop_pop_count_data(True, False, 'VNM')
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'A Collate Data', 'Socio-Demographic Data',
@@ -403,7 +421,7 @@ class TestCases(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_download_worldpop_pop_density_data(self):
-        download_worldpop_pop_density_data(only_one=True, dry_run=False)
+        download_worldpop_pop_density_data(True, False, 'VNM')
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'A Collate Data', 'Socio-Demographic Data',
