@@ -76,6 +76,7 @@ import json
 import os
 import re
 import shutil
+import warnings
 # Custom modules
 import utils
 # Create the requirements file from the terminal with:
@@ -583,9 +584,12 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
 
     Run times:
 
-    - `time python3 collate_data.py GADM -3 VNM`: 54.608s
-    - `time python3 collate_data.py GADM -3 PER`: 1m2.167s
-    - `time python3 collate_data.py GADM -3 GBR`: 13m22.114s
+    - `time python3 collate_data.py GADM -3 GBR`: 5m15.52s
+    - `time python3 collate_data.py GADM -3 PER`: 1m15.39s
+    - `time python3 collate_data.py GADM -3 VNM`: 2m17.09s
+    - `time python3 collate_data.py GADM -1 -3 VNM`: 13.860s
+    - `time python3 collate_data.py GADM -d -3 VNM`: 0.186s
+    - `time python3 collate_data.py GADM -1 -d -3 VNM`: 0.184s
     """
     # Sanitise the inputs
     data_type = 'Geospatial Data'
@@ -594,12 +598,19 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
     print(f'Data name: {data_name}')
     if not iso3:
         raise ValueError('No ISO3 code has been provided; use the `-3` flag')
-    country = pycountry.countries.get(alpha_3=iso3).common_name
+    with warnings.catch_warnings(record=True) as w:
+        # Cause all warnings to always be triggered.
+        warnings.simplefilter('always')
+        country = pycountry.countries.get(alpha_3=iso3).common_name
+        # UserWarning: Country's common_name not found. Country name provided
+        # instead.
+        if (len(w) > 0) and (issubclass(w[-1].category, UserWarning)):
+            country = pycountry.countries.get(alpha_3=iso3).name
     print(f'Country:   {country}')
     if dry_run:
         print('Dry run')
     if only_one:
-        print('The --only_one/-1 flag has no effect for this metric')
+        print('Only one file (the shapefile) will be downloaded')
     print('')
 
     # Create output directory
