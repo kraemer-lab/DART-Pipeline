@@ -473,12 +473,14 @@ def download_ministerio_de_salud_peru_data(only_one, dry_run):
     """
     Download data from the Ministerio de Salud (Peru).
 
+    https://www.dge.gob.pe/sala-situacional-dengue
+
     Run times:
 
-    - `time python3 collate_data.py Peru -1 -d`: 01:41.93
-    - `time python3 collate_data.py Peru`:
-        - 26:11.34
-        - 13:34.151
+    - `time python3 collate_data.py Peru`: 35m52.881s
+    - `time python3 collate_data.py Peru -d`: 34m6.281s
+    - `time python3 collate_data.py Peru -1`: 2m16.905s
+    - `time python3 collate_data.py Peru -d -1`: 44.332s
     """
     data_type = 'Epidemiological Data'
     data_name = 'Ministerio de Salud (Peru) data'
@@ -521,10 +523,15 @@ def download_ministerio_de_salud_peru_data(only_one, dry_run):
         response.raise_for_status()
         # Parse HTML content
         soup = BeautifulSoup(response.content, 'html.parser')
-        # Find links with the onclick attribute
-        onclick_links = soup.find_all('a', onclick=True)
-        # Extract link URLs
-        links = [link.get('onclick') for link in onclick_links]
+        # Find links with the onclick attribute in both <a> and <button> tags
+        onclick_elements = soup.find_all(
+            lambda tag: tag.name in ['a', 'button'] and tag.has_attr('onclick')
+        )
+        # Extract the onclick attribute values
+        links = [element.get('onclick') for element in onclick_elements]
+        # Raise an error if no links are found
+        if len(links) == 0:
+            raise ValueError('No links found on the page')
 
         for link in links:
             # Search the link for the data embedded in it
@@ -577,7 +584,7 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
     Run times:
 
     - `time python3 collate_data.py GADM -3 VNM`: 54.608s
-    - `time python3 collate_data.py GADM -3 PER`: 1m02.167s
+    - `time python3 collate_data.py GADM -3 PER`: 1m2.167s
     - `time python3 collate_data.py GADM -3 GBR`: 13m22.114s
     """
     # Sanitise the inputs
@@ -657,9 +664,9 @@ def download_aphrodite_precipitation_data(
 
     Run times:
 
-    - `time python3 collate_data.py "APHRODITE precipitation"`: 44.318s
-    - `time python3 collate_data.py "APHRODITE precipitation" -1`: 1m8.172s
-    - `time python3 collate_data.py "APHRODITE precipitation" -1 -d`: 0.206s
+    - `python3 collate_data.py "APHRODITE precipitation"`: 44.318s
+    - `python3 collate_data.py "APHRODITE precipitation" -1`: 1m8.172s
+    - `python3 collate_data.py "APHRODITE precipitation" -1 -d`: 0.206s
     - `python3 collate_data.py "APHRODITE precipitation" -c environ`: 48.823s
     """
     data_type = 'Meteorological Data'
@@ -820,10 +827,10 @@ def download_chirps_rainfall_data(only_one, dry_run):
     Run times:
 
     - `time python3 collate_data.py "CHIRPS rainfall"`:
-        - 05:30.123 (2024-01-01 to 2024-03-07)
-        - 02:56.14 (2024-01-01 to 2024-03-11)
-        - 02:55.466 (2024-01-01 to 2024-02-29)
-        - 04:15.394 (2024-01-01 to 2024-03-31)
+        - 5m30.123s (2024-01-01 to 2024-03-07)
+        - 2m56.14s (2024-01-01 to 2024-03-11)
+        - 2m55.466s (2024-01-01 to 2024-02-29)
+        - 4m15.394s (2024-01-01 to 2024-03-31)
     - `time python3 collate_data.py "CHIRPS rainfall" -1`: 17.831s
     - `time python3 collate_data.py "CHIRPS rainfall" -1 -d`: 1.943s
     """
@@ -925,6 +932,9 @@ def download_terraclimate_data(only_one, dry_run, year):
     Run times:
 
     - `time python3 collate_data.py "TerraClimate data"`:
+        - 34m50.828s
+        - 11m35.25s
+        - 14m16.896s
     - `time python3 collate_data.py "TerraClimate data" -1`: 3m12.992s
     - `time python3 collate_data.py "TerraClimate data" -1 -d`: 0.204s
     """
@@ -1067,33 +1077,30 @@ def download_worldpop_pop_count_data(only_one, dry_run, iso3):
 
     Run times:
 
-    - `time python3 collate_data.py "WorldPop pop count"`:
-        - 06:46.2
-        - 17:40.154
-    - `time python3 collate_data.py "WorldPop pop count" -3 VNM`:
-        - 14:13.53
-        - 23:17.052
-    - `time python3 collate_data.py "WorldPop pop count" -3 PER`:
-        - 46:47.78
-        - 1:15:44.285
+    - `time python3 collate_data.py "WorldPop pop count"`: 17m40.154s
+    - `time python3 collate_data.py "WorldPop pop count" -3 VNM`: 23m17.052s
+    - `time python3 collate_data.py "WorldPop pop count" -3 PER`: 1h15m44.285s
+    - `time python3 collate_data.py "WorldPop pop count" -1 -3 VNM`: 1m12.255s
     """
     data_type = 'Socio-Demographic Data'
     data_name = 'WorldPop population count'
 
     # Set additional parameter
     base_url = 'https://data.worldpop.org'
+    country = pycountry.countries.get(alpha_3=iso3).name
+    country = country.replace(' ', '_')
 
     # Example URLs:
     # - https://data.worldpop.org/GIS/Population/Individual_countries/VNM/
     # - https://data.worldpop.org/GIS/Population/Individual_countries/PER/
     if only_one:
         # Download TIF file
-        relative_url = 'GIS/Population/Individual_countries/VNM/' + \
-            'Viet_Nam_100m_Population/VNM_ppp_v2b_2020_UNadj.tif'
+        relative_url = f'GIS/Population/Individual_countries/{iso3}/' + \
+            f'{country}_100m_Population/{iso3}_ppp_v2b_2020_UNadj.tif'
     else:
         # Download GeoDataFrame file (which includes the TIF file)
-        relative_url = 'GIS/Population/Individual_countries/VNM/' + \
-            'Viet_Nam_100m_Population.7z'
+        relative_url = f'GIS/Population/Individual_countries/{iso3}/' + \
+            f'{country}_100m_Population.7z'
 
     # Download files
     url = os.path.join(base_url, relative_url)
@@ -1121,14 +1128,8 @@ def download_worldpop_pop_density_data(only_one, dry_run, iso3):
 
     Run times:
 
-    - `time python3 collate_data.py "WorldPop pop density" -3 VNM`:
-        - 0:02.860
-        - 0:04.349
-    - `time python3 collate_data.py "WorldPop pop density" -3 PER`:
-        - 0:06.723
-        - 0:18.760
-    - `time python3 collate_data.py "WorldPop pop density"`: 4.597s
-    - `time python3 collate_data.py "WorldPop pop density" -d`: 0.209s
+    - `time python3 collate_data.py "WorldPop pop density" -3 PER`: 18.760s
+    - `time python3 collate_data.py "WorldPop pop density" -3 VNM`: 4.349s
     """
     data_type = 'Socio-Demographic Data'
     data_name = 'WorldPop population density'

@@ -234,8 +234,8 @@ def process_ministerio_de_salud_peru_data(admin_level):
 
     Run times:
 
-    - `time python3 process_data.py Peru`: 00:01.378
-    - `time python3 process_data.py Peru -a 1`: 00:04.377
+    - `time python3 process_data.py Peru`: 0m1.116s
+    - `time python3 process_data.py Peru -a 1`: 0m3.814s
 
     Parameters
     ----------
@@ -305,17 +305,23 @@ def process_ministerio_de_salud_peru_data(admin_level):
         figsize = (46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A))
         fig_region, ax_region = plt.subplots(figsize=figsize)
         bl = df['tipo_dx'] == 'C'
-        ax_region.plot(df[bl]['date'], df[bl]['n'], c='k', lw=1.2)
+        ax_region.plot(
+            df[bl]['date'].values, df[bl]['n'].values, c='k', lw=1.2
+        )
         ax_region.set_title(f'Confirmed Dengue Cases in {region}')
         ax_region.set_ylabel('Cases')
         ax_region.set_xlabel('Year')
-        try:
-            ax_region.set_xlim(df[bl]['date'].min(), df[bl]['date'].max())
-            ax_region.set_ylim(0, df[bl]['n'].max() * 1.1)
-        except ValueError:
+        if len(df[bl]['date']) == 0:
+            # If the department does not have any data
+            pass
+        elif len(df[bl]['date']) == 1:
             # If the department only have one data point, df['date'].max()
             # is infinite and a ValueError is triggered
             pass
+        else:
+            ax_region.set_xlim(df[bl]['date'].min(), df[bl]['date'].max())
+            ax_region.set_ylim(0, df[bl]['n'].max() * 1.1)
+
         path = Path(
             base_dir, 'B Process Data', data_type, data_name,
             f'Admin Level {admin_level}', region + '.png'
@@ -355,7 +361,9 @@ def process_ministerio_de_salud_peru_data(admin_level):
 
             # Plot on master plot
             bl = df['tipo_dx'] == 'C'
-            ax_all.plot(df[bl]['date'], df[bl]['n'], label=region)
+            ax_all.plot(
+                df[bl]['date'].values, df[bl]['n'].values, label=region
+            )
 
         # Finish master plot
         ax_all.set_title('Confirmed Dengue Cases in Peru')
@@ -792,8 +800,8 @@ def process_chirps_rainfall_data(year, verbose=False, test=False):
         path.parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(path)
 
-        # If you're testing or debugging, only do one file
-        if debug:
+        # If you're testing, only do one file
+        if test:
             break
 
         # Create a data frame
@@ -828,7 +836,7 @@ def process_chirps_rainfall_data(year, verbose=False, test=False):
         path = str(path).removesuffix('.png') + ' - Log Transformed.png'
         plt.savefig(path)
 
-        # If you're testing or debugging, only do one file
+        # If you're testing, only do one file
         if test:
             break
 
@@ -1034,7 +1042,7 @@ def process_socio_demographic_data(data_name, year, iso3, rt, test=False):
     elif data_name == 'WorldPop population density':
         process_worldpop_pop_density_data(year, iso3)
     else:
-        raise ValueError(f'Unrecognised data name "{data}"')
+        raise ValueError(f'Unrecognised data name "{data_name}"')
 
 
 def process_meta_pop_density_data(year, iso3):
@@ -1191,6 +1199,7 @@ def process_worldpop_pop_count_data(year, iso3, rt, test=False):
         'Individual_countries', iso3,
         country.replace(' ', '_') + '_100m_Population', filename,
     )
+    # Load the data
     print(f'Processing "{filename}"')
     src = rasterio.open(path)
 

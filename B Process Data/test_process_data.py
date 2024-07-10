@@ -9,6 +9,7 @@ Past runs
 - 2024-05-09 on Ubuntu 22.04 using Python 3.12: Ran 18 tests in 14m58.102s
 - 2024-05-10 on macOS Sonoma using Python 3.12: Ran 18 tests in 4m41.547s
 - 2024-07-04 on Ubuntu 22.04 using Python 3.12: Ran 18 tests in 5m39.803s
+- 2024-07-10 on Ubuntu 22.04 using Python 3.12: Ran 20 tests in 5m1.282s
 """
 # External libraries
 import rasterio
@@ -145,8 +146,7 @@ class TestCases(unittest.TestCase):
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Geospatial Data',
-            'GADM administrative map', 'VNM', 'gadm41_VNM_shp', 'gadm41_VNM_0',
-            'Vietnam.png'
+            'GADM administrative map', 'VNM', 'Admin Level 0', 'Vietnam.png'
         )
         expected = True
         actual = path.exists()
@@ -279,7 +279,7 @@ class TestCases(unittest.TestCase):
         path = Path(
             base_dir, 'B Process Data', 'Socio-Demographic Data',
             'WorldPop population count', 'VNM',
-            'VNM_ppp_v2b_2020_UNadj - Naive.png'
+            'VNM_ppp_v2b_2020_UNadj - Raw.png'
         )
         expected = True
         actual = path.exists()
@@ -294,8 +294,8 @@ class TestCases(unittest.TestCase):
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Socio-Demographic Data',
-            'WorldPop population density', '2020', 'VNM',
-            'vnm_pd_2020_1km_UNadj_ASCII_XYZ - Naive.png'
+            'WorldPop population density', 'VNM',
+            'vnm_pd_2020_1km_UNadj_ASCII_XYZ.png'
         )
         expected = True
         actual = path.exists()
