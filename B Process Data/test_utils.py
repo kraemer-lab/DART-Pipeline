@@ -31,7 +31,15 @@ class TestCases(unittest.TestCase):
 
         This tests the default behaviour.
         """
-        expected = str(Path.cwd().parent)
+        # If this test is run as part of a `python3 -m unittest discover` call,
+        # (eg if it is being run via GitHub Actions) then the cwd will be the
+        # base directory already
+        if str(Path.cwd()).endswith('DART-Pipeline'):
+            # This will work if this test is run via GitHub Actions
+            expected = str(Path.cwd())
+        else:
+            # This will work if this file is run directly
+            expected = str(Path.cwd().parent)
         actual = utils.get_base_directory()
         self.assertEqual(expected, actual)
 

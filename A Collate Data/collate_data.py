@@ -64,10 +64,11 @@ from lxml import html
 import cdsapi
 import gzip
 import py7zr
-import requests
 import pycountry
+import requests
 # Built-in modules
 from datetime import date
+from io import StringIO
 from pathlib import Path
 import argparse
 import base64
@@ -103,21 +104,51 @@ def get_credentials(metric, base_dir='..', credentials=None):
     username, password : str
         The username and password associated with the entry in the credentials
         file will be returned.
+
+    Examples
+    --------
+    >>> get_credentials('APHRODITE Daily accumulated precipitation (V1901)')
+    ('example@email.com', '*******')
+
+    Using an environment variable to store the credentials:
+
+    $ export CREDENTIALS_JSON='{
+        "APHRODITE Daily accumulated precipitation (V1901)": {
+            "username": "example@email.com",
+            "password": "*******"
+        }
+    }'
+    $ python3
+    >>> from test_collate_data import get_credentials
+    >>> metric = 'APHRODITE Daily accumulated precipitation (V1901)'
+    >>> get_credentials(metric, credentials='environ')
+    ('example@email.com', '*******')
     """
     # Construct the path to the credentials file
     if credentials is None:
         path = Path(base_dir, 'credentials.json')
+    elif credentials == 'environ':
+        path = None
     else:
         path = Path(credentials)
-    # Open and parse the credentials file
-    try:
-        with open(path, 'r') as f:
-            credentials = json.load(f)
-    except FileNotFoundError:
-        msg = 'No credentials.json file was found. Either you have not ' + \
-            'created one or it is not in the specified location (the ' + \
-            'default location is the DART-Pipeline folder)'
-        raise FileNotFoundError(msg)
+
+    # If the credentials are located in a file
+    if path:
+        # Open and parse the credentials file
+        try:
+            with open(path, 'r') as f:
+                credentials = json.load(f)
+        except FileNotFoundError:
+            msg = 'No credentials.json file was found. Either you have ' + \
+                'not created one or it is not in the specified location ' + \
+                '(the default location is the DART-Pipeline folder)'
+            raise FileNotFoundError(msg)
+
+    # If the credentials are in an environment variable
+    if not path:
+        io = StringIO(os.environ['CREDENTIALS_JSON'])
+        credentials = json.load(io)
+
     # Catch errors
     if metric not in credentials.keys():
         msg = f'No credentials for "{metric}" exists in the credentials ' + \
@@ -442,17 +473,20 @@ def download_ministerio_de_salud_peru_data(only_one, dry_run):
     """
     Download data from the Ministerio de Salud (Peru).
 
+    https://www.dge.gob.pe/sala-situacional-dengue
+
     Run times:
 
-    - `time python3 collate_data.py Peru -1 -d`: 1m41.93s
-    - `time python3 collate_data.py Peru`:
-        - 26m11.34s
-        - 13m34.151s
+    - `time python3 collate_data.py Peru`: 35m52.881s
+    - `time python3 collate_data.py Peru -d`: 34m6.281s
+    - `time python3 collate_data.py Peru -1`: 2m16.905s
+    - `time python3 collate_data.py Peru -d -1`: 44.332s
     """
     data_type = 'Epidemiological Data'
     data_name = 'Ministerio de Salud (Peru) data'
 
     pages = [
+        'Nacional_dengue',
         'sala_dengue_AMAZONAS',
         'sala_dengue_ANCASH',
         'sala_dengue_AREQUIPA',
@@ -475,7 +509,6 @@ def download_ministerio_de_salud_peru_data(only_one, dry_run):
         'sala_dengue_SAN MARTIN',
         'sala_dengue_TUMBES',
         'sala_dengue_UCAYALI',
-        'Nacional_dengue',
     ]
     # If the user specifies that only one dataset should be downloaded
     if only_one:
@@ -490,10 +523,15 @@ def download_ministerio_de_salud_peru_data(only_one, dry_run):
         response.raise_for_status()
         # Parse HTML content
         soup = BeautifulSoup(response.content, 'html.parser')
-        # Find links with the onclick attribute
-        onclick_links = soup.find_all('a', onclick=True)
-        # Extract link URLs
-        links = [link.get('onclick') for link in onclick_links]
+        # Find links with the onclick attribute in both <a> and <button> tags
+        onclick_elements = soup.find_all(
+            lambda tag: tag.name in ['a', 'button'] and tag.has_attr('onclick')
+        )
+        # Extract the onclick attribute values
+        links = [element.get('onclick') for element in onclick_elements]
+        # Raise an error if no links are found
+        if len(links) == 0:
+            raise ValueError('No links found on the page')
 
         for link in links:
             # Search the link for the data embedded in it
@@ -545,12 +583,8 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
 
     Run times:
 
-    - `time python3 collate_data.py GADM -3 VNM`:
-        - 31.094s
-        - 54.608s
-    - `time python3 collate_data.py GADM -3 PER`:
-        - 18.516s
-        - 1m2.167s
+    - `time python3 collate_data.py GADM -3 VNM`: 54.608s
+    - `time python3 collate_data.py GADM -3 PER`: 1m2.167s
     - `time python3 collate_data.py GADM -3 GBR`: 13m22.114s
     """
     # Sanitise the inputs
@@ -572,12 +606,18 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
     out_dir = Path(base_dir, 'A Collate Data', data_type, data_name, iso3)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    download_gadm_data('Geopackage', out_dir, iso3, dry_run)
+    # Always download the shapefile
     download_gadm_data('Shapefile', out_dir, iso3, dry_run)
-    download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level0')
-    download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level1')
-    download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level2')
-    download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level3')
+    # If only one type of data is requested, stop here. Otherwise, download
+    # the other data types
+    if only_one:
+        pass
+    else:
+        download_gadm_data('Geopackage', out_dir, iso3, dry_run)
+        download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level0')
+        download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level1')
+        download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level2')
+        download_gadm_data('GeoJSON', out_dir, iso3, dry_run, level='level3')
 
 
 def download_meteorological_data(
@@ -624,8 +664,10 @@ def download_aphrodite_precipitation_data(
 
     Run times:
 
-    - `time python3 collate_data.py "APHRODITE precipitation"`: 44.318s
-    - `time python3 collate_data.py "APHRODITE precipitation" -1`: 35.674s
+    - `python3 collate_data.py "APHRODITE precipitation"`: 44.318s
+    - `python3 collate_data.py "APHRODITE precipitation" -1`: 1m8.172s
+    - `python3 collate_data.py "APHRODITE precipitation" -1 -d`: 0.206s
+    - `python3 collate_data.py "APHRODITE precipitation" -c environ`: 48.823s
     """
     data_type = 'Meteorological Data'
     data_name = 'APHRODITE Daily accumulated precipitation (V1901)'
@@ -642,11 +684,11 @@ def download_aphrodite_precipitation_data(
 
     # Dictionary of branch URLs for each resolution
     relative_urls = {
-        '0.05 degree': 'product/APHRO_V1901/APHRO_MA/005deg',
-        '0.25 degree': 'product/APHRO_V1901/APHRO_MA/025deg',
-        '0.25 degree nc': 'product/APHRO_V1901/APHRO_MA/025deg_nc',
         '0.50 degree': 'product/APHRO_V1901/APHRO_MA/050deg',
         '0.50 degree nc': 'product/APHRO_V1901/APHRO_MA/050deg_nc',
+        '0.25 degree': 'product/APHRO_V1901/APHRO_MA/025deg',
+        '0.25 degree nc': 'product/APHRO_V1901/APHRO_MA/025deg_nc',
+        '0.05 degree': 'product/APHRO_V1901/APHRO_MA/005deg',
     }
 
     # Dictionary of files at each relative URL
@@ -672,6 +714,8 @@ def download_aphrodite_precipitation_data(
             base_url, relative_url, files, only_one, dry_run, out_dir,
             username, password
         )
+        if only_one:
+            break
 
 
 def download_aphrodite_temperature_data(
@@ -685,8 +729,8 @@ def download_aphrodite_temperature_data(
     Run times:
 
     - `time python3 collate_data.py "APHRODITE temperature"`: 1h27m58.039s
-    - `time python3 collate_data.py "APHRODITE temperature" -1`: 6m36.88s
-    - `time python3 collate_data.py "APHRODITE temperature" -1 -d`: 4.144s
+    - `time python3 collate_data.py "APHRODITE temperature" -1`: 1m47.492s
+    - `time python3 collate_data.py "APHRODITE temperature" -1 -d`: 0.206s
     """
     data_type = 'Meteorological Data'
     data_name = 'APHRODITE Daily mean temperature product (V1808)'
@@ -700,56 +744,75 @@ def download_aphrodite_temperature_data(
 
     # URLs should be str (not urllib URL objects) because requests expects str
     base_url = 'http://aphrodite.st.hirosaki-u.ac.jp'
-    # Dictionary of branch URLs for each resolution
-    relative_urls = {
-        '0.05 degree': 'product/APHRO_V1808_TEMP/APHRO_MA/005deg',
-        '0.05 degree nc': 'product/APHRO_V1808_TEMP/APHRO_MA/005deg_nc',
-        # '0.25 degree': 'product/APHRO_V1808_TEMP/APHRO_MA/025deg',
-        # '0.25 degree nc': 'product/APHRO_V1808_TEMP/APHRO_MA/025deg_nc',
-        '0.50 degree': 'product/APHRO_V1808_TEMP/APHRO_MA/050deg',
-        # '0.50 degree nc': 'product/APHRO_V1808_TEMP/APHRO_MA/050deg_nc',
-    }
-    # Walk through the folder structure
-    for key in relative_urls.keys():
-        relative_url = relative_urls[key]
-        walk(
-            base_url, relative_url, only_one, dry_run,
-            out_dir, username, password
-        )
-
-    # Download the 0.25 degree resolution data
-    relative_url = 'product/APHRO_V1808_TEMP/APHRO_MA/025deg'
-    files = [
-        'APHRO_MA_TAVE_025deg_V1808.2015.gz',
-        'APHRO_MA_TAVE_025deg_V1808.ctl.gz',
-        'read_aphro_v1808.f90',
-    ]
-    download_files(
-        base_url, relative_url, files, only_one, dry_run, out_dir, username,
-        password
-    )
-
-    # Download the 0.25 degree nc resolution data
-    relative_url = 'product/APHRO_V1808_TEMP/APHRO_MA/025deg_nc'
-    files = [
-        'APHRO_MA_TAVE_025deg_V1808.2015.nc.gz',
-        'APHRO_MA_TAVE_025deg_V1808.nc.ctl.gz',
-    ]
-    download_files(
-        base_url, relative_url, files, only_one, dry_run, out_dir, username,
-        password
-    )
 
     # Download the 0.50 degree nc resolution data
     relative_url = 'product/APHRO_V1808_TEMP/APHRO_MA/050deg_nc'
     files = [
-        'APHRO_MA_TAVE_050deg_V1808.2015.nc.gz',
-        'APHRO_MA_TAVE_050deg_V1808.nc.ctl.gz',
+        'APHRO_MA_TAVE_050deg_V1808.2015.nc.gz',  # 19 MB
+        'APHRO_MA_TAVE_050deg_V1808.nc.ctl.gz',  # 347 B
     ]
     download_files(
         base_url, relative_url, files, only_one, dry_run, out_dir, username,
         password
     )
+
+    if only_one:
+        pass
+    else:
+        # Download the 0.50 degree resolution data
+        relative_url = 'product/APHRO_V1808_TEMP/APHRO_MA/050deg'
+        files = [
+            'read_aphro_v1808.f90',  # 2.6 KB
+        ]
+        download_files(
+            base_url, relative_url, files, only_one, dry_run, out_dir,
+            username, password
+        )
+
+        # Download the 0.25 degree resolution nc data
+        relative_url = 'product/APHRO_V1808_TEMP/APHRO_MA/025deg_nc'
+        files = [
+            'APHRO_MA_TAVE_025deg_V1808.2015.nc.gz',  # 64 MB
+            'APHRO_MA_TAVE_025deg_V1808.nc.ctl.gz',  # 485 B
+        ]
+        download_files(
+            base_url, relative_url, files, only_one, dry_run, out_dir,
+            username, password
+        )
+
+        # Download the 0.25 degree resolution data
+        relative_url = 'product/APHRO_V1808_TEMP/APHRO_MA/025deg'
+        files = [
+            'APHRO_MA_TAVE_025deg_V1808.2015.gz',  # 64 MB
+            'APHRO_MA_TAVE_025deg_V1808.ctl.gz',  # 312 B
+            'read_aphro_v1808.f90',  # 2.6 KB
+        ]
+        download_files(
+            base_url, relative_url, files, only_one, dry_run, out_dir,
+            username, password
+        )
+
+        # Download the 0.05 degree resolution nc data
+        relative_url = 'product/APHRO_V1808_TEMP/APHRO_MA/005deg_nc'
+        files = [
+            'APHRO_MA_TAVE_CLM_005deg_V1808.nc.gz',  # 1.2 GB
+        ]
+        download_files(
+            base_url, relative_url, files, only_one, dry_run, out_dir,
+            username, password
+        )
+
+        # Download the 0.05 degree resolution data
+        relative_url = 'product/APHRO_V1808_TEMP/APHRO_MA/005deg'
+        files = [
+            'APHRO_MA_TAVE_CLM_005deg_V1808.ctl.gz',  # 334 B
+            'APHRO_MA_TAVE_CLM_005deg_V1808.grd.gz',  # 1.4 GB
+            'read_aphro_clm_v1808.f90',  # 2.1 KB
+        ]
+        download_files(
+            base_url, relative_url, files, only_one, dry_run, out_dir,
+            username, password
+        )
 
 
 def download_chirps_rainfall_data(only_one, dry_run):
@@ -763,11 +826,12 @@ def download_chirps_rainfall_data(only_one, dry_run):
 
     Run times:
 
-    - `time python3 collate_data.py "CHIRPS rainfall" -1 -d`: 1.087s
     - `time python3 collate_data.py "CHIRPS rainfall"`:
         - 5m30.123s (2024-01-01 to 2024-03-07)
         - 2m56.14s (2024-01-01 to 2024-03-11)
         - 4m15.394s (2024-01-01 to 2024-03-31)
+    - `time python3 collate_data.py "CHIRPS rainfall" -1`: 17.831s
+    - `time python3 collate_data.py "CHIRPS rainfall" -1 -d`: 1.943s
     """
     data_type = 'Meteorological Data'
     data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite ' + \
@@ -811,8 +875,9 @@ def download_era5_reanalysis_data(only_one, dry_run):
 
     Run times:
 
-    - `time python3 collate_data.py "ERA5 reanalysis" -1 -d`: 0.213s
-    - `time python3 collate_data.py "ERA5 reanalysis"`: 1.484s
+    - `time python3 collate_data.py "ERA5 reanalysis"`: 1.293s
+    - `time python3 collate_data.py "ERA5 reanalysis" -1`: 1.884s
+    - `time python3 collate_data.py "ERA5 reanalysis" -1 -d`: 1.166s
     """
     data_type = 'Meteorological Data'
     data_name = 'ERA5 atmospheric reanalysis'
@@ -866,10 +931,11 @@ def download_terraclimate_data(only_one, dry_run, year):
     Run times:
 
     - `time python3 collate_data.py "TerraClimate data"`:
-        - 34m50.828s/31m43.878s
+        - 34m50.828s
         - 11m35.25s
         - 14m16.896s
-    - `time python3 collate_data.py "TerraClimate data" -1 -d`: 4.606s
+    - `time python3 collate_data.py "TerraClimate data" -1`: 3m12.992s
+    - `time python3 collate_data.py "TerraClimate data" -1 -d`: 0.204s
     """
     data_type = 'Meteorological Data'
     data_name = 'TerraClimate gridded temperature, precipitation, and other'
@@ -1010,31 +1076,46 @@ def download_worldpop_pop_count_data(only_one, dry_run, iso3):
 
     Run times:
 
-    - `time python3 collate_data.py "WorldPop pop count"`:
-        - 6m46.2s
-        - 17m40.154s
-    - `time python3 collate_data.py "WorldPop pop count" -3 VNM`:
-        - 14m13.53s
-        - 23m17.052s
-    - `time python3 collate_data.py "WorldPop pop count" -3 PER`:
-        - 46m47.78s
-        - 1h15m44.285s
+    - `time python3 collate_data.py "WorldPop pop count"`: 17m40.154s
+    - `time python3 collate_data.py "WorldPop pop count" -3 VNM`: 23m17.052s
+    - `time python3 collate_data.py "WorldPop pop count" -3 PER`: 1h15m44.285s
+    - `time python3 collate_data.py "WorldPop pop count" -1 -3 VNM`: 1m12.255s
     """
     data_type = 'Socio-Demographic Data'
     data_name = 'WorldPop population count'
 
-    if only_one:
-        print('The --only_one/-1 flag has no effect for this metric')
+    # Set additional parameter
+    base_url = 'https://data.worldpop.org'
+    country = pycountry.countries.get(alpha_3=iso3).name
+    country = country.replace(' ', '_')
 
-    # Download files
     # Example URLs:
     # - https://data.worldpop.org/GIS/Population/Individual_countries/VNM/
     # - https://data.worldpop.org/GIS/Population/Individual_countries/PER/
-    base_url = 'https://data.worldpop.org'
-    relative_url = f'GIS/Population/Individual_countries/{iso3}'
-    out_dir = Path(base_dir, 'A Collate Data', data_type, data_name)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    walk(base_url, relative_url, only_one, dry_run, out_dir)
+    if only_one:
+        # Download TIF file
+        relative_url = f'GIS/Population/Individual_countries/{iso3}/' + \
+            f'{country}_100m_Population/VNM_ppp_v2b_2020_UNadj.tif'
+    else:
+        # Download GeoDataFrame file (which includes the TIF file)
+        relative_url = f'GIS/Population/Individual_countries/{iso3}/' + \
+            f'{country}_100m_Population.7z'
+
+    # Download files
+    url = os.path.join(base_url, relative_url)
+    path = Path(
+        base_dir, 'A Collate Data', data_type, data_name, relative_url
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if dry_run:
+        print(f'Touching: "{path}"')
+        path.touch()
+    else:
+        succeded = download_file(url, path)
+        # Unpack file
+        if succeded:
+            if str(path).endswith('.7z'):
+                unpack_file(path, same_folder=False)
 
 
 def download_worldpop_pop_density_data(only_one, dry_run, iso3):
@@ -1046,12 +1127,14 @@ def download_worldpop_pop_density_data(only_one, dry_run, iso3):
 
     Run times:
 
+    - `time python3 collate_data.py "WorldPop pop density"`: 4.597s
     - `time python3 collate_data.py "WorldPop pop density" -3 VNM`:
         - 2.860s
         - 4.349s
     - `time python3 collate_data.py "WorldPop pop density" -3 PER`:
         - 6.723s
         - 18.760s
+    - `time python3 collate_data.py "WorldPop pop density" -d`: 0.209s
     """
     data_type = 'Socio-Demographic Data'
     data_name = 'WorldPop population density'

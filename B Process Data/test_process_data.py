@@ -53,11 +53,13 @@ import utils
 class TestCases(unittest.TestCase):
 
     def test_days_to_date(self):
+        """No prerequisite data is required to run this test."""
         expected = datetime(1970, 1, 1)
         actual = days_to_date(25567)
         self.assertEqual(expected, actual)
 
     def test_pixel_to_latlon(self):
+        """No prerequisite data is required to run this test."""
         x = [0]
         y = [0]
         transform = [
@@ -137,12 +139,15 @@ class TestCases(unittest.TestCase):
         self.test_process_gadm_admin_map_data()
 
     def test_process_gadm_admin_map_data(self):
+        """
+        Prerequisite data: gadm41_VNM_0.shp
+        Download via: `python3 collate_data.py GADM -1`
+        """
         process_gadm_admin_map_data('0', 'VNM')
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Geospatial Data',
-            'GADM administrative map', 'VNM', 'gadm41_VNM_shp', 'gadm41_VNM_0',
-            'Vietnam.png'
+            'GADM administrative map', 'VNM', 'Admin Level 0', 'Vietnam.png'
         )
         expected = True
         actual = path.exists()
@@ -168,22 +173,30 @@ class TestCases(unittest.TestCase):
 
         data_name = 'TerraClimate gridded temperature, precipitation, and ' + \
             'other'
-        process_meteorological_data(data_name, '2023', '11', None)
+        process_meteorological_data(data_name, '2023', '11', None, test=True)
         self.test_process_terraclimate_data()
 
     def test_process_aphrodite_precipitation_data(self):
+        """
+        Prerequisite data: APHRO_MA_050deg_V1901.2015.gz
+        Download via: `python3 collate_data.py "APHRODITE precipitation" -1`
+        """
         process_aphrodite_precipitation_data()
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Meteorological Data',
             'APHRODITE Daily accumulated precipitation (V1901)',
-            '025deg.csv'
+            '050deg.csv'
         )
         expected = True
         actual = path.exists()
         self.assertEqual(expected, actual)
 
     def test_process_aphrodite_temperature_data(self):
+        """
+        Prerequisite data: APHRO_MA_TAVE_050deg_V1808.2015.nc.gz
+        Download via: `python3 collate_data.py "APHRODITE temperature" -1`
+        """
         process_aphrodite_temperature_data()
         base_dir = utils.get_base_directory()
         path = Path(
@@ -196,7 +209,11 @@ class TestCases(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_process_chirps_rainfall_data(self):
-        process_chirps_rainfall_data('2024', True)
+        """
+        Prerequisite data: chirps-v2.0.2024.01.01.tif
+        Download via: `python3 collate_data.py "CHIRPS rainfall" -1`
+        """
+        process_chirps_rainfall_data('2024', False, True)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Meteorological Data',
@@ -208,6 +225,10 @@ class TestCases(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_process_era5_reanalysis_data(self):
+        """
+        Prerequisite data: ERA5-ml-temperature-subarea.nc
+        Download via: `python3 collate_data.py "ERA5 reanalysis" -1`
+        """
         process_era5_reanalysis_data()
         base_dir = utils.get_base_directory()
         path = Path(
@@ -219,11 +240,16 @@ class TestCases(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_process_terraclimate_data(self):
-        process_terraclimate_data('2023', '12')
+        """
+        Prerequisite data: TerraClimate_aet_2023.nc
+        Download via: `python3 collate_data.py "TerraClimate data" -1`
+        """
+        process_terraclimate_data('2023', '11', verbose=False, test=True)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Meteorological Data',
-            'TerraClimate', '2023-12', 'Water Evaporation Amount.png'
+            'TerraClimate', '2023-11', 'Water Evaporation Amount.png'
+
         )
         expected = True
         actual = path.exists()
@@ -234,7 +260,7 @@ class TestCases(unittest.TestCase):
         # test_process_meta_pop_density_data()
 
         data_name = 'WorldPop population count'
-        process_socio_demographic_data(data_name, '2020', 'VNM', 'ppp')
+        process_socio_demographic_data(data_name, '2020', 'VNM', 'ppp', True)
         self.test_process_worldpop_pop_count_data()
 
         data_name = 'WorldPop population density'
@@ -245,24 +271,32 @@ class TestCases(unittest.TestCase):
     # test_process_meta_pop_density_data()
 
     def test_process_worldpop_pop_count_data(self):
-        process_worldpop_pop_count_data('2020', 'VNM', 'ppp')
+        """
+        Prerequisite data: VNM_ppp_v2b_2020_UNadj.tif
+        Download via: `python3 collate_data.py "WorldPop pop count" -1`
+        """
+        process_worldpop_pop_count_data('2020', 'VNM', 'ppp', True)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Socio-Demographic Data',
             'WorldPop population count', 'VNM',
-            'VNM_ppp_v2b_2020_UNadj - Log Scale.png'
+            'VNM_ppp_v2b_2020_UNadj - Raw.png'
         )
         expected = True
         actual = path.exists()
         self.assertEqual(expected, actual)
 
     def test_process_worldpop_pop_density_data(self):
+        """
+        Prerequisite data: vnm_pd_2020_1km_UNadj_ASCII_XYZ.zip
+        Download via: `python3 collate_data.py "WorldPop pop density" -1`
+        """
         process_worldpop_pop_density_data('2020', 'VNM')
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Socio-Demographic Data',
-            'WorldPop population density', '2020', 'VNM',
-            'vnm_pd_2020_1km_UNadj_ASCII_XYZ - Naive.png'
+            'WorldPop population density', 'VNM',
+            'vnm_pd_2020_1km_UNadj_ASCII_XYZ.png'
         )
         expected = True
         actual = path.exists()
@@ -278,6 +312,14 @@ class TestCases(unittest.TestCase):
         self.test_process_gadm_chirps_data()
 
     def test_process_gadm_chirps_data(self):
+        """
+        Prerequisite data:
+            - gadm41_VNM_shp.zip
+            - chirps-v2.0.2024.01.01.tif.gz
+        Download via:
+            - `python3 collate_data.py GADM -1`
+            - `python3 collate_data.py "CHIRPS rainfall" -1`
+        """
         process_gadm_chirps_data('0', 'VNM', '2024')
         base_dir = utils.get_base_directory()
         path = Path(
@@ -317,6 +359,14 @@ class TestCases(unittest.TestCase):
         self.test_process_gadm_worldpopdensity_data()
 
     def test_process_gadm_worldpoppopulation_data(self):
+        """
+        Prerequisite data:
+            - gadm41_VNM_shp.zip
+            - VNM_ppp_v2b_2020_UNadj.tif
+        Download via:
+            - `python3 collate_data.py GADM -1`
+            - `python3 collate_data.py "WorldPop pop count" -1`
+        """
         process_gadm_worldpoppopulation_data('0', 'VNM', '2020', 'ppp')
         base_dir = utils.get_base_directory()
         path = Path(
@@ -339,6 +389,14 @@ class TestCases(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_process_gadm_worldpopdensity_data(self):
+        """
+        Prerequisite data:
+            - gadm41_VNM_shp.zip
+            - vnm_pd_2020_1km_UNadj_ASCII_XYZ.zip
+        Download via:
+            - `python3 collate_data.py GADM -1`
+            - `python3 collate_data.py "WorldPop pop density"`
+        """
         process_gadm_worldpopdensity_data('0', 'VNM', '2020', 'ppp')
         base_dir = utils.get_base_directory()
         path = Path(
