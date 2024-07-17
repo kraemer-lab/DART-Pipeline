@@ -76,6 +76,7 @@ import json
 import os
 import re
 import shutil
+import warnings
 # Custom modules
 import utils
 # Create the requirements file from the terminal with:
@@ -391,22 +392,23 @@ def unpack_file(path, same_folder=False):
             shutil.unpack_archive(path, str(path).removesuffix('.zip'))
 
 
-def download_economic_data(data_name, iso3, dry_run):
+def download_economic_data(data_name, only_one, dry_run, iso3):
     """Download economic data."""
     if data_name == 'Relative Wealth Index':
-        download_relative_wealth_index_data(iso3, dry_run)
+        download_relative_wealth_index_data(only_one, dry_run, iso3)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
 
-def download_relative_wealth_index_data(iso3, dry_run):
+def download_relative_wealth_index_data(only_one, dry_run, iso3):
     """
     Download Relative Wealth Index.
 
     Run times:
 
-    - `time python3 collate_data.py RWI -3 VNM`: 00:09.409
-    - `time python3 collate_data.py RWI -3 ZAF`: 00:05.656
+    - `time python3 collate_data.py RWI -3 VNM`: 6.525s
+    - `time python3 collate_data.py RWI -3 ZAF`: 6.955s
+    - `time python3 collate_data.py RWI -3 PER`: 5.428s
     """
     data_type = 'Economic Data'
     print(f'Data type: {data_type}')
@@ -414,7 +416,14 @@ def download_relative_wealth_index_data(iso3, dry_run):
     print(f'Data name: {data_name}')
     if not iso3:
         raise ValueError('No ISO3 code has been provided; use the `-3` flag')
-    country = pycountry.countries.get(alpha_3=iso3).common_name
+    with warnings.catch_warnings(record=True) as w:
+        # Cause all warnings to always be triggered.
+        warnings.simplefilter('always')
+        country = pycountry.countries.get(alpha_3=iso3).common_name
+        # UserWarning: Country's common_name not found. Country name provided
+        # instead.
+        if (len(w) > 0) and (issubclass(w[-1].category, UserWarning)):
+            country = pycountry.countries.get(alpha_3=iso3).name
     print(f'Country:   {country}')
     if dry_run:
         print('Dry run')
@@ -600,6 +609,8 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
         print('Dry run')
     if only_one:
         print('The --only_one/-1 flag has no effect for this metric')
+    if iso3 == '':
+        raise ValueError(f'No ISO3 code has been provided; use the "-3" flag')
     print('')
 
     # Create output directory
@@ -994,10 +1005,10 @@ def download_meta_pop_density_data(only_one, dry_run, iso3):
 
     Run times:
 
-    - `time python3 collate_data.py "Meta pop density" -d -1 -3 VNM`: 01:07.656
-    - `time python3 collate_data.py "Meta pop density" -3 VNM`:
-        - 05:38.750
-        - 07:01.330
+    - `time python3 collate_data.py "Meta pop density" -3 VNM`: 6m13.797s
+    - `time python3 collate_data.py "Meta pop density" -d -3 VNM`: 3m28.403s
+    - `time python3 collate_data.py "Meta pop density" -1 -3 VNM`: 55.120s
+    - `time python3 collate_data.py "Meta pop density" -d -1 -3 VNM`: 22.020s
     """
     # Sanitise the inputs
     data_type = 'Socio-Demographic Data'
@@ -1009,9 +1020,10 @@ def download_meta_pop_density_data(only_one, dry_run, iso3):
     country = pycountry.countries.get(alpha_3=iso3).common_name
     print(f'Country:   {country}')
     if dry_run:
-        print('Dry run')
+        print('This is a dry run - no data will be downloaded but empty files')
+        print('will instead be created.')
     if only_one:
-        print('Only one file being downloaded')
+        print('Only one file will be downloaded/created.')
     print('')
 
     # Main webpage
@@ -1130,6 +1142,7 @@ def download_worldpop_pop_density_data(only_one, dry_run, iso3):
 
     - `time python3 collate_data.py "WorldPop pop density" -3 PER`: 18.760s
     - `time python3 collate_data.py "WorldPop pop density" -3 VNM`: 4.349s
+    - `time python3 collate_data.py "WorldPop pop density" -d`: 0.209s
     """
     data_type = 'Socio-Demographic Data'
     data_name = 'WorldPop population density'
@@ -1320,9 +1333,9 @@ if __name__ == '__main__':
     if data_name == '':
         print('No data name has been provided. Exiting the programme.')
     elif data_type == 'Economic Data':
-        download_economic_data(data_name, iso3, dry_run)
+        download_economic_data(data_name, only_one, dry_run, iso3)
     elif data_type == 'Epidemiological Data':
-        download_epidemiological_data(data_name, iso3, year, only_one, dry_run)
+        download_epidemiological_data(data_name, only_one, dry_run, year, iso3)
     elif data_type == 'Geospatial Data':
         download_geospatial_data(data_name, only_one, dry_run, iso3)
     elif data_type == 'Meteorological Data':

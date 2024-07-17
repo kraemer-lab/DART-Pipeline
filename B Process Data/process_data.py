@@ -1165,11 +1165,11 @@ def process_worldpop_pop_count_data(year, iso3, rt, test=False):
 
     Run times:
 
-    - `python3 process_data.py "WorldPop pop count" -3 VNM -y 2020 -r ppp`:
-        - 00:43.332
+    - `python3 process_data.py "WorldPop pop count" -y 2020 -3 VNM -r ppp`:
+        - 43.332s
     - `python3 process_data.py "WorldPop pop count" -3 PER -y 2020`:
-        - 02:05.13
-        - 03:27.575
+        - 2m5.13s
+        - 3m27.575s
     """
     # Sanitise the inputs
     data_type = 'Socio-Demographic Data'
