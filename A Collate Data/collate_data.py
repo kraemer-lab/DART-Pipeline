@@ -603,8 +603,8 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
     Run times:
 
     - `time python3 collate_data.py GADM -3 GBR`: 5m15.52s
-    - `time python3 collate_data.py GADM -3 PER`: 1m15.39s
-    - `time python3 collate_data.py GADM -3 VNM`: 1m11.843s
+    - `time python3 collate_data.py GADM -3 PER`: 21.763s
+    - `time python3 collate_data.py GADM -3 VNM`: 15.870s
     - `time python3 collate_data.py GADM -1 -3 VNM`: 13.860s
     - `time python3 collate_data.py GADM -d -3 VNM`: 0.186s
     - `time python3 collate_data.py GADM -1 -d -3 VNM`: 0.184s

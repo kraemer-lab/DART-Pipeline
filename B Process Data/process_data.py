@@ -463,7 +463,10 @@ def process_gadm_admin_map_data(admin_level, iso3):
         'PER': 'EPSG:24892',  # Peru central zone
         'VNM': 'EPSG:4756',
     }
-    gdf = gdf.to_crs(national_crs[iso3])
+    try:
+        gdf = gdf.to_crs(national_crs[iso3])
+    except KeyError:
+        pass
 
     # Plot
     A = 5  # We want figures to be A5
@@ -471,7 +474,6 @@ def process_gadm_admin_map_data(admin_level, iso3):
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot()
     gdf.plot(ax=ax, color='white', edgecolor='black')
-    name = gdf.loc[0, 'COUNTRY']
     plt.title(
         f'{country}\nAdmin Level {admin_level}',
         y=1.03
@@ -523,9 +525,10 @@ def process_gadm_admin_map_data(admin_level, iso3):
         plt.xlabel('Longitude')
         plt.ylabel('Latitude')
         # Export
+        filename = str(title).replace('/', '_') + '.png'
         path = Path(
             base_dir, 'B Process Data', data_type, data_name, iso3,
-            f'Admin Level {admin_level}', str(title) + '.png'
+            f'Admin Level {admin_level}', filename
         )
         path.parent.mkdir(parents=True, exist_ok=True)
         print(f'Exporting "{path}"')
