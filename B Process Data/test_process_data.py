@@ -8,6 +8,7 @@ Past runs
 - 2024-05-08 on Ubuntu 20.04 using Python 3.12: Ran 18 tests in 7m1.735s
 - 2024-05-09 on Ubuntu 22.04 using Python 3.12: Ran 18 tests in 14m58.102s
 - 2024-05-10 on macOS Sonoma using Python 3.12: Ran 18 tests in 4m41.547s
+- 2024-06-19 on macOS Sonoma using Python 3.12: Ran 22 tests in 4m51.553ss
 - 2024-07-04 on Ubuntu 22.04 using Python 3.12: Ran 18 tests in 5m39.803s
 - 2024-07-10 on Ubuntu 22.04 using Python 3.12: Ran 20 tests in 5m1.282s
 """
@@ -134,7 +135,10 @@ class TestCases(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_process_geospatial_data(self):
-        process_geospatial_data('GADM administrative map', '0', 'VNM')
+        data_name = 'GADM administrative map'
+        admin_level = '0'
+        iso3 = 'VNM'
+        process_geospatial_data(data_name, admin_level, iso3)
         self.test_process_gadm_admin_map_data()
 
     def test_process_gadm_admin_map_data(self):
@@ -142,7 +146,9 @@ class TestCases(unittest.TestCase):
         Prerequisite data: gadm41_VNM_0.shp
         Download via: `python3 collate_data.py GADM -1`
         """
-        process_gadm_admin_map_data('0', 'VNM')
+        admin_level = '0'
+        iso3 = 'VNM'
+        process_gadm_admin_map_data(admin_level, iso3)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Geospatial Data',
@@ -243,7 +249,7 @@ class TestCases(unittest.TestCase):
         Prerequisite data: TerraClimate_aet_2023.nc
         Download via: `python3 collate_data.py "TerraClimate data" -1`
         """
-        process_terraclimate_data('2023', '11', None, test=True)
+        process_terraclimate_data('2023', '11', verbose=False, test=True)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Meteorological Data',
