@@ -571,7 +571,25 @@ def download_ministerio_de_salud_peru_data(only_one, dry_run):
 
 
 def download_geospatial_data(data_name, only_one, dry_run, iso3):
-    """Download Geospatial data."""
+    """
+    Download Geospatial data.
+
+    Only one type of geospatial data can be downloaded by this pipeline: GADM
+    administrative maps.
+
+    Parameters
+    ----------
+    data_name : str {'GADM administrative map', 'GADM admin map', 'GADM'}
+        The name of the geospatial data to download.
+    only_one : bool
+        If True, only one file will be downloaded. Useful when testing.
+    dry_run : bool
+        If True, nothing will be downloaded but instead empty files will be
+        created with the same names and in the same folder structure.
+    iso3 : str
+        [ISO 3166-1 alpha-3](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3)
+        three-letter country code.
+    """
     if data_name == 'GADM administrative map':
         download_gadm_admin_map_data(only_one, dry_run, iso3)
     else:
@@ -586,7 +604,7 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
 
     - `time python3 collate_data.py GADM -3 GBR`: 5m15.52s
     - `time python3 collate_data.py GADM -3 PER`: 1m15.39s
-    - `time python3 collate_data.py GADM -3 VNM`: 2m17.09s
+    - `time python3 collate_data.py GADM -3 VNM`: 1m11.843s
     - `time python3 collate_data.py GADM -1 -3 VNM`: 13.860s
     - `time python3 collate_data.py GADM -d -3 VNM`: 0.186s
     - `time python3 collate_data.py GADM -1 -d -3 VNM`: 0.184s
@@ -608,9 +626,10 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
             country = pycountry.countries.get(alpha_3=iso3).name
     print(f'Country:   {country}')
     if dry_run:
-        print('Dry run')
+        print('This is a dry run - no data will be downloaded but empty')
+        print('file(s) will instead be created')
     if only_one:
-        print('Only one file (the shapefile) will be downloaded')
+        print('Only one file (the shapefile) will be downloaded/created')
     print('')
 
     # Create output directory

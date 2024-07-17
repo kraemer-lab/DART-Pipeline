@@ -82,6 +82,7 @@ from pathlib import Path
 import argparse
 import math
 import os
+import warnings
 # Custom modules
 import utils
 # Create the requirements file with:
@@ -94,8 +95,16 @@ if os.environ.get('WAYLAND_DISPLAY') is not None:
     plt.switch_backend('Agg')
 
 # Settings
-plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
+plt.rc('pgf', texsystem='xelatex')
+plt.rc(
+    'pgf', preamble=r'''
+        \usepackage[utf8]{inputenc}
+        \usepackage[T1]{fontenc}
+        \usepackage{fontspec}
+        \usepackage{lmodern}
+    '''
+)
 
 
 def days_to_date(days_since_1900):
@@ -386,7 +395,23 @@ def process_ministerio_de_salud_peru_data(admin_level):
 
 
 def process_geospatial_data(data_name, admin_level, iso3):
-    """Process Geospatial data."""
+    """
+    Process Geospatial data.
+
+    Only one type of geospatial data can be processed by this pipeline: GADM
+    administrative maps.
+
+    Parameters
+    ----------
+    data_name : str {'GADM administrative map', 'GADM admin map', 'GADM'}
+        The name of the geospatial data to download.
+    admin_level : str {'0', '1', '2', '3'}
+        The administrative level of the country at which the geospatial data
+        will be processed.
+    iso3 : str
+        [ISO 3166-1 alpha-3](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3)
+        three-letter country code.
+    """
     if data_name == 'GADM administrative map':
         process_gadm_admin_map_data(admin_level, iso3)
     else:
@@ -399,22 +424,30 @@ def process_gadm_admin_map_data(admin_level, iso3):
 
     Run times:
 
-    - `time python3 process_data.py GADM -a 0 -3 VNM`: 1.036s
-    - `time python3 process_data.py GADM -a 1 -3 VNM`: 3.830s
-    - `time python3 process_data.py GADM -a 2 -3 VNM`: 33.953s
-    - `time python3 process_data.py GADM -a 3 -3 VNM`: 12m30.51s
-    - `time python3 process_data.py GADM -a 0 -3 PER`: 1.036s
-    - `time python3 process_data.py GADM -a 1 -3 PER`: 2.080s
-    - `time python3 process_data.py GADM -a 2 -3 PER`: 9.854s
-    - `time python3 process_data.py GADM -a 3 -3 PER`: 1m27.87s
+    - `time python3 process_data.py GADM -a 0 -3 VNM`: 1.790s
+    - `time python3 process_data.py GADM -a 1 -3 VNM`: 7.327s
+    - `time python3 process_data.py GADM -a 2 -3 VNM`: 1m12.668s
+    - `time python3 process_data.py GADM -a 3 -3 VNM`: 20m26.797s
+    - `time python3 process_data.py GADM -a 0 -3 PER`: 1.680s
+    - `time python3 process_data.py GADM -a 1 -3 PER`: 3.983s
+    - `time python3 process_data.py GADM -a 2 -3 PER`: 20.755s
+    - `time python3 process_data.py GADM -a 3 -3 PER`: 3m16.707s
     """
     data_type = 'Geospatial Data'
     print(f'Data type:   {data_type}')
     data_name = 'GADM administrative map'
     print(f'Data name:   {data_name}')
-    country = pycountry.countries.get(alpha_3=iso3).common_name
+    with warnings.catch_warnings(record=True) as w:
+        # Cause all warnings to always be triggered.
+        warnings.simplefilter('always')
+        country = pycountry.countries.get(alpha_3=iso3).common_name
+        # UserWarning: Country's common_name not found. Country name provided
+        # instead.
+        if (len(w) > 0) and (issubclass(w[-1].category, UserWarning)):
+            country = pycountry.countries.get(alpha_3=iso3).name
     print(f'Country:     {country}')
     print('Admin level:', admin_level)
+    print('')
 
     # Import the shape file
     filename = f'gadm41_{iso3}_{admin_level}.shp'
@@ -440,7 +473,7 @@ def process_gadm_admin_map_data(admin_level, iso3):
     gdf.plot(ax=ax, color='white', edgecolor='black')
     name = gdf.loc[0, 'COUNTRY']
     plt.title(
-        rf'\centering\bf Admin Level {admin_level}\\\normalfont {country}\par',
+        f'{country}\nAdmin Level {admin_level}',
         y=1.03
     )
     plt.xlabel('Longitude')
@@ -2182,7 +2215,6 @@ shorthand_to_data_name = {
     'WorldPop pop count': 'WorldPop population count',
 
     # Geospatial Data
-    'GADM': 'GADM administrative map',
     'GADM admin map': 'GADM administrative map',
     'GADM': 'GADM administrative map',
 }
