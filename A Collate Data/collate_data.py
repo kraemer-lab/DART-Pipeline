@@ -1037,8 +1037,8 @@ def download_meta_pop_density_data(only_one, dry_run, iso3):
 
     - `time python3 collate_data.py "Meta pop density" -3 VNM`: 6m13.797s
     - `time python3 collate_data.py "Meta pop density" -d -3 VNM`: 3m28.403s
-    - `time python3 collate_data.py "Meta pop density" -1 -3 VNM`: 55.120s
-    - `time python3 collate_data.py "Meta pop density" -d -1 -3 VNM`: 22.020s
+    - `time python3 collate_data.py "Meta pop density" -1 -3 VNM`: 51.255s
+    - `time python3 collate_data.py "Meta pop density" -d -1 -3 VNM`: 27.381s
     """
     # Sanitise the inputs
     data_type = 'Socio-Demographic Data'
@@ -1072,10 +1072,15 @@ def download_meta_pop_density_data(only_one, dry_run, iso3):
         # Return the links that were found
         if links:
             links = [x for x in links if x['href'].endswith('.zip')]
-            if only_one:
-                links = links[:1]
             for link in links:
                 zip_url = link['href']
+                # If we only want to download one file it is the
+                # '{iso3}_general_{year}' file that we want, so check if this
+                # link is for that file. Skip this link if not.
+                if only_one:
+                    if not f'{iso3.lower()}_general_2020' in zip_url:
+                        continue
+                # Download the data
                 zip_url = 'https://data.humdata.org' + zip_url
                 zip_name = zip_url.split('/')[-1]
                 # Download ZIP file from the found URL

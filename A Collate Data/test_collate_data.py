@@ -452,12 +452,14 @@ class TestCases(unittest.TestCase):
         self.test_download_worldpop_pop_density_data()
 
     def test_download_meta_pop_density_data(self):
-        download_meta_pop_density_data(True, False, 'VNM')
+        only_one = True
+        dry_run = False
+        iso3 = 'VNM'
+        download_meta_pop_density_data(only_one, dry_run, iso3)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'A Collate Data', 'Socio-Demographic Data',
-            'Meta population density', 'VNM',
-            'vnm_children_under_five_2020_csv.zip'
+            'Meta population density', 'VNM', 'vnm_general_2020.csv'
         )
         expected = True
         actual = path.exists()
