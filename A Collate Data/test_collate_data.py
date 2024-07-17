@@ -288,11 +288,17 @@ class TestCases(unittest.TestCase):
 
     def test_download_geospatial_data(self):
         data_name = 'GADM administrative map'
-        download_geospatial_data(data_name, True, True, 'VNM')
+        only_one = True
+        dry_run = True
+        iso3 = 'VNM'
+        download_geospatial_data(data_name, only_one, dry_run, iso3)
         self.test_download_gadm_admin_map_data()
 
     def test_download_gadm_admin_map_data(self):
-        download_gadm_admin_map_data(True, False, 'VNM')
+        only_one = True
+        dry_run = False
+        iso3 = 'VNM'
+        download_gadm_admin_map_data(only_one, dry_run, iso3)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'A Collate Data', 'Geospatial Data',

@@ -135,7 +135,10 @@ class TestCases(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_process_geospatial_data(self):
-        process_geospatial_data('GADM administrative map', '0', 'VNM')
+        data_name = 'GADM administrative map'
+        admin_level = '0'
+        iso3 = 'VNM'
+        process_geospatial_data(data_name, admin_level, iso3)
         self.test_process_gadm_admin_map_data()
 
     def test_process_gadm_admin_map_data(self):
@@ -143,7 +146,9 @@ class TestCases(unittest.TestCase):
         Prerequisite data: gadm41_VNM_0.shp
         Download via: `python3 collate_data.py GADM -1`
         """
-        process_gadm_admin_map_data('0', 'VNM')
+        admin_level = '0'
+        iso3 = 'VNM'
+        process_gadm_admin_map_data(admin_level, iso3)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Geospatial Data',
