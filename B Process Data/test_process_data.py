@@ -92,6 +92,10 @@ class TestCases(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_process_relative_wealth_index_data(self):
+        """
+        Prerequisite data: Relative Wealth Index/VNM.csv'
+        Download via: `python3 collate_data.py RWI -3 VNM`
+        """
         # Current time
         unix_time = time.time()
         # Process the data
@@ -218,7 +222,7 @@ class TestCases(unittest.TestCase):
         Prerequisite data: chirps-v2.0.2024.01.01.tif
         Download via: `python3 collate_data.py "CHIRPS rainfall" -1`
         """
-        process_chirps_rainfall_data('2024', False, True)
+        process_chirps_rainfall_data('2024', verbose=False, test=True)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Meteorological Data',
@@ -261,8 +265,13 @@ class TestCases(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_process_socio_demographic_data(self):
-        # TODO
-        # test_process_meta_pop_density_data()
+        data_name = 'Meta population density'
+        year = '2020'
+        iso3 = 'VNM'
+        rt = None
+        test = None
+        process_socio_demographic_data(data_name, year, iso3, rt, test)
+        self.test_process_meta_pop_density_data()
 
         data_name = 'WorldPop population count'
         process_socio_demographic_data(data_name, '2020', 'VNM', 'ppp', True)
@@ -272,8 +281,23 @@ class TestCases(unittest.TestCase):
         process_socio_demographic_data(data_name, '2020', 'VNM', 'ppp')
         self.test_process_worldpop_pop_density_data()
 
-    # TODO
-    # test_process_meta_pop_density_data()
+    def test_process_meta_pop_density_data(self):
+        """
+        Prerequisite data: vnm_general_2020.csv
+        Download via: `python3 collate_data.py "Meta pop density" -1 -3 VNM`
+        """
+        year = '2020'
+        iso3 = 'VNM'
+        process_meta_pop_density_data(year, iso3)
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data', 'Socio-Demographic Data',
+            'Meta population density', 'VNM', '2020',
+            'Vietnam.png'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
     def test_process_worldpop_pop_count_data(self):
         """
@@ -414,11 +438,43 @@ class TestCases(unittest.TestCase):
         actual = path.exists()
         self.assertEqual(expected, actual)
 
-    # TODO
-    # test_process_economic_geospatial_sociodemographic_data()
+    def test_process_economic_geospatial_sociodemographic_data(self):
+        data_name_1 = 'Relative Wealth Index'
+        data_name_2 = 'GADM administrative map'
+        data_name_3 = 'Meta population density'
+        data_name = [data_name_1, data_name_2, data_name_3]
+        iso3 = 'VNM'
+        admin_level = '0'
+        process_economic_geospatial_sociodemographic_data(
+            data_name, iso3, admin_level
+        )
+        self.test_process_pop_weighted_relative_wealth_index_data()
 
-    # TODO
-    # test_process_pop_weighted_relative_wealth_index_data()
+    def test_process_pop_weighted_relative_wealth_index_data(self):
+        """
+        Prerequisite data:
+            - Relative Wealth Index/VNM.csv
+            - gadm41_VNM_0.shp
+            - vnm_general_2020.csv
+        Download via:
+            - `python3 collate_data.py RWI -3 VNM`
+            - `python3 collate_data.py "Meta pop density" -1 -3 VNM`
+            - `python3 collate_data.py GADM -1`
+        """
+        iso3 = 'VNM'
+        admin_level = '0'
+        process_pop_weighted_relative_wealth_index_data(iso3, admin_level)
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data',
+            'Economic, Geospatial and Socio-Demographic Data',
+            'Relative Wealth Index, GADM administrative map and ' +
+            'Meta population density',
+            iso3, f'Admin Level {admin_level}.png'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
 
 if __name__ == '__main__':

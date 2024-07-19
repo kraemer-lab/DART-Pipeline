@@ -760,7 +760,7 @@ def process_aphrodite_temperature_data():
         df.to_csv(path)
 
 
-def process_chirps_rainfall_data(year, verbose, test):
+def process_chirps_rainfall_data(year, verbose=False, test=False):
     """
     Process CHIRPS Rainfall data.
 
@@ -1162,11 +1162,7 @@ def process_meta_pop_density_data(year, iso3):
     )
     plt.xlabel('Longitude')
     plt.ylabel('Latitude')
-    plt.title(
-        rf'\centering\bf Population Density' +
-        rf'\\\normalfont {country} - {year}\par',
-        y=1.03
-    )
+    plt.title(f'Population Density\n{country} - {year}', y=1.03)
 
     # Manually create the colour bar
     ticks = np.linspace(df[metric_log].min(), df[metric_log].max(), 5)
@@ -2058,7 +2054,7 @@ def get_admin_region(lat, lon, polygons):
     return 'null'
 
 
-def process_pop_weighted_relative_wealth_index_data(iso3, admin_level):
+def process_pop_weighted_relative_wealth_index_data(iso3, admin_level='0'):
     """
     Process Population Weighted Relative Wealth Index.
 
@@ -2068,9 +2064,7 @@ def process_pop_weighted_relative_wealth_index_data(iso3, admin_level):
 
     Run times:
 
-    - `time python3 process_data.py RWI GADM "Meta pop density" -3 VNM -a 2`:
-        - 6m19.994s
-        - 5m48.570s
+    - `python3 process_data.py RWI GADM "Meta pop density" -3 VNM`: 2m36.11s
     """
     # Sanitise the inputs
     print('Data types:  Economic, Geospatial and Socio-Demographic')
@@ -2080,8 +2074,6 @@ def process_pop_weighted_relative_wealth_index_data(iso3, admin_level):
         raise ValueError('No ISO3 code has been provided; use the `-3` flag')
     country = pycountry.countries.get(alpha_3=iso3).common_name
     print('Country:    ', country)
-    if not admin_level:
-        raise ValueError('No admin level has been provided; use the `-a` flag')
     print('Admin level:', admin_level)
     print('')
 

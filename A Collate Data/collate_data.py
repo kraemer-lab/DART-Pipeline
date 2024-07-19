@@ -392,22 +392,23 @@ def unpack_file(path, same_folder=False):
             shutil.unpack_archive(path, str(path).removesuffix('.zip'))
 
 
-def download_economic_data(data_name, iso3, dry_run):
+def download_economic_data(data_name, only_one, dry_run, iso3):
     """Download economic data."""
     if data_name == 'Relative Wealth Index':
-        download_relative_wealth_index_data(iso3, dry_run)
+        download_relative_wealth_index_data(only_one, dry_run, iso3)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
 
-def download_relative_wealth_index_data(iso3, dry_run):
+def download_relative_wealth_index_data(only_one, dry_run, iso3):
     """
     Download Relative Wealth Index.
 
     Run times:
 
-    - `time python3 collate_data.py RWI -3 VNM`: 00:09.409
-    - `time python3 collate_data.py RWI -3 ZAF`: 00:05.656
+    - `time python3 collate_data.py RWI -3 VNM`: 6.525s
+    - `time python3 collate_data.py RWI -3 ZAF`: 6.955s
+    - `time python3 collate_data.py RWI -3 PER`: 5.428s
     """
     data_type = 'Economic Data'
     print(f'Data type: {data_type}')
@@ -415,10 +416,20 @@ def download_relative_wealth_index_data(iso3, dry_run):
     print(f'Data name: {data_name}')
     if not iso3:
         raise ValueError('No ISO3 code has been provided; use the `-3` flag')
-    country = pycountry.countries.get(alpha_3=iso3).common_name
+    with warnings.catch_warnings(record=True) as w:
+        # Cause all warnings to always be triggered.
+        warnings.simplefilter('always')
+        country = pycountry.countries.get(alpha_3=iso3).common_name
+        # UserWarning: Country's common_name not found. Country name provided
+        # instead.
+        if (len(w) > 0) and (issubclass(w[-1].category, UserWarning)):
+            country = pycountry.countries.get(alpha_3=iso3).name
     print(f'Country:   {country}')
+    if only_one:
+        print('The --only_one/-1 flag has no effect on this function')
     if dry_run:
-        print('Dry run')
+        print('This is a dry run - no data will be downloaded. Instead, empty')
+        print('file(s) will be created.')
     print('')
 
     # Main webpage
@@ -859,6 +870,7 @@ def download_chirps_rainfall_data(only_one, dry_run):
     - `time python3 collate_data.py "CHIRPS rainfall"`:
         - 5m30.123s (2024-01-01 to 2024-03-07)
         - 2m56.14s (2024-01-01 to 2024-03-11)
+        - 2m55.466s (2024-01-01 to 2024-02-29)
         - 4m15.394s (2024-01-01 to 2024-03-31)
     - `time python3 collate_data.py "CHIRPS rainfall" -1`: 17.831s
     - `time python3 collate_data.py "CHIRPS rainfall" -1 -d`: 1.943s
@@ -1023,8 +1035,10 @@ def download_meta_pop_density_data(only_one, dry_run, iso3):
 
     Run times:
 
-    - `time python3 collate_data.py "Meta pop density" -3 VNM`: 7m1.330s
-    - `time python3 collate_data.py "Meta pop density" -d -1 -3 VNM`: 1m7.656s
+    - `time python3 collate_data.py "Meta pop density" -3 VNM`: 6m13.797s
+    - `time python3 collate_data.py "Meta pop density" -d -3 VNM`: 3m28.403s
+    - `time python3 collate_data.py "Meta pop density" -1 -3 VNM`: 51.255s
+    - `time python3 collate_data.py "Meta pop density" -d -1 -3 VNM`: 27.381s
     """
     # Sanitise the inputs
     data_type = 'Socio-Demographic Data'
@@ -1036,9 +1050,10 @@ def download_meta_pop_density_data(only_one, dry_run, iso3):
     country = pycountry.countries.get(alpha_3=iso3).common_name
     print(f'Country:   {country}')
     if dry_run:
-        print('Dry run')
+        print('This is a dry run - no data will be downloaded. Instead, empty')
+        print('file(s) will be created.')
     if only_one:
-        print('Only one file being downloaded')
+        print('Only one file will be downloaded/created.')
     print('')
 
     # Main webpage
@@ -1057,10 +1072,15 @@ def download_meta_pop_density_data(only_one, dry_run, iso3):
         # Return the links that were found
         if links:
             links = [x for x in links if x['href'].endswith('.zip')]
-            if only_one:
-                links = links[:1]
             for link in links:
                 zip_url = link['href']
+                # If we only want to download one file it is the
+                # '{iso3}_general_{year}_csv.zip' file that we want, so check
+                # if this link is for that file. Skip this link if not.
+                if only_one:
+                    if not f'{iso3.lower()}_general_2020_csv.zip' in zip_url:
+                        continue
+                # Download the data
                 zip_url = 'https://data.humdata.org' + zip_url
                 zip_name = zip_url.split('/')[-1]
                 # Download ZIP file from the found URL
@@ -1123,7 +1143,7 @@ def download_worldpop_pop_count_data(only_one, dry_run, iso3):
     if only_one:
         # Download TIF file
         relative_url = f'GIS/Population/Individual_countries/{iso3}/' + \
-            f'{country}_100m_Population/VNM_ppp_v2b_2020_UNadj.tif'
+            f'{country}_100m_Population/{iso3}_ppp_v2b_2020_UNadj.tif'
     else:
         # Download GeoDataFrame file (which includes the TIF file)
         relative_url = f'GIS/Population/Individual_countries/{iso3}/' + \
@@ -1155,13 +1175,8 @@ def download_worldpop_pop_density_data(only_one, dry_run, iso3):
 
     Run times:
 
-    - `time python3 collate_data.py "WorldPop pop density"`: 4.597s
-    - `time python3 collate_data.py "WorldPop pop density" -3 VNM`:
-        - 2.860s
-        - 4.349s
-    - `time python3 collate_data.py "WorldPop pop density" -3 PER`:
-        - 6.723s
-        - 18.760s
+    - `time python3 collate_data.py "WorldPop pop density" -3 PER`: 18.760s
+    - `time python3 collate_data.py "WorldPop pop density" -3 VNM`: 4.349s
     - `time python3 collate_data.py "WorldPop pop density" -d`: 0.209s
     """
     data_type = 'Socio-Demographic Data'
@@ -1353,7 +1368,7 @@ if __name__ == '__main__':
     if data_name == '':
         print('No data name has been provided. Exiting the programme.')
     elif data_type == 'Economic Data':
-        download_economic_data(data_name, iso3, dry_run)
+        download_economic_data(data_name, only_one, dry_run, iso3)
     elif data_type == 'Epidemiological Data':
         download_epidemiological_data(data_name, only_one, dry_run, year, iso3)
     elif data_type == 'Geospatial Data':

@@ -248,7 +248,10 @@ class TestCases(unittest.TestCase):
 
     def test_download_economic_data(self):
         data_name = 'Relative Wealth Index'
-        download_economic_data(data_name, 'VNM', True)
+        only_one = None
+        dry_run = True
+        iso3 = 'VNM'
+        download_economic_data(data_name, only_one, dry_run, iso3)
         self.test_download_relative_wealth_index_data()
         base_dir = utils.get_base_directory()
         path = Path(
@@ -260,7 +263,10 @@ class TestCases(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_download_relative_wealth_index_data(self):
-        download_relative_wealth_index_data(iso3='VNM', dry_run=False)
+        only_one = None
+        dry_run = False
+        iso3 = 'VNM'
+        download_relative_wealth_index_data(only_one, dry_run, iso3)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'A Collate Data', 'Economic Data',
@@ -446,12 +452,14 @@ class TestCases(unittest.TestCase):
         self.test_download_worldpop_pop_density_data()
 
     def test_download_meta_pop_density_data(self):
-        download_meta_pop_density_data(True, False, 'VNM')
+        only_one = True
+        dry_run = False
+        iso3 = 'VNM'
+        download_meta_pop_density_data(only_one, dry_run, iso3)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'A Collate Data', 'Socio-Demographic Data',
-            'Meta population density', 'VNM',
-            'vnm_children_under_five_2020_csv.zip'
+            'Meta population density', 'VNM', 'vnm_general_2020.csv'
         )
         expected = True
         actual = path.exists()
