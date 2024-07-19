@@ -52,6 +52,16 @@ Testing
     - `python3 test_process_data.py`
     - `python3 test_utils.py`
 
+Timeline
+========
+
++------------+---------------------------------------------------+
+| Date       | Task                                              |
++============+===================================================+
+| 2024-11    | Version 1 release. Project maturing after this    |
+|            | point.                                            |
++------------+---------------------------------------------------+
+
 Contributing
 ============
 Please see our `Contributing to DART <./CONTRIBUTING.md>`_ guide.
