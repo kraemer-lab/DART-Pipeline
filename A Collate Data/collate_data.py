@@ -428,8 +428,8 @@ def download_relative_wealth_index_data(only_one, dry_run, iso3):
     if only_one:
         print('The --only_one/-1 flag has no effect on this function')
     if dry_run:
-        print('This is a dry run - no data will be downloaded but empty')
-        print('file(s) will instead be created')
+        print('This is a dry run - no data will be downloaded. Instead, empty')
+        print('file(s) will be created.')
     print('')
 
     # Main webpage
@@ -1075,10 +1075,10 @@ def download_meta_pop_density_data(only_one, dry_run, iso3):
             for link in links:
                 zip_url = link['href']
                 # If we only want to download one file it is the
-                # '{iso3}_general_{year}' file that we want, so check if this
-                # link is for that file. Skip this link if not.
+                # '{iso3}_general_{year}_csv.zip' file that we want, so check
+                # if this link is for that file. Skip this link if not.
                 if only_one:
-                    if not f'{iso3.lower()}_general_2020' in zip_url:
+                    if not f'{iso3.lower()}_general_2020_csv.zip' in zip_url:
                         continue
                 # Download the data
                 zip_url = 'https://data.humdata.org' + zip_url
