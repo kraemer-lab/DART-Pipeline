@@ -15,6 +15,7 @@ Past Runs
 - 2024-05-10 on macOS Sonoma using Python 3.12: Ran 17 tests in 37.624s
 - 2024-05-10 on macOS Sonoma using Python 3.12: Ran 19 tests in 5m37.731s
 - 2024-06-06 on Ubuntu 22.04 using Python 3.12: Ran 19 tests in 5m4.979s
+- 2024-06-19 on macOS Sonoma using Python 3.12: Ran 22 tests in 7m33.769s
 - 2024-07-10 on Ubuntu 22.04 using Python 3.12: Ran 19 tests in 20m14.322s
 """
 from pathlib import Path
@@ -30,6 +31,8 @@ from collate_data import \
     walk, \
     download_gadm_data, \
     unpack_file, \
+    download_economic_data, \
+    download_relative_wealth_index_data, \
     download_epidemiological_data, \
     download_ministerio_de_salud_peru_data, \
     download_geospatial_data, \
@@ -41,6 +44,7 @@ from collate_data import \
     download_era5_reanalysis_data, \
     download_terraclimate_data, \
     download_socio_demographic_data, \
+    download_meta_pop_density_data, \
     download_worldpop_pop_count_data, \
     download_worldpop_pop_density_data
 
@@ -242,6 +246,36 @@ class TestCases(unittest.TestCase):
         Path(out_dir, 'gadm41_VNM_1.json').unlink()
         Path('tests/').rmdir()
 
+    def test_download_economic_data(self):
+        data_name = 'Relative Wealth Index'
+        only_one = None
+        dry_run = True
+        iso3 = 'VNM'
+        download_economic_data(data_name, only_one, dry_run, iso3)
+        self.test_download_relative_wealth_index_data()
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'A Collate Data', 'Economic Data',
+            'Relative Wealth Index', 'VNM.csv'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
+    def test_download_relative_wealth_index_data(self):
+        only_one = None
+        dry_run = False
+        iso3 = 'VNM'
+        download_relative_wealth_index_data(only_one, dry_run, iso3)
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'A Collate Data', 'Economic Data',
+            'Relative Wealth Index', 'VNM.csv'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
     def test_download_epidemiological_data(self):
         data_name = 'Ministerio de Salud (Peru) data'
         download_epidemiological_data(data_name, True, True, None, None)
@@ -260,11 +294,17 @@ class TestCases(unittest.TestCase):
 
     def test_download_geospatial_data(self):
         data_name = 'GADM administrative map'
-        download_geospatial_data(data_name, True, True, 'VNM')
+        only_one = True
+        dry_run = True
+        iso3 = 'VNM'
+        download_geospatial_data(data_name, only_one, dry_run, iso3)
         self.test_download_gadm_admin_map_data()
 
     def test_download_gadm_admin_map_data(self):
-        download_gadm_admin_map_data(True, False, 'VNM')
+        only_one = True
+        dry_run = False
+        iso3 = 'VNM'
+        download_gadm_admin_map_data(only_one, dry_run, iso3)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'A Collate Data', 'Geospatial Data',
@@ -399,6 +439,10 @@ class TestCases(unittest.TestCase):
             self.assertEqual(expected, actual)
 
     def test_download_socio_demographic_data(self):
+        data_name = 'Meta population density'
+        download_socio_demographic_data(data_name, True, True, 'VNM')
+        self.test_download_meta_pop_density_data()
+
         data_name = 'WorldPop population count'
         download_socio_demographic_data(data_name, True, True, 'VNM')
         self.test_download_worldpop_pop_count_data()
@@ -406,6 +450,20 @@ class TestCases(unittest.TestCase):
         data_name = 'WorldPop population density'
         download_socio_demographic_data(data_name, True, True, 'VNM')
         self.test_download_worldpop_pop_density_data()
+
+    def test_download_meta_pop_density_data(self):
+        only_one = True
+        dry_run = False
+        iso3 = 'VNM'
+        download_meta_pop_density_data(only_one, dry_run, iso3)
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'A Collate Data', 'Socio-Demographic Data',
+            'Meta population density', 'VNM', 'vnm_general_2020.csv'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
     def test_download_worldpop_pop_count_data(self):
         download_worldpop_pop_count_data(True, False, 'VNM')

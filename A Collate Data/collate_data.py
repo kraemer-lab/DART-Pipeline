@@ -76,6 +76,7 @@ import json
 import os
 import re
 import shutil
+import warnings
 # Custom modules
 import utils
 # Create the requirements file from the terminal with:
@@ -391,10 +392,93 @@ def unpack_file(path, same_folder=False):
             shutil.unpack_archive(path, str(path).removesuffix('.zip'))
 
 
+def download_economic_data(data_name, only_one, dry_run, iso3):
+    """Download economic data."""
+    if data_name == 'Relative Wealth Index':
+        download_relative_wealth_index_data(only_one, dry_run, iso3)
+    else:
+        raise ValueError(f'Unrecognised data name "{data_name}"')
+
+
+def download_relative_wealth_index_data(only_one, dry_run, iso3):
+    """
+    Download Relative Wealth Index.
+
+    Run times:
+
+    - `time python3 collate_data.py RWI -3 VNM`: 6.525s
+    - `time python3 collate_data.py RWI -3 ZAF`: 6.955s
+    - `time python3 collate_data.py RWI -3 PER`: 5.428s
+    """
+    data_type = 'Economic Data'
+    print(f'Data type: {data_type}')
+    data_name = 'Relative Wealth Index'
+    print(f'Data name: {data_name}')
+    if not iso3:
+        raise ValueError('No ISO3 code has been provided; use the `-3` flag')
+    with warnings.catch_warnings(record=True) as w:
+        # Cause all warnings to always be triggered.
+        warnings.simplefilter('always')
+        country = pycountry.countries.get(alpha_3=iso3).common_name
+        # UserWarning: Country's common_name not found. Country name provided
+        # instead.
+        if (len(w) > 0) and (issubclass(w[-1].category, UserWarning)):
+            country = pycountry.countries.get(alpha_3=iso3).name
+    print(f'Country:   {country}')
+    if only_one:
+        print('The --only_one/-1 flag has no effect on this function')
+    if dry_run:
+        print('This is a dry run - no data will be downloaded. Instead, empty')
+        print('file(s) will be created.')
+    print('')
+
+    # Main webpage
+    url = 'https://data.humdata.org/dataset/relative-wealth-index'
+    print(f'Searching "{url}"')
+    # Send a GET request to the URL to fetch the HTML content
+    response = requests.get(url)
+    # Check if the request was successful (status code 200)
+    if response.status_code == 200:
+        # Search for a URL in the HTML content
+        soup = BeautifulSoup(response.text, 'html.parser')
+        # Find all anchor tags (<a>) with href attribute containing the ISO3
+        target = iso3.lower()
+        links = soup.find_all('a', href=lambda href: href and target in href)
+        # Return the first link found
+        if links:
+            csv_url = links[0]['href']
+            csv_url = 'https://data.humdata.org' + csv_url
+            # Download CSV file from the found URL
+            csv_response = requests.get(csv_url)
+            if csv_response.status_code == 200:
+                path = Path(
+                    base_dir, 'A Collate Data', data_type, data_name,
+                    iso3 + '.csv'
+                )
+                path.parent.mkdir(parents=True, exist_ok=True)
+                if dry_run:
+                    print(f'Touching "{path}"')
+                    path.touch()
+                else:
+                    print(f'Saving "{path}"')
+                    # Open a file in binary write mode and write the contents
+                    with open(path, 'wb') as f:
+                        f.write(csv_response.content)
+            else:
+                code = csv_response.status_code
+                raise ValueError(f'Bad response for CSV: "{code}"')
+        else:
+            raise ValueError(f'Could not find a link containing "{target}"')
+    else:
+        raise ValueError(f'Bad response for page: "{response.status_code}"')
+
+
 def download_epidemiological_data(data_name, only_one, dry_run, year, iso3):
     """Download Epidemiological Data."""
     if data_name == 'Ministerio de Salud (Peru) data':
         download_ministerio_de_salud_peru_data(only_one, dry_run)
+    else:
+        raise ValueError(f'Unrecognised data name "{data_name}"')
 
 
 def download_ministerio_de_salud_peru_data(only_one, dry_run):
@@ -498,7 +582,25 @@ def download_ministerio_de_salud_peru_data(only_one, dry_run):
 
 
 def download_geospatial_data(data_name, only_one, dry_run, iso3):
-    """Download Geospatial data."""
+    """
+    Download Geospatial data.
+
+    Only one type of geospatial data can be downloaded by this pipeline: GADM
+    administrative maps.
+
+    Parameters
+    ----------
+    data_name : str {'GADM administrative map', 'GADM admin map', 'GADM'}
+        The name of the geospatial data to download.
+    only_one : bool
+        If True, only one file will be downloaded. Useful when testing.
+    dry_run : bool
+        If True, nothing will be downloaded but instead empty files will be
+        created with the same names and in the same folder structure.
+    iso3 : str
+        [ISO 3166-1 alpha-3](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3)
+        three-letter country code.
+    """
     if data_name == 'GADM administrative map':
         download_gadm_admin_map_data(only_one, dry_run, iso3)
     else:
@@ -511,17 +613,35 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
 
     Run times:
 
-    - `time python3 collate_data.py GADM -3 VNM`: 54.608s
-    - `time python3 collate_data.py GADM -3 PER`: 1m2.167s
-    - `time python3 collate_data.py GADM -3 GBR`: 13m22.114s
+    - `time python3 collate_data.py GADM -3 GBR`: 5m15.52s
+    - `time python3 collate_data.py GADM -3 PER`: 21.763s
+    - `time python3 collate_data.py GADM -3 VNM`: 15.870s
+    - `time python3 collate_data.py GADM -1 -3 VNM`: 13.860s
+    - `time python3 collate_data.py GADM -d -3 VNM`: 0.186s
+    - `time python3 collate_data.py GADM -1 -d -3 VNM`: 0.184s
     """
+    # Sanitise the inputs
     data_type = 'Geospatial Data'
+    print(f'Data type: {data_type}')
     data_name = 'GADM administrative map'
-
+    print(f'Data name: {data_name}')
+    if not iso3:
+        raise ValueError('No ISO3 code has been provided; use the `-3` flag')
+    with warnings.catch_warnings(record=True) as w:
+        # Cause all warnings to always be triggered.
+        warnings.simplefilter('always')
+        country = pycountry.countries.get(alpha_3=iso3).common_name
+        # UserWarning: Country's common_name not found. Country name provided
+        # instead.
+        if (len(w) > 0) and (issubclass(w[-1].category, UserWarning)):
+            country = pycountry.countries.get(alpha_3=iso3).name
+    print(f'Country:   {country}')
+    if dry_run:
+        print('This is a dry run - no data will be downloaded but empty')
+        print('file(s) will instead be created')
     if only_one:
-        print('The --only_one/-1 flag has no effect for this metric')
-    if iso3 == '':
-        raise ValueError(f'No ISO3 code has been provided; use the "-3" flag')
+        print('Only one file (the shapefile) will be downloaded/created')
+    print('')
 
     # Create output directory
     out_dir = Path(base_dir, 'A Collate Data', data_type, data_name, iso3)
@@ -750,6 +870,7 @@ def download_chirps_rainfall_data(only_one, dry_run):
     - `time python3 collate_data.py "CHIRPS rainfall"`:
         - 5m30.123s (2024-01-01 to 2024-03-07)
         - 2m56.14s (2024-01-01 to 2024-03-11)
+        - 2m55.466s (2024-01-01 to 2024-02-29)
         - 4m15.394s (2024-01-01 to 2024-03-31)
     - `time python3 collate_data.py "CHIRPS rainfall" -1`: 17.831s
     - `time python3 collate_data.py "CHIRPS rainfall" -1 -d`: 1.943s
@@ -895,12 +1016,97 @@ def download_terraclimate_data(only_one, dry_run, year):
 
 def download_socio_demographic_data(data_name, only_one, dry_run, iso3):
     """Download socio-demographic data."""
-    if data_name == 'WorldPop population count':
+    if data_name == 'Meta population density':
+        download_meta_pop_density_data(only_one, dry_run, iso3)
+    elif data_name == 'WorldPop population count':
         download_worldpop_pop_count_data(only_one, dry_run, iso3)
     elif data_name == 'WorldPop population density':
         download_worldpop_pop_density_data(only_one, dry_run, iso3)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
+
+
+def download_meta_pop_density_data(only_one, dry_run, iso3):
+    """
+    Download Population Density Maps from Data for Good at Meta.
+
+    Documentation: https://dataforgood.facebook.com/dfg/docs/
+    high-resolution-population-density-maps-demographic-estimates-documentation
+
+    Run times:
+
+    - `time python3 collate_data.py "Meta pop density" -3 VNM`: 6m13.797s
+    - `time python3 collate_data.py "Meta pop density" -d -3 VNM`: 3m28.403s
+    - `time python3 collate_data.py "Meta pop density" -1 -3 VNM`: 51.255s
+    - `time python3 collate_data.py "Meta pop density" -d -1 -3 VNM`: 27.381s
+    """
+    # Sanitise the inputs
+    data_type = 'Socio-Demographic Data'
+    print(f'Data type: {data_type}')
+    data_name = 'Meta population density'
+    print(f'Data name: {data_name}')
+    if not iso3:
+        raise ValueError('No ISO3 code has been provided; use the `-3` flag')
+    country = pycountry.countries.get(alpha_3=iso3).common_name
+    print(f'Country:   {country}')
+    if dry_run:
+        print('This is a dry run - no data will be downloaded but empty files')
+        print('will instead be created.')
+    if only_one:
+        print('Only one file will be downloaded/created.')
+    print('')
+
+    # Main webpage
+    url = 'https://data.humdata.org/dataset/' + \
+        f'{country.lower()}-high-resolution-population-' + \
+        'density-maps-demographic-estimates'
+    # Send a GET request to the URL to fetch the HTML content
+    response = requests.get(url)
+    # Check if the request was successful (status code 200)
+    if response.status_code == 200:
+        # Search for a URL in the HTML content
+        soup = BeautifulSoup(response.text, 'html.parser')
+        # Find all anchor tags (<a>) with href attribute containing the ISO3
+        target = iso3.lower()
+        links = soup.find_all('a', href=lambda href: href and target in href)
+        # Return the links that were found
+        if links:
+            links = [x for x in links if x['href'].endswith('.zip')]
+            for link in links:
+                zip_url = link['href']
+                # If we only want to download one file it is the
+                # '{iso3}_general_{year}_csv.zip' file that we want, so check
+                # if this link is for that file. Skip this link if not.
+                if only_one:
+                    if not f'{iso3.lower()}_general_2020_csv.zip' in zip_url:
+                        continue
+                # Download the data
+                zip_url = 'https://data.humdata.org' + zip_url
+                zip_name = zip_url.split('/')[-1]
+                # Download ZIP file from the found URL
+                zip_response = requests.get(zip_url)
+                if zip_response.status_code == 200:
+                    path = Path(
+                        base_dir, 'A Collate Data', data_type, data_name,
+                        iso3, zip_name
+                    )
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    if dry_run:
+                        print(f'Touching "{path}"')
+                        path.touch()
+                    else:
+                        print(f'Saving "{path}"')
+                        # Open a file in binary write mode and save to it
+                        with open(path, 'wb') as f:
+                            f.write(zip_response.content)
+                        unpack_file(path, same_folder=True)
+                else:
+                    code = zip_response.status_code
+                    raise ValueError(f'Bad response for CSV: "{code}"')
+        else:
+            raise ValueError(f'Could not find a link containing "{target}"')
+    else:
+        raise ValueError(f'Bad response for page: "{response.status_code}"')
 
 
 def download_worldpop_pop_count_data(only_one, dry_run, iso3):
@@ -937,7 +1143,7 @@ def download_worldpop_pop_count_data(only_one, dry_run, iso3):
     if only_one:
         # Download TIF file
         relative_url = f'GIS/Population/Individual_countries/{iso3}/' + \
-            f'{country}_100m_Population/VNM_ppp_v2b_2020_UNadj.tif'
+            f'{country}_100m_Population/{iso3}_ppp_v2b_2020_UNadj.tif'
     else:
         # Download GeoDataFrame file (which includes the TIF file)
         relative_url = f'GIS/Population/Individual_countries/{iso3}/' + \
@@ -969,13 +1175,8 @@ def download_worldpop_pop_density_data(only_one, dry_run, iso3):
 
     Run times:
 
-    - `time python3 collate_data.py "WorldPop pop density"`: 4.597s
-    - `time python3 collate_data.py "WorldPop pop density" -3 VNM`:
-        - 2.860s
-        - 4.349s
-    - `time python3 collate_data.py "WorldPop pop density" -3 PER`:
-        - 6.723s
-        - 18.760s
+    - `time python3 collate_data.py "WorldPop pop density" -3 PER`: 18.760s
+    - `time python3 collate_data.py "WorldPop pop density" -3 VNM`: 4.349s
     - `time python3 collate_data.py "WorldPop pop density" -d`: 0.209s
     """
     data_type = 'Socio-Demographic Data'
@@ -1037,6 +1238,9 @@ class EmptyObject:
 
 
 shorthand_to_data_name = {
+    # Economic data
+    'RWI': 'Relative Wealth Index',
+
     # Epidemiological Data
     'Peru': 'Ministerio de Salud (Peru) data',
 
@@ -1053,6 +1257,7 @@ shorthand_to_data_name = {
     'ERA5 atmospheric reanalysis',
 
     # Socio-Demographic Data
+    'Meta pop density': 'Meta population density',
     'WorldPop pop density': 'WorldPop population density',
     'WorldPop pop count': 'WorldPop population count',
 
@@ -1062,6 +1267,9 @@ shorthand_to_data_name = {
 }
 
 data_name_to_type = {
+    # Economic data
+    'Relative Wealth Index': 'Economic Data',
+
     # Epidemiological Data
     'Ministerio de Salud (Peru) data': 'Epidemiological Data',
 
@@ -1075,6 +1283,7 @@ data_name_to_type = {
     'ERA5 atmospheric reanalysis': 'Meteorological Data',
 
     # Socio-Demographic Data
+    'Meta population density': 'Socio-Demographic Data',
     'WorldPop population density': 'Socio-Demographic Data',
     'WorldPop population count': 'Socio-Demographic Data',
 
@@ -1158,6 +1367,8 @@ if __name__ == '__main__':
 
     if data_name == '':
         print('No data name has been provided. Exiting the programme.')
+    elif data_type == 'Economic Data':
+        download_economic_data(data_name, only_one, dry_run, iso3)
     elif data_type == 'Epidemiological Data':
         download_epidemiological_data(data_name, only_one, dry_run, year, iso3)
     elif data_type == 'Geospatial Data':

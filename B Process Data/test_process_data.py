@@ -8,19 +8,24 @@ Past runs
 - 2024-05-08 on Ubuntu 20.04 using Python 3.12: Ran 18 tests in 7m1.735s
 - 2024-05-09 on Ubuntu 22.04 using Python 3.12: Ran 18 tests in 14m58.102s
 - 2024-05-10 on macOS Sonoma using Python 3.12: Ran 18 tests in 4m41.547s
+- 2024-06-19 on macOS Sonoma using Python 3.12: Ran 22 tests in 4m51.553ss
 - 2024-07-04 on Ubuntu 22.04 using Python 3.12: Ran 18 tests in 5m39.803s
 - 2024-07-10 on Ubuntu 22.04 using Python 3.12: Ran 20 tests in 5m1.282s
 """
 # External libraries
 import rasterio
 # Built-in modules
-from datetime import datetime
-import unittest
+from datetime import datetime, timedelta
 from pathlib import Path
+import os
+import time
+import unittest
 # Custom modules
 from process_data import \
     days_to_date, \
     pixel_to_latlon, \
+    process_economic_data, \
+    process_relative_wealth_index_data, \
     process_epidemiological_data, \
     process_ministerio_de_salud_peru_data, \
     process_geospatial_data, \
@@ -32,13 +37,16 @@ from process_data import \
     process_era5_reanalysis_data, \
     process_terraclimate_data, \
     process_socio_demographic_data, \
+    process_meta_pop_density_data, \
     process_worldpop_pop_count_data, \
     process_worldpop_pop_density_data, \
     process_geospatial_meteorological_data, \
     process_gadm_chirps_data, \
     process_geospatial_sociodemographic_data, \
     process_gadm_worldpoppopulation_data, \
-    process_gadm_worldpopdensity_data
+    process_gadm_worldpopdensity_data, \
+    process_economic_geospatial_sociodemographic_data, \
+    process_pop_weighted_relative_wealth_index_data
 import utils
 
 
@@ -64,6 +72,44 @@ class TestCases(unittest.TestCase):
         # Perform the test
         expected = [[23.39]], [[102.14]]
         actual = lat, lon
+        self.assertEqual(expected, actual)
+
+    def test_process_economic_data(self):
+        # Current time
+        unix_time = time.time()
+        # Process the data
+        process_economic_data('Relative Wealth Index', 'VNM')
+        # Check the modification time of the output
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data', 'Economic Data',
+            'Relative Wealth Index', 'VNM.png'
+        )
+        modification_time = os.path.getmtime(path)
+        # Has the output file been modified since this test started running?
+        expected = True
+        actual = unix_time < modification_time
+        self.assertEqual(expected, actual)
+
+    def test_process_relative_wealth_index_data(self):
+        """
+        Prerequisite data: Relative Wealth Index/VNM.csv'
+        Download via: `python3 collate_data.py RWI -3 VNM`
+        """
+        # Current time
+        unix_time = time.time()
+        # Process the data
+        process_relative_wealth_index_data(iso3='VNM')
+        # Check the modification time of the output
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data', 'Economic Data',
+            'Relative Wealth Index', 'VNM.png'
+        )
+        modification_time = os.path.getmtime(path)
+        # Has the output file been modified since this test started running?
+        expected = True
+        actual = unix_time < modification_time
         self.assertEqual(expected, actual)
 
     def test_process_epidemiological_data(self):
@@ -93,7 +139,10 @@ class TestCases(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_process_geospatial_data(self):
-        process_geospatial_data('GADM administrative map', '0', 'VNM')
+        data_name = 'GADM administrative map'
+        admin_level = '0'
+        iso3 = 'VNM'
+        process_geospatial_data(data_name, admin_level, iso3)
         self.test_process_gadm_admin_map_data()
 
     def test_process_gadm_admin_map_data(self):
@@ -101,7 +150,9 @@ class TestCases(unittest.TestCase):
         Prerequisite data: gadm41_VNM_0.shp
         Download via: `python3 collate_data.py GADM -1`
         """
-        process_gadm_admin_map_data('0', 'VNM')
+        admin_level = '0'
+        iso3 = 'VNM'
+        process_gadm_admin_map_data(admin_level, iso3)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Geospatial Data',
@@ -171,7 +222,7 @@ class TestCases(unittest.TestCase):
         Prerequisite data: chirps-v2.0.2024.01.01.tif
         Download via: `python3 collate_data.py "CHIRPS rainfall" -1`
         """
-        process_chirps_rainfall_data('2024', False, True)
+        process_chirps_rainfall_data('2024', verbose=False, test=True)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Meteorological Data',
@@ -202,17 +253,26 @@ class TestCases(unittest.TestCase):
         Prerequisite data: TerraClimate_aet_2023.nc
         Download via: `python3 collate_data.py "TerraClimate data" -1`
         """
-        process_terraclimate_data('2023', '11', None, test=True)
+        process_terraclimate_data('2023', '11', verbose=False, test=True)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Meteorological Data',
             'TerraClimate', '2023-11', 'Water Evaporation Amount.png'
+
         )
         expected = True
         actual = path.exists()
         self.assertEqual(expected, actual)
 
     def test_process_socio_demographic_data(self):
+        data_name = 'Meta population density'
+        year = '2020'
+        iso3 = 'VNM'
+        rt = None
+        test = None
+        process_socio_demographic_data(data_name, year, iso3, rt, test)
+        self.test_process_meta_pop_density_data()
+
         data_name = 'WorldPop population count'
         process_socio_demographic_data(data_name, '2020', 'VNM', 'ppp', True)
         self.test_process_worldpop_pop_count_data()
@@ -220,6 +280,24 @@ class TestCases(unittest.TestCase):
         data_name = 'WorldPop population density'
         process_socio_demographic_data(data_name, '2020', 'VNM', 'ppp')
         self.test_process_worldpop_pop_density_data()
+
+    def test_process_meta_pop_density_data(self):
+        """
+        Prerequisite data: vnm_general_2020.csv
+        Download via: `python3 collate_data.py "Meta pop density" -1 -3 VNM`
+        """
+        year = '2020'
+        iso3 = 'VNM'
+        process_meta_pop_density_data(year, iso3)
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data', 'Socio-Demographic Data',
+            'Meta population density', 'VNM', '2020',
+            'Vietnam.png'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
     def test_process_worldpop_pop_count_data(self):
         """
@@ -355,6 +433,44 @@ class TestCases(unittest.TestCase):
             'Geospatial and Socio-Demographic Data',
             'GADM administrative map and WorldPop population density',
             'VNM', 'Admin Level 0', 'Vietnam.png'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
+    def test_process_economic_geospatial_sociodemographic_data(self):
+        data_name_1 = 'Relative Wealth Index'
+        data_name_2 = 'GADM administrative map'
+        data_name_3 = 'Meta population density'
+        data_name = [data_name_1, data_name_2, data_name_3]
+        iso3 = 'VNM'
+        admin_level = '0'
+        process_economic_geospatial_sociodemographic_data(
+            data_name, iso3, admin_level
+        )
+        self.test_process_pop_weighted_relative_wealth_index_data()
+
+    def test_process_pop_weighted_relative_wealth_index_data(self):
+        """
+        Prerequisite data:
+            - Relative Wealth Index/VNM.csv
+            - gadm41_VNM_0.shp
+            - vnm_general_2020.csv
+        Download via:
+            - `python3 collate_data.py RWI -3 VNM`
+            - `python3 collate_data.py "Meta pop density" -1 -3 VNM`
+            - `python3 collate_data.py GADM -1`
+        """
+        iso3 = 'VNM'
+        admin_level = '0'
+        process_pop_weighted_relative_wealth_index_data(iso3, admin_level)
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'B Process Data',
+            'Economic, Geospatial and Socio-Demographic Data',
+            'Relative Wealth Index, GADM administrative map and ' +
+            'Meta population density',
+            iso3, f'Admin Level {admin_level}.png'
         )
         expected = True
         actual = path.exists()
