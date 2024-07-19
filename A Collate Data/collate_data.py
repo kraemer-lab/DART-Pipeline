@@ -1050,8 +1050,8 @@ def download_meta_pop_density_data(only_one, dry_run, iso3):
     country = pycountry.countries.get(alpha_3=iso3).common_name
     print(f'Country:   {country}')
     if dry_run:
-        print('This is a dry run - no data will be downloaded but empty files')
-        print('will instead be created.')
+        print('This is a dry run - no data will be downloaded. Instead, empty')
+        print('file(s) will be created.')
     if only_one:
         print('Only one file will be downloaded/created.')
     print('')
