@@ -18,13 +18,17 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        python-version: [3.11, 3.12]
+
     steps:
     - name: Check out code
       uses: actions/checkout@v4
-    - name: Set up Python 3.12
+    - name: Set up Python
       uses: actions/setup-python@v3
       with:
-        python-version: "3.12"
+        python-version: ${{ matrix.python-version }}
     - name: Install LaTeX
       run: |
         sudo apt-get update
@@ -35,6 +39,13 @@ jobs:
         pip install flake8 pytest
         if [ -f "A Collate Data/requirements.txt" ]; then pip install -r "A Collate Data/requirements.txt"; fi
         if [ -f "B Process Data/requirements.txt" ]; then pip install -r "B Process Data/requirements.txt"; fi
+    - name: Cache dependencies
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
