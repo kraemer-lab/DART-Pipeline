@@ -975,6 +975,7 @@ def download_terraclimate_data(only_one, dry_run, year):
     - `time python3 collate_data.py "TerraClimate data"`:
         - 34m50.828s
         - 11m35.25s
+        - 14m16.896s
     - `time python3 collate_data.py "TerraClimate data" -1`: 3m12.992s
     - `time python3 collate_data.py "TerraClimate data" -1 -d`: 0.204s
     """
