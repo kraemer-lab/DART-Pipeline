@@ -67,11 +67,11 @@ import py7zr
 import pycountry
 import requests
 # Built-in modules
-from datetime import date
 from io import StringIO
 from pathlib import Path
 import argparse
 import base64
+import datetime
 import json
 import os
 import re
@@ -87,7 +87,7 @@ import utils
 def daterange(start_date, end_date):
     """Construct a date range for iterating over the days between two dates."""
     for n in range((end_date - start_date).days + 1):
-        yield start_date + timedelta(n)
+        yield start_date + datetime.timedelta(n)
 
 
 def get_credentials(metric, base_dir='..', credentials=None):
@@ -103,7 +103,7 @@ def get_credentials(metric, base_dir='..', credentials=None):
         The base directory of the Git project. It is assumed that the password
         store has been created and is located here.
     credentials : str, pathlib.Path or None, default None
-        Path (including filename) to the credentials file is different from the
+        Path (including filename) to the credentials file if different from the
         default (which is `credentials.json` in the `DART-Pipeline` directory).
 
     Returns
@@ -668,7 +668,8 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
 
 
 def download_meteorological_data(
-    data_name, only_one, dry_run, credentials, year, month
+    data_name, only_one=False, dry_run=False, credentials=None,
+    year=None, month=None
 ):
     """
     Download Meteorological data.
@@ -873,16 +874,16 @@ def download_chirps_rainfall_data(only_one, dry_run, year, month):
 
     Run times:
 
-    - `time python3 collate_data.py CHIRPS -y 2023 -m 5 -1 -d`: 0.186s
-    - `time python3 collate_data.py CHIRPS -y 2023 -m 5 -d`: 0.189s
-    - `time python3 collate_data.py CHIRPS -y 2023 -m 5`: 1m40.25s
+    - `time python3 collate_data.py CHIRPS -y 2023 -m 5`: 5m23.392s
+    - `time python3 collate_data.py CHIRPS -y 2023 -m 5 -d`: 0.248s
+    - `time python3 collate_data.py CHIRPS -y 2023 -m 5 -d -1`: 0.254s
     """
     # Sanitise inputs
     data_type = 'Meteorological Data'
     data_name = 'CHIRPS - Rainfall Estimates from Rain Gauge and ' + \
         'Satellite Observations'
     if not year:
-        raise ValueError('No year has been provided; use the "-y" flag')
+        raise ValueError('No year has been provided. Use the "-y" flag')
     # URLs should be str, not urllib URL objects, because requests expects
     # str
     base_url = 'https://data.chc.ucsb.edu'
@@ -890,7 +891,7 @@ def download_chirps_rainfall_data(only_one, dry_run, year, month):
     fmt = 'tifs'
 
     # Download the annual data for the year provided
-    today = date.today()
+    today = datetime.date.today()
     this_year = today.year
     # Annual data is only available for 1981 onwards and does not include the
     # current year
@@ -918,9 +919,9 @@ def download_chirps_rainfall_data(only_one, dry_run, year, month):
         # If a month value has been provided by the user, check that it lies
         # between 1981-01 and the current month (not including the current
         # month)
-        month_requested = date(int(year), int(month), 1)
-        today = date(date.today().year, date.today().month, 1)
-        first_month = date(1981, 1, 1)
+        month_requested = datetime.date(int(year), int(month), 1)
+        today = datetime.date(today.year, today.month, 1)
+        first_month = datetime.date(1981, 1, 1)
         if first_month <= month_requested < today:
             relative_url = f'/products/CHIRPS-2.0/global_monthly/{fmt}/'
             filename = f'chirps-v2.0.{year}.{int(month):02d}.tif'
@@ -942,15 +943,16 @@ def download_chirps_rainfall_data(only_one, dry_run, year, month):
 
     # Download the daily data for the year and month provided
     if month:
-        start = date(int(year), int(month), 1)
-        end = date(int(year), int(month) + 1, 1) - timedelta(days=1)
+        start = datetime.date(int(year), int(month), 1)
+        end = datetime.date(int(year), int(month) + 1, 1) - \
+            datetime.timedelta(days=1)
         for day in daterange(start, end):
             # Construct the filename
             filename = f"chirps-v2.0.{str(day).replace('-', '.')}.tif.gz"
             # Construct the filepath
             path = Path(
                 base_dir, 'A Collate Data', data_type, data_name,
-                'global_daily', year, month, filename
+                'global_daily', year, f'{int(month):02d}', filename
             )
             path.parent.mkdir(parents=True, exist_ok=True)
             if dry_run:
@@ -958,7 +960,8 @@ def download_chirps_rainfall_data(only_one, dry_run, year, month):
                 path.touch()
             else:
                 # Construct the URL
-                relative = f'/products/CHIRPS-2.0/global_daily/{fmt}/p05/{year}/'
+                relative = '/products/CHIRPS-2.0/global_daily/' + \
+                    f'{fmt}/p05/{year}/'
                 url = base_url + relative + filename
                 success = download_file(url, path)
                 if success:
