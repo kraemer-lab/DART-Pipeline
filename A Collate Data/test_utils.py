@@ -10,6 +10,7 @@ Past Runs
 - 2024-05-08 on Ubuntu 20.04 using Python 3.12: Ran 15 tests in 0.045s
 - 2024-05-10 on macOS Sonoma using Python 3.12: Ran 15 tests in 0.012s
 - 2024-06-06 on Ubuntu 22.04 using Python 3.12: Ran 15 tests in 0.083s
+- 2024-06-19 on macOS Sonoma using Python 3.12: Ran 15 tests in 0.013s
 """
 import unittest
 from unittest.mock import patch
@@ -31,7 +32,15 @@ class TestCases(unittest.TestCase):
 
         This tests the default behaviour.
         """
-        expected = str(Path.cwd().parent)
+        # If this test is run as part of a `python3 -m unittest discover` call,
+        # (eg if it is being run via GitHub Actions) then the cwd will be the
+        # base directory already
+        if str(Path.cwd()).endswith('DART-Pipeline'):
+            # This will work if this test is run via GitHub Actions
+            expected = str(Path.cwd())
+        else:
+            # This will work if this file is run directly
+            expected = str(Path.cwd().parent)
         actual = utils.get_base_directory()
         self.assertEqual(expected, actual)
 
