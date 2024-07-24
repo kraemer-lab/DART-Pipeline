@@ -107,18 +107,22 @@ def check_python():
     Why sys.version_info is slightly easier than platform.python_version():
     https://stackoverflow.com/a/37462418
     """
-    if sys.version_info <= (3, 11):
-        # Python 3.11 or before is being used
+    suported_versions = ((3, 11), (3, 12))
+    # Only take the major and minor version
+    current_version = sys.version_info[:2]
+
+    if current_version < min(suported_versions):
+        # Python 3.10 or before is being used
         warnings.warn('Python version')
         print(f'You are using Python {sys.version_info[0]}.', end='')
         print(f'{sys.version_info[1]}. Supported versions are 3.12.')
-    elif sys.version_info >= (3, 13):
+    elif current_version > max(suported_versions):
         # Python 3.13 onwards is being used
         warnings.warn('Python version')
         print(f'You are using Python {sys.version_info[0]}.', end='')
         print(f'{sys.version_info[1]}. Supported versions are 3.12.')
     else:
-        # Python 3.12 is being used
+        # Python 3.11 or 3.12 is being used
         pass
 
 

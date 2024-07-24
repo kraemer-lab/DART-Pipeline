@@ -18,7 +18,6 @@ B Process Data/**/* Data/
 *.kmz
 *.nc
 *.prj
-*.sh
 *.shp
 *.shx
 
