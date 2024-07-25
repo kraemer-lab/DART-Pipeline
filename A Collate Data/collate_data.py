@@ -875,8 +875,9 @@ def download_chirps_rainfall_data(only_one, dry_run, year, month):
     Run times:
 
     - `time python3 collate_data.py CHIRPS -y 2023 -m 5`: 5m23.392s
+    - `time python3 collate_data.py CHIRPS -y 2023 -m 5 -1`: 1m35.376s
     - `time python3 collate_data.py CHIRPS -y 2023 -m 5 -d`: 0.248s
-    - `time python3 collate_data.py CHIRPS -y 2023 -m 5 -d -1`: 0.254s
+    - `time python3 collate_data.py CHIRPS -y 2023 -m 5 -1 -d`: 0.254s
     """
     # Sanitise inputs
     data_type = 'Meteorological Data'

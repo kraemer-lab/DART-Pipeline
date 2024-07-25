@@ -560,7 +560,7 @@ def process_meteorological_data(data_name, year, month, verbose, test=False):
     elif data_name == 'APHRODITE Daily mean temperature product (V1808)':
         process_aphrodite_temperature_data()
     elif data_name.startswith('CHIRPS: Rainfall Estimates from Rain Gauge an'):
-        process_chirps_rainfall_data(year, verbose, test)
+        process_chirps_rainfall_data(year, month, verbose, test)
     elif data_name == 'ERA5 atmospheric reanalysis':
         process_era5_reanalysis_data()
     elif data_name.startswith('TerraClimate gridded temperature, precipitati'):
@@ -760,7 +760,7 @@ def process_aphrodite_temperature_data():
         df.to_csv(path)
 
 
-def process_chirps_rainfall_data(year, verbose=False, test=False):
+def process_chirps_rainfall_data(year, month, verbose=False, test=False):
     """
     Process CHIRPS Rainfall data.
 
@@ -786,8 +786,7 @@ def process_chirps_rainfall_data(year, verbose=False, test=False):
     path = Path(
         base_dir, 'A Collate Data', 'Meteorological Data',
         'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-        'Observations', 'products', 'CHIRPS-2.0', 'global_daily', 'tifs',
-        'p05', year
+        'Observations', 'global_daily', year, month
     )
     filepaths = list(path.iterdir())
     # Only process the GeoTIF files
