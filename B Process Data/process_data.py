@@ -597,11 +597,7 @@ def process_aphrodite_precipitation_data():
             raise ValueError('ERROR: Invalid resolution specified')
 
         year = 2015
-        # Check leap year
-        if (year % 4 == 0 and year % 100 != 0) or year % 400 == 0:
-            nday = 366
-        else:
-            nday = 365
+        nday = utils.days_in_year(year)
         # Construct filename
         fname = Path(dir_path, f'APHRO_MA_{res}_{version}.{year}.gz')
 
@@ -704,20 +700,12 @@ def process_aphrodite_temperature_data():
             fname = Path(dir_path, f'APHRO_MA_{product}_{version}.grd.gz')
         elif product == 'TAVE_025deg':
             year = 2015
-            # Check leap year
-            if (year % 4 == 0 and year % 100 != 0) or year % 400 == 0:
-                nday = 366
-            else:
-                nday = 365
+            nday = utils.days_in_year(year)
             # Construct filename
             fname = Path(dir_path, f'APHRO_MA_{product}_{version}.{year}.gz')
         elif product == 'TAVE_050deg':
             year = 2015
-            # Check leap year
-            if (year % 4 == 0 and year % 100 != 0) or year % 400 == 0:
-                nday = 366
-            else:
-                nday = 365
+            nday = utils.days_in_year(year)
             # Construct filename
             fname = f'APHRO_MA_{product}_{version}.{year}.nc.gz'
             fname = Path(dir_path, fname)
