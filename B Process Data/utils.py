@@ -1,11 +1,18 @@
 """Utility or helper functions."""
 import platform
+import calendar
 import distro
 import warnings
 import sys
 import os
+from functools import cache
+from typing import Literal
 from pathlib import Path
 
+@cache
+def days_in_year(year: int) -> Literal[365, 366]:
+    "Returns number of days in year"
+    return 366 if calendar.isleap(year) else 365
 
 def get_base_directory(starting_path: str | Path = '.') -> str:
     """
