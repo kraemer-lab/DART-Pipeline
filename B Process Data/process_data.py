@@ -77,9 +77,9 @@ import pandas as pd
 import pycountry
 import rasterio
 # Built-in modules
-from datetime import date, datetime, timedelta
 from pathlib import Path
 import argparse
+import datetime
 import math
 import os
 import warnings
@@ -109,8 +109,8 @@ plt.rc(
 
 def days_to_date(days_since_1900):
     """Convert a of number of days since 1900-01-01 into a date."""
-    base_date = datetime(1900, 1, 1)
-    target_date = base_date + timedelta(days=days_since_1900)
+    base_date = datetime.datetime(1900, 1, 1)
+    target_date = base_date + datetime.timedelta(days=days_since_1900)
 
     return target_date
 
@@ -553,18 +553,20 @@ def process_gadm_admin_map_data(admin_level, iso3):
     output.to_csv(path, index=False)
 
 
-def process_meteorological_data(data_name, year, month, verbose, test=False):
+def process_meteorological_data(
+    data_name, year=None, month=None, day=None, verbose=False, test=False
+):
     """Process meteorological data."""
     if data_name == 'APHRODITE Daily accumulated precipitation (V1901)':
         process_aphrodite_precipitation_data()
     elif data_name == 'APHRODITE Daily mean temperature product (V1808)':
         process_aphrodite_temperature_data()
     elif data_name.startswith('CHIRPS: Rainfall Estimates from Rain Gauge an'):
-        process_chirps_rainfall_data(year, month, verbose, test)
+        process_chirps_rainfall_data(year, month, day, verbose, test)
     elif data_name == 'ERA5 atmospheric reanalysis':
         process_era5_reanalysis_data()
     elif data_name.startswith('TerraClimate gridded temperature, precipitati'):
-        process_terraclimate_data(year, month, None, test=test)
+        process_terraclimate_data(year, month, verbose, test)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
@@ -760,7 +762,9 @@ def process_aphrodite_temperature_data():
         df.to_csv(path)
 
 
-def process_chirps_rainfall_data(year, month, verbose=False, test=False):
+def process_chirps_rainfall_data(
+    year, month=None, day=None, verbose=False, test=False
+):
     """
     Process CHIRPS Rainfall data.
 
@@ -769,111 +773,121 @@ def process_chirps_rainfall_data(year, month, verbose=False, test=False):
 
     Run times:
 
-    - `time python3 process_data.py "CHIRPS rainfall" -d`: 02:07.085 (one file)
+    - `time python3 process_data.py CHIRPS -y 2023 -v`: 1m33.389s
+    - `time python3 process_data.py CHIRPS -y 2023 -m 5 -v`: 1m49.979s
+    - `time python3 process_data.py CHIRPS -y 2023 -m 5 -d 1 -v`: 3m47.799s
+    - `time python3 process_data.py CHIRPS -y 2023 -v -t`: 1m26.609s
+    - `time python3 process_data.py CHIRPS -y 2023 -m 5 -v -t`: 1m21.545s
+    - `time python3 process_data.py CHIRPS -y 2023 -m 5 -d 1 -v -t`: 2m8.233s
     """
     # Sanitise the inputs
     data_type = 'Meteorological Data'
     data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and ' + \
         'Satellite Observations'
     if not year:
-        year = '2024'
+        msg = 'No year provided. Use the "-y" flag.'
+        raise ValueError(msg)
+    if year:
+        if not month:
+            if day:
+                msg = 'Year and day but no month provided. Use the "-m" flag.'
+                raise ValueError(msg)
 
-    # Inform the user
-    print('Data type:  ', data_type)
-    print('Data names: ', data_name)
-    print('Year:       ', year)
+    # Re-format
+    if month:
+        month = f'{int(month):02d}'
+    if day:
+        day = f'{int(day):02d}'
 
-    path = Path(
+    # Start constructing the import path
+    path_root = Path(
         base_dir, 'A Collate Data', 'Meteorological Data',
         'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-        'Observations', 'global_daily', year, month
+        'Observations'
     )
-    filepaths = list(path.iterdir())
-    # Only process the GeoTIF files
-    filepaths = [f for f in filepaths if f.suffix == '.tif']
-    filepaths.sort()
 
-    for filepath in filepaths:
-        print(f'Processing "{filepath.name}"')
-        # Open the CHIRPS .tif file
-        src = rasterio.open(filepath)
-        num_bands = src.count
-        if num_bands != 1:
-            msg = f'There is a number of bands other than 1: {num_bands}'
-            raise ValueError(msg)
+    # Get the data sub-type to use
+    if month:
+        if day:
+            print(
+                f'Global Daily data will be processed for {year}-{month}-{day}'
+            )
+            filename = f'chirps-v2.0.{year}.{month}.{day}.tif'
+            path_stem = Path('global_daily', year, month)
+        else:
+            print(f'Global Monthly data will be processed for {year}-{month}')
+            filename = f'chirps-v2.0.{year}.{month}.tif'
+            path_stem = Path('global_monthly', year)
+    else:
+        print(f'Global Annual data will be processed for {year}')
+        filename = f'chirps-v2.0.{year}.tif'
+        path_stem = Path('global_annual')
 
-        # Get the data in the first band as an array
-        data = src.read(1)
-        # Get the affine transformation coefficients
-        transform = src.transform
-        # Get the size of the image
-        rows, cols = src.height, src.width
+    # Open the CHIRPS .tif file
+    path = Path(path_root, path_stem, filename)
+    src = rasterio.open(path)
+    print(f'Processing "{path}"')
+    num_bands = src.count
+    if num_bands != 1:
+        msg = f'There is a number of bands other than 1: {num_bands}'
+        raise ValueError(msg)
 
-        # Reshape the data into a 1D array
-        rainfall = data.flatten()
-        # Construct the coordinates for each pixel
-        all_rows, all_cols = np.indices((rows, cols))
-        lon, lat = xy(transform, all_rows.flatten(), all_cols.flatten())
+    # Get the data in the first band as an array
+    data = src.read(1)
+    # Get the affine transformation coefficients
+    transform = src.transform
+    # Get the size of the image
+    rows, cols = src.height, src.width
 
-        # Plot
-        plt.figure(figsize=(20, 8))
-        extent = [np.min(lon), np.max(lon), np.min(lat), np.max(lat)]
-        # Hide nulls
-        data[data == -9999] = 0
-        cmap = plt.cm.get_cmap('Blues')
-        plt.imshow(data, extent=extent, cmap=cmap)
-        plt.colorbar(label='Rainfall [mm]')
-        plt.xlabel('Longitude')
-        plt.ylabel('Latitude')
-        plt.title('Rainfall Estimates')
-        plt.grid(True)
-        path = Path(
-            base_dir, 'B Process Data', 'Meteorological Data',
-            'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-            'Observations', Path(filepath.name).with_suffix('.png')
-        )
-        path.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(path)
+    # Reshape the data into a 1D array
+    rainfall = data.flatten()
+    # Construct the coordinates for each pixel
+    all_rows, all_cols = np.indices((rows, cols))
+    lon, lat = xy(transform, all_rows.flatten(), all_cols.flatten())
 
-        # If you're testing, only do one file
-        if test:
-            break
+    # Plot
+    plt.figure(figsize=(20, 8))
+    extent = [np.min(lon), np.max(lon), np.min(lat), np.max(lat)]
+    # Hide nulls
+    data[data == -9999] = 0
+    cmap = plt.get_cmap('Blues')
+    plt.imshow(data, extent=extent, cmap=cmap)
+    plt.colorbar(label='Rainfall [mm]')
+    plt.xlabel('Longitude')
+    plt.ylabel('Latitude')
+    plt.title('Rainfall Estimates')
+    plt.grid(True)
+    path_root = Path(
+        base_dir, 'B Process Data', 'Meteorological Data',
+        'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
+        'Observations'
+    )
+    path = Path(path_root, path_stem, Path(filename).with_suffix('.png'))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    print(f'Saving "{path}"')
+    plt.savefig(path)
 
-        # Create a data frame
-        df = pd.DataFrame({
-            'longitude': lon,
-            'latitude': lat,
-            'rainfall': rainfall,
-        })
-        # Export
-        path = Path(
-            'Meteorological Data',
-            'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-            'Observations', Path(filepath.name).with_suffix('.csv')
-        )
-        path.parent.mkdir(parents=True, exist_ok=True)
-        df.to_csv(path, index=False)
+    # If you're testing, don't create the plots
+    if test:
+        return
 
-        # Plot - log transformed
-        plt.figure(figsize=(20, 8))
-        extent = [np.min(lon), np.max(lon), np.min(lat), np.max(lat)]
-        # Hide nulls
-        data[data == -9999] = 0
-        # Log transform
-        data = np.log(data)
-        cmap = plt.cm.get_cmap('Blues')
-        plt.imshow(data, extent=extent, cmap=cmap)
-        plt.colorbar(shrink=0.8, label='Rainfall [mm, log transformed]')
-        plt.xlabel('Longitude')
-        plt.ylabel('Latitude')
-        plt.title('Rainfall Estimates - Log Transformed')
-        plt.grid(True)
-        path = str(path).removesuffix('.png') + ' - Log Transformed.png'
-        plt.savefig(path)
-
-        # If you're testing, only do one file
-        if test:
-            break
+    # Plot - log transformed
+    plt.figure(figsize=(20, 8))
+    extent = [np.min(lon), np.max(lon), np.min(lat), np.max(lat)]
+    # Hide nulls
+    data[data == -9999] = 0
+    # Log transform
+    data = np.log(data)
+    cmap = plt.get_cmap('Blues')
+    plt.imshow(data, extent=extent, cmap=cmap)
+    plt.colorbar(shrink=0.8, label='Rainfall [mm, log transformed]')
+    plt.xlabel('Longitude')
+    plt.ylabel('Latitude')
+    plt.title('Rainfall Estimates - Log Transformed')
+    plt.grid(True)
+    path = str(path).removesuffix('.png') + ' - Log Transformed.png'
+    print(f'Saving "{path}"')
+    plt.savefig(path)
 
 
 def process_era5_reanalysis_data():
@@ -948,7 +962,7 @@ def process_terraclimate_data(year, month, verbose=False, test=False):
       23.644s
     """
     # Inform the user
-    msg = datetime(int(year), int(month), 1)
+    msg = datetime.datetime(int(year), int(month), 1)
     msg = msg.strftime('%B %Y')
     print(f'Processing data for {msg}')
 
@@ -2199,6 +2213,8 @@ shorthand_to_data_name = {
     'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations',
     'CHIRPS rainfall':
     'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations',
+    'CHIRPS':
+    'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations',
     'TerraClimate data':
     'TerraClimate gridded temperature, precipitation, and other',
     'ERA5 reanalysis':
@@ -2266,12 +2282,16 @@ if __name__ == '__main__':
     parser.add_argument('--year', '-y', help=message)
     message = '''Some data fields have data available for multiple months.'''
     parser.add_argument('--month', '-m', help=message)
+    message = '''Some data fields have data available for multiple days.'''
+    parser.add_argument('--day', '-d', help=message)
     message = '''"ppp" (people per pixel) or "pph" (people per hectare).'''
     parser.add_argument('--resolution_type', '-r', help=message)
     message = '''Country code in "ISO 3166-1 alpha-3" format.'''
     parser.add_argument('--iso3', '-3', help=message)
     message = '''Show information to help with debugging.'''
     parser.add_argument('--verbose', '-v', help=message, action='store_true')
+    message = '''Run in test mode.'''
+    parser.add_argument('--test', '-t', help=message, action='store_true')
 
     # Parse arguments from terminal
     args = parser.parse_args()
@@ -2282,8 +2302,10 @@ if __name__ == '__main__':
     admin_level = args.admin_level
     year = args.year
     month = args.month
+    day = args.day
     rt = args.resolution_type
     verbose = args.verbose
+    test = args.test
 
     # Check
     if verbose:
@@ -2310,7 +2332,9 @@ if __name__ == '__main__':
     elif data_type == ['Geospatial Data']:
         process_geospatial_data(data_name[0], admin_level, iso3)
     elif data_type == ['Meteorological Data']:
-        process_meteorological_data(data_name[0], year, month, verbose)
+        process_meteorological_data(
+            data_name[0], year, month, day, verbose, test
+        )
     elif data_type == ['Socio-Demographic Data']:
         process_socio_demographic_data(data_name[0], year, iso3, rt)
 

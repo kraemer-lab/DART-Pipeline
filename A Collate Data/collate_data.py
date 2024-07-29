@@ -875,7 +875,7 @@ def download_chirps_rainfall_data(only_one, dry_run, year, month):
     Run times:
 
     - `time python3 collate_data.py CHIRPS -y 2023 -m 5`: 5m23.392s
-    - `time python3 collate_data.py CHIRPS -y 2023 -m 5 -1`: 1m35.376s
+    - `time python3 collate_data.py CHIRPS -y 2023 -m 5 -1`: 1m56.674s
     - `time python3 collate_data.py CHIRPS -y 2023 -m 5 -d`: 0.248s
     - `time python3 collate_data.py CHIRPS -y 2023 -m 5 -1 -d`: 0.254s
     """
@@ -924,9 +924,9 @@ def download_chirps_rainfall_data(only_one, dry_run, year, month):
         today = datetime.date(today.year, today.month, 1)
         first_month = datetime.date(1981, 1, 1)
         if first_month <= month_requested < today:
-            relative_url = f'/products/CHIRPS-2.0/global_monthly/{fmt}/'
-            filename = f'chirps-v2.0.{year}.{int(month):02d}.tif'
-            url = base_url + relative_url + filename
+            # Construct the filename
+            filename = f'chirps-v2.0.{year}.{int(month):02d}.tif.gz'
+            # Construct the filepath
             path = Path(
                 base_dir, 'A Collate Data', data_type, data_name,
                 'global_monthly', year, filename
@@ -936,7 +936,15 @@ def download_chirps_rainfall_data(only_one, dry_run, year, month):
                 print('Touching', path)
                 path.touch()
             else:
-                _ = download_file(url, path)
+                # Construct the URL
+                relative_url = f'/products/CHIRPS-2.0/global_monthly/{fmt}/'
+                url = base_url + relative_url + filename
+                success = download_file(url, path)
+                if success:
+                    # Unpack the data
+                    unpack_file(path)
+                else:
+                    print('No monthly data is available for month', month)
         else:
             msg = 'No monthly data is available for the month ' + \
                 'specified (only completed months from 1981-01 onwards)'
