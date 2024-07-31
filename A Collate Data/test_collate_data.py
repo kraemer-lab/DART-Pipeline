@@ -7,15 +7,21 @@ Past Runs
 - 2024-01-17 on macOS Sonoma using Python 3.12: Ran 5 tests in 4.376s
 - 2024-02-08 on Ubuntu 22.04 using Python 3.12: Ran 4 tests in 10.968s
 - 2024-02-09 on macOS Sonoma using Python 3.12: Ran 4 tests in 6.190s
-- 2024-02-13 on Ubuntu 22.04 using Python 3.12: Ran 16 tests in 64.283s
-- 2024-02-14 on macOS Sonoma using Python 3.12:
-    - Ran 18 tests in 42.751s
-    - Ran 18 tests in 41.872s
+- 2024-02-13 on Ubuntu 22.04 using Python 3.12: Ran 16 tests in 1m4.283s
+- 2024-02-14 on macOS Sonoma using Python 3.12: Ran 18 tests in 41.872s
 - 2024-04-23 on Ubuntu 22.04 using Python 3.12: Ran 17 tests in 31.534s
+- 2024-05-08 on Ubuntu 22.04 using Python 3.12: Ran 17 tests in 1m00.448s
+- 2024-05-08 on Ubuntu 20.04 using Python 3.12: Ran 17 tests in 21.853s
+- 2024-05-10 on macOS Sonoma using Python 3.12: Ran 17 tests in 37.624s
+- 2024-05-10 on macOS Sonoma using Python 3.12: Ran 19 tests in 5m37.731s
+- 2024-06-06 on Ubuntu 22.04 using Python 3.12: Ran 19 tests in 5m4.979s
+- 2024-06-19 on macOS Sonoma using Python 3.12: Ran 22 tests in 7m33.769s
+- 2024-07-10 on Ubuntu 22.04 using Python 3.12: Ran 19 tests in 20m14.322s
 """
-import unittest
-from unittest.mock import patch
 from pathlib import Path
+from unittest.mock import patch
+import os
+import unittest
 # Custom modules
 import utils
 from collate_data import \
@@ -25,17 +31,22 @@ from collate_data import \
     walk, \
     download_gadm_data, \
     unpack_file, \
-    download_meteorological_data, \
-    download_aphrodite_temperature_data, \
-    download_aphrodite_precipitation_data, \
-    download_chirps_rainfall_data, \
-    download_terraclimate_data, \
-    download_era5_reanalysis_data, \
-    download_socio_demographic_data, \
-    download_worldpop_pop_density_data, \
-    download_worldpop_pop_count_data, \
+    download_economic_data, \
+    download_relative_wealth_index_data, \
+    download_epidemiological_data, \
+    download_ministerio_de_salud_peru_data, \
     download_geospatial_data, \
-    download_gadm_admin_map_data
+    download_gadm_admin_map_data, \
+    download_meteorological_data, \
+    download_aphrodite_precipitation_data, \
+    download_aphrodite_temperature_data, \
+    download_chirps_rainfall_data, \
+    download_era5_reanalysis_data, \
+    download_terraclimate_data, \
+    download_socio_demographic_data, \
+    download_meta_pop_density_data, \
+    download_worldpop_pop_count_data, \
+    download_worldpop_pop_density_data
 
 
 class TestCases(unittest.TestCase):
@@ -235,29 +246,74 @@ class TestCases(unittest.TestCase):
         Path(out_dir, 'gadm41_VNM_1.json').unlink()
         Path('tests/').rmdir()
 
+    def test_download_economic_data(self):
+        data_name = 'Relative Wealth Index'
+        only_one = None
+        dry_run = True
+        iso3 = 'VNM'
+        download_economic_data(data_name, only_one, dry_run, iso3)
+        self.test_download_relative_wealth_index_data()
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'A Collate Data', 'Economic Data',
+            'Relative Wealth Index', 'VNM.csv'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
+    def test_download_relative_wealth_index_data(self):
+        only_one = None
+        dry_run = False
+        iso3 = 'VNM'
+        download_relative_wealth_index_data(only_one, dry_run, iso3)
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'A Collate Data', 'Economic Data',
+            'Relative Wealth Index', 'VNM.csv'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
+    def test_download_epidemiological_data(self):
+        data_name = 'Ministerio de Salud (Peru) data'
+        download_epidemiological_data(data_name, True, True, None, None)
+        self.test_download_ministerio_de_salud_peru_data()
+
+    def test_download_ministerio_de_salud_peru_data(self):
+        download_ministerio_de_salud_peru_data(only_one=True, dry_run=False)
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'A Collate Data', 'Epidemiological Data',
+            'Ministerio de Salud (Peru) data', 'casos_dengue_nacional.xlsx'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
     def test_download_geospatial_data(self):
         data_name = 'GADM administrative map'
-        download_geospatial_data(data_name, only_one=False, dry_run=True)
+        only_one = True
+        dry_run = True
+        iso3 = 'VNM'
+        download_geospatial_data(data_name, only_one, dry_run, iso3)
         self.test_download_gadm_admin_map_data()
 
     def test_download_gadm_admin_map_data(self):
-        download_gadm_admin_map_data(only_one=False, dry_run=True)
+        only_one = True
+        dry_run = False
+        iso3 = 'VNM'
+        download_gadm_admin_map_data(only_one, dry_run, iso3)
         base_dir = utils.get_base_directory()
-        root = Path(
+        path = Path(
             base_dir, 'A Collate Data', 'Geospatial Data',
-            'GADM administrative map',
+            'GADM administrative map', 'VNM', 'gadm41_VNM_shp',
+            'gadm41_VNM_0.shp'
         )
-        for branch in [
-            Path('gadm41_VNM.gpkg'),
-            Path('gadm41_VNM_shp.zip'),
-            Path('gadm41_VNM_0.json'),
-            Path('gadm41_VNM_1.json.zip'),
-            Path('gadm41_VNM_2.json.zip'),
-            Path('gadm41_VNM_3.json.zip'),
-        ]:
-            expected = True
-            actual = Path(root, branch).exists()
-            self.assertEqual(expected, actual)
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
     def test_download_meteorological_data(self):
         only_one = True
@@ -286,62 +342,89 @@ class TestCases(unittest.TestCase):
         self.test_download_era5_reanalysis_data()
 
     def test_download_aphrodite_precipitation_data(self):
-        download_aphrodite_precipitation_data(only_one=True, dry_run=True)
+        """
+        Using an environment variable to store the credentials:
+
+        $ export CREDENTIALS_JSON='{
+            "APHRODITE Daily accumulated precipitation (V1901)": {
+                "username": "example@email.com",
+                "password": "*******"
+            }
+        }'
+        $ python3 test_collate_data.py
+        """
+        if 'CREDENTIALS_JSON' in os.environ:
+            # If running via GitHub Actions
+            download_aphrodite_precipitation_data(True, True, 'environ')
+        else:
+            # If running directly
+            download_aphrodite_precipitation_data(True, True, None)
         base_dir = utils.get_base_directory()
-        root = Path(
+        path = Path(
             base_dir, 'A Collate Data', 'Meteorological Data',
             'APHRODITE Daily accumulated precipitation (V1901)',
-            'product', 'APHRO_V1901', 'APHRO_MA'
+            'product', 'APHRO_V1901', 'APHRO_MA', '050deg',
+            'APHRO_MA_050deg_V1901.2015.gz'
         )
-        for branch in [
-            Path('005deg', 'APHRO_MA_PREC_CLM_005deg_V1901.ctl.gz'),
-            Path('025deg', 'APHRO_MA_025deg_V1901.2015.gz'),
-            Path('025deg_nc', 'APHRO_MA_025deg_V1901.2015.nc.gz'),
-            Path('050deg', 'APHRO_MA_050deg_V1901.2015.gz'),
-            Path('050deg_nc', 'APHRO_MA_050deg_V1901.2015.nc.gz'),
-        ]:
-            expected = True
-            actual = Path(root, branch).exists()
-            self.assertEqual(expected, actual)
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
     def test_download_aphrodite_temperature_data(self):
-        download_aphrodite_temperature_data(only_one=True, dry_run=True)
+        """
+        Using an environment variable to store the credentials:
+
+        $ export CREDENTIALS_JSON='{
+            "APHRODITE Daily mean temperature product (V1808)": {
+                "username": "example@email.com",
+                "password": "*******"
+            }
+        }'
+        $ python3 test_collate_data.py
+        """
+        if 'CREDENTIALS_JSON' in os.environ:
+            # If running via GitHub Actions
+            download_aphrodite_temperature_data(True, True, 'environ')
+        else:
+            # If running directly
+            download_aphrodite_temperature_data(True, True, None)
         base_dir = utils.get_base_directory()
-        root = Path(
+        path = Path(
             base_dir, 'A Collate Data', 'Meteorological Data',
             'APHRODITE Daily mean temperature product (V1808)',
-            'product', 'APHRO_V1808_TEMP', 'APHRO_MA'
+            'product', 'APHRO_V1808_TEMP', 'APHRO_MA', '050deg_nc',
+            'APHRO_MA_TAVE_050deg_V1808.2015.nc.gz'
         )
-        for branch in [
-            Path('005deg', 'APHRO_MA_TAVE_CLM_005deg_V1808.ctl.gz'),
-            Path('005deg_nc', 'APHRO_MA_TAVE_CLM_005deg_V1808.nc.gz'),
-            Path('025deg', 'APHRO_MA_TAVE_025deg_V1808.2015.gz'),
-            Path('025deg_nc', 'APHRO_MA_TAVE_025deg_V1808.2015.nc.gz'),
-            Path('050deg', 'read_aphro_v1808.f90'),
-            Path('050deg_nc', 'APHRO_MA_TAVE_050deg_V1808.2015.nc.gz'),
-        ]:
-            expected = True
-            actual = Path(root, branch).exists()
-            self.assertEqual(expected, actual)
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
     def test_download_chirps_rainfall_data(self):
-        download_chirps_rainfall_data(only_one=True, dry_run=True)
+        download_chirps_rainfall_data(only_one=True, dry_run=False)
         base_dir = utils.get_base_directory()
-        root = Path(
+        path = Path(
             base_dir, 'A Collate Data', 'Meteorological Data',
             'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
             'Observations', 'products', 'CHIRPS-2.0', 'global_daily', 'tifs',
-            'p05'
+            'p05', '2024', 'chirps-v2.0.2024.01.01.tif.gz'
         )
-        for branch in [
-            Path('2023', 'chirps-v2.0.2023.01.01.tif.gz'),
-        ]:
-            expected = True
-            actual = Path(root, branch).exists()
-            self.assertEqual(expected, actual)
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
+    def test_download_era5_reanalysis_data(self):
+        download_era5_reanalysis_data(only_one=True, dry_run=False)
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'A Collate Data', 'Meteorological Data',
+            'ERA5 atmospheric reanalysis', 'ERA5-ml-temperature-subarea.nc'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
     def test_download_terraclimate_data(self):
-        download_terraclimate_data(True, True, '2023')
+        download_terraclimate_data(only_one=True, dry_run=False, year='2023')
         base_dir = utils.get_base_directory()
         root = Path(
             base_dir, 'A Collate Data', 'Meteorological Data',
@@ -355,59 +438,58 @@ class TestCases(unittest.TestCase):
             actual = Path(root, branch).exists()
             self.assertEqual(expected, actual)
 
-    def test_download_era5_reanalysis_data(self):
-        download_era5_reanalysis_data(only_one=True, dry_run=True)
-        base_dir = utils.get_base_directory()
-        root = Path(
-            base_dir, 'A Collate Data', 'Meteorological Data',
-            'ERA5 atmospheric reanalysis',
-        )
-        for branch in [
-            Path('ERA5-ml-temperature-subarea.nc'),
-        ]:
-            expected = True
-            actual = Path(root, branch).exists()
-            self.assertEqual(expected, actual)
-
     def test_download_socio_demographic_data(self):
-        data_name = 'WorldPop population density'
-        download_socio_demographic_data(data_name, False, True)
-        self.test_download_worldpop_pop_density_data()
+        data_name = 'Meta population density'
+        download_socio_demographic_data(data_name, True, True, 'VNM')
+        self.test_download_meta_pop_density_data()
 
         data_name = 'WorldPop population count'
-        download_socio_demographic_data(data_name, False, True)
+        download_socio_demographic_data(data_name, True, True, 'VNM')
         self.test_download_worldpop_pop_count_data()
 
-    def test_download_worldpop_pop_density_data(self):
-        download_worldpop_pop_density_data(only_one=False, dry_run=True)
+        data_name = 'WorldPop population density'
+        download_socio_demographic_data(data_name, True, True, 'VNM')
+        self.test_download_worldpop_pop_density_data()
+
+    def test_download_meta_pop_density_data(self):
+        only_one = True
+        dry_run = False
+        iso3 = 'VNM'
+        download_meta_pop_density_data(only_one, dry_run, iso3)
         base_dir = utils.get_base_directory()
-        root = Path(
+        path = Path(
             base_dir, 'A Collate Data', 'Socio-Demographic Data',
-            'WorldPop population density', 'GIS', 'Population_Density',
-            'Global_2000_2020_1km_UNadj', '2020', 'VNM'
+            'Meta population density', 'VNM', 'vnm_general_2020.csv'
         )
-        for branch in [
-            Path('vnm_pd_2020_1km_UNadj_ASCII_XYZ.zip'),
-            Path('vnm_pd_2020_1km_UNadj.tif'),
-        ]:
-            expected = True
-            actual = Path(root, branch).exists()
-            self.assertEqual(expected, actual)
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
     def test_download_worldpop_pop_count_data(self):
-        download_worldpop_pop_count_data(only_one=False, dry_run=True)
+        download_worldpop_pop_count_data(True, False, 'VNM')
         base_dir = utils.get_base_directory()
-        root = Path(
+        path = Path(
             base_dir, 'A Collate Data', 'Socio-Demographic Data',
             'WorldPop population count', 'GIS', 'Population',
-            'Individual_countries', 'VNM'
+            'Individual_countries', 'VNM', 'Viet_Nam_100m_Population',
+            'VNM_ppp_v2b_2020_UNadj.tif'
         )
-        for branch in [
-            Path('Viet_Nam_100m_Population.7z'),
-        ]:
-            expected = True
-            actual = Path(root, branch).exists()
-            self.assertEqual(expected, actual)
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
+    def test_download_worldpop_pop_density_data(self):
+        download_worldpop_pop_density_data(True, False, 'VNM')
+        base_dir = utils.get_base_directory()
+        path = Path(
+            base_dir, 'A Collate Data', 'Socio-Demographic Data',
+            'WorldPop population density', 'GIS', 'Population_Density',
+            'Global_2000_2020_1km_UNadj', '2020', 'VNM',
+            'vnm_pd_2020_1km_UNadj_ASCII_XYZ.zip'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
 
 
 if __name__ == '__main__':
