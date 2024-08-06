@@ -170,9 +170,7 @@ def process_relative_wealth_index_data(iso3):
     df = pd.read_csv(path)
 
     # Create plot
-    A = 5  # We want figures to be A5
-    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
-    plt.figure(figsize=figsize)
+    plt.figure(figsize=utils.papersize_inches_a(5))
     plt.scatter(
         df['longitude'], df['latitude'], c=df['rwi'], cmap='viridis', s=0.8,
         marker='s'
@@ -200,9 +198,7 @@ def process_relative_wealth_index_data(iso3):
     gdf = gpd.GeoDataFrame(
         df, geometry=gpd.points_from_xy(df.longitude, df.latitude)
     )
-    A = 5  # We want figures to be A5
-    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
-    _, ax = plt.subplots(figsize=figsize)
+    _, ax = plt.subplots(figsize=utils.papersize_inches_a(5))
     gdf_plot = gdf.plot(
         ax=ax, column='rwi', marker='o', markersize=1, legend=True,
         legend_kwds={'shrink': 0.3, 'label': 'Relative Wealth Index (RWI)'}
@@ -310,9 +306,7 @@ def process_ministerio_de_salud_peru_data(admin_level):
         master = pd.concat([master, df], ignore_index=True)
 
         # Plot the individual region
-        A = 6  # We want figures to be A6
-        figsize = (46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A))
-        fig_region, ax_region = plt.subplots(figsize=figsize)
+        fig_region, ax_region = plt.subplots(figsize=utils.papersize_inches_a(6, 'landscape'))
         bl = df['tipo_dx'] == 'C'
         ax_region.plot(
             df[bl]['date'].values, df[bl]['n'].values, c='k', lw=1.2
@@ -351,9 +345,7 @@ def process_ministerio_de_salud_peru_data(admin_level):
 
     # Create a master plot
     if admin_level != '0':
-        A = 6  # We want figures to be A6
-        figsize = (46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A))
-        fig_all, ax_all = plt.subplots(figsize=figsize)
+        fig_all, ax_all = plt.subplots(figsize=utils.papersize_inches_a(6, 'landscape'))
 
         for filepath in filepaths:
             df = pd.read_excel(filepath)
@@ -469,9 +461,7 @@ def process_gadm_admin_map_data(admin_level, iso3):
         pass
 
     # Plot
-    A = 5  # We want figures to be A5
-    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
-    fig = plt.figure(figsize=figsize)
+    fig = plt.figure(figsize=utils.papersize_inches_a(5))
     ax = fig.add_subplot()
     gdf.plot(ax=ax, color='white', edgecolor='black')
     plt.title(
@@ -599,11 +589,7 @@ def process_aphrodite_precipitation_data():
             raise ValueError('ERROR: Invalid resolution specified')
 
         year = 2015
-        # Check leap year
-        if (year % 4 == 0 and year % 100 != 0) or year % 400 == 0:
-            nday = 366
-        else:
-            nday = 365
+        nday = utils.days_in_year(year)
         # Construct filename
         fname = Path(dir_path, f'APHRO_MA_{res}_{version}.{year}.gz')
 
@@ -706,20 +692,12 @@ def process_aphrodite_temperature_data():
             fname = Path(dir_path, f'APHRO_MA_{product}_{version}.grd.gz')
         elif product == 'TAVE_025deg':
             year = 2015
-            # Check leap year
-            if (year % 4 == 0 and year % 100 != 0) or year % 400 == 0:
-                nday = 366
-            else:
-                nday = 365
+            nday = utils.days_in_year(year)
             # Construct filename
             fname = Path(dir_path, f'APHRO_MA_{product}_{version}.{year}.gz')
         elif product == 'TAVE_050deg':
             year = 2015
-            # Check leap year
-            if (year % 4 == 0 and year % 100 != 0) or year % 400 == 0:
-                nday = 366
-            else:
-                nday = 365
+            nday = utils.days_in_year(year)
             # Construct filename
             fname = f'APHRO_MA_{product}_{version}.{year}.nc.gz'
             fname = Path(dir_path, fname)
@@ -1039,9 +1017,7 @@ def process_terraclimate_data(year, month, verbose=False, test=False):
                 lat = latitude[::2]
 
                 # Plot data
-                A = 5  # We want figures to be A5
-                figsize = (46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A))
-                fig = plt.figure(figsize=figsize)
+                fig = plt.figure(figsize=utils.papersize_inches_a(5, 'landscape'))
                 ax = plt.axes()
                 img = ax.imshow(data, cmap='GnBu')
                 # Create the colour bar
@@ -1163,9 +1139,7 @@ def process_meta_pop_density_data(year, iso3):
     cmap = LinearSegmentedColormap.from_list('WhiteGreens', colours)
 
     # Plot the heatmap
-    A = 5  # We want figures to be A5
-    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
-    fig, ax = plt.subplots(figsize=figsize)
+    fig, ax = plt.subplots(figsize=utils.papersize_inches_a(5))
     im = ax.imshow(
         heatmap, origin='lower', cmap=cmap,
         extent=[
@@ -1256,9 +1230,7 @@ def process_worldpop_pop_count_data(year, iso3, rt, test=False):
     source_data = src.read(1)
 
     # Raw plot
-    A = 5  # We want figures to be A5
-    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
-    plt.figure(figsize=figsize)
+    plt.figure(figsize=utils.papersize_inches_a(5))
     plt.imshow(source_data, cmap='GnBu')
     plt.title(
         rf'\centering\bf WorldPop Population Count' +
@@ -1432,9 +1404,7 @@ def process_worldpop_pop_density_data(year, iso3):
     df.to_csv(path, index=False)
 
     # Plot
-    A = 5  # We want figures to be A5
-    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
-    fig, ax = plt.subplots(figsize=figsize)
+    fig, ax = plt.subplots(figsize=utils.papersize_inches_a(5))
     pt = df.pivot_table(index='Y', columns='X', values='Z')
     im = ax.imshow(pt, cmap='GnBu')
     ax.invert_yaxis()
@@ -1455,9 +1425,7 @@ def process_worldpop_pop_density_data(year, iso3):
     plt.close()
 
     # Plot
-    A = 5  # We want figures to be A5
-    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
-    fig, ax = plt.subplots(figsize=figsize)
+    fig, ax = plt.subplots(figsize=utils.papersize_inches_a(5))
     plt.title(
         rf'\centering\bf Population Density - Log Transformed' +
         rf'\\\normalfont {country}\par',
@@ -1619,9 +1587,7 @@ def process_gadm_chirps_data(admin_level, iso3, year):
             print(title, region_total)
 
             # Plot
-            A = 4  # We want figures to be A4
-            figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
-            fig = plt.figure(figsize=figsize, dpi=144)
+            fig = plt.figure(figsize=utils.papersize_inches_a(4), dpi=144)
             ax = plt.axes()
             # Rainfall data
             img = ax.imshow(region_data[0], extent=extent, cmap='Blues')
@@ -1810,9 +1776,7 @@ def process_gadm_worldpoppopulation_data(admin_level, iso3, year, rt):
             print(title, region_total)
 
             # Plot
-            A = 5  # We want figures to be A5
-            figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
-            fig = plt.figure(figsize=figsize, dpi=144)
+            fig = plt.figure(figsize=utils.papersize_inches_a(5), dpi=144)
             ax = plt.axes()
             # Rainfall data
             img = ax.imshow(region_data[0], extent=extent, cmap='viridis')
@@ -1980,9 +1944,7 @@ def process_gadm_worldpopdensity_data(admin_level, iso3, year, rt):
         ]
 
         # Plot
-        A = 5  # We want figures to be A5
-        figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
-        fig = plt.figure(figsize=figsize, dpi=144)
+        fig = plt.figure(figsize=utils.papersize_inches_a(5), dpi=144)
         ax = plt.axes()
         if admin_level == '0':
             arr = region_data[0]
@@ -2163,9 +2125,7 @@ def process_pop_weighted_relative_wealth_index_data(iso3, admin_level='0'):
     )
 
     # Plot
-    A = 5  # We want figures to be A5
-    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
-    fig, ax = plt.subplots(figsize=figsize)
+    fig, ax = plt.subplots(figsize=utils.papersize_inches_a(5))
     shapefile_rwi.plot(
         ax=ax, column='rwi_weight', marker='o', markersize=1, legend=True,
         label='RWI score'
