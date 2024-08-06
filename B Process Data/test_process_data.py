@@ -173,7 +173,7 @@ class TestCases(unittest.TestCase):
 
         data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and ' + \
             'Satellite Observations'
-        process_meteorological_data(data_name, '2024', None, True)
+        process_meteorological_data(data_name, '2023', '05', True, True)
         self.test_process_chirps_rainfall_data()
 
         data_name = 'ERA5 atmospheric reanalysis'
@@ -219,15 +219,15 @@ class TestCases(unittest.TestCase):
 
     def test_process_chirps_rainfall_data(self):
         """
-        Prerequisite data: chirps-v2.0.2024.01.01.tif
+        Prerequisite data: chirps-v2.0.2023.05.01.tif
         Download via: `python3 collate_data.py "CHIRPS rainfall" -1`
         """
-        process_chirps_rainfall_data('2024', verbose=False, test=True)
+        process_chirps_rainfall_data('2023', '05', verbose=False, test=True)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Meteorological Data',
             'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-            'Observations', 'chirps-v2.0.2024.01.01.png'
+            'Observations', 'chirps-v2.0.2023.05.01.png'
         )
         expected = True
         actual = path.exists()
@@ -337,19 +337,27 @@ class TestCases(unittest.TestCase):
             'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite ' +
             'Observations'
         ]
-        process_geospatial_meteorological_data(data_name, '0', 'VNM', '2024')
+        adminlvl = '0'
+        iso3 = 'VNM'
+        # Don't test data from the current year as it will be incomplete
+        year = '2023'
+        process_geospatial_meteorological_data(data_name, adminlvl, iso3, year)
         self.test_process_gadm_chirps_data()
 
     def test_process_gadm_chirps_data(self):
         """
         Prerequisite data:
             - gadm41_VNM_shp.zip
-            - chirps-v2.0.2024.01.01.tif.gz
+            - chirps-v2.0.2023.05.01.tif
         Download via:
             - `python3 collate_data.py GADM -1`
-            - `python3 collate_data.py "CHIRPS rainfall" -1`
+            - `python3 collate_data.py CHIRPS -y 2023 -m 5 -1`
         """
-        process_gadm_chirps_data('0', 'VNM', '2024')
+        admin_level = '0'
+        iso3 = 'VNM'
+        # Don't test data from the current year as it will be incomplete
+        year = '2023'
+        process_gadm_chirps_data(admin_level, iso3, year)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Geospatial and Meteorological Data',

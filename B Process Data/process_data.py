@@ -68,7 +68,6 @@ from rasterio.features import geometry_mask
 from rasterio.mask import mask
 from rasterio.transform import xy
 from shapely.geometry import box, Point
-from shapely.geometry import Point, Polygon, box
 import contextily
 import geopandas as gpd
 import matplotlib.ticker as mticker
@@ -81,11 +80,8 @@ import rasterio
 from datetime import date, datetime, timedelta
 from pathlib import Path
 import argparse
-import gzip
-import json
 import math
 import os
-import struct
 import warnings
 # Custom modules
 import utils
@@ -99,7 +95,6 @@ if os.environ.get('WAYLAND_DISPLAY') is not None:
     plt.switch_backend('Agg')
 
 # Settings
-plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 plt.rc('pgf', texsystem='xelatex')
 plt.rc(
@@ -175,7 +170,9 @@ def process_relative_wealth_index_data(iso3):
     df = pd.read_csv(path)
 
     # Create plot
-    plt.figure(figsize=utils.papersize_inches_a(5))
+    A = 5  # We want figures to be A5
+    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+    plt.figure(figsize=figsize)
     plt.scatter(
         df['longitude'], df['latitude'], c=df['rwi'], cmap='viridis', s=0.8,
         marker='s'
@@ -203,7 +200,9 @@ def process_relative_wealth_index_data(iso3):
     gdf = gpd.GeoDataFrame(
         df, geometry=gpd.points_from_xy(df.longitude, df.latitude)
     )
-    _, ax = plt.subplots(figsize=utils.papersize_inches_a(5))
+    A = 5  # We want figures to be A5
+    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+    _, ax = plt.subplots(figsize=figsize)
     gdf_plot = gdf.plot(
         ax=ax, column='rwi', marker='o', markersize=1, legend=True,
         legend_kwds={'shrink': 0.3, 'label': 'Relative Wealth Index (RWI)'}
@@ -311,7 +310,9 @@ def process_ministerio_de_salud_peru_data(admin_level):
         master = pd.concat([master, df], ignore_index=True)
 
         # Plot the individual region
-        fig_region, ax_region = plt.subplots(figsize=utils.papersize_inches_a(6, 'landscape'))
+        A = 6  # We want figures to be A6
+        figsize = (46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A))
+        fig_region, ax_region = plt.subplots(figsize=figsize)
         bl = df['tipo_dx'] == 'C'
         ax_region.plot(
             df[bl]['date'].values, df[bl]['n'].values, c='k', lw=1.2
@@ -350,7 +351,9 @@ def process_ministerio_de_salud_peru_data(admin_level):
 
     # Create a master plot
     if admin_level != '0':
-        fig_all, ax_all = plt.subplots(figsize=utils.papersize_inches_a(6, 'landscape'))
+        A = 6  # We want figures to be A6
+        figsize = (46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A))
+        fig_all, ax_all = plt.subplots(figsize=figsize)
 
         for filepath in filepaths:
             df = pd.read_excel(filepath)
@@ -466,7 +469,9 @@ def process_gadm_admin_map_data(admin_level, iso3):
         pass
 
     # Plot
-    fig = plt.figure(figsize=utils.papersize_inches_a(5))
+    A = 5  # We want figures to be A5
+    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+    fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot()
     gdf.plot(ax=ax, color='white', edgecolor='black')
     plt.title(
@@ -555,7 +560,7 @@ def process_meteorological_data(data_name, year, month, verbose, test=False):
     elif data_name == 'APHRODITE Daily mean temperature product (V1808)':
         process_aphrodite_temperature_data()
     elif data_name.startswith('CHIRPS: Rainfall Estimates from Rain Gauge an'):
-        process_chirps_rainfall_data(year, verbose, test)
+        process_chirps_rainfall_data(year, month, verbose, test)
     elif data_name == 'ERA5 atmospheric reanalysis':
         process_era5_reanalysis_data()
     elif data_name.startswith('TerraClimate gridded temperature, precipitati'):
@@ -570,7 +575,7 @@ def process_aphrodite_precipitation_data():
 
     Run times:
 
-    - `time python3 process_data.py "APHRODITE precipitation"`: 0m1.150s
+    - `time python3 process_data.py "APHRODITE precipitation"`: 00:01.150
     """
     for res in ['025deg', '050deg']:
         dir_path = Path(
@@ -592,7 +597,11 @@ def process_aphrodite_precipitation_data():
             raise ValueError('ERROR: Invalid resolution specified')
 
         year = 2015
-        nday = utils.days_in_year(year)
+        # Check leap year
+        if (year % 4 == 0 and year % 100 != 0) or year % 400 == 0:
+            nday = 366
+        else:
+            nday = 365
         # Construct filename
         fname = Path(dir_path, f'APHRO_MA_{res}_{version}.{year}.gz')
 
@@ -632,7 +641,8 @@ def process_aphrodite_precipitation_data():
                     temp.append(mean_temp)
                     rstn.append(mean_rstn)
             except FileNotFoundError:
-                print(f'ERROR: File not found - {fname}')
+                # print(f'ERROR: File not found - {fname}')
+                pass
             except ValueError:
                 pass
 
@@ -656,7 +666,7 @@ def process_aphrodite_temperature_data():
 
     Run times:
 
-    - `time python3 process_data.py "APHRODITE temperature"`: 3.018s
+    - `time python3 process_data.py "APHRODITE temperature"`: 00:03.018
     """
     for res in ['005deg', '025deg', '050deg_nc']:
         # Directory where data is stored
@@ -694,12 +704,20 @@ def process_aphrodite_temperature_data():
             fname = Path(dir_path, f'APHRO_MA_{product}_{version}.grd.gz')
         elif product == 'TAVE_025deg':
             year = 2015
-            nday = utils.days_in_year(year)
+            # Check leap year
+            if (year % 4 == 0 and year % 100 != 0) or year % 400 == 0:
+                nday = 366
+            else:
+                nday = 365
             # Construct filename
             fname = Path(dir_path, f'APHRO_MA_{product}_{version}.{year}.gz')
         elif product == 'TAVE_050deg':
             year = 2015
-            nday = utils.days_in_year(year)
+            # Check leap year
+            if (year % 4 == 0 and year % 100 != 0) or year % 400 == 0:
+                nday = 366
+            else:
+                nday = 365
             # Construct filename
             fname = f'APHRO_MA_{product}_{version}.{year}.nc.gz'
             fname = Path(dir_path, fname)
@@ -723,7 +741,8 @@ def process_aphrodite_temperature_data():
                     temp.append(temp_data[0, 0])
                     rstn.append(rstn_data[0, 0])
         except FileNotFoundError:
-            print(f'ERROR: File not found - {fname}')
+            # print(f'ERROR: File not found - {fname}')
+            pass
         except ValueError:
             pass
 
@@ -741,7 +760,7 @@ def process_aphrodite_temperature_data():
         df.to_csv(path)
 
 
-def process_chirps_rainfall_data():
+def process_chirps_rainfall_data(year, month, verbose=False, test=False):
     """
     Process CHIRPS Rainfall data.
 
@@ -750,17 +769,29 @@ def process_chirps_rainfall_data():
 
     Run times:
 
-    - `time python3 process_data.py "CHIRPS rainfall"`: s2m14.596s (one file)
+    - `time python3 process_data.py "CHIRPS rainfall" -d`: 02:07.085 (one file)
     """
+    # Sanitise the inputs
+    data_type = 'Meteorological Data'
+    data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and ' + \
+        'Satellite Observations'
+    if not year:
+        year = '2024'
+
+    # Inform the user
+    print('Data type:  ', data_type)
+    print('Data names: ', data_name)
+    print('Year:       ', year)
+
     path = Path(
         base_dir, 'A Collate Data', 'Meteorological Data',
         'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-        'Observations', 'products', 'CHIRPS-2.0', 'global_daily', 'tifs',
-        'p05', '2024'
+        'Observations', 'global_daily', year, month
     )
     filepaths = list(path.iterdir())
     # Only process the GeoTIF files
     filepaths = [f for f in filepaths if f.suffix == '.tif']
+    filepaths.sort()
 
     for filepath in filepaths:
         print(f'Processing "{filepath.name}"')
@@ -784,6 +815,30 @@ def process_chirps_rainfall_data():
         all_rows, all_cols = np.indices((rows, cols))
         lon, lat = xy(transform, all_rows.flatten(), all_cols.flatten())
 
+        # Plot
+        plt.figure(figsize=(20, 8))
+        extent = [np.min(lon), np.max(lon), np.min(lat), np.max(lat)]
+        # Hide nulls
+        data[data == -9999] = 0
+        cmap = plt.cm.get_cmap('Blues')
+        plt.imshow(data, extent=extent, cmap=cmap)
+        plt.colorbar(label='Rainfall [mm]')
+        plt.xlabel('Longitude')
+        plt.ylabel('Latitude')
+        plt.title('Rainfall Estimates')
+        plt.grid(True)
+        path = Path(
+            base_dir, 'B Process Data', 'Meteorological Data',
+            'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
+            'Observations', Path(filepath.name).with_suffix('.png')
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(path)
+
+        # If you're testing, only do one file
+        if test:
+            break
+
         # Create a data frame
         df = pd.DataFrame({
             'longitude': lon,
@@ -798,25 +853,6 @@ def process_chirps_rainfall_data():
         )
         path.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(path, index=False)
-
-        # Plot
-        plt.figure(figsize=(20, 8))
-        extent = [np.min(lon), np.max(lon), np.min(lat), np.max(lat)]
-        # Hide nulls
-        data[data == -9999] = 0
-        cmap = plt.cm.get_cmap('Blues')
-        plt.imshow(data, extent=extent, cmap=cmap)
-        plt.colorbar(label='Rainfall [mm]')
-        plt.xlabel('Longitude')
-        plt.ylabel('Latitude')
-        plt.title('Rainfall Estimates')
-        plt.grid(True)
-        path = Path(
-            'Meteorological Data',
-            'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-            'Observations', Path(filepath.name).with_suffix('.png')
-        )
-        plt.savefig(path)
 
         # Plot - log transformed
         plt.figure(figsize=(20, 8))
@@ -835,6 +871,10 @@ def process_chirps_rainfall_data():
         path = str(path).removesuffix('.png') + ' - Log Transformed.png'
         plt.savefig(path)
 
+        # If you're testing, only do one file
+        if test:
+            break
+
 
 def process_era5_reanalysis_data():
     """
@@ -842,7 +882,7 @@ def process_era5_reanalysis_data():
 
     Run times:
 
-    - `time python3 process_data.py "ERA5 reanalysis"`: 2.265s
+    - `time python3 process_data.py "ERA5 reanalysis"`: 00:02.265
     """
     path = Path(
         base_dir, 'A Collate Data', 'Meteorological Data',
@@ -941,6 +981,8 @@ def process_terraclimate_data(year, month, verbose=False, test=False):
                 'TERRACLIMATE-DATA', filename
             )
             file = nc.Dataset(path, 'r')
+            # print(file.variables.keys())
+            # dict_keys(['lat', 'lon', 'time', 'crs', 'aet'])
 
             # Construct the metric name and unit
             if metric == 'pdsi':
@@ -983,7 +1025,9 @@ def process_terraclimate_data(year, month, verbose=False, test=False):
                 lat = latitude[::2]
 
                 # Plot data
-                fig = plt.figure(figsize=utils.papersize_inches_a(5, 'landscape'))
+                A = 5  # We want figures to be A5
+                figsize = (46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A))
+                fig = plt.figure(figsize=figsize)
                 ax = plt.axes()
                 img = ax.imshow(data, cmap='GnBu')
                 # Create the colour bar
@@ -1105,7 +1149,9 @@ def process_meta_pop_density_data(year, iso3):
     cmap = LinearSegmentedColormap.from_list('WhiteGreens', colours)
 
     # Plot the heatmap
-    fig, ax = plt.subplots(figsize=utils.papersize_inches_a(5))
+    A = 5  # We want figures to be A5
+    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+    fig, ax = plt.subplots(figsize=figsize)
     im = ax.imshow(
         heatmap, origin='lower', cmap=cmap,
         extent=[
@@ -1196,7 +1242,9 @@ def process_worldpop_pop_count_data(year, iso3, rt, test=False):
     source_data = src.read(1)
 
     # Raw plot
-    plt.figure(figsize=utils.papersize_inches_a(5))
+    A = 5  # We want figures to be A5
+    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+    plt.figure(figsize=figsize)
     plt.imshow(source_data, cmap='GnBu')
     plt.title(
         rf'\centering\bf WorldPop Population Count' +
@@ -1222,7 +1270,6 @@ def process_worldpop_pop_count_data(year, iso3, rt, test=False):
     # Finish
     plt.close()
 
-    # If you're testing, only do one file
     if test:
         return
 
@@ -1338,9 +1385,10 @@ def process_worldpop_pop_density_data(year, iso3):
 
     Run times:
 
-    - `time python3 process_data.py "WorldPop pop density" -3 PER`: 4.311s
+    - `time python3 process_data.py "WorldPop pop density"`: 00:02.026
+    - `time python3 process_data.py "WorldPop pop density" -3 PER`: 00:04.311
     - `time python3 process_data.py "WorldPop pop density" -y 2020 -3 VNM`:
-      1.954s
+        - 00:01.954
     """
     data_type = 'Socio-Demographic Data'
     print(f'Data type:   {data_type}')
@@ -1362,7 +1410,7 @@ def process_worldpop_pop_density_data(year, iso3):
 
     # Export as-is
     path = Path(
-        base_dir, 'B Process Data', data_type, data_name, iso3, year,
+        base_dir, 'B Process Data', data_type, data_name, iso3,
         Path(filename).with_suffix('.csv')
     )
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -1370,7 +1418,9 @@ def process_worldpop_pop_density_data(year, iso3):
     df.to_csv(path, index=False)
 
     # Plot
-    fig, ax = plt.subplots(figsize=utils.papersize_inches_a(5))
+    A = 5  # We want figures to be A5
+    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+    fig, ax = plt.subplots(figsize=figsize)
     pt = df.pivot_table(index='Y', columns='X', values='Z')
     im = ax.imshow(pt, cmap='GnBu')
     ax.invert_yaxis()
@@ -1382,7 +1432,7 @@ def process_worldpop_pop_density_data(year, iso3):
     plt.colorbar(im, shrink=0.3, label=label)
     # Export
     path = Path(
-        base_dir, 'B Process Data', data_type, data_name, iso3, year,
+        base_dir, 'B Process Data', data_type, data_name, iso3,
         Path(filename).with_suffix('.png')
     )
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -1391,7 +1441,9 @@ def process_worldpop_pop_density_data(year, iso3):
     plt.close()
 
     # Plot
-    fig, ax = plt.subplots(figsize=utils.papersize_inches_a(5))
+    A = 5  # We want figures to be A5
+    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+    fig, ax = plt.subplots(figsize=figsize)
     plt.title(
         rf'\centering\bf Population Density - Log Transformed' +
         rf'\\\normalfont {country}\par',
@@ -1416,41 +1468,8 @@ def process_worldpop_pop_density_data(year, iso3):
     )
     # Export
     path = Path(
-        base_dir, 'B Process Data', data_type, data_name, iso3, year,
+        base_dir, 'B Process Data', data_type, data_name, iso3,
         Path(filename + ' - Log Transformed').with_suffix('.png')
-    )
-    path.parent.mkdir(parents=True, exist_ok=True)
-    print(f'Exporting "{path}"')
-    plt.savefig(path)
-    plt.close()
-
-    # Plot
-    fig, ax = plt.subplots(figsize=utils.papersize_inches_a(5))
-    plt.title(
-        rf'\centering\bf Population Density - Re-Scaled' +
-        rf'\\\normalfont {country}\par',
-        y=1.03
-    )
-    # Re-scale
-    df['Z_rescaled'] = df['Z']**0.01
-    pt = df.pivot_table(index='Y', columns='X', values='Z_rescaled')
-    im = ax.imshow(pt, cmap='GnBu')
-    ax.invert_yaxis()
-    # Manually create the colour bar
-    ticks = np.linspace(df['Z_rescaled'].min(), df['Z_rescaled'].max(), 5)
-    ticklabels = ticks**(1 / 0.01)
-    ticklabels = ticklabels.astype(int)
-    fig.colorbar(
-        im,
-        ticks=ticks,
-        format=mticker.FixedFormatter(ticklabels),
-        shrink=0.2,
-        label=f'Population Density {year}, UN Adjusted (pop/km²)'
-    )
-    # Export
-    path = Path(
-        base_dir, 'B Process Data', data_type, data_name, iso3, year,
-        Path(filename + ' - Re-Scaled').with_suffix('.png')
     )
     path.parent.mkdir(parents=True, exist_ok=True)
     print(f'Exporting "{path}"')
@@ -1459,32 +1478,32 @@ def process_worldpop_pop_density_data(year, iso3):
 
 
 def process_geospatial_meteorological_data(
-    data_name, admin_level, iso3, year, rt
+    data_name, admin_level, iso3, year
 ):
     """Process Geospatial and Meteorological Data."""
     data_name_1 = 'GADM administrative map'
     data_name_2 = \
         'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations'
     if data_name == [data_name_1, data_name_2]:
-        process_gadm_chirps_data(admin_level, iso3, year, rt)
+        process_gadm_chirps_data(admin_level, iso3, year)
     else:
         raise ValueError(f'Unrecognised data names "{data_name}"')
 
 
-def process_gadm_chirps_data(admin_level, iso3, year, rt):
+def process_gadm_chirps_data(admin_level, iso3, year):
     """
     Process GADM administrative map and CHIRPS rainfall data.
 
     Run times:
 
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 0`: 00:01.763
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 1`: 00:14.640
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 2`: 02:36.276
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 3`: 41:55.092
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 0 -3 GBR`: 00:12.027
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 1 -3 GBR`: 00:05.624
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 2 -3 GBR`: 00:05.626
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 3 -3 GBR`: 00:06.490
+    - `time python3 process_data.py GADM CHIRPS -a 0`: 1.869s
+    - `time python3 process_data.py GADM CHIRPS -a 1`: 14.640s
+    - `time python3 process_data.py GADM CHIRPS -a 2`: 2m36.276s
+    - `time python3 process_data.py GADM CHIRPS -a 3`: 41m55.092s
+    - `time python3 process_data.py GADM CHIRPS -a 0 -3 GBR`: 12.027s
+    - `time python3 process_data.py GADM CHIRPS -a 1 -3 GBR`: 5.624s
+    - `time python3 process_data.py GADM CHIRPS -a 2 -3 GBR`: 5.626s
+    - `time python3 process_data.py GADM CHIRPS -a 3 -3 GBR`: 6.490s
     """
     # Sanitise the inputs
     data_type = 'Geospatial and Meteorological Data'
@@ -1495,7 +1514,7 @@ def process_gadm_chirps_data(admin_level, iso3, year, rt):
         iso3 = 'VNM'
     country = pycountry.countries.get(alpha_3=iso3).name
     if not year:
-        year = '2024'
+        year = '2023'
 
     # Inform the user
     print('Data type:  ', data_type)
@@ -1508,9 +1527,8 @@ def process_gadm_chirps_data(admin_level, iso3, year, rt):
     path = Path(
         base_dir, 'A Collate Data', 'Meteorological Data',
         'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-        'Observations',
-        'products', 'CHIRPS-2.0', 'global_daily', 'tifs', 'p05', year,
-        f'chirps-v2.0.{year}.01.01.tif'
+        'Observations', 'global_daily', year, '05',
+        f'chirps-v2.0.{year}.05.01.tif'
     )
     src = rasterio.open(path)
     # Read the first band
@@ -1587,7 +1605,9 @@ def process_gadm_chirps_data(admin_level, iso3, year, rt):
             print(title, region_total)
 
             # Plot
-            fig = plt.figure(figsize=utils.papersize_inches_a(4), dpi=144)
+            A = 4  # We want figures to be A4
+            figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+            fig = plt.figure(figsize=figsize, dpi=144)
             ax = plt.axes()
             # Rainfall data
             img = ax.imshow(region_data[0], extent=extent, cmap='Blues')
@@ -1776,7 +1796,9 @@ def process_gadm_worldpoppopulation_data(admin_level, iso3, year, rt):
             print(title, region_total)
 
             # Plot
-            fig = plt.figure(figsize=utils.papersize_inches_a(5), dpi=144)
+            A = 5  # We want figures to be A5
+            figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+            fig = plt.figure(figsize=figsize, dpi=144)
             ax = plt.axes()
             # Rainfall data
             img = ax.imshow(region_data[0], extent=extent, cmap='viridis')
@@ -1817,28 +1839,26 @@ def process_gadm_worldpoppopulation_data(admin_level, iso3, year, rt):
     )
     output.to_csv(path, index=False)
 
-    # Calculate population density
-    # Import area
-    path = Path(
-        base_dir, 'B Process Data', 'Geospatial Data',
-        'GADM administrative map', iso3, f'Admin Level {admin_level}',
-        'Area.csv'
-    )
-    area = pd.read_csv(path)
-    # Merge
-    level = int(admin_level)
-    on = [f'Admin Level {x}' for x in range(level, level + 1)]
-    df = pd.merge(output, area, how='outer', on=on)
-    # Calculate
-    df['Population Density'] = df['Population'] / df['Area [km²]']
-    # Export
-    path = Path(
-        base_dir, 'B Process Data', data_type, data_name, iso3,
-        f'Admin Level {admin_level}', 'Population Density.csv'
-    )
-    df.to_csv(path, index=False)
-
-    # TODO: monthly and annual timeframes
+    # # Calculate population density
+    # # Import area
+    # path = Path(
+    #     base_dir, 'B Process Data', 'Geospatial Data',
+    #     'GADM administrative map', iso3, f'Admin Level {admin_level}',
+    #     'Area.csv'
+    # )
+    # area = pd.read_csv(path)
+    # # Merge
+    # level = int(admin_level)
+    # on = [f'Admin Level {x}' for x in range(level, level + 1)]
+    # df = pd.merge(output, area, how='outer', on=on)
+    # # Calculate
+    # df['Population Density'] = df['Population'] / df['Area [km²]']
+    # # Export
+    # path = Path(
+    #     base_dir, 'B Process Data', data_type, data_name, iso3,
+    #     f'Admin Level {admin_level}', 'Population Density.csv'
+    # )
+    # df.to_csv(path, index=False)
 
 
 def process_gadm_worldpopdensity_data(admin_level, iso3, year, rt):
@@ -1946,7 +1966,9 @@ def process_gadm_worldpopdensity_data(admin_level, iso3, year, rt):
         ]
 
         # Plot
-        fig = plt.figure(figsize=utils.papersize_inches_a(5), dpi=144)
+        A = 5  # We want figures to be A5
+        figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+        fig = plt.figure(figsize=figsize, dpi=144)
         ax = plt.axes()
         if admin_level == '0':
             arr = region_data[0]
@@ -2127,7 +2149,9 @@ def process_pop_weighted_relative_wealth_index_data(iso3, admin_level='0'):
     )
 
     # Plot
-    fig, ax = plt.subplots(figsize=utils.papersize_inches_a(5))
+    A = 5  # We want figures to be A5
+    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+    fig, ax = plt.subplots(figsize=figsize)
     shapefile_rwi.plot(
         ax=ax, column='rwi_weight', marker='o', markersize=1, legend=True,
         label='RWI score'
@@ -2171,6 +2195,8 @@ shorthand_to_data_name = {
     'APHRODITE Daily accumulated precipitation (V1901)',
     'APHRODITE temperature':
     'APHRODITE Daily mean temperature product (V1808)',
+    'CHIRPS':
+    'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations',
     'CHIRPS rainfall':
     'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations',
     'TerraClimate data':
