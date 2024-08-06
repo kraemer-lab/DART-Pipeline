@@ -1,11 +1,31 @@
 """Utility or helper functions."""
 import platform
+import calendar
 import distro
 import warnings
 import sys
 import os
+from functools import cache
+from typing import Literal
 from pathlib import Path
 
+@cache
+def papersize_inches_a(
+    A: Literal[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    orientation: Literal['portrait', 'landscape'] = 'portrait'
+) -> tuple[float, float]:
+    "Returns papersize (width x height) in inches for A-series paper sizes"
+    match orientation:
+        case 'portrait':
+            return (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
+        case 'landscape':
+            return (46.82 * .5**(.5 * A),   33.11 * .5**(.5 * A))
+
+
+@cache
+def days_in_year(year: int) -> Literal[365, 366]:
+    "Returns number of days in year"
+    return 366 if calendar.isleap(year) else 365
 
 def get_base_directory(starting_path: str | Path = '.') -> str:
     """
