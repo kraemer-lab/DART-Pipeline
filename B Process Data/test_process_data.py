@@ -350,11 +350,11 @@ class TestCases(unittest.TestCase):
             'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite ' +
             'Observations'
         ]
-        adminlvl = '0'
         iso3 = 'VNM'
+        adminlvl = '0'
         # Don't test data from the current year as it will be incomplete
         year = '2023'
-        process_geospatial_meteorological_data(data_name, adminlvl, iso3, year)
+        process_geospatial_meteorological_data(data_name, iso3, adminlvl, year)
         self.test_process_gadm_chirps_data()
 
     def test_process_gadm_chirps_data(self):
@@ -366,16 +366,16 @@ class TestCases(unittest.TestCase):
             - `python3 collate_data.py GADM -1`
             - `python3 collate_data.py CHIRPS -y 2023 -m 5 -1`
         """
-        admin_level = '0'
         iso3 = 'VNM'
+        admin_level = '0'
         # Don't test data from the current year as it will be incomplete
         year = '2023'
-        process_gadm_chirps_data(admin_level, iso3, year)
+        process_gadm_chirps_data(iso3, admin_level, year)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Geospatial and Meteorological Data',
             'GADM administrative map and CHIRPS rainfall data', 'VNM',
-            'Admin Level 0', 'Rainfall.csv'
+            'Admin Level 0', '2023', '2023.csv'
         )
         expected = True
         actual = path.exists()
@@ -383,7 +383,7 @@ class TestCases(unittest.TestCase):
         path = Path(
             base_dir, 'B Process Data', 'Geospatial and Meteorological Data',
             'GADM administrative map and CHIRPS rainfall data', 'VNM',
-            'Admin Level 0', 'Vietnam.png'
+            'Admin Level 0', '2023', '2023 Vietnam.png'
         )
         expected = True
         actual = path.exists()
