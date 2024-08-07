@@ -95,16 +95,8 @@ if os.environ.get('WAYLAND_DISPLAY') is not None:
     plt.switch_backend('Agg')
 
 # Settings
+plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
-plt.rc('pgf', texsystem='xelatex')
-plt.rc(
-    'pgf', preamble=r'''
-        \usepackage[utf8]{inputenc}
-        \usepackage[T1]{fontenc}
-        \usepackage{fontspec}
-        \usepackage{lmodern}
-    '''
-)
 
 
 def days_to_date(days_since_1900):
@@ -564,7 +556,7 @@ def process_meteorological_data(data_name, year, month, verbose, test=False):
     elif data_name == 'ERA5 atmospheric reanalysis':
         process_era5_reanalysis_data()
     elif data_name.startswith('TerraClimate gridded temperature, precipitati'):
-        process_terraclimate_data(year, month, None, test=test)
+        process_terraclimate_data(year, month, verbose, test)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
@@ -945,13 +937,34 @@ def process_terraclimate_data(year, month, verbose=False, test=False):
 
     Run times:
 
-    - `time python3 process_data.py "TerraClimate data" -y 2023 -m 11`:
-      23.644s
+    - `time python3 process_data.py TerraClimate -y 2023 -m 01`: 29.261s
+    - `time python3 process_data.py TerraClimate -y 2023 -m 05`: 28.588s
+    - `time python3 process_data.py TerraClimate -y 2023 -m 11`: 28.372s
     """
+    data_type = 'Meteorological Data'
+    data_name = 'TerraClimate'
+    if verbose:
+        print('Data type:  ', data_type)
+        print('Data names: ', data_name)
+
     # Inform the user
     msg = datetime(int(year), int(month), 1)
     msg = msg.strftime('%B %Y')
     print(f'Processing data for {msg}')
+
+    # Check if an output CSV already exists
+    path = Path(base_dir, 'B Process Data', data_type, data_name, 'Output.csv')
+    if path.exists():
+        # Import it if it exists
+        df = pd.read_csv(path)
+    else:
+        # Initialise it if not
+        columns = ['year', 'month', 'metric', 'value', 'units']
+        df = pd.DataFrame(columns=columns)
+
+    # Re-format the month to have a leading zero
+    if month:
+        month = f'{int(month):02d}'
 
     if test:
         metrics = ['aet']
@@ -1020,6 +1033,32 @@ def process_terraclimate_data(year, month, verbose=False, test=False):
                 # Get the data for this timepoint, for all lat and lon
                 data = raw_data[i, :, :]
 
+                # Check if this data already exists
+                condition = (
+                    (df['year'] == int(year)) &
+                    (df['month'] == int(month)) &
+                    (df['metric'] == metric_name)
+                )
+                # If the data does not already exist, add a new row
+                if df[condition].empty:
+                    # Add to the output dataframe
+                    new_row = {
+                        'year': year,
+                        'month': month,
+                        'metric': metric_name,
+                        'value': data.sum(),
+                        'units': units
+                    }
+                    new_row = pd.DataFrame(new_row, index=[0])
+                    if df.empty:
+                        df = new_row
+                    else:
+                        df = pd.concat([df, new_row], ignore_index=True)
+                # If the data already exists, update the value
+                else:
+                    df.loc[condition, 'value'] = data.sum()
+                    df.loc[condition, 'units'] = units
+
                 # Downsample to save memory
                 data = data[::2, ::2]
                 lon = longitude[::2]
@@ -1056,10 +1095,9 @@ def process_terraclimate_data(year, month, verbose=False, test=False):
                 )
                 plt.tight_layout()
                 # Export
-                Y_m = date.strftime('%Y-%m')
                 path = Path(
                     base_dir, 'B Process Data', 'Meteorological Data',
-                    'TerraClimate', Y_m, metric_name
+                    'TerraClimate', year, month, metric_name
                 )
                 path.parent.mkdir(parents=True, exist_ok=True)
                 plt.savefig(path)
@@ -1067,6 +1105,12 @@ def process_terraclimate_data(year, month, verbose=False, test=False):
 
             # Close the file
             file.close()
+
+    # Export
+    path = Path(base_dir, 'B Process Data', data_type, data_name, 'Output.csv')
+    path.parent.mkdir(parents=True, exist_ok=True)
+    print('Exporting to', path)
+    df.to_csv(path, index=False)
 
 
 def process_socio_demographic_data(data_name, year, iso3, rt, test=False):
@@ -2200,6 +2244,8 @@ shorthand_to_data_name = {
     'CHIRPS rainfall':
     'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations',
     'TerraClimate data':
+    'TerraClimate gridded temperature, precipitation, and other',
+    'TerraClimate':
     'TerraClimate gridded temperature, precipitation, and other',
     'ERA5 reanalysis':
     'ERA5 atmospheric reanalysis',

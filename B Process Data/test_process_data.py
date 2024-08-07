@@ -253,12 +253,23 @@ class TestCases(unittest.TestCase):
         Prerequisite data: TerraClimate_aet_2023.nc
         Download via: `python3 collate_data.py "TerraClimate data" -1`
         """
-        process_terraclimate_data('2023', '11', verbose=False, test=True)
+        year = '2023'
+        month = '11'
+        process_terraclimate_data(year, month, verbose=False, test=True)
         base_dir = utils.get_base_directory()
-        path = Path(
-            base_dir, 'B Process Data', 'Meteorological Data',
-            'TerraClimate', '2023-11', 'Water Evaporation Amount.png'
 
+        path = Path(
+            base_dir, 'B Process Data', 'Meteorological Data', 'TerraClimate',
+            '2023', '11', 'Water Evaporation Amount.png'
+
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
+        path = Path(
+            base_dir, 'B Process Data', 'Meteorological Data', 'TerraClimate',
+            'Output.csv'
         )
         expected = True
         actual = path.exists()
