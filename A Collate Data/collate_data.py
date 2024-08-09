@@ -58,25 +58,25 @@ testing purposes only):
 This will create a `Meteorological Data` folder inside the A folder into which
 data will be downloaded.
 """
-# External libraries
-from bs4 import BeautifulSoup
-from lxml import html
-import cdsapi
-import gzip
-import py7zr
-import pycountry
-import requests
-# Built-in modules
+# Standard imports
 from datetime import date
 from io import StringIO
 from pathlib import Path
 import argparse
 import base64
+import gzip
 import json
 import os
 import re
 import shutil
 import warnings
+# External libraries
+from bs4 import BeautifulSoup
+from lxml import html
+import cdsapi
+import py7zr
+import pycountry
+import requests
 # Custom modules
 import utils
 # Create the requirements file from the terminal with:
@@ -1078,7 +1078,7 @@ def download_meta_pop_density_data(only_one, dry_run, iso3):
                 # '{iso3}_general_{year}_csv.zip' file that we want, so check
                 # if this link is for that file. Skip this link if not.
                 if only_one:
-                    if not f'{iso3.lower()}_general_2020_csv.zip' in zip_url:
+                    if f'{iso3.lower()}_general_2020_csv.zip' not in zip_url:
                         continue
                 # Download the data
                 zip_url = 'https://data.humdata.org' + zip_url

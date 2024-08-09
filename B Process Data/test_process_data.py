@@ -15,7 +15,7 @@ Past runs
 # External libraries
 import rasterio
 # Built-in modules
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 import os
 import time
@@ -263,17 +263,13 @@ class TestCases(unittest.TestCase):
             '2023', '11', 'Water Evaporation Amount.png'
 
         )
-        expected = True
-        actual = path.exists()
-        self.assertEqual(expected, actual)
+        self.assertTrue(path.exists())
 
         path = Path(
             base_dir, 'B Process Data', 'Meteorological Data', 'TerraClimate',
             'Output.csv'
         )
-        expected = True
-        actual = path.exists()
-        self.assertEqual(expected, actual)
+        self.assertTrue(path.exists())
 
     def test_process_socio_demographic_data(self):
         data_name = 'Meta population density'

@@ -64,7 +64,6 @@ format for country codes.
 from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from pyquadkey2 import quadkey
-from rasterio.features import geometry_mask
 from rasterio.mask import mask
 from rasterio.transform import xy
 from shapely.geometry import box, Point
@@ -77,7 +76,7 @@ import pandas as pd
 import pycountry
 import rasterio
 # Built-in modules
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 import argparse
 import math
@@ -195,7 +194,7 @@ def process_relative_wealth_index_data(iso3):
     A = 5  # We want figures to be A5
     figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
     _, ax = plt.subplots(figsize=figsize)
-    gdf_plot = gdf.plot(
+    _ = gdf.plot(
         ax=ax, column='rwi', marker='o', markersize=1, legend=True,
         legend_kwds={'shrink': 0.3, 'label': 'Relative Wealth Index (RWI)'}
     )
@@ -900,12 +899,12 @@ def process_era5_reanalysis_data():
     for i, lon in enumerate(longitude):
         for j, lat in enumerate(latitude):
             for k, lev in enumerate(level):
-                for l, t in enumerate(time):
+                for m, t in enumerate(time):
                     longitudes.append(lon)
                     latitudes.append(lat)
                     levels.append(lev)
                     times.append(t)
-                    temperatures.append(temp[l, k, j, i])
+                    temperatures.append(temp[m, k, j, i])
 
     # Convert lists to DataFrame
     dct = {
@@ -1292,7 +1291,7 @@ def process_worldpop_pop_count_data(year, iso3, rt, test=False):
     plt.figure(figsize=figsize)
     plt.imshow(source_data, cmap='GnBu')
     plt.title(
-        rf'\centering\bf WorldPop Population Count' +
+        r'\centering\bf WorldPop Population Count' +
         rf'\\\normalfont {country} - {year}\par',
         y=1.03
     )
@@ -1490,7 +1489,7 @@ def process_worldpop_pop_density_data(year, iso3):
     figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
     fig, ax = plt.subplots(figsize=figsize)
     plt.title(
-        rf'\centering\bf Population Density - Log Transformed' +
+        r'\centering\bf Population Density - Log Transformed' +
         rf'\\\normalfont {country}\par',
         y=1.03
     )
