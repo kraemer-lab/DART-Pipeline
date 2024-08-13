@@ -64,7 +64,6 @@ format for country codes.
 from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from pyquadkey2 import quadkey
-from rasterio.features import geometry_mask
 from rasterio.mask import mask
 from rasterio.transform import xy
 from shapely.geometry import box, Point
@@ -77,9 +76,9 @@ import pandas as pd
 import pycountry
 import rasterio
 # Built-in modules
+from datetime import datetime, timedelta
 from pathlib import Path
 import argparse
-import datetime
 import math
 import os
 import warnings
@@ -109,8 +108,8 @@ plt.rc(
 
 def days_to_date(days_since_1900):
     """Convert a of number of days since 1900-01-01 into a date."""
-    base_date = datetime.datetime(1900, 1, 1)
-    target_date = base_date + datetime.timedelta(days=days_since_1900)
+    base_date = datetime(1900, 1, 1)
+    target_date = base_date + timedelta(days=days_since_1900)
 
     return target_date
 
@@ -199,7 +198,7 @@ def process_relative_wealth_index_data(iso3):
         df, geometry=gpd.points_from_xy(df.longitude, df.latitude)
     )
     _, ax = plt.subplots(figsize=utils.papersize_inches_a(5))
-    gdf_plot = gdf.plot(
+    _ = gdf.plot(
         ax=ax, column='rwi', marker='o', markersize=1, legend=True,
         legend_kwds={'shrink': 0.3, 'label': 'Relative Wealth Index (RWI)'}
     )
@@ -306,7 +305,8 @@ def process_ministerio_de_salud_peru_data(admin_level):
         master = pd.concat([master, df], ignore_index=True)
 
         # Plot the individual region
-        fig_region, ax_region = plt.subplots(figsize=utils.papersize_inches_a(6, 'landscape'))
+        figsize = utils.papersize_inches_a(6, 'landscape')
+        fig_region, ax_region = plt.subplots(figsize=figsize)
         bl = df['tipo_dx'] == 'C'
         ax_region.plot(
             df[bl]['date'].values, df[bl]['n'].values, c='k', lw=1.2
@@ -345,7 +345,8 @@ def process_ministerio_de_salud_peru_data(admin_level):
 
     # Create a master plot
     if admin_level != '0':
-        fig_all, ax_all = plt.subplots(figsize=utils.papersize_inches_a(6, 'landscape'))
+        figsize = utils.papersize_inches_a(6, 'landscape')
+        fig_all, ax_all = plt.subplots(figsize=figsize)
 
         for filepath in filepaths:
             df = pd.read_excel(filepath)
@@ -778,11 +779,7 @@ def process_chirps_rainfall_data(
         day = f'{int(day):02d}'
 
     # Start constructing the import path
-    path_root = Path(
-        base_dir, 'A Collate Data', 'Meteorological Data',
-        'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-        'Observations'
-    )
+    path_root = Path(base_dir, 'A Collate Data', data_type, data_name)
 
     # Get the data sub-type to use
     if month:
@@ -817,8 +814,6 @@ def process_chirps_rainfall_data(
     # Get the size of the image
     rows, cols = src.height, src.width
 
-    # Reshape the data into a 1D array
-    rainfall = data.flatten()
     # Construct the coordinates for each pixel
     all_rows, all_cols = np.indices((rows, cols))
     lon, lat = xy(transform, all_rows.flatten(), all_cols.flatten())
@@ -899,12 +894,12 @@ def process_era5_reanalysis_data():
     for i, lon in enumerate(longitude):
         for j, lat in enumerate(latitude):
             for k, lev in enumerate(level):
-                for l, t in enumerate(time):
+                for m, t in enumerate(time):
                     longitudes.append(lon)
                     latitudes.append(lat)
                     levels.append(lev)
                     times.append(t)
-                    temperatures.append(temp[l, k, j, i])
+                    temperatures.append(temp[m, k, j, i])
 
     # Convert lists to DataFrame
     dct = {
@@ -940,7 +935,7 @@ def process_terraclimate_data(year, month, verbose=False, test=False):
       23.644s
     """
     # Inform the user
-    msg = datetime.datetime(int(year), int(month), 1)
+    msg = datetime(int(year), int(month), 1)
     msg = msg.strftime('%B %Y')
     print(f'Processing data for {msg}')
 
@@ -1006,7 +1001,7 @@ def process_terraclimate_data(year, month, verbose=False, test=False):
                 t = int(time[i])
 
                 # Get the date this data represents
-                date = days_to_date(t)
+                timepoint = days_to_date(t)
 
                 # Get the data for this timepoint, for all lat and lon
                 data = raw_data[i, :, :]
@@ -1017,7 +1012,8 @@ def process_terraclimate_data(year, month, verbose=False, test=False):
                 lat = latitude[::2]
 
                 # Plot data
-                fig = plt.figure(figsize=utils.papersize_inches_a(5, 'landscape'))
+                figsize = utils.papersize_inches_a(5, 'landscape')
+                fig = plt.figure(figsize=figsize)
                 ax = plt.axes()
                 img = ax.imshow(data, cmap='GnBu')
                 # Create the colour bar
@@ -1038,14 +1034,14 @@ def process_terraclimate_data(year, month, verbose=False, test=False):
                 # Add labels
                 plt.xlabel('Longitude')
                 plt.ylabel('Latitude')
-                B_Y = date.strftime('%B %Y')
+                B_Y = timepoint.strftime('%B %Y')
                 ax.set_title(
                     rf'\centering\bf {metric_name}\\\normalfont {B_Y}\par',
                     y=1.1
                 )
                 plt.tight_layout()
                 # Export
-                Y_m = date.strftime('%Y-%m')
+                Y_m = timepoint.strftime('%Y-%m')
                 path = Path(
                     base_dir, 'B Process Data', 'Meteorological Data',
                     'TerraClimate', Y_m, metric_name
@@ -1233,7 +1229,7 @@ def process_worldpop_pop_count_data(year, iso3, rt, test=False):
     plt.figure(figsize=utils.papersize_inches_a(5))
     plt.imshow(source_data, cmap='GnBu')
     plt.title(
-        rf'\centering\bf WorldPop Population Count' +
+        r'\centering\bf WorldPop Population Count' +
         rf'\\\normalfont {country} - {year}\par',
         y=1.03
     )
@@ -1427,7 +1423,7 @@ def process_worldpop_pop_density_data(year, iso3):
     # Plot
     fig, ax = plt.subplots(figsize=utils.papersize_inches_a(5))
     plt.title(
-        rf'\centering\bf Population Density - Log Transformed' +
+        r'\centering\bf Population Density - Log Transformed' +
         rf'\\\normalfont {country}\par',
         y=1.03
     )
@@ -2172,8 +2168,6 @@ shorthand_to_data_name = {
     'CHIRPS':
     'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations',
     'CHIRPS rainfall':
-    'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations',
-    'CHIRPS':
     'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations',
     'TerraClimate data':
     'TerraClimate gridded temperature, precipitation, and other',

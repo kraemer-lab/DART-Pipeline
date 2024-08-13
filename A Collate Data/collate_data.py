@@ -67,11 +67,11 @@ import py7zr
 import pycountry
 import requests
 # Built-in modules
+from datetime import date, timedelta
 from io import StringIO
 from pathlib import Path
 import argparse
 import base64
-import datetime
 import json
 import os
 import re
@@ -87,7 +87,7 @@ import utils
 def daterange(start_date, end_date):
     """Construct a date range for iterating over the days between two dates."""
     for n in range((end_date - start_date).days + 1):
-        yield start_date + datetime.timedelta(n)
+        yield start_date + timedelta(n)
 
 
 def get_credentials(metric, base_dir='..', credentials=None):
@@ -892,7 +892,7 @@ def download_chirps_rainfall_data(only_one, dry_run, year, month):
     fmt = 'tifs'
 
     # Download the annual data for the year provided
-    today = datetime.date.today()
+    today = date.today()
     this_year = today.year
     # Annual data is only available for 1981 onwards and does not include the
     # current year
@@ -920,9 +920,9 @@ def download_chirps_rainfall_data(only_one, dry_run, year, month):
         # If a month value has been provided by the user, check that it lies
         # between 1981-01 and the current month (not including the current
         # month)
-        month_requested = datetime.date(int(year), int(month), 1)
-        today = datetime.date(today.year, today.month, 1)
-        first_month = datetime.date(1981, 1, 1)
+        month_requested = date(int(year), int(month), 1)
+        today = date(today.year, today.month, 1)
+        first_month = date(1981, 1, 1)
         if first_month <= month_requested < today:
             # Construct the filename
             filename = f'chirps-v2.0.{year}.{int(month):02d}.tif.gz'
@@ -952,9 +952,9 @@ def download_chirps_rainfall_data(only_one, dry_run, year, month):
 
     # Download the daily data for the year and month provided
     if month:
-        start = datetime.date(int(year), int(month), 1)
-        end = datetime.date(int(year), int(month) + 1, 1) - \
-            datetime.timedelta(days=1)
+        start = date(int(year), int(month), 1)
+        end = date(int(year), int(month) + 1, 1) - \
+            timedelta(days=1)
         for day in daterange(start, end):
             # Construct the filename
             filename = f"chirps-v2.0.{str(day).replace('-', '.')}.tif.gz"
@@ -1157,7 +1157,7 @@ def download_meta_pop_density_data(only_one, dry_run, iso3):
                 # '{iso3}_general_{year}_csv.zip' file that we want, so check
                 # if this link is for that file. Skip this link if not.
                 if only_one:
-                    if not f'{iso3.lower()}_general_2020_csv.zip' in zip_url:
+                    if f'{iso3.lower()}_general_2020_csv.zip' not in zip_url:
                         continue
                 # Download the data
                 zip_url = 'https://data.humdata.org' + zip_url

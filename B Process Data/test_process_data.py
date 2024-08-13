@@ -15,7 +15,7 @@ Past runs
 # External libraries
 import rasterio
 # Built-in modules
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 import os
 import time
