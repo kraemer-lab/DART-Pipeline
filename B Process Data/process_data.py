@@ -761,7 +761,7 @@ def process_chirps_rainfall_data(
     """
     # Sanitise the inputs
     data_type = 'Meteorological Data'
-    data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and ' + \
+    data_name = 'CHIRPS - Rainfall Estimates from Rain Gauge and ' + \
         'Satellite Observations'
     if not year:
         msg = 'No year provided. Use the "-y" flag.'
@@ -830,11 +830,7 @@ def process_chirps_rainfall_data(
     plt.ylabel('Latitude')
     plt.title('Rainfall Estimates')
     plt.grid(True)
-    path_root = Path(
-        base_dir, 'B Process Data', 'Meteorological Data',
-        'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-        'Observations'
-    )
+    path_root = Path(base_dir, 'B Process Data', data_type, data_name)
     path = Path(path_root, path_stem, Path(filename).with_suffix('.png'))
     path.parent.mkdir(parents=True, exist_ok=True)
     print(f'Saving "{path}"')

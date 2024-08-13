@@ -127,3 +127,6 @@ credentials.json
 # Sublime Text files
 *.sublime-project
 *.sublime-workspace
+
+# VS Code files
+*.code-workspace
