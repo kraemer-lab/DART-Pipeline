@@ -329,7 +329,11 @@ class TestCases(unittest.TestCase):
 
         data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and ' + \
             'Satellite Observations'
-        download_meteorological_data(data_name, only_one, dry_run)
+        # Don't use the latest year for testing because the dataset will be
+        # incomplete
+        download_meteorological_data(
+            data_name, only_one, dry_run, year='2023', month='5'
+        )
         self.test_download_chirps_rainfall_data()
 
         data_name = 'TerraClimate gridded temperature, precipitation, and ' + \
@@ -400,13 +404,38 @@ class TestCases(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_download_chirps_rainfall_data(self):
-        download_chirps_rainfall_data(only_one=True, dry_run=False)
+        only_one = True
+        dry_run = False
+        # Don't use the latest year for testing because the dataset will be
+        # incomplete
+        year = '2023'
+        month = '5'
+        download_chirps_rainfall_data(only_one, dry_run, year, month)
         base_dir = utils.get_base_directory()
+
         path = Path(
             base_dir, 'A Collate Data', 'Meteorological Data',
             'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-            'Observations', 'products', 'CHIRPS-2.0', 'global_daily', 'tifs',
-            'p05', '2024', 'chirps-v2.0.2024.01.01.tif.gz'
+            'Observations', 'global_annual', 'chirps-v2.0.2023.tif'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
+        path = Path(
+            base_dir, 'A Collate Data', 'Meteorological Data',
+            'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
+            'Observations', 'global_daily', '2023', '05',
+            'chirps-v2.0.2023.05.01.tif.gz'
+        )
+        expected = True
+        actual = path.exists()
+        self.assertEqual(expected, actual)
+
+        path = Path(
+            base_dir, 'A Collate Data', 'Meteorological Data',
+            'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
+            'Observations', 'global_monthly', '2023', 'chirps-v2.0.2023.05.tif'
         )
         expected = True
         actual = path.exists()

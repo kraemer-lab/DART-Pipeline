@@ -550,7 +550,7 @@ def process_meteorological_data(data_name, year, month, verbose, test=False):
     elif data_name == 'APHRODITE Daily mean temperature product (V1808)':
         process_aphrodite_temperature_data()
     elif data_name.startswith('CHIRPS: Rainfall Estimates from Rain Gauge an'):
-        process_chirps_rainfall_data(year, verbose, test)
+        process_chirps_rainfall_data(year, month, verbose, test)
     elif data_name == 'ERA5 atmospheric reanalysis':
         process_era5_reanalysis_data()
     elif data_name.startswith('TerraClimate gridded temperature, precipitati'):
@@ -738,7 +738,7 @@ def process_aphrodite_temperature_data():
         df.to_csv(path)
 
 
-def process_chirps_rainfall_data(year, verbose=False, test=False):
+def process_chirps_rainfall_data(year, month, verbose=False, test=False):
     """
     Process CHIRPS Rainfall data.
 
@@ -764,8 +764,7 @@ def process_chirps_rainfall_data(year, verbose=False, test=False):
     path = Path(
         base_dir, 'A Collate Data', 'Meteorological Data',
         'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-        'Observations', 'products', 'CHIRPS-2.0', 'global_daily', 'tifs',
-        'p05', year
+        'Observations', 'global_daily', year, month
     )
     filepaths = list(path.iterdir())
     # Only process the GeoTIF files
@@ -1465,14 +1464,14 @@ def process_gadm_chirps_data(admin_level, iso3, year):
 
     Run times:
 
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 0`: 00:01.763
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 1`: 00:14.640
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 2`: 02:36.276
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 3`: 41:55.092
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 0 -3 GBR`: 00:12.027
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 1 -3 GBR`: 00:05.624
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 2 -3 GBR`: 00:05.626
-    - `python3 process_data.py GADM "CHIRPS rainfall" -a 3 -3 GBR`: 00:06.490
+    - `time python3 process_data.py GADM CHIRPS -a 0`: 1.869s
+    - `time python3 process_data.py GADM CHIRPS -a 1`: 14.640s
+    - `time python3 process_data.py GADM CHIRPS -a 2`: 2m36.276s
+    - `time python3 process_data.py GADM CHIRPS -a 3`: 41m55.092s
+    - `time python3 process_data.py GADM CHIRPS -a 0 -3 GBR`: 12.027s
+    - `time python3 process_data.py GADM CHIRPS -a 1 -3 GBR`: 5.624s
+    - `time python3 process_data.py GADM CHIRPS -a 2 -3 GBR`: 5.626s
+    - `time python3 process_data.py GADM CHIRPS -a 3 -3 GBR`: 6.490s
     """
     # Sanitise the inputs
     data_type = 'Geospatial and Meteorological Data'
@@ -1483,7 +1482,7 @@ def process_gadm_chirps_data(admin_level, iso3, year):
         iso3 = 'VNM'
     country = pycountry.countries.get(alpha_3=iso3).name
     if not year:
-        year = '2024'
+        year = '2023'
 
     # Inform the user
     print('Data type:  ', data_type)
@@ -1496,9 +1495,8 @@ def process_gadm_chirps_data(admin_level, iso3, year):
     path = Path(
         base_dir, 'A Collate Data', 'Meteorological Data',
         'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-        'Observations',
-        'products', 'CHIRPS-2.0', 'global_daily', 'tifs', 'p05', year,
-        f'chirps-v2.0.{year}.01.01.tif'
+        'Observations', 'global_daily', year, '05',
+        f'chirps-v2.0.{year}.05.01.tif'
     )
     src = rasterio.open(path)
     # Read the first band
@@ -2157,6 +2155,8 @@ shorthand_to_data_name = {
     'APHRODITE Daily accumulated precipitation (V1901)',
     'APHRODITE temperature':
     'APHRODITE Daily mean temperature product (V1808)',
+    'CHIRPS':
+    'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations',
     'CHIRPS rainfall':
     'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations',
     'TerraClimate data':

@@ -67,11 +67,11 @@ import py7zr
 import pycountry
 import requests
 # Built-in modules
-from datetime import date
 from io import StringIO
 from pathlib import Path
 import argparse
 import base64
+import datetime
 import json
 import os
 import re
@@ -82,6 +82,12 @@ import utils
 # Create the requirements file from the terminal with:
 # $ python3 -m pip install pipreqs
 # $ pipreqs '.' --force
+
+
+def daterange(start_date, end_date):
+    """Construct a date range for iterating over the days between two dates."""
+    for n in range((end_date - start_date).days + 1):
+        yield start_date + datetime.timedelta(n)
 
 
 def get_credentials(metric, base_dir='..', credentials=None):
@@ -97,7 +103,7 @@ def get_credentials(metric, base_dir='..', credentials=None):
         The base directory of the Git project. It is assumed that the password
         store has been created and is located here.
     credentials : str, pathlib.Path or None, default None
-        Path (including filename) to the credentials file is different from the
+        Path (including filename) to the credentials file if different from the
         default (which is `credentials.json` in the `DART-Pipeline` directory).
 
     Returns
@@ -662,7 +668,8 @@ def download_gadm_admin_map_data(only_one, dry_run, iso3):
 
 
 def download_meteorological_data(
-    data_name, only_one=False, dry_run=False, credentials=None, year=None
+    data_name, only_one=False, dry_run=False, credentials=None,
+    year=None, month=None
 ):
     """
     Download Meteorological data.
@@ -686,7 +693,7 @@ def download_meteorological_data(
     elif data_name == 'APHRODITE Daily mean temperature product (V1808)':
         download_aphrodite_temperature_data(only_one, dry_run, credentials)
     elif data_name.startswith('CHIRPS: Rainfall Estimates from Rain Gauge an'):
-        download_chirps_rainfall_data(only_one, dry_run)
+        download_chirps_rainfall_data(only_one, dry_run, year, month)
     elif data_name == 'ERA5 atmospheric reanalysis':
         download_era5_reanalysis_data(only_one, dry_run)
     elif data_name.startswith('TerraClimate gridded temperature, precipitati'):
@@ -856,7 +863,7 @@ def download_aphrodite_temperature_data(
         )
 
 
-def download_chirps_rainfall_data(only_one, dry_run):
+def download_chirps_rainfall_data(only_one, dry_run, year, month):
     """
     Download CHIRPS Rainfall Estimates from Rain Gauge, Satellite Observations.
 
@@ -867,40 +874,104 @@ def download_chirps_rainfall_data(only_one, dry_run):
 
     Run times:
 
-    - `time python3 collate_data.py "CHIRPS rainfall"`:
-        - 5m30.123s (2024-01-01 to 2024-03-07)
-        - 2m56.14s (2024-01-01 to 2024-03-11)
-        - 2m55.466s (2024-01-01 to 2024-02-29)
-        - 4m15.394s (2024-01-01 to 2024-03-31)
-    - `time python3 collate_data.py "CHIRPS rainfall" -1`: 17.831s
-    - `time python3 collate_data.py "CHIRPS rainfall" -1 -d`: 1.943s
+    - `time python3 collate_data.py CHIRPS -y 2023 -m 5`: 5m23.392s
+    - `time python3 collate_data.py CHIRPS -y 2023 -m 5 -1`: 1m35.376s
+    - `time python3 collate_data.py CHIRPS -y 2023 -m 5 -d`: 0.248s
+    - `time python3 collate_data.py CHIRPS -y 2023 -m 5 -1 -d`: 0.254s
     """
+    # Sanitise inputs
     data_type = 'Meteorological Data'
-    data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite ' + \
-        'Observations'
+    data_name = 'CHIRPS - Rainfall Estimates from Rain Gauge and ' + \
+        'Satellite Observations'
+    if not year:
+        raise ValueError('No year has been provided. Use the "-y" flag')
+    # URLs should be str, not urllib URL objects, because requests expects
+    # str
+    base_url = 'https://data.chc.ucsb.edu'
+    # I only know how to anayse tifs, not cogs
+    fmt = 'tifs'
 
-    # Create output directory
-    sanitised = data_name.replace(':', ' -')
-    out_dir = Path(base_dir, 'A Collate Data', data_type, sanitised)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    # Download the annual data for the year provided
+    today = datetime.date.today()
+    this_year = today.year
+    # Annual data is only available for 1981 onwards and does not include the
+    # current year
+    if (int(year) >= 1981) and (int(year) < int(this_year)):
+        relative_url = f'/products/CHIRPS-2.0/global_annual/{fmt}/'
+        filename = f'chirps-v2.0.{year}.tif'
+        url = base_url + relative_url + filename
+        path = Path(
+            base_dir, 'A Collate Data', data_type, data_name, 'global_annual',
+            filename
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if dry_run:
+            print('Touching', path)
+            path.touch()
+        else:
+            _ = download_file(url, path)
+    else:
+        msg = 'No annual data is available for the year specified (only ' + \
+            'completed years from 1981 onwards)'
+        print(msg)
 
-    # Download data for 2024 onwards
-    for year in [y for y in range(2024, int(date.today().year) + 1)]:
-        # URLs should be str, not urllib URL objects, because requests expects
-        # str
-        base_url = 'https://data.chc.ucsb.edu'
-        # I only know how to anayse tifs, not cogs
-        relative_url = f'products/CHIRPS-2.0/global_daily/tifs/p05/{year}'
-        # Walk through the folder structure
-        walk(base_url, relative_url, only_one, dry_run, out_dir)
+    # Download the monthly data for the year and month provided
+    if month:
+        # If a month value has been provided by the user, check that it lies
+        # between 1981-01 and the current month (not including the current
+        # month)
+        month_requested = datetime.date(int(year), int(month), 1)
+        today = datetime.date(today.year, today.month, 1)
+        first_month = datetime.date(1981, 1, 1)
+        if first_month <= month_requested < today:
+            relative_url = f'/products/CHIRPS-2.0/global_monthly/{fmt}/'
+            filename = f'chirps-v2.0.{year}.{int(month):02d}.tif'
+            url = base_url + relative_url + filename
+            path = Path(
+                base_dir, 'A Collate Data', data_type, data_name,
+                'global_monthly', year, filename
+            )
+            path.parent.mkdir(parents=True, exist_ok=True)
+            if dry_run:
+                print('Touching', path)
+                path.touch()
+            else:
+                _ = download_file(url, path)
+        else:
+            msg = 'No monthly data is available for the month ' + \
+                'specified (only completed months from 1981-01 onwards)'
+            print(msg)
 
-    if not dry_run:
-        # Unpack the data
-        for dirpath, dirnames, filenames in os.walk(out_dir):
-            for filename in filenames:
-                if filename.endswith('.tif.gz'):
-                    path = Path(dirpath, filename)
+    # Download the daily data for the year and month provided
+    if month:
+        start = datetime.date(int(year), int(month), 1)
+        end = datetime.date(int(year), int(month) + 1, 1) - \
+            datetime.timedelta(days=1)
+        for day in daterange(start, end):
+            # Construct the filename
+            filename = f"chirps-v2.0.{str(day).replace('-', '.')}.tif.gz"
+            # Construct the filepath
+            path = Path(
+                base_dir, 'A Collate Data', data_type, data_name,
+                'global_daily', year, f'{int(month):02d}', filename
+            )
+            path.parent.mkdir(parents=True, exist_ok=True)
+            if dry_run:
+                print('Touching', path)
+                path.touch()
+            else:
+                # Construct the URL
+                relative = '/products/CHIRPS-2.0/global_daily/' + \
+                    f'{fmt}/p05/{year}/'
+                url = base_url + relative + filename
+                success = download_file(url, path)
+                if success:
+                    # Unpack the data
                     unpack_file(path)
+                else:
+                    print('No daily data is available for', day)
+            if only_one:
+                break
 
 
 def download_era5_reanalysis_data(only_one, dry_run):
@@ -1251,6 +1322,8 @@ shorthand_to_data_name = {
     'APHRODITE Daily accumulated precipitation (V1901)',
     'CHIRPS rainfall':
     'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations',
+    'CHIRPS':
+    'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations',
     'TerraClimate data':
     'TerraClimate gridded temperature, precipitation, and other',
     'ERA5 reanalysis':
@@ -1324,8 +1397,11 @@ if __name__ == '__main__':
     message = '''If data from multiple years is available, choose a year from
     which to download.'''
     parser.add_argument('--year', '-y', default=None, help=message)
+    message = '''If data from multiple months is available, choose a month from
+    which to download.'''
+    parser.add_argument('--month', '-m', default=None, help=message)
     message = '''Country code in "ISO 3166-1 alpha-3" format.'''
-    parser.add_argument('--iso3', '-3', default='', help=message)
+    parser.add_argument('--iso3', '-3', default=None, help=message)
     message = '''Show information to help with debugging.'''
     parser.add_argument('--verbose', '-v', help=message, action='store_true')
 
@@ -1338,7 +1414,10 @@ if __name__ == '__main__':
     dry_run = args.dry_run
     credentials = args.credentials
     year = args.year
-    iso3 = args.iso3.upper()
+    month = args.month
+    iso3 = args.iso3
+    if iso3:
+        iso3 = iso3.upper()
     verbose = args.verbose
 
     # Check
@@ -1375,7 +1454,7 @@ if __name__ == '__main__':
         download_geospatial_data(data_name, only_one, dry_run, iso3)
     elif data_type == 'Meteorological Data':
         download_meteorological_data(
-            data_name, only_one, dry_run, credentials, year
+            data_name, only_one, dry_run, credentials, year, month
         )
     elif data_type == 'Socio-Demographic Data':
         download_socio_demographic_data(data_name, only_one, dry_run, iso3)
