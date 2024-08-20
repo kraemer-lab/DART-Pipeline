@@ -17,6 +17,7 @@ B Process Data/**/* Data/
 *.json
 *.kmz
 *.nc
+*.nc.tgz
 *.prj
 *.sh
 *.shp

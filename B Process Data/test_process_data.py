@@ -240,11 +240,9 @@ class TestCases(unittest.TestCase):
         path = Path(
             base_dir, 'B Process Data', 'Meteorological Data',
             'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-            'Observations', 'global_monthly', '2023', 'chirps-v2.0.2023.05.png'
+            'Observations', 'output.csv'
         )
-        expected = True
-        actual = path.exists()
-        self.assertEqual(expected, actual)
+        self.assertTrue(path.exists())
 
     def test_process_era5_reanalysis_data(self):
         """
@@ -350,11 +348,11 @@ class TestCases(unittest.TestCase):
             'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite ' +
             'Observations'
         ]
-        adminlvl = '0'
+        level = '0'
         iso3 = 'VNM'
         # Don't test data from the current year as it will be incomplete
         year = '2023'
-        process_geospatial_meteorological_data(data_name, adminlvl, iso3, year)
+        process_geospatial_meteorological_data(data_name, level, iso3, year)
         self.test_process_gadm_chirps_data()
 
     def test_process_gadm_chirps_data(self):

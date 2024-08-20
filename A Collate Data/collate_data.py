@@ -696,7 +696,7 @@ def download_meteorological_data(
         download_chirps_rainfall_data(only_one, dry_run, year, month)
     elif data_name == 'ERA5 atmospheric reanalysis':
         download_era5_reanalysis_data(only_one, dry_run)
-    elif data_name.startswith('TerraClimate gridded temperature, precipitati'):
+    elif data_name.startswith('TerraClimate gridded temperature'):
         download_terraclimate_data(only_one, dry_run, year)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
@@ -888,7 +888,7 @@ def download_chirps_rainfall_data(only_one, dry_run, year, month):
     # URLs should be str, not urllib URL objects, because requests expects
     # str
     base_url = 'https://data.chc.ucsb.edu'
-    # I only know how to anayse tifs, not cogs
+    # I only know how to analyse tifs, not cogs
     fmt = 'tifs'
 
     # Download the annual data for the year provided
@@ -1132,12 +1132,16 @@ def download_meta_pop_density_data(only_one, dry_run, iso3):
         print('This is a dry run - no data will be downloaded. Instead, empty')
         print('file(s) will be created.')
     if only_one:
-        print('Only one file will be downloaded/created.')
+        m = 'For only one file will an attempt to download/create it be made.'
+        print(m)
     print('')
+
+    # Initialise a flag indicating if any file has been downloaded
+    at_least_one = False
 
     # Main webpage
     url = 'https://data.humdata.org/dataset/' + \
-        f'{country.lower()}-high-resolution-population-' + \
+        f'{country.lower().replace(' ', '-')}-high-resolution-population-' + \
         'density-maps-demographic-estimates'
     # Send a GET request to the URL to fetch the HTML content
     response = requests.get(url)
@@ -1154,11 +1158,13 @@ def download_meta_pop_density_data(only_one, dry_run, iso3):
             for link in links:
                 zip_url = link['href']
                 # If we only want to download one file it is the
-                # '{iso3}_general_{year}_csv.zip' file that we want, so check
-                # if this link is for that file. Skip this link if not.
+                # '{iso3}_general_{year}_csv.zip' or
+                # 'population_{iso3}_{date}.csv.zip' file that we want, so
+                # check if this link is for that file. Skip this link if not.
                 if only_one:
                     if f'{iso3.lower()}_general_2020_csv.zip' not in zip_url:
-                        continue
+                        if f'population_{iso3.lower()}' not in zip_url:
+                            continue
                 # Download the data
                 zip_url = 'https://data.humdata.org' + zip_url
                 zip_name = zip_url.split('/')[-1]
@@ -1173,12 +1179,14 @@ def download_meta_pop_density_data(only_one, dry_run, iso3):
                     if dry_run:
                         print(f'Touching "{path}"')
                         path.touch()
+                        at_least_one = True
                     else:
                         print(f'Saving "{path}"')
                         # Open a file in binary write mode and save to it
                         with open(path, 'wb') as f:
                             f.write(zip_response.content)
                         unpack_file(path, same_folder=True)
+                        at_least_one = True
                 else:
                     code = zip_response.status_code
                     raise ValueError(f'Bad response for CSV: "{code}"')
@@ -1186,6 +1194,9 @@ def download_meta_pop_density_data(only_one, dry_run, iso3):
             raise ValueError(f'Could not find a link containing "{target}"')
     else:
         raise ValueError(f'Bad response for page: "{response.status_code}"')
+
+    if not at_least_one:
+        print('No file was downloaded or created.')
 
 
 def download_worldpop_pop_count_data(only_one, dry_run, iso3):
