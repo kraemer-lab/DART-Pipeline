@@ -95,15 +95,7 @@ if os.environ.get('WAYLAND_DISPLAY') is not None:
 
 # Settings
 plt.rc('font', family='serif')
-plt.rc('pgf', texsystem='xelatex')
-plt.rc(
-    'pgf', preamble=r'''
-        \usepackage[utf8]{inputenc}
-        \usepackage[T1]{fontenc}
-        \usepackage{fontspec}
-        \usepackage{lmodern}
-    '''
-)
+plt.rc('text', usetex=True)
 
 
 def days_to_date(days_since_1900):
@@ -802,6 +794,7 @@ def process_chirps_rainfall_data(
     path = Path(path_root, path_stem, filename)
     src = rasterio.open(path)
     print(f'Processing "{path}"')
+    # Rasterio stores image layers in 'bands'
     num_bands = src.count
     if num_bands != 1:
         msg = f'There is a number of bands other than 1: {num_bands}'
@@ -1491,59 +1484,121 @@ def process_worldpop_pop_density_data(year, iso3):
 
 
 def process_geospatial_meteorological_data(
-    data_name, admin_level, iso3, year
+    data_name, iso3, admin_level, year, month=None, day=None
 ):
     """Process Geospatial and Meteorological Data."""
     data_name_1 = 'GADM administrative map'
     data_name_2 = \
         'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations'
     if data_name == [data_name_1, data_name_2]:
-        process_gadm_chirps_data(admin_level, iso3, year)
+        process_gadm_chirps_data(iso3, admin_level, year, month, day)
     else:
         raise ValueError(f'Unrecognised data names "{data_name}"')
 
 
-def process_gadm_chirps_data(admin_level, iso3, year):
+def process_gadm_chirps_data(iso3, admin_level, year, month=None, day=None):
     """
     Process GADM administrative map and CHIRPS rainfall data.
 
     Run times:
 
-    - `time python3 process_data.py GADM CHIRPS -a 0`: 1.869s
-    - `time python3 process_data.py GADM CHIRPS -a 1`: 14.640s
-    - `time python3 process_data.py GADM CHIRPS -a 2`: 2m36.276s
-    - `time python3 process_data.py GADM CHIRPS -a 3`: 41m55.092s
-    - `time python3 process_data.py GADM CHIRPS -a 0 -3 GBR`: 12.027s
-    - `time python3 process_data.py GADM CHIRPS -a 1 -3 GBR`: 5.624s
-    - `time python3 process_data.py GADM CHIRPS -a 2 -3 GBR`: 5.626s
-    - `time python3 process_data.py GADM CHIRPS -a 3 -3 GBR`: 6.490s
+    - `python3 process_data.py GADM CHIRPS -3 VNM -a 0`: 1.611s
+    - `python3 process_data.py GADM CHIRPS -3 VNM -a 1`: 12.802s
+    - `python3 process_data.py GADM CHIRPS -3 VNM -a 0 -m 05`: 1.666s
+    - `python3 process_data.py GADM CHIRPS -3 VNM -a 1 -m 05`: 13.883s
+    - `python3 process_data.py GADM CHIRPS -3 VNM -a 0 -m 05 -d 01`: 1.655s
+    - `python3 process_data.py GADM CHIRPS -3 VNM -a 1 -m 05 -d 01`: 13.940s
+    - `python3 process_data.py GADM CHIRPS -3 PER -a 0`: 1.895s
+    - `python3 process_data.py GADM CHIRPS -3 PER -a 1`: 7.177s
+    - `python3 process_data.py GADM CHIRPS -3 PER -a 0 -m 05`: 1.903s
+    - `python3 process_data.py GADM CHIRPS -3 PER -a 1 -m 05`: 7.167s
+    - `python3 process_data.py GADM CHIRPS -3 PER -a 0 -m 05 -d 01`: 1.903s
+    - `python3 process_data.py GADM CHIRPS -3 PER -a 1 -m 05 -d 01`: 7.138s
+    - `python3 process_data.py GADM CHIRPS -3 GBR -a 0`: 10.452s
+    - `python3 process_data.py GADM CHIRPS -3 GBR -a 1`: 5.163s
+    - `python3 process_data.py GADM CHIRPS -3 GBR -a 0 -m 05`: 9.863s
+    - `python3 process_data.py GADM CHIRPS -3 GBR -a 1 -m 05`: 5.340s
+    - `python3 process_data.py GADM CHIRPS -3 GBR -a 0 -m 05 -d 01`: 9.868s
+    - `python3 process_data.py GADM CHIRPS -3 GBR -a 1 -m 05 -d 01`: 5.374s
     """
     # Sanitise the inputs
     data_type = 'Geospatial and Meteorological Data'
+    print('Data types: ', data_type)
     data_name = 'GADM administrative map and CHIRPS rainfall data'
-    if not admin_level:
-        admin_level = '0'
+    print('Data names: ', data_name)
     if not iso3:
         iso3 = 'VNM'
-    country = pycountry.countries.get(alpha_3=iso3).name
+        country = pycountry.countries.get(alpha_3=iso3).name
+        print('Country:     None, defaulting to Vietnam')
+    else:
+        country = pycountry.countries.get(alpha_3=iso3).name
+        print('Country:    ', country)
+    if not admin_level:
+        admin_level = '0'
+        print('Admin level: None, defaulting to 0')
+    else:
+        print('Admin level:', admin_level)
     if not year:
         year = '2023'
+        print('Year:        None, defaulting to 2023')
+    else:
+        print('Year:       ', year)
+    print('Month:      ', month)
+    print('Day:        ', day)
 
-    # Inform the user
-    print('Data type:  ', data_type)
-    print('Data names: ', data_name)
-    print('Admin level:', admin_level)
-    print('Country:    ', country)
-    print('Year:       ', year)
+    # Re-format
+    if month:
+        month = f'{int(month):02d}'
+    if day:
+        day = f'{int(day):02d}'
 
-    # Import the TIFF file
-    path = Path(
+    # Start constructing the import path
+    path_root = Path(
         base_dir, 'A Collate Data', 'Meteorological Data',
         'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-        'Observations', 'global_daily', year, '05',
-        f'chirps-v2.0.{year}.05.01.tif'
+        'Observations'
     )
+
+    # Get the data sub-type to use
+    if month:
+        if day:
+            print(
+                f'Global Daily data will be processed for {year}-{month}-{day}'
+            )
+            filename = f'chirps-v2.0.{year}.{month}.{day}.tif'
+            path_stem = Path('global_daily', year, month)
+        else:
+            print(f'Global Monthly data will be processed for {year}-{month}')
+            filename = f'chirps-v2.0.{year}.{month}.tif'
+            path_stem = Path('global_monthly', year)
+    else:
+        current_year = str(datetime.now().year)
+        if year == current_year:
+            raise ValueError(
+                f'Data for the whole of {year} does not yet exist'
+            )
+        print(f'Global Annual data will be processed for {year}')
+        filename = f'chirps-v2.0.{year}.tif'
+        path_stem = Path('global_annual')
+
+    # Construct the date
+    if month:
+        if day:
+            date = f'{year}-{month}-{day}'
+        else:
+            date = f'{year}-{month}'
+    else:
+        date = f'{year}'
+
+    # Open the CHIRPS .tif file
+    path = Path(path_root, path_stem, filename)
     src = rasterio.open(path)
+    print(f'Processing "{path}"')
+    num_bands = src.count
+    if num_bands != 1:
+        msg = f'There is a number of bands other than 1: {num_bands}'
+        raise ValueError(msg)
+
     # Read the first band
     data = src.read(1)
     # Replace negative values (no rainfall measured) with zeros
@@ -1577,6 +1632,7 @@ def process_gadm_chirps_data(admin_level, iso3, year):
 
     # Initialise the output file
     output = pd.DataFrame()
+
     # Iterate over each region in the shape file
     for _, region in gdf.iterrows():
         geometry = region.geometry
@@ -1615,7 +1671,6 @@ def process_gadm_chirps_data(admin_level, iso3, year):
 
             # Sum the pixel values to get the total for the region
             region_total = np.nansum(region_data)
-            print(title, region_total)
 
             # Plot
             fig = plt.figure(figsize=utils.papersize_inches_a(4), dpi=144)
@@ -1633,10 +1688,26 @@ def process_gadm_chirps_data(admin_level, iso3, year):
             # Adjust the aspect ratio to match this part of the Earth
             ax.set_aspect(aspect_ratio)
             # Export
-            path = Path(
-                base_dir, 'B Process Data', data_type, data_name, iso3,
-                f'Admin Level {admin_level}', title + '.png'
-            )
+            if month:
+                if day:
+                    path = Path(
+                        base_dir, 'B Process Data', data_type, data_name, iso3,
+                        f'Admin Level {admin_level}', year, month, day,
+                        f'{year}-{month}-{day} {title}.png'
+                    )
+                else:
+                    path = Path(
+                        base_dir, 'B Process Data', data_type, data_name, iso3,
+                        f'Admin Level {admin_level}', year, month,
+                        f'{year}-{month} {title}.png'
+                    )
+            else:
+                path = Path(
+                    base_dir, 'B Process Data', data_type, data_name, iso3,
+                    f'Admin Level {admin_level}', year,
+                    f'{year} {title}.png'
+                )
+            print('Exporting to', path)
             os.makedirs(path.parent, exist_ok=True)
             plt.savefig(path)
             plt.close()
@@ -1644,18 +1715,35 @@ def process_gadm_chirps_data(admin_level, iso3, year):
         else:
             # There is no rainfall data for this region
             region_total = 0
-            print(title, region_total)
 
         # Add to output data frame
+        new_row['Date'] = date
         new_row['Rainfall'] = region_total
         new_row_df = pd.DataFrame(new_row, index=[0])
         output = pd.concat([output, new_row_df], ignore_index=True)
 
     # Export
-    path = Path(
-        base_dir, 'B Process Data', data_type, data_name, iso3,
-        f'Admin Level {admin_level}', 'Rainfall.csv'
-    )
+    if month:
+        if day:
+            path = Path(
+                base_dir, 'B Process Data', data_type, data_name, iso3,
+                f'Admin Level {admin_level}', year, month, day,
+                f'{year}-{month}-{day}.csv'
+            )
+        else:
+            path = Path(
+                base_dir, 'B Process Data', data_type, data_name, iso3,
+                f'Admin Level {admin_level}', year, month,
+                f'{year}-{month}.csv'
+            )
+    else:
+        path = Path(
+            base_dir, 'B Process Data', data_type, data_name, iso3,
+            f'Admin Level {admin_level}', year,
+            f'{year}.csv'
+        )
+    print('Exporting to', path)
+    os.makedirs(path.parent, exist_ok=True)
     output.to_csv(path, index=False)
 
 
@@ -2156,7 +2244,7 @@ def process_pop_weighted_relative_wealth_index_data(iso3, admin_level='0'):
     )
 
     # Plot
-    fig, ax = plt.subplots(figsize=utils.papersize_inches_a(5))
+    _, ax = plt.subplots(figsize=utils.papersize_inches_a(5))
     shapefile_rwi.plot(
         ax=ax, column='rwi_weight', marker='o', markersize=1, legend=True,
         label='RWI score'
@@ -2329,7 +2417,7 @@ if __name__ == '__main__':
 
     elif data_type == ['Geospatial Data', 'Meteorological Data']:
         process_geospatial_meteorological_data(
-            data_name, admin_level, iso3, year
+            data_name, iso3, admin_level, year, month, day
         )
     elif data_type == ['Geospatial Data', 'Socio-Demographic Data']:
         process_geospatial_sociodemographic_data(
