@@ -64,7 +64,6 @@ format for country codes.
 from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from pyquadkey2 import quadkey
-from rasterio.features import geometry_mask
 from rasterio.mask import mask
 from rasterio.transform import xy
 from shapely.geometry import box, Point
@@ -77,7 +76,7 @@ import pandas as pd
 import pycountry
 import rasterio
 # Built-in modules
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 import argparse
 import math
@@ -199,7 +198,7 @@ def process_relative_wealth_index_data(iso3):
         df, geometry=gpd.points_from_xy(df.longitude, df.latitude)
     )
     _, ax = plt.subplots(figsize=utils.papersize_inches_a(5))
-    gdf_plot = gdf.plot(
+    gdf.plot(
         ax=ax, column='rwi', marker='o', markersize=1, legend=True,
         legend_kwds={'shrink': 0.3, 'label': 'Relative Wealth Index (RWI)'}
     )
@@ -306,7 +305,8 @@ def process_ministerio_de_salud_peru_data(admin_level):
         master = pd.concat([master, df], ignore_index=True)
 
         # Plot the individual region
-        fig_region, ax_region = plt.subplots(figsize=utils.papersize_inches_a(6, 'landscape'))
+        figsize = utils.papersize_inches_a(6, 'landscape')
+        fig_region, ax_region = plt.subplots(figsize=figsize)
         bl = df['tipo_dx'] == 'C'
         ax_region.plot(
             df[bl]['date'].values, df[bl]['n'].values, c='k', lw=1.2
@@ -345,7 +345,8 @@ def process_ministerio_de_salud_peru_data(admin_level):
 
     # Create a master plot
     if admin_level != '0':
-        fig_all, ax_all = plt.subplots(figsize=utils.papersize_inches_a(6, 'landscape'))
+        figsize = utils.papersize_inches_a(6, 'landscape')
+        fig_all, ax_all = plt.subplots(figsize=figsize)
 
         for filepath in filepaths:
             df = pd.read_excel(filepath)
@@ -527,7 +528,7 @@ def process_gadm_admin_map_data(admin_level, iso3):
 
         # Calculate area in square metres
         area = region.geometry.area
-        # Convert to square kilometers
+        # Convert to square kilometres
         area_sq_km = area / 1e6
         # Add to output data frame
         new_row['Area [km²]'] = area_sq_km
@@ -543,18 +544,20 @@ def process_gadm_admin_map_data(admin_level, iso3):
     output.to_csv(path, index=False)
 
 
-def process_meteorological_data(data_name, year, month, verbose, test=False):
+def process_meteorological_data(
+    data_name, year=None, month=None, day=None, verbose=False, test=False
+):
     """Process meteorological data."""
     if data_name == 'APHRODITE Daily accumulated precipitation (V1901)':
         process_aphrodite_precipitation_data()
     elif data_name == 'APHRODITE Daily mean temperature product (V1808)':
         process_aphrodite_temperature_data()
     elif data_name.startswith('CHIRPS: Rainfall Estimates from Rain Gauge an'):
-        process_chirps_rainfall_data(year, month, verbose, test)
+        process_chirps_rainfall_data(year, month, day, verbose, test)
     elif data_name == 'ERA5 atmospheric reanalysis':
         process_era5_reanalysis_data()
-    elif data_name.startswith('TerraClimate gridded temperature, precipitati'):
-        process_terraclimate_data(year, month, None, test=test)
+    elif data_name.startswith('TerraClimate gridded temperature'):
+        process_terraclimate_data(year, month, verbose, test)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
 
@@ -738,7 +741,9 @@ def process_aphrodite_temperature_data():
         df.to_csv(path)
 
 
-def process_chirps_rainfall_data(year, month, verbose=False, test=False):
+def process_chirps_rainfall_data(
+    year, month=None, day=None, verbose=False, test=False
+):
     """
     Process CHIRPS Rainfall data.
 
@@ -747,111 +752,150 @@ def process_chirps_rainfall_data(year, month, verbose=False, test=False):
 
     Run times:
 
-    - `time python3 process_data.py "CHIRPS rainfall" -d`: 02:07.085 (one file)
+    - `time python3 process_data.py CHIRPS -y 2023 -v`: 1m33.389s
+    - `time python3 process_data.py CHIRPS -y 2023 -m 5 -v`: 1m49.979s
+    - `time python3 process_data.py CHIRPS -y 2023 -m 5 -d 1 -v`: 3m47.799s
+    - `time python3 process_data.py CHIRPS -y 2023 -v -t`: 1m26.609s
+    - `time python3 process_data.py CHIRPS -y 2023 -m 5 -v -t`: 1m21.545s
+    - `time python3 process_data.py CHIRPS -y 2023 -m 5 -d 1 -v -t`: 2m8.233s
     """
     # Sanitise the inputs
     data_type = 'Meteorological Data'
-    data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and ' + \
+    data_name = 'CHIRPS - Rainfall Estimates from Rain Gauge and ' + \
         'Satellite Observations'
     if not year:
-        year = '2024'
+        msg = 'No year provided. Use the "-y" flag.'
+        raise ValueError(msg)
+    if year:
+        if not month:
+            if day:
+                msg = 'Year and day but no month provided. Use the "-m" flag.'
+                raise ValueError(msg)
 
-    # Inform the user
-    print('Data type:  ', data_type)
-    print('Data names: ', data_name)
-    print('Year:       ', year)
+    # Re-format
+    if month:
+        month = f'{int(month):02d}'
+    if day:
+        day = f'{int(day):02d}'
 
-    path = Path(
-        base_dir, 'A Collate Data', 'Meteorological Data',
-        'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-        'Observations', 'global_daily', year, month
-    )
-    filepaths = list(path.iterdir())
-    # Only process the GeoTIF files
-    filepaths = [f for f in filepaths if f.suffix == '.tif']
-    filepaths.sort()
+    # Start constructing the import path
+    path_root = Path(base_dir, 'A Collate Data', data_type, data_name)
 
-    for filepath in filepaths:
-        print(f'Processing "{filepath.name}"')
-        # Open the CHIRPS .tif file
-        src = rasterio.open(filepath)
-        num_bands = src.count
-        if num_bands != 1:
-            msg = f'There is a number of bands other than 1: {num_bands}'
-            raise ValueError(msg)
+    # Get the data sub-type to use
+    if month:
+        if day:
+            print(
+                f'Global Daily data will be processed for {year}-{month}-{day}'
+            )
+            filename = f'chirps-v2.0.{year}.{month}.{day}.tif'
+            path_stem = Path('global_daily', year, month)
+        else:
+            print(f'Global Monthly data will be processed for {year}-{month}')
+            filename = f'chirps-v2.0.{year}.{month}.tif'
+            path_stem = Path('global_monthly', year)
+    else:
+        print(f'Global Annual data will be processed for {year}')
+        filename = f'chirps-v2.0.{year}.tif'
+        path_stem = Path('global_annual')
 
-        # Get the data in the first band as an array
-        data = src.read(1)
-        # Get the affine transformation coefficients
-        transform = src.transform
-        # Get the size of the image
-        rows, cols = src.height, src.width
+    # Open the CHIRPS .tif file
+    path = Path(path_root, path_stem, filename)
+    src = rasterio.open(path)
+    print(f'Processing "{path}"')
+    num_bands = src.count
+    if num_bands != 1:
+        msg = f'There is a number of bands other than 1: {num_bands}'
+        raise ValueError(msg)
 
-        # Reshape the data into a 1D array
-        rainfall = data.flatten()
-        # Construct the coordinates for each pixel
-        all_rows, all_cols = np.indices((rows, cols))
-        lon, lat = xy(transform, all_rows.flatten(), all_cols.flatten())
+    # Get the data in the first band as an array
+    data = src.read(1)
+    # Hide nulls
+    data[data == -9999] = 0
 
-        # Plot
-        plt.figure(figsize=(20, 8))
-        extent = [np.min(lon), np.max(lon), np.min(lat), np.max(lat)]
-        # Hide nulls
-        data[data == -9999] = 0
-        cmap = plt.cm.get_cmap('Blues')
-        plt.imshow(data, extent=extent, cmap=cmap)
-        plt.colorbar(label='Rainfall [mm]')
-        plt.xlabel('Longitude')
-        plt.ylabel('Latitude')
-        plt.title('Rainfall Estimates')
-        plt.grid(True)
-        path = Path(
-            base_dir, 'B Process Data', 'Meteorological Data',
-            'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-            'Observations', Path(filepath.name).with_suffix('.png')
-        )
-        path.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(path)
+    # Export the raw data
+    dct = {
+        'year': year,
+        'month': month,
+        'day': day,
+        'region': 'global',
+        'rainfall': np.sum(data)
+    }
+    # Create a DataFrame from the dictionary
+    new_row = pd.DataFrame(dct, index=[0])
+    # Define the output path
+    path = Path(base_dir, 'B Process Data', data_type, data_name, 'output.csv')
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # Check if a CSV already exists
+    if path.exists():
+        # Load and update the existing CSV if it exists
+        df = pd.read_csv(path)
+        # Check if a row with the same year, month, and day exists
+        if month:
+            if day:
+                mask = (df['year'] == int(year)) & \
+                    (df['month'] == int(month)) & (df['day'] == int(day))
+            else:
+                mask = (df['year'] == int(year)) & \
+                    (df['month'] == int(month)) & df['day'].isna()
+        else:
+            mask = (df['year'] == int(year)) & df['month'].isna() & \
+                df['day'].isna()
+        if mask.any():
+            # Update the row if an entry for this date already exists
+            df.loc[mask, 'rainfall'] = np.sum(data)
+        else:
+            # Append a new row if an entry for this date does not exist
+            df = pd.concat([df, new_row], ignore_index=True)
+    else:
+        # If the CSV does not exist, create it with this as the only row
+        df = new_row
+    # Save the DataFrame back to the CSV
+    print(f'Saving "{path}"')
+    df.to_csv(path, index=False)
 
-        # If you're testing, only do one file
-        if test:
-            break
+    # If you're just testing, don't bother creating the plots
+    if test:
+        return
 
-        # Create a data frame
-        df = pd.DataFrame({
-            'longitude': lon,
-            'latitude': lat,
-            'rainfall': rainfall,
-        })
-        # Export
-        path = Path(
-            'Meteorological Data',
-            'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-            'Observations', Path(filepath.name).with_suffix('.csv')
-        )
-        path.parent.mkdir(parents=True, exist_ok=True)
-        df.to_csv(path, index=False)
+    # Get the affine transformation coefficients
+    transform = src.transform
+    # Get the size of the image
+    rows, cols = src.height, src.width
+    # Construct the coordinates for each pixel
+    all_rows, all_cols = np.indices((rows, cols))
+    lon, lat = xy(transform, all_rows.flatten(), all_cols.flatten())
 
-        # Plot - log transformed
-        plt.figure(figsize=(20, 8))
-        extent = [np.min(lon), np.max(lon), np.min(lat), np.max(lat)]
-        # Hide nulls
-        data[data == -9999] = 0
-        # Log transform
-        data = np.log(data)
-        cmap = plt.cm.get_cmap('Blues')
-        plt.imshow(data, extent=extent, cmap=cmap)
-        plt.colorbar(shrink=0.8, label='Rainfall [mm, log transformed]')
-        plt.xlabel('Longitude')
-        plt.ylabel('Latitude')
-        plt.title('Rainfall Estimates - Log Transformed')
-        plt.grid(True)
-        path = str(path).removesuffix('.png') + ' - Log Transformed.png'
-        plt.savefig(path)
+    # Plot
+    plt.figure(figsize=(20, 8))
+    extent = [np.min(lon), np.max(lon), np.min(lat), np.max(lat)]
+    cmap = plt.get_cmap('Blues')
+    plt.imshow(data, extent=extent, cmap=cmap)
+    plt.colorbar(label='Rainfall [mm]')
+    plt.xlabel('Longitude')
+    plt.ylabel('Latitude')
+    plt.title('Rainfall Estimates')
+    plt.grid(True)
+    path_root = Path(base_dir, 'B Process Data', data_type, data_name)
+    path = Path(path_root, path_stem, Path(filename).with_suffix('.png'))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    print(f'Saving "{path}"')
+    plt.savefig(path)
 
-        # If you're testing, only do one file
-        if test:
-            break
+    # Plot - log transformed
+    plt.figure(figsize=(20, 8))
+    extent = [np.min(lon), np.max(lon), np.min(lat), np.max(lat)]
+    # Log transform
+    data = np.log(data)
+    cmap = plt.get_cmap('Blues')
+    plt.imshow(data, extent=extent, cmap=cmap)
+    plt.colorbar(shrink=0.8, label='Rainfall [mm, log transformed]')
+    plt.xlabel('Longitude')
+    plt.ylabel('Latitude')
+    plt.title('Rainfall Estimates - Log Transformed')
+    plt.grid(True)
+    path = str(path).removesuffix('.png') + ' - Log Transformed.png'
+    print(f'Saving "{path}"')
+    plt.savefig(path)
 
 
 def process_era5_reanalysis_data():
@@ -874,7 +918,7 @@ def process_era5_reanalysis_data():
     level = file.variables['level'][:]
     time = file.variables['time'][:]
     temp = file.variables['t'][:]
-    # Convert Kelvin to Celcius
+    # Convert Kelvin to Celsius
     temp = temp - 273.15
 
     longitudes = []
@@ -885,12 +929,12 @@ def process_era5_reanalysis_data():
     for i, lon in enumerate(longitude):
         for j, lat in enumerate(latitude):
             for k, lev in enumerate(level):
-                for l, t in enumerate(time):
+                for m, t in enumerate(time):
                     longitudes.append(lon)
                     latitudes.append(lat)
                     levels.append(lev)
                     times.append(t)
-                    temperatures.append(temp[l, k, j, i])
+                    temperatures.append(temp[m, k, j, i])
 
     # Convert lists to DataFrame
     dct = {
@@ -992,7 +1036,7 @@ def process_terraclimate_data(year, month, verbose=False, test=False):
                 t = int(time[i])
 
                 # Get the date this data represents
-                date = days_to_date(t)
+                timepoint = days_to_date(t)
 
                 # Get the data for this timepoint, for all lat and lon
                 data = raw_data[i, :, :]
@@ -1003,7 +1047,8 @@ def process_terraclimate_data(year, month, verbose=False, test=False):
                 lat = latitude[::2]
 
                 # Plot data
-                fig = plt.figure(figsize=utils.papersize_inches_a(5, 'landscape'))
+                figsize = utils.papersize_inches_a(5, 'landscape')
+                fig = plt.figure(figsize=figsize)
                 ax = plt.axes()
                 img = ax.imshow(data, cmap='GnBu')
                 # Create the colour bar
@@ -1024,14 +1069,14 @@ def process_terraclimate_data(year, month, verbose=False, test=False):
                 # Add labels
                 plt.xlabel('Longitude')
                 plt.ylabel('Latitude')
-                B_Y = date.strftime('%B %Y')
+                B_Y = timepoint.strftime('%B %Y')
                 ax.set_title(
                     rf'\centering\bf {metric_name}\\\normalfont {B_Y}\par',
                     y=1.1
                 )
                 plt.tight_layout()
                 # Export
-                Y_m = date.strftime('%Y-%m')
+                Y_m = timepoint.strftime('%Y-%m')
                 path = Path(
                     base_dir, 'B Process Data', 'Meteorological Data',
                     'TerraClimate', Y_m, metric_name
@@ -1110,16 +1155,16 @@ def process_meta_pop_density_data(year, iso3):
     heatmap = (heatmap - heatmap.min()) / (heatmap.max() - heatmap.min())
     heatmap = heatmap * df[metric_log].max()
 
-    # Create a custom colourmap
+    # Create a custom colour map
     # Define number of colours in the white and green regions of the colormap
     n_white = 40
     n_colours = 256 - n_white
     # Create the white section of the colormap
     # RGBA, A = 1 for opaque
     white = np.ones((n_white, 4))
-    # Get the Greens colourmap data
+    # Get the Greens colour map data
     greens = plt.get_cmap('Greens', n_colours)
-    # Combine the white and Greens colourmap data
+    # Combine the white and Greens colour map data
     colours = np.vstack((white, greens(np.linspace(0.2, 1, n_colours))))
     # Create a new colormap
     cmap = LinearSegmentedColormap.from_list('WhiteGreens', colours)
@@ -1219,7 +1264,7 @@ def process_worldpop_pop_count_data(year, iso3, rt, test=False):
     plt.figure(figsize=utils.papersize_inches_a(5))
     plt.imshow(source_data, cmap='GnBu')
     plt.title(
-        rf'\centering\bf WorldPop Population Count' +
+        r'\centering\bf WorldPop Population Count' +
         rf'\\\normalfont {country} - {year}\par',
         y=1.03
     )
@@ -1413,7 +1458,7 @@ def process_worldpop_pop_density_data(year, iso3):
     # Plot
     fig, ax = plt.subplots(figsize=utils.papersize_inches_a(5))
     plt.title(
-        rf'\centering\bf Population Density - Log Transformed' +
+        r'\centering\bf Population Density - Log Transformed' +
         rf'\\\normalfont {country}\par',
         y=1.03
     )
@@ -1991,10 +2036,10 @@ def process_economic_geospatial_sociodemographic_data(
 
 def get_admin_region(lat, lon, polygons):
     """
-    Find the admin region in which a gridcell lies.
+    Find the admin region in which a grid cell lies.
 
     Return the ID of administrative region in which the centre (given by
-    latitude and longitude) of a 2.4km^2 gridcell lies.
+    latitude and longitude) of a 2.4km^2 grid cell lies.
 
     Parameters
     ----------
@@ -2226,12 +2271,16 @@ if __name__ == '__main__':
     parser.add_argument('--year', '-y', help=message)
     message = '''Some data fields have data available for multiple months.'''
     parser.add_argument('--month', '-m', help=message)
+    message = '''Some data fields have data available for multiple days.'''
+    parser.add_argument('--day', '-d', help=message)
     message = '''"ppp" (people per pixel) or "pph" (people per hectare).'''
     parser.add_argument('--resolution_type', '-r', help=message)
     message = '''Country code in "ISO 3166-1 alpha-3" format.'''
     parser.add_argument('--iso3', '-3', help=message)
     message = '''Show information to help with debugging.'''
     parser.add_argument('--verbose', '-v', help=message, action='store_true')
+    message = '''Run in test mode.'''
+    parser.add_argument('--test', '-t', help=message, action='store_true')
 
     # Parse arguments from terminal
     args = parser.parse_args()
@@ -2242,8 +2291,10 @@ if __name__ == '__main__':
     admin_level = args.admin_level
     year = args.year
     month = args.month
+    day = args.day
     rt = args.resolution_type
     verbose = args.verbose
+    test = args.test
 
     # Check
     if verbose:
@@ -2270,7 +2321,9 @@ if __name__ == '__main__':
     elif data_type == ['Geospatial Data']:
         process_geospatial_data(data_name[0], admin_level, iso3)
     elif data_type == ['Meteorological Data']:
-        process_meteorological_data(data_name[0], year, month, verbose)
+        process_meteorological_data(
+            data_name[0], year, month, day, verbose, test
+        )
     elif data_type == ['Socio-Demographic Data']:
         process_socio_demographic_data(data_name[0], year, iso3, rt)
 

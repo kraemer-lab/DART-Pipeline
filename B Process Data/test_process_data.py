@@ -15,7 +15,7 @@ Past runs
 # External libraries
 import rasterio
 # Built-in modules
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 import os
 import time
@@ -164,25 +164,34 @@ class TestCases(unittest.TestCase):
 
     def test_process_meteorological_data(self):
         data_name = 'APHRODITE Daily accumulated precipitation (V1901)'
-        process_meteorological_data(data_name, None, None, None)
+        process_meteorological_data(data_name)
         self.test_process_aphrodite_precipitation_data()
 
         data_name = 'APHRODITE Daily mean temperature product (V1808)'
-        process_meteorological_data(data_name, None, None, None)
+        process_meteorological_data(data_name)
         self.test_process_aphrodite_temperature_data()
 
         data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and ' + \
             'Satellite Observations'
-        process_meteorological_data(data_name, '2023', '05', True, True)
+        year = '2023'
+        month = '5'
+        day = None
+        verbose = True
+        test = True
+        process_meteorological_data(data_name, year, month, day, verbose, test)
         self.test_process_chirps_rainfall_data()
 
         data_name = 'ERA5 atmospheric reanalysis'
-        process_meteorological_data(data_name, None, None, None)
+        process_meteorological_data(data_name)
         self.test_process_era5_reanalysis_data()
 
         data_name = 'TerraClimate gridded temperature, precipitation, and ' + \
             'other'
-        process_meteorological_data(data_name, '2023', '11', None, test=True)
+        year = '2023'
+        month = '11'
+        process_meteorological_data(
+            data_name, year, month, verbose=True, test=True
+        )
         self.test_process_terraclimate_data()
 
     def test_process_aphrodite_precipitation_data(self):
@@ -222,16 +231,18 @@ class TestCases(unittest.TestCase):
         Prerequisite data: chirps-v2.0.2023.05.01.tif
         Download via: `python3 collate_data.py "CHIRPS rainfall" -1`
         """
-        process_chirps_rainfall_data('2023', '05', verbose=False, test=True)
+        year = '2023'
+        month = '05'
+        verbose = False
+        test = True
+        process_chirps_rainfall_data(year, month, verbose=verbose, test=test)
         base_dir = utils.get_base_directory()
         path = Path(
             base_dir, 'B Process Data', 'Meteorological Data',
             'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-            'Observations', 'chirps-v2.0.2023.05.01.png'
+            'Observations', 'output.csv'
         )
-        expected = True
-        actual = path.exists()
-        self.assertEqual(expected, actual)
+        self.assertTrue(path.exists())
 
     def test_process_era5_reanalysis_data(self):
         """
@@ -337,11 +348,11 @@ class TestCases(unittest.TestCase):
             'CHIRPS: Rainfall Estimates from Rain Gauge and Satellite ' +
             'Observations'
         ]
-        adminlvl = '0'
+        level = '0'
         iso3 = 'VNM'
         # Don't test data from the current year as it will be incomplete
         year = '2023'
-        process_geospatial_meteorological_data(data_name, adminlvl, iso3, year)
+        process_geospatial_meteorological_data(data_name, level, iso3, year)
         self.test_process_gadm_chirps_data()
 
     def test_process_gadm_chirps_data(self):
