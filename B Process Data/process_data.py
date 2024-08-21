@@ -1572,7 +1572,7 @@ def process_gadm_chirps_data(iso3, admin_level, year, month=None, day=None):
             filename = f'chirps-v2.0.{year}.{month}.tif'
             path_stem = Path('global_monthly', year)
     else:
-        current_year = str(datetime.datetime.now().year)
+        current_year = str(datetime.now().year)
         if year == current_year:
             raise ValueError(
                 f'Data for the whole of {year} does not yet exist'
