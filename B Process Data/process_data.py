@@ -108,8 +108,8 @@ plt.rc(
 
 def days_to_date(days_since_1900):
     """Convert a of number of days since 1900-01-01 into a date."""
-    base_date = datetime.datetime(1900, 1, 1)
-    target_date = base_date + datetime.timedelta(days=days_since_1900)
+    base_date = datetime(1900, 1, 1)
+    target_date = base_date + timedelta(days=days_since_1900)
 
     return target_date
 
