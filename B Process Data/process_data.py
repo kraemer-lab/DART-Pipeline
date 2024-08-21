@@ -794,6 +794,7 @@ def process_chirps_rainfall_data(
     path = Path(path_root, path_stem, filename)
     src = rasterio.open(path)
     print(f'Processing "{path}"')
+    # Rasterio stores image layers in 'bands'
     num_bands = src.count
     if num_bands != 1:
         msg = f'There is a number of bands other than 1: {num_bands}'
