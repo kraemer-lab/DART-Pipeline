@@ -64,7 +64,6 @@ format for country codes.
 from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from pyquadkey2 import quadkey
-from rasterio.features import geometry_mask
 from rasterio.mask import mask
 from rasterio.transform import xy
 from shapely.geometry import box, Point
@@ -77,9 +76,9 @@ import pandas as pd
 import pycountry
 import rasterio
 # Built-in modules
+from datetime import datetime, timedelta
 from pathlib import Path
 import argparse
-import datetime
 import math
 import os
 import warnings
@@ -200,10 +199,8 @@ def process_relative_wealth_index_data(iso3):
     gdf = gpd.GeoDataFrame(
         df, geometry=gpd.points_from_xy(df.longitude, df.latitude)
     )
-    A = 5  # We want figures to be A5
-    figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
-    _, ax = plt.subplots(figsize=figsize)
-    gdf_plot = gdf.plot(
+    _, ax = plt.subplots(figsize=utils.papersize_inches_a(5))
+    gdf.plot(
         ax=ax, column='rwi', marker='o', markersize=1, legend=True,
         legend_kwds={'shrink': 0.3, 'label': 'Relative Wealth Index (RWI)'}
     )
@@ -310,8 +307,7 @@ def process_ministerio_de_salud_peru_data(admin_level):
         master = pd.concat([master, df], ignore_index=True)
 
         # Plot the individual region
-        A = 6  # We want figures to be A6
-        figsize = (46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A))
+        figsize = utils.papersize_inches_a(6, 'landscape')
         fig_region, ax_region = plt.subplots(figsize=figsize)
         bl = df['tipo_dx'] == 'C'
         ax_region.plot(
@@ -351,8 +347,7 @@ def process_ministerio_de_salud_peru_data(admin_level):
 
     # Create a master plot
     if admin_level != '0':
-        A = 6  # We want figures to be A6
-        figsize = (46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A))
+        figsize = utils.papersize_inches_a(6, 'landscape')
         fig_all, ax_all = plt.subplots(figsize=figsize)
 
         for filepath in filepaths:
@@ -537,7 +532,7 @@ def process_gadm_admin_map_data(admin_level, iso3):
 
         # Calculate area in square metres
         area = region.geometry.area
-        # Convert to square kilometers
+        # Convert to square kilometres
         area_sq_km = area / 1e6
         # Add to output data frame
         new_row['Area [km²]'] = area_sq_km
@@ -565,7 +560,7 @@ def process_meteorological_data(
         process_chirps_rainfall_data(year, month, day, verbose, test)
     elif data_name == 'ERA5 atmospheric reanalysis':
         process_era5_reanalysis_data()
-    elif data_name.startswith('TerraClimate gridded temperature, precipitati'):
+    elif data_name.startswith('TerraClimate gridded temperature'):
         process_terraclimate_data(year, month, verbose, test)
     else:
         raise ValueError(f'Unrecognised data name "{data_name}"')
@@ -782,7 +777,7 @@ def process_chirps_rainfall_data(
     """
     # Sanitise the inputs
     data_type = 'Meteorological Data'
-    data_name = 'CHIRPS: Rainfall Estimates from Rain Gauge and ' + \
+    data_name = 'CHIRPS - Rainfall Estimates from Rain Gauge and ' + \
         'Satellite Observations'
     if not year:
         msg = 'No year provided. Use the "-y" flag.'
@@ -800,11 +795,7 @@ def process_chirps_rainfall_data(
         day = f'{int(day):02d}'
 
     # Start constructing the import path
-    path_root = Path(
-        base_dir, 'A Collate Data', 'Meteorological Data',
-        'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-        'Observations'
-    )
+    path_root = Path(base_dir, 'A Collate Data', data_type, data_name)
 
     # Get the data sub-type to use
     if month:
@@ -834,13 +825,58 @@ def process_chirps_rainfall_data(
 
     # Get the data in the first band as an array
     data = src.read(1)
+    # Hide nulls
+    data[data == -9999] = 0
+
+    # Export the raw data
+    dct = {
+        'year': year,
+        'month': month,
+        'day': day,
+        'region': 'global',
+        'rainfall': np.sum(data)
+    }
+    # Create a DataFrame from the dictionary
+    new_row = pd.DataFrame(dct, index=[0])
+    # Define the output path
+    path = Path(base_dir, 'B Process Data', data_type, data_name, 'output.csv')
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # Check if a CSV already exists
+    if path.exists():
+        # Load and update the existing CSV if it exists
+        df = pd.read_csv(path)
+        # Check if a row with the same year, month, and day exists
+        if month:
+            if day:
+                mask = (df['year'] == int(year)) & \
+                    (df['month'] == int(month)) & (df['day'] == int(day))
+            else:
+                mask = (df['year'] == int(year)) & \
+                    (df['month'] == int(month)) & df['day'].isna()
+        else:
+            mask = (df['year'] == int(year)) & df['month'].isna() & \
+                df['day'].isna()
+        if mask.any():
+            # Update the row if an entry for this date already exists
+            df.loc[mask, 'rainfall'] = np.sum(data)
+        else:
+            # Append a new row if an entry for this date does not exist
+            df = pd.concat([df, new_row], ignore_index=True)
+    else:
+        # If the CSV does not exist, create it with this as the only row
+        df = new_row
+    # Save the DataFrame back to the CSV
+    print(f'Saving "{path}"')
+    df.to_csv(path, index=False)
+
+    # If you're just testing, don't bother creating the plots
+    if test:
+        return
+
     # Get the affine transformation coefficients
     transform = src.transform
     # Get the size of the image
     rows, cols = src.height, src.width
-
-    # Reshape the data into a 1D array
-    rainfall = data.flatten()
     # Construct the coordinates for each pixel
     all_rows, all_cols = np.indices((rows, cols))
     lon, lat = xy(transform, all_rows.flatten(), all_cols.flatten())
@@ -848,8 +884,6 @@ def process_chirps_rainfall_data(
     # Plot
     plt.figure(figsize=(20, 8))
     extent = [np.min(lon), np.max(lon), np.min(lat), np.max(lat)]
-    # Hide nulls
-    data[data == -9999] = 0
     cmap = plt.get_cmap('Blues')
     plt.imshow(data, extent=extent, cmap=cmap)
     plt.colorbar(label='Rainfall [mm]')
@@ -857,25 +891,15 @@ def process_chirps_rainfall_data(
     plt.ylabel('Latitude')
     plt.title('Rainfall Estimates')
     plt.grid(True)
-    path_root = Path(
-        base_dir, 'B Process Data', 'Meteorological Data',
-        'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-        'Observations'
-    )
+    path_root = Path(base_dir, 'B Process Data', data_type, data_name)
     path = Path(path_root, path_stem, Path(filename).with_suffix('.png'))
     path.parent.mkdir(parents=True, exist_ok=True)
     print(f'Saving "{path}"')
     plt.savefig(path)
 
-    # If you're testing, don't create the plots
-    if test:
-        return
-
     # Plot - log transformed
     plt.figure(figsize=(20, 8))
     extent = [np.min(lon), np.max(lon), np.min(lat), np.max(lat)]
-    # Hide nulls
-    data[data == -9999] = 0
     # Log transform
     data = np.log(data)
     cmap = plt.get_cmap('Blues')
@@ -910,7 +934,7 @@ def process_era5_reanalysis_data():
     level = file.variables['level'][:]
     time = file.variables['time'][:]
     temp = file.variables['t'][:]
-    # Convert Kelvin to Celcius
+    # Convert Kelvin to Celsius
     temp = temp - 273.15
 
     longitudes = []
@@ -921,12 +945,12 @@ def process_era5_reanalysis_data():
     for i, lon in enumerate(longitude):
         for j, lat in enumerate(latitude):
             for k, lev in enumerate(level):
-                for l, t in enumerate(time):
+                for m, t in enumerate(time):
                     longitudes.append(lon)
                     latitudes.append(lat)
                     levels.append(lev)
                     times.append(t)
-                    temperatures.append(temp[l, k, j, i])
+                    temperatures.append(temp[m, k, j, i])
 
     # Convert lists to DataFrame
     dct = {
@@ -1028,7 +1052,7 @@ def process_terraclimate_data(year, month, verbose=False, test=False):
                 t = int(time[i])
 
                 # Get the date this data represents
-                date = days_to_date(t)
+                timepoint = days_to_date(t)
 
                 # Get the data for this timepoint, for all lat and lon
                 data = raw_data[i, :, :]
@@ -1039,8 +1063,7 @@ def process_terraclimate_data(year, month, verbose=False, test=False):
                 lat = latitude[::2]
 
                 # Plot data
-                A = 5  # We want figures to be A5
-                figsize = (46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A))
+                figsize = utils.papersize_inches_a(5, 'landscape')
                 fig = plt.figure(figsize=figsize)
                 ax = plt.axes()
                 img = ax.imshow(data, cmap='GnBu')
@@ -1062,14 +1085,14 @@ def process_terraclimate_data(year, month, verbose=False, test=False):
                 # Add labels
                 plt.xlabel('Longitude')
                 plt.ylabel('Latitude')
-                B_Y = date.strftime('%B %Y')
+                B_Y = timepoint.strftime('%B %Y')
                 ax.set_title(
                     rf'\centering\bf {metric_name}\\\normalfont {B_Y}\par',
                     y=1.1
                 )
                 plt.tight_layout()
                 # Export
-                Y_m = date.strftime('%Y-%m')
+                Y_m = timepoint.strftime('%Y-%m')
                 path = Path(
                     base_dir, 'B Process Data', 'Meteorological Data',
                     'TerraClimate', Y_m, metric_name
@@ -1148,16 +1171,16 @@ def process_meta_pop_density_data(year, iso3):
     heatmap = (heatmap - heatmap.min()) / (heatmap.max() - heatmap.min())
     heatmap = heatmap * df[metric_log].max()
 
-    # Create a custom colourmap
+    # Create a custom colour map
     # Define number of colours in the white and green regions of the colormap
     n_white = 40
     n_colours = 256 - n_white
     # Create the white section of the colormap
     # RGBA, A = 1 for opaque
     white = np.ones((n_white, 4))
-    # Get the Greens colourmap data
+    # Get the Greens colour map data
     greens = plt.get_cmap('Greens', n_colours)
-    # Combine the white and Greens colourmap data
+    # Combine the white and Greens colour map data
     colours = np.vstack((white, greens(np.linspace(0.2, 1, n_colours))))
     # Create a new colormap
     cmap = LinearSegmentedColormap.from_list('WhiteGreens', colours)
@@ -1261,7 +1284,7 @@ def process_worldpop_pop_count_data(year, iso3, rt, test=False):
     plt.figure(figsize=figsize)
     plt.imshow(source_data, cmap='GnBu')
     plt.title(
-        rf'\centering\bf WorldPop Population Count' +
+        r'\centering\bf WorldPop Population Count' +
         rf'\\\normalfont {country} - {year}\par',
         y=1.03
     )
@@ -1459,7 +1482,7 @@ def process_worldpop_pop_density_data(year, iso3):
     figsize = (33.11 * .5**(.5 * A), 46.82 * .5**(.5 * A))
     fig, ax = plt.subplots(figsize=figsize)
     plt.title(
-        rf'\centering\bf Population Density - Log Transformed' +
+        r'\centering\bf Population Density - Log Transformed' +
         rf'\\\normalfont {country}\par',
         y=1.03
     )
@@ -2139,10 +2162,10 @@ def process_economic_geospatial_sociodemographic_data(
 
 def get_admin_region(lat, lon, polygons):
     """
-    Find the admin region in which a gridcell lies.
+    Find the admin region in which a grid cell lies.
 
     Return the ID of administrative region in which the centre (given by
-    latitude and longitude) of a 2.4km^2 gridcell lies.
+    latitude and longitude) of a 2.4km^2 grid cell lies.
 
     Parameters
     ----------

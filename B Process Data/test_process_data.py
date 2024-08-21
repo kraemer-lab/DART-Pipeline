@@ -15,7 +15,7 @@ Past runs
 # External libraries
 import rasterio
 # Built-in modules
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 import os
 import time
@@ -240,11 +240,9 @@ class TestCases(unittest.TestCase):
         path = Path(
             base_dir, 'B Process Data', 'Meteorological Data',
             'CHIRPS - Rainfall Estimates from Rain Gauge and Satellite ' +
-            'Observations', 'global_monthly', '2023', 'chirps-v2.0.2023.05.png'
+            'Observations', 'output.csv'
         )
-        expected = True
-        actual = path.exists()
-        self.assertEqual(expected, actual)
+        self.assertTrue(path.exists())
 
     def test_process_era5_reanalysis_data(self):
         """
@@ -351,10 +349,10 @@ class TestCases(unittest.TestCase):
             'Observations'
         ]
         iso3 = 'VNM'
-        adminlvl = '0'
+        level = '0'
         # Don't test data from the current year as it will be incomplete
         year = '2023'
-        process_geospatial_meteorological_data(data_name, iso3, adminlvl, year)
+        process_geospatial_meteorological_data(data_name, iso3, level, year)
         self.test_process_gadm_chirps_data()
 
     def test_process_gadm_chirps_data(self):
