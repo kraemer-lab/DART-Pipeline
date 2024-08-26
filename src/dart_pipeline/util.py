@@ -22,7 +22,7 @@ from .types import Credentials
 
 def daterange(
     start_date: datetime.date, end_date: datetime.date
-) -> Generator[datetime.date]:
+):
     """Construct a date range for iterating over the days between two dates."""
     for n in range((end_date - start_date).days + 1):
         yield start_date + timedelta(n)
