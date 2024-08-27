@@ -25,8 +25,9 @@ from .types import Credentials, URLCollection
 def show_urlcollection(c: URLCollection, all_links: bool = False) -> str:
     file_list_str = c.files[0] if len(c.files) == 1 else f" [{len(c.files)} links]"
     s = f"{c.base_url}{file_list_str}"
-    return s + "\n" + "\n".join(f"  {file}" for file in c.files) if len(c.files) > 1 else s
-
+    return (
+        s + "\n" + "\n".join(f"  {file}" for file in c.files) if len(c.files) > 1 else s
+    )
 
 
 def get_country_name(iso3: str) -> str | None:

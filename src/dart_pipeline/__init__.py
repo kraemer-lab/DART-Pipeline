@@ -11,7 +11,6 @@ from .util import (
     download_files,
     get_credentials,
     only_one_from_collection,
-    show_urlcollection,
 )
 
 DATA_PATH = Path(os.getenv("DART_PIPELINE_DATA_PATH", "data"))
@@ -20,8 +19,8 @@ DATA_PATH = Path(os.getenv("DART_PIPELINE_DATA_PATH", "data"))
 def list_links(source: str, **kwargs):
     "Get links that will be downloaded for a source"
     res = SOURCES[source](**kwargs)
-    for coll in (res if isinstance(res, list) else [res]):
-        print(f"LIST {source} {show_urlcollection(coll, all_links=True)}")
+    for coll in res if isinstance(res, list) else [res]:
+        print(f"  LIST \033[1m{source}\033[0m {(coll.show())}")
 
 
 def list_sources() -> list[str]:
@@ -29,16 +28,19 @@ def list_sources() -> list[str]:
     return sorted(SOURCES)
 
 
-def get(source: str, only_one: bool = True, **kwargs):
+def get(source: str, only_one: bool = True, update: bool = False, **kwargs):
     "Get files for a source"
     if not (path := DATA_PATH / source).exists():
         path.mkdir(parents=True, exist_ok=True)
     links = SOURCES[source](**kwargs)
     links = links if isinstance(links, list) else [links]
     auth = get_credentials(source) if source in REQUIRES_AUTH else None
-    for coll in (links if not only_one else map(only_one_from_collection, links)):
-        msg = f"GET \033[1m{source}\033[0m {show_urlcollection(coll)}"
-        print(f" • {msg}", end='\r')
+    for coll in links if not only_one else map(only_one_from_collection, links):
+        if not coll.missing_files(DATA_PATH / source) and not update:
+            print(f"🟢 CHK \033[1m{source}\033[0m {coll.show()}")
+            continue
+        msg = f"GET \033[1m{source}\033[0m {coll.show()}"
+        print(f" • {msg}", end="\r")
         success = download_files(coll, path, auth=auth)
         n_ok = sum(success)
         if n_ok == len(success):
@@ -48,6 +50,17 @@ def get(source: str, only_one: bool = True, **kwargs):
         else:
             print(f"❌ {msg}")
 
+
+def check(source: str, only_one: bool = True, **kwargs):
+    "Check files exist for a source"
+    links = SOURCES[source](**kwargs)
+    links = links if isinstance(links, list) else [links]
+    for coll in links if not only_one else map(only_one_from_collection, links):
+        missing = coll.missing_files(DATA_PATH / source)
+        indicator = "🟢" if not missing else "❌"
+        print(f"{indicator} CHK \033[1m{source}\033[0m {coll.show()}")
+        if missing:
+            print("\n".join("   missing " + str(p) for p in missing))
 
 
 def process(source: str):
@@ -61,6 +74,7 @@ def main():
             "list-sources": list_sources,
             "list-links": list_links,
             "get": get,
+            "check": check,
         }
     )
 
