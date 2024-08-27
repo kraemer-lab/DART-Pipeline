@@ -2,6 +2,7 @@
 Utility library for DART pipeline
 """
 
+import copy
 import json
 import os
 import shutil
@@ -10,31 +11,59 @@ import logging
 from datetime import timedelta
 from typing import Generator
 from pathlib import Path
-from urllib.parse import urljoin
+from collections.abc import Iterable
 
 from lxml import html
 import gzip
 import py7zr
 import requests
+import pycountry
 
-from .types import Credentials
+from .types import Credentials, URLCollection
+
+
+def show_urlcollection(c: URLCollection, all_links: bool = False) -> str:
+    file_list_str = c.files[0] if len(c.files) == 1 else f" [{len(c.files)} links]"
+    s = f"{c.base_url}{file_list_str}"
+    return s + "\n" + "\n".join(f"  {file}" for file in c.files) if len(c.files) > 1 else s
+
+
+
+def get_country_name(iso3: str) -> str | None:
+    if (country := pycountry.countries.get(alpha_3=iso3)) is None:
+        return None
+    try:
+        return country.common_name
+    except AttributeError:
+        return country.name
+
+
+def only_one_from_collection(coll: URLCollection) -> URLCollection:
+    coll_copy = copy.deepcopy(coll)
+    coll_copy.files = [coll_copy.files[0]]
+    return coll_copy
+
+
+def use_range(value: int | float, min: int | float, max: int | float, message: str):
+    if not min <= value <= max:
+        raise ValueError(f"{message}: {min}-{max}")
 
 
 def daterange(
     start_date: datetime.date, end_date: datetime.date
-):
+) -> Generator[datetime.date, None, None]:
     """Construct a date range for iterating over the days between two dates."""
     for n in range((end_date - start_date).days + 1):
         yield start_date + timedelta(n)
 
 
-def get_credentials(metric: str, credentials: str | Path | None = None):
+def get_credentials(source: str, credentials: str | Path | None = None) -> Credentials:
     """
     Get a username and password pair from a credentials.json file.
 
     Parameters
     ----------
-    metric : str
+    source : str
         Name of the field that is accessible online but which is
         password-protected.
     credentials : str, pathlib.Path or None, default None
@@ -67,20 +96,20 @@ def get_credentials(metric: str, credentials: str | Path | None = None):
     ('example@email.com', '*******')
     """
 
-    def credentials_from_string(s: str, metric: str) -> tuple[str, str]:
+    def credentials_from_string(s: str, source: str) -> tuple[str, str]:
         data = json.loads(s)
-        if metric in data:
-            return data[metric]["username"], data[metric]["password"]
+        if source in data:
+            return data[source]["username"], data[source]["password"]
         else:
             raise KeyError("metric={metric!r} not found in credentials")
 
     # read credentials from environment if present
     if credentials_env := os.getenv("CREDENTIALS_JSON"):
-        return credentials_from_string(credentials_env, metric)
+        return credentials_from_string(credentials_env, source)
 
     # fallback to file if no environment variable set
     credentials_path = (
-        Path("../..", "credentials.json") if credentials is None else Path(credentials)
+        Path("credentials.json") if credentials is None else Path(credentials)
     )
     if not credentials_path.exists():
         raise FileNotFoundError(
@@ -88,30 +117,30 @@ def get_credentials(metric: str, credentials: str | Path | None = None):
                 not created one or it is not in the specified location
                 (the default location is the DART-Pipeline folder"""
         )
-    return credentials_from_string(credentials_path.read_text(), metric)
+    return credentials_from_string(credentials_path.read_text(), source)
 
 
 def download_file(url: str, path: Path, auth: Credentials | None = None) -> bool:
     """Download a file from a given URL to a given path."""
-    print("Downloading", url, "->", path)
     if (r := requests.get(url, auth=auth)).status_code == 200:
         with open(path, "wb") as out:
             for bits in r.iter_content():
                 out.write(bits)
         return True
     else:
-        logging.error("Failed with status code", r.status_code)
+        logging.error(f"Failed to fetch {url}, status={r.status_code}")
         return False
 
 
 def download_files(
-    url: str, files: list[str], out_dir: Path, auth: Credentials | None = None
+    links: URLCollection, out_dir: Path, auth: Credentials | None = None
 ) -> list[bool]:
-    """Download multiple files in a list."""
-    # If the user requests it, only download the first file
+    "Download multiple files in a list"
+    out_dir = out_dir / links.relative_path
     Path(out_dir).mkdir(parents=True, exist_ok=True)
     return [
-        download_file(urljoin(url, file), Path(out_dir, file), auth) for file in files
+        download_file(links.base_url + "/" + file, out_dir / Path(file).name, auth)
+        for file in links.files
     ]
 
 
@@ -154,7 +183,11 @@ def walk(
     children = []
     parents = []
     files = []
+    if not isinstance(links, Iterable):
+        raise ValueError(f"No links found in URL: {url}")
     for link in links:
+        if not isinstance(link, str):
+            continue
         if link in ["?C=N;O=D", "?C=M;O=A", "?C=S;O=A", "?C=D;O=A"]:
             sorters.append(link)
         elif link.endswith("/"):
@@ -176,7 +209,7 @@ def walk(
 
 
 def unpack_file(path: Path | str, same_folder: bool = False):
-    """Unpack a zipped file."""
+    "Unpack a zipped file"
     print("Unpacking", path)
     path = Path(path)
     match path.suffix:
@@ -189,4 +222,4 @@ def unpack_file(path: Path | str, same_folder: bool = False):
         case _:
             extract_dir = path.parent if same_folder else path.stem
             print("to", extract_dir)
-            shutil.unpack_archive(path, extract_dir)
+            shutil.unpack_archive(path, str(extract_dir))

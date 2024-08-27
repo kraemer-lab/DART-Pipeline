@@ -135,8 +135,6 @@ def get_credentials(metric, base_dir="..", credentials=None):
 
 def download_file(url, path, username=None, password=None):
     """Download a file from a given URL to a given path."""
-    print("Downloading", url)
-    print("to", path)
     # Make a request for the data
     if username and password:
         r = requests.get(url, auth=(username, password))

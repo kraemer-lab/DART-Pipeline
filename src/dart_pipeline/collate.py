@@ -70,10 +70,10 @@ import pycountry
 import requests
 
 from .types import URLCollection, DataFile
-from .util import daterange
+from .util import daterange, use_range
 
 
-def gadm(iso3: str) -> URLCollection:
+def gadm_data(iso3: str) -> URLCollection:
     "Download and unpack GADM (Database of Global Administrative Areas) data"
     return URLCollection(
         "https://geodata.ucdavis.edu/gadm/gadm4.1",
@@ -99,6 +99,7 @@ def relative_wealth_index(iso3: str) -> URLCollection:
         # Search for a URL in the HTML content
         soup = BeautifulSoup(r.text, "html.parser")
         # Find all anchor tags (<a>) with href attribute containing the ISO3
+        # target = pycountry.countries.get(alpha_3=iso3).common_name.lower().replace(' ', '-')
         target = iso3.lower()
         links = soup.find_all("a", href=lambda href: href and target in href)
         # Return the first link found
@@ -111,7 +112,7 @@ def relative_wealth_index(iso3: str) -> URLCollection:
         raise ValueError(f'Bad response for page: "{r.status_code}"')
 
 
-def download_ministerio_de_salud_peru_data() -> list[DataFile]:
+def ministerio_de_salud_peru_data() -> list[DataFile]:
     "Data from the Ministerio de Salud (Peru) https://www.dge.gob.pe/sala-situacional-dengue"
     pages = [
         "Nacional_dengue",
@@ -273,23 +274,18 @@ def chirps_rainfall_data(year: int, month: int | None = None) -> list[URLCollect
     urls: list[URLCollection] = []
 
     assert isinstance(year, int), "Year must be an integer"
-    assert month is None or (
-        isinstance(month, int) and 1 <= month <= 12
-    ), "Month should be an integer between 1 and 12"
+    if month:
+        use_range(month, 1, 12, "Month range")
 
     today = date.today()
-    if chirps_first_year <= year <= today.year:
-        urls.append(
-            URLCollection(
-                f"{base_url}/products/CHIRPS-2.0/global_annual/{fmt}",
-                [f"chirps-v2.0.{year}.tif"],
-                relative_path="global_annual",
-            )
+    use_range(year, chirps_first_year, today.year, "CHIRPS annual data range")
+    urls.append(
+        URLCollection(
+            f"{base_url}/products/CHIRPS-2.0/global_annual/{fmt}",
+            [f"chirps-v2.0.{year}.tif"],
+            relative_path="global_annual",
         )
-    else:
-        logging.warning(
-            f"Annual data is only available from {chirps_first_year} onwards"
-        )
+    )
 
     if month:
         # Download the monthly data for the year and month provided
@@ -325,6 +321,7 @@ def chirps_rainfall_data(year: int, month: int | None = None) -> list[URLCollect
 
 def terraclimate_data(year: int) -> URLCollection:
     "TerraClimate gridded temperature, precipitation, etc."
+    use_range(year, 1958, 2023, "Terraclimate year range")
     return URLCollection(
         "https://climate.northwestknowledge.net/TERRACLIMATE-DATA",
         [
@@ -347,7 +344,7 @@ def terraclimate_data(year: int) -> URLCollection:
     )
 
 
-def download_meta_pop_density_data(iso3: str) -> list[URLCollection]:
+def meta_pop_density_data(iso3: str) -> URLCollection:
     """
     Download Population Density Maps from Data for Good at Meta.
 
@@ -417,16 +414,19 @@ def worldpop_pop_density_data(iso3: str) -> URLCollection:
 
 
 REQUIRES_AUTH = [
-    "meterological/aphrodite/daily-precip",
-    "meteorological/aphrodite/daily-mean-temp",
+    "meterological/aphrodite-daily-precip",
+    "meteorological/aphrodite-daily-mean-temp",
 ]
 
 SOURCES = {
+    "epidemiological/dengue/peru": ministerio_de_salud_peru_data,
     "economic/relative-wealth-index": relative_wealth_index,
+    "geospatial/gadm": gadm_data,
     "meteorological/aphrodite-daily-precip": aphrodite_precipitation_data,
     "meteorological/aphrodite-daily-mean-temp": aphrodite_temperature_data,
     "meteorological/chirps-rainfall": chirps_rainfall_data,
     "meteorological/terraclimate": terraclimate_data,
+    "sociodemographic/meta-pop-density": meta_pop_density_data,
     "sociodemographic/worldpop-count": worldpop_pop_count_data,
     "sociodemographic/worldpop-density": worldpop_pop_density_data,
 }
