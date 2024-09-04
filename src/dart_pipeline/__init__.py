@@ -37,9 +37,9 @@ def get(source: str, only_one: bool = True, update: bool = False, **kwargs):
     auth = get_credentials(source) if source in REQUIRES_AUTH else None
     for coll in links if not only_one else map(only_one_from_collection, links):
         if not coll.missing_files(DATA_PATH / source) and not update:
-            print(f"🟢 CHK \033[1m{source}\033[0m {coll.show()}")
+            print(f"✅ SKIP \033[1m{source}\033[0m {coll.show()}")
             continue
-        msg = f"GET \033[1m{source}\033[0m {coll.show()}"
+        msg = f" GET \033[1m{source}\033[0m {coll.show()}"
         print(f" • {msg}", end="\r")
         success = download_files(coll, path, auth=auth)
         n_ok = sum(success)
@@ -57,8 +57,8 @@ def check(source: str, only_one: bool = True, **kwargs):
     links = links if isinstance(links, list) else [links]
     for coll in links if not only_one else map(only_one_from_collection, links):
         missing = coll.missing_files(DATA_PATH / source)
-        indicator = "🟢" if not missing else "❌"
-        print(f"{indicator} CHK \033[1m{source}\033[0m {coll.show()}")
+        indicator = "✅" if not missing else "❌"
+        print(f"{indicator} \033[1m{source}\033[0m {coll.show()}")
         if missing:
             print("\n".join("   missing " + str(p) for p in missing))
 
