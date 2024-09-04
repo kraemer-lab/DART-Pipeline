@@ -21,6 +21,8 @@ import pycountry
 
 from .types import Credentials, URLCollection
 
+COMPRESSED_FILE_EXTS = [".tar.gz", ".tar.bz2", ".zip", ".7z"]
+
 
 def show_urlcollection(c: URLCollection, all_links: bool = False) -> str:
     file_list_str = c.files[0] if len(c.files) == 1 else f" [{len(c.files)} links]"
@@ -121,12 +123,22 @@ def get_credentials(source: str, credentials: str | Path | None = None) -> Crede
     return credentials_from_string(credentials_path.read_text(), source)
 
 
-def download_file(url: str, path: Path, auth: Credentials | None = None) -> bool:
+def download_file(
+    url: str,
+    path: Path,
+    auth: Credentials | None = None,
+    unpack: bool = True,
+    unpack_create_folder: bool = False,
+) -> bool:
     """Download a file from a given URL to a given path."""
     if (r := requests.get(url, auth=auth)).status_code == 200:
         with open(path, "wb") as out:
             for bits in r.iter_content():
                 out.write(bits)
+        # unpack file
+        if unpack and any(str(path).endswith(ext) for ext in COMPRESSED_FILE_EXTS):
+            logging.info(f"Unpacking downloaded file {path}")
+            unpack_file(path, same_folder=not unpack_create_folder)
         return True
     else:
         logging.error(f"Failed to fetch {url}, status={r.status_code}")
