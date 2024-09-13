@@ -7,9 +7,11 @@ import json
 import os
 import shutil
 import datetime
+import calendar
 import logging
 from datetime import timedelta
-from typing import Generator
+from typing import Generator, Literal, Callable
+from functools import cache
 from pathlib import Path
 from collections.abc import Iterable
 
@@ -19,12 +21,22 @@ import py7zr
 import requests
 import pycountry
 
-from .types import Credentials, URLCollection
+from .constants import (
+    DEFAULT_SOURCES_ROOT,
+    DEFAULT_OUTPUT_ROOT,
+    DEFAULT_PLOTS_ROOT,
+    COMPRESSED_FILE_EXTS,
+)
+from .types import Credentials, URLCollection, DefaultPathProtocol
 
-COMPRESSED_FILE_EXTS = [".tar.gz", ".tar.bz2", ".zip", ".7z"]
+
+@cache
+def days_in_year(year: int) -> Literal[365, 366]:
+    "Returns number of days in year"
+    return 366 if calendar.isleap(year) else 365
 
 
-def show_urlcollection(c: URLCollection, all_links: bool = False) -> str:
+def show_urlcollection(c: URLCollection, _: bool = False) -> str:
     file_list_str = c.files[0] if len(c.files) == 1 else f" [{len(c.files)} links]"
     s = f"{c.base_url}{file_list_str}"
     return (
@@ -32,9 +44,9 @@ def show_urlcollection(c: URLCollection, all_links: bool = False) -> str:
     )
 
 
-def get_country_name(iso3: str) -> str | None:
+def get_country_name(iso3: str) -> str:
     if (country := pycountry.countries.get(alpha_3=iso3)) is None:
-        return None
+        raise ValueError(f"Country ISO3 not found: {iso3}")
     try:
         return country.common_name
     except AttributeError:
@@ -155,6 +167,19 @@ def download_files(
         download_file(links.base_url + "/" + file, out_dir / Path(file).name, auth)
         for file in links.files
     ]
+
+
+def default_path_getter(env_var: str, default: str) -> DefaultPathProtocol:
+    def default_path(source: str, path: str | Path | None = None) -> Path:
+        root = Path(os.getenv(env_var, default))
+        return root / source / path if path else root / source
+
+    return default_path
+
+
+source_path = default_path_getter("DART_PIPELINE_SOURCES", DEFAULT_SOURCES_ROOT)
+output_path = default_path_getter("DART_PIPELINE_OUTPUT", DEFAULT_OUTPUT_ROOT)
+plots_path = default_path_getter("DART_PIPELINE_PLOTS", DEFAULT_PLOTS_ROOT)
 
 
 def walk(

@@ -6,6 +6,7 @@ import os
 import fire
 from pathlib import Path
 
+from .constants import DEFAULT_SOURCES_ROOT
 from .collate import SOURCES, REQUIRES_AUTH
 from .util import (
     download_files,
@@ -13,7 +14,7 @@ from .util import (
     only_one_from_collection,
 )
 
-DATA_PATH = Path(os.getenv("DART_PIPELINE_DATA_PATH", "data"))
+DATA_PATH = Path(os.getenv("DART_PIPELINE_SOURCES_PATH", DEFAULT_SOURCES_ROOT))
 
 
 def list_links(source: str, **kwargs):

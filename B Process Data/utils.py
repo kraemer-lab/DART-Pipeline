@@ -9,6 +9,8 @@ from functools import cache
 from typing import Literal
 from pathlib import Path
 
+import numpy as np
+
 @cache
 def papersize_inches_a(
     A: Literal[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
@@ -52,6 +54,36 @@ def get_base_directory(starting_path: str | Path = '.') -> str:
             return os.path.abspath(starting_path)
         path = os.path.dirname(path)
 
+
+def days_to_date(days_since_1900):
+    """Convert a of number of days since 1900-01-01 into a date."""
+    base_date = datetime(1900, 1, 1)
+    target_date = base_date + timedelta(days=days_since_1900)
+
+    return target_date
+
+
+def pixel_to_latlon(x, y, transform):
+    """
+    Convert pixel coordinates to latitude and longitude.
+
+    Parameters
+    ----------
+    x, y : list
+        The x- and y-locations of the pixels to be converted to latitude and
+        longitude.
+    transform : Affine
+        Affine transformation matrix as given in the GeoTIFF file.
+
+    Returns
+    -------
+    lat, lon : array
+        The latitude and longitude coordinates.
+    """
+    x, y = np.meshgrid(x, y)
+    lon, lat = transform * (x, y)
+
+    return lat, lon
 
 def check_os():
     """Check that the OS is one of the ones that has been tested."""

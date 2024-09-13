@@ -69,9 +69,9 @@ from bs4 import BeautifulSoup
 import pycountry
 import requests
 
+from .constants import TERRACLIMATE_METRICS, MEXICO_REGIONS
 from .types import URLCollection, DataFile
-from .util import daterange, use_range
-
+from .util import daterange, use_range, get_country_name
 
 def gadm_data(iso3: str) -> URLCollection:
     "Download and unpack GADM (Database of Global Administrative Areas) data"
@@ -101,7 +101,7 @@ def relative_wealth_index(iso3: str) -> URLCollection:
         # Find all anchor tags (<a>) with href attribute containing the ISO3
         # target = pycountry.countries.get(alpha_3=iso3).common_name.lower().replace(' ', '-')
         target = iso3.lower()
-        links = soup.find_all("a", href=lambda href: href and target in href)
+        links = soup.find_all("a", href=lambda href: href and target in href)  # type: ignore
         # Return the first link found
         if links:
             csv_url = links[0]["href"]
@@ -114,31 +114,7 @@ def relative_wealth_index(iso3: str) -> URLCollection:
 
 def ministerio_de_salud_peru_data() -> list[DataFile]:
     "Data from the Ministerio de Salud (Peru) https://www.dge.gob.pe/sala-situacional-dengue"
-    pages = [
-        "Nacional_dengue",
-        "sala_dengue_AMAZONAS",
-        "sala_dengue_ANCASH",
-        "sala_dengue_AREQUIPA",
-        "sala_dengue_AYACUCHO",
-        "sala_dengue_CAJAMARCA",
-        "sala_dengue_CALLAO",
-        "sala_dengue_CUSCO",
-        "sala_dengue_HUANUCO",
-        "sala_dengue_ICA",
-        "sala_dengue_JUNIN",
-        "sala_dengue_LA LIBERTAD",
-        "sala_dengue_LAMBAYEQUE",
-        "sala_dengue_LIMA",
-        "sala_dengue_LORETO",
-        "sala_dengue_MADRE DE DIOS",
-        "sala_dengue_MOQUEGUA",
-        "sala_dengue_PASCO",
-        "sala_dengue_PIURA",
-        "sala_dengue_PUNO",
-        "sala_dengue_SAN MARTIN",
-        "sala_dengue_TUMBES",
-        "sala_dengue_UCAYALI",
-    ]
+    pages = ["Nacional_dengue"] + ["sala_dengue" + region for region in MEXICO_REGIONS]
     # If the user specifies that only one dataset should be downloaded
     data: list[DataFile] = []
     for page in pages:
@@ -324,23 +300,8 @@ def terraclimate_data(year: int) -> URLCollection:
     use_range(year, 1958, 2023, "Terraclimate year range")
     return URLCollection(
         "https://climate.northwestknowledge.net/TERRACLIMATE-DATA",
-        [
-            f"TerraClimate_aet_{year}.nc",
-            f"TerraClimate_def_{year}.nc",
-            f"TerraClimate_PDSI_{year}.nc",  # For 2023 the capitalisation
-            f"TerraClimate_pdsi_{year}.nc",  # of "PDSI" changed
-            f"TerraClimate_pet_{year}.nc",
-            f"TerraClimate_ppt_{year}.nc",
-            f"TerraClimate_q_{year}.nc",
-            f"TerraClimate_soil_{year}.nc",
-            f"TerraClimate_srad_{year}.nc",
-            f"TerraClimate_swe_{year}.nc",
-            f"TerraClimate_tmax_{year}.nc",
-            f"TerraClimate_tmin_{year}.nc",
-            f"TerraClimate_vap_{year}.nc",
-            f"TerraClimate_vpd_{year}.nc",
-            f"TerraClimate_ws_{year}.nc",
-        ],
+        # 2023, capitalisation of PDSI changed
+        [f"TerraClimate_PDSI_{year}.nc"] + [f"TerraClimate_{metric}_{year}.nc" for metric in TERRACLIMATE_METRICS]
     )
 
 
@@ -351,7 +312,7 @@ def meta_pop_density_data(iso3: str) -> URLCollection:
     Documentation:
     https://dataforgood.facebook.com/dfg/docs/high-resolution-population-density-maps-demographic-estimates-documentation
     """
-    country = pycountry.countries.get(alpha_3=iso3).common_name
+    country = get_country_name(iso3)
     print(f"Country:   {country}")
     # Main webpage
     url = (
@@ -364,7 +325,7 @@ def meta_pop_density_data(iso3: str) -> URLCollection:
         soup = BeautifulSoup(response.text, "html.parser")
         # Find all anchor tags (<a>) with href attribute containing the ISO3
         target = iso3.lower()
-        if links := soup.find_all("a", href=lambda href: href and target in href):
+        if links := soup.find_all("a", href=lambda href: href and target in href):  # type: ignore
             return URLCollection(
                 "https://data.humdata.org",
                 [link["href"] for link in links if link["href"].endswith(".zip")],
@@ -389,7 +350,7 @@ def worldpop_pop_count_data(iso3: str) -> URLCollection:
     files along with .tfw and .tif.aux.xml files. Most users will not find
     these files useful and so unzipping the .7z file is usually unnecessary.
     """
-    country = (pycountry.countries.get(alpha_3=iso3).name).replace(" ", "_")
+    country = get_country_name(iso3)
     return URLCollection(
         "https://data.worldpop.org",
         [

@@ -31,3 +31,8 @@ build-backend = "hatchling.build"
 [tool.mypy]
 no_implicit_optional = true
 ignore_missing_imports = true
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.3.2",
+]
