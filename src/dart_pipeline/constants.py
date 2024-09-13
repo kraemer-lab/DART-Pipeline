@@ -6,6 +6,13 @@ DEFAULT_SOURCES_ROOT = "data/sources"
 DEFAULT_OUTPUT_ROOT = "data/processed"
 DEFAULT_PLOTS_ROOT = "data/plots"
 
+COL_BLUE = "\033[0;34m"
+COL_CYAN = "\033[0;36m"
+COL_OFF = "\033[0m"
+
+MSG_SOURCE = COL_BLUE + "  source" + COL_OFF
+MSG_PROCESS = COL_CYAN + " process" + COL_OFF
+
 TERRACLIMATE_METRICS = [
     "aet",  # water_evaporation_amount_mm
     "def",  # water_potential_evaporation_amount_minus_water_evaporatio

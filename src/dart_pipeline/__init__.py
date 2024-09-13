@@ -6,8 +6,10 @@ import os
 import fire
 from pathlib import Path
 
-from .constants import DEFAULT_SOURCES_ROOT
+from .types import DataFile
+from .constants import DEFAULT_SOURCES_ROOT, MSG_PROCESS, MSG_SOURCE
 from .collate import SOURCES, REQUIRES_AUTH
+from .process import PROCESSORS
 from .util import (
     download_files,
     get_credentials,
@@ -24,9 +26,11 @@ def list_links(source: str, **kwargs):
         print(f"  LIST \033[1m{source}\033[0m {(coll.show())}")
 
 
-def list_sources() -> list[str]:
-    "List sources"
-    return sorted(SOURCES)
+def list_all() -> list[str]:
+    "Lists all sources and processors"
+    return [f"{MSG_SOURCE} {source}" for source in sorted(SOURCES)] + [
+        f"{MSG_PROCESS} {process}" for process in sorted(PROCESSORS)
+    ]
 
 
 def get(source: str, only_one: bool = True, update: bool = False, **kwargs):
@@ -56,6 +60,8 @@ def check(source: str, only_one: bool = True, **kwargs):
     "Check files exist for a source"
     links = SOURCES[source](**kwargs)
     links = links if isinstance(links, list) else [links]
+    if isinstance(links, list) and isinstance(links[0], DataFile):
+        print("-- \033[1m{source}\033[0m directly returns data, checking not supported")
     for coll in links if not only_one else map(only_one_from_collection, links):
         missing = coll.missing_files(DATA_PATH / source)
         indicator = "✅" if not missing else "❌"
@@ -71,8 +77,7 @@ def process(source: str):
 def main():
     fire.Fire(
         {
-            "list": list_sources,
-            "list-sources": list_sources,
+            "list": list_all,
             "list-links": list_links,
             "get": get,
             "check": check,

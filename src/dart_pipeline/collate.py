@@ -63,10 +63,9 @@ import logging
 import base64
 import re
 from datetime import date, timedelta
-from typing import Final
+from typing import Final, Callable
 
 from bs4 import BeautifulSoup
-import pycountry
 import requests
 
 from .constants import TERRACLIMATE_METRICS, MEXICO_REGIONS
@@ -379,7 +378,7 @@ REQUIRES_AUTH = [
     "meteorological/aphrodite-daily-mean-temp",
 ]
 
-SOURCES = {
+SOURCES: dict[str, Callable[..., URLCollection | list[URLCollection] | list[DataFile]]] = {
     "epidemiological/dengue/peru": ministerio_de_salud_peru_data,
     "economic/relative-wealth-index": relative_wealth_index,
     "geospatial/gadm": gadm_data,

@@ -17,7 +17,7 @@ format for country codes.
 import os
 import logging
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Callable
 
 import rasterio
 import rasterio.mask
@@ -386,7 +386,9 @@ def process_era5_reanalysis_data() -> ProcessResult:
     return df, "ERA5-ml-temperature-subarea.csv"
 
 
-def process_worldpop_pop_count_data(iso3: str, year: int = 2020, rt: str = "pop") -> ProcessResult:
+def process_worldpop_pop_count_data(
+    iso3: str, year: int = 2020, rt: str = "pop"
+) -> ProcessResult:
     """
     Process WorldPop population count.
 
@@ -661,3 +663,18 @@ def process_relative_wealth_index_vietnam():
     )
     rwi = rwi[rwi["geo_id"] != "null"]
     return rwi, "VNM.csv"
+
+
+PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
+    "epidemiological/dengue/peru": process_ministerio_de_salud_peru_data,
+    "geospatial/gadm": process_gadm_admin_map_data,
+    "meteorological/aphrodite-daily-mean-temp": process_aphrodite_temperature_data,
+    "meteorological/aphrodite-daily-precip": process_aphrodite_precipitation_data,
+    "meteorological/chirps-rainfall": process_chirps_rainfall_data,
+    "meteorological/era5-reanalysis": process_era5_reanalysis_data,
+    "sociodemographic/worldpop-count": process_worldpop_pop_count_data,
+    "sociodemographic/worldpop-density": process_worldpop_pop_density_data,
+    "geospatial/chirps-rainfall": process_gadm_chirps_data,
+    "geospatial/worldpop-count": process_gadm_worldpoppopulation_data,
+    "economic/relative-wealth-index": process_relative_wealth_index_vietnam,
+}
