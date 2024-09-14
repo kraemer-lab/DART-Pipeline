@@ -8,10 +8,13 @@ import pandas as pd
 
 Credentials = tuple[str, str]
 ProcessResult = tuple[pd.DataFrame, str]
-AdminLevel = Literal['0', '1', '2']
+AdminLevel = Literal["0", "1", "2"]
+
 
 class DefaultPathProtocol(Protocol):
-    def __call__(self, source: str, path: str | None | Path = None) -> Path: ...
+    def __call__(self, source: str, path: str | None | Path = None) -> Path:
+        ...
+
 
 class PartialDate(NamedTuple):
     year: int

@@ -72,6 +72,7 @@ from .constants import TERRACLIMATE_METRICS, MEXICO_REGIONS
 from .types import URLCollection, DataFile
 from .util import daterange, use_range, get_country_name
 
+
 def gadm_data(iso3: str) -> URLCollection:
     "Download and unpack GADM (Database of Global Administrative Areas) data"
     return URLCollection(
@@ -300,7 +301,8 @@ def terraclimate_data(year: int) -> URLCollection:
     return URLCollection(
         "https://climate.northwestknowledge.net/TERRACLIMATE-DATA",
         # 2023, capitalisation of PDSI changed
-        [f"TerraClimate_PDSI_{year}.nc"] + [f"TerraClimate_{metric}_{year}.nc" for metric in TERRACLIMATE_METRICS]
+        [f"TerraClimate_PDSI_{year}.nc"]
+        + [f"TerraClimate_{metric}_{year}.nc" for metric in TERRACLIMATE_METRICS],
     )
 
 
@@ -378,7 +380,9 @@ REQUIRES_AUTH = [
     "meteorological/aphrodite-daily-mean-temp",
 ]
 
-SOURCES: dict[str, Callable[..., URLCollection | list[URLCollection] | list[DataFile]]] = {
+SOURCES: dict[
+    str, Callable[..., URLCollection | list[URLCollection] | list[DataFile]]
+] = {
     "epidemiological/dengue/peru": ministerio_de_salud_peru_data,
     "economic/relative-wealth-index": relative_wealth_index,
     "geospatial/gadm": gadm_data,
