@@ -7,15 +7,11 @@ import argparse
 from pathlib import Path
 from typing import cast
 
-from .types import DataFile, URLCollection
-from .constants import DEFAULT_SOURCES_ROOT, MSG_PROCESS, MSG_SOURCE
+from .types import DataFile, URLCollection, ProcessResult
+from .constants import DEFAULT_SOURCES_ROOT, MSG_PROCESS, MSG_SOURCE, INTEGER_PARAMS
 from .collate import SOURCES, REQUIRES_AUTH
 from .process import PROCESSORS
-from .util import (
-    download_files,
-    get_credentials,
-    only_one_from_collection,
-)
+from .util import download_files, get_credentials, only_one_from_collection, output_path
 
 DATA_PATH = Path(os.getenv("DART_PIPELINE_SOURCES_PATH", DEFAULT_SOURCES_ROOT))
 
@@ -55,6 +51,19 @@ def get(source: str, only_one: bool = True, update: bool = False, **kwargs):
             print(f"❌ {msg}")
 
 
+def process(source: str, **kwargs):
+    processor = PROCESSORS[source]
+    result = processor(**kwargs)
+    base_path = output_path(source)
+    result = result if isinstance(result, list) else [result]
+    for df, filename in result:
+        out = base_path / filename
+        if not out.parent.exists():
+            out.parent.mkdir(parents=True)
+        df.to_csv(out, index=False)
+        print(f"✅ \033[1m{source}\033[0m {filename}")
+
+
 def check(source: str, only_one: bool = True, **kwargs):
     "Check files exist for a source"
     links = SOURCES[source](**kwargs)
@@ -69,12 +78,16 @@ def check(source: str, only_one: bool = True, **kwargs):
         if missing:
             print("\n".join("   missing " + str(p) for p in missing))
 
+
 def parse_params(params: list[str]) -> dict[str, str | int]:
     out = {}
     for param in params:
         k, v = param.split("=")
-        out[k] = v
+        key = k.replace("-", "_")
+        v = v if key not in INTEGER_PARAMS else int(v)
+        out[key] = v
     return out
+
 
 def main():
     parser = argparse.ArgumentParser(description="DART Pipeline Operations")
@@ -93,14 +106,20 @@ def main():
         "-1", "--only-one", help="Get only one file", action="store_true"
     )
 
+    process_parser = subparsers.add_parser("process", help="Process a source")
+    process_parser.add_argument("source", help="Source to process")
+
     args, unknownargs = parser.parse_known_args()
+    kwargs = parse_params(unknownargs)
     match args.command:
         case "list":
             print("\n".join(list_all()))
         case "get":
-            get(args.source, args.only_one, args.update, **parse_params(unknownargs))
+            get(args.source, args.only_one, args.update, **kwargs)
         case "check":
             check(args.source, args.only_one)
+        case "process":
+            process(args.source, **kwargs)
 
 
 if __name__ == "__main__":

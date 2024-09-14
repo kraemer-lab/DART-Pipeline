@@ -2,6 +2,8 @@
 
 COMPRESSED_FILE_EXTS = [".tar.gz", ".tar.bz2", ".zip", ".7z"]
 
+INTEGER_PARAMS = ["year"]
+
 DEFAULT_SOURCES_ROOT = "data/sources"
 DEFAULT_OUTPUT_ROOT = "data/processed"
 DEFAULT_PLOTS_ROOT = "data/plots"

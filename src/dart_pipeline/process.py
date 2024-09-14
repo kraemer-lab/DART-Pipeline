@@ -95,7 +95,7 @@ def process_ministerio_de_salud_peru_data(
 def get_shapefile(iso3: str, admin_level: Literal["0", "1", "2"]) -> Path:
     return source_path(
         "geospatial/gadm",
-        Path(iso3, f"gadm41_{iso3}_shp", f"gadm41_{iso3}_{admin_level}.shp"),
+        Path(iso3, f"gadm41_{iso3}_{admin_level}.shp"),
     )
 
 
@@ -255,21 +255,22 @@ def process_aphrodite_temperature_data() -> list[ProcessResult]:
 
 
 def get_chirps_rainfall_data_path(date: PartialDate) -> Path:
+    file = None
     match date.scope:
         case "daily":
             file = Path(
                 "global_daily",
                 str(date.year),
                 date.zero_padded_month,
-                f'chirps-v2.0.{date.to_string('.')}.tif',
+                f"chirps-v2.0.{date.to_string('.')}.tif",
             )
         case "monthly":
             file = Path(
                 "global_monthly",
                 str(date.year),
-                f'chirps-v2.0.{date.to_string('.')}.tif',
+                f"chirps-v2.0.{date.to_string('.')}.tif",
             )
-        case "yearly":
+        case "annual":
             file = Path("global_annual", f"chirps-v2.0.{date}.tif")
 
     if not (path := source_path("meteorological/chirps-rainfall", file)).exists():
@@ -277,7 +278,7 @@ def get_chirps_rainfall_data_path(date: PartialDate) -> Path:
     return path
 
 
-def process_chirps_rainfall_data(partial_date: str) -> ProcessResult:
+def process_chirps_rainfall_data(date: str) -> ProcessResult:
     """
     Process CHIRPS Rainfall data.
 
@@ -285,10 +286,10 @@ def process_chirps_rainfall_data(partial_date: str) -> ProcessResult:
     Station.
     """
     source = "meteorological/chirps-rainfall"
-    date = PartialDate.from_string(partial_date)
+    pdate = PartialDate.from_string(date)
 
-    file = get_chirps_rainfall_data_path(date)
-    print(f"Global {date.scope} data will be processed for {date}")
+    file = get_chirps_rainfall_data_path(pdate)
+    print(f"Global {pdate.scope} data will be processed for {date}")
     src = rasterio.open(file)
     print(f'Processing "{file}"')
     # Rasterio stores image layers in 'bands'
@@ -301,9 +302,9 @@ def process_chirps_rainfall_data(partial_date: str) -> ProcessResult:
     # Create a DataFrame from the dictionary
     new_row = pd.DataFrame(
         {
-            "year": date.year,
-            "month": date.month,
-            "day": date.day,
+            "year": pdate.year,
+            "month": pdate.month,
+            "day": pdate.day,
             "region": "global",
             "rainfall": np.sum(data),
         },
@@ -315,21 +316,23 @@ def process_chirps_rainfall_data(partial_date: str) -> ProcessResult:
         # Use existing CSV to build a new dataframe
         df = pd.read_csv(path)
         # Check if a row with the same year, month, and day exists
-        match date.scope:
+        match pdate.scope:
             case "daily":
                 mask = (
-                    (df["year"] == date.year)
-                    & (df["month"] == date.month)
-                    & (df["day"] == date.day)
+                    (df["year"] == pdate.year)
+                    & (df["month"] == pdate.month)
+                    & (df["day"] == pdate.day)
                 )
             case "monthly":
                 mask = (
-                    (df["year"] == date.year)
-                    & (df["month"] == date.month)
+                    (df["year"] == pdate.year)
+                    & (df["month"] == pdate.month)
                     & df["day"].isna()
                 )
             case "annual":
-                mask = (df["year"] == date.year) & df["month"].isna() & df["day"].isna()
+                mask = (
+                    (df["year"] == pdate.year) & df["month"].isna() & df["day"].isna()
+                )
         if mask.any():
             # Update the row if an entry for this date already exists
             df.loc[mask, "rainfall"] = np.sum(data)
@@ -453,7 +456,7 @@ def process_worldpop_pop_count_data(
     return df, "{iso3}/{filename.stem}.csv"
 
 
-def process_worldpop_pop_density_data(year: int, iso3: str) -> ProcessResult:
+def process_worldpop_pop_density_data(iso3: str, year: int) -> ProcessResult:
     """
     Process WorldPop population density.
     """
