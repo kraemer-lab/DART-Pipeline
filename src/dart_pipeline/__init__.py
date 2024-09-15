@@ -3,6 +3,8 @@ Main code for DART Pipeline
 """
 
 import os
+import sys
+import inspect
 import argparse
 from pathlib import Path
 from typing import cast
@@ -14,6 +16,11 @@ from .process import PROCESSORS
 from .util import download_files, get_credentials, only_one_from_collection, output_path
 
 DATA_PATH = Path(os.getenv("DART_PIPELINE_SOURCES_PATH", DEFAULT_SOURCES_ROOT))
+
+
+def abort(msg: str):
+    print(msg)
+    sys.exit(1)
 
 
 def list_all() -> list[str]:
@@ -52,7 +59,16 @@ def get(source: str, only_one: bool = True, update: bool = False, **kwargs):
 
 
 def process(source: str, **kwargs):
+    if source not in PROCESSORS:
+        abort(f"❗ \033[1msource not found\033[0m: {source}")
     processor = PROCESSORS[source]
+    non_default_params = {
+        p.name
+        for p in inspect.signature(processor).parameters.values()
+        if p.default is p.empty
+    }
+    if missing_params := non_default_params - set(kwargs):
+        abort(f"❗ \033[1m{source}\033[0m missing required parameters {missing_params}")
     result = processor(**kwargs)
     base_path = output_path(source)
     result = result if isinstance(result, list) else [result]

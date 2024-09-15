@@ -75,7 +75,7 @@ class URLCollection:
         )
         s = f"{self.base_url}/{file_list_str}"
         return (
-            s + "\n" + "\n".join(f"  {file}" for file in self.files)
+            s + "\n" + "\n".join(f"\t\t{file}" for file in self.files)
             if len(self.files) > 1
             else s
         )
