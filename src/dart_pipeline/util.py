@@ -5,6 +5,7 @@ Utility library for DART pipeline
 import copy
 import json
 import os
+import sys
 import shutil
 import datetime
 import calendar
@@ -28,6 +29,11 @@ from .constants import (
     COMPRESSED_FILE_EXTS,
 )
 from .types import Credentials, URLCollection, DefaultPathProtocol
+
+
+def abort(bold_text: str, rest: str):
+    print(f"❗ \033[1m{bold_text}\033[0m {rest}")
+    sys.exit(1)
 
 
 @cache

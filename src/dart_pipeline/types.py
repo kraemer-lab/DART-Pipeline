@@ -68,17 +68,23 @@ class URLCollection:
         False  # do not create folders by default when unpacking
     )
 
-    def show(self) -> str:
+    def show(self, show_links: bool = False) -> str:
         "Pretty printer for URLCollection"
         file_list_str = (
             self.files[0] if len(self.files) == 1 else f" [{len(self.files)} links]"
         )
         s = f"{self.base_url}/{file_list_str}"
         return (
-            s + "\n" + "\n".join(f"\t\t{file}" for file in self.files)
-            if len(self.files) > 1
-            else s
+            s
+            if not show_links
+            else (
+                s + "\n" + "\n".join(f"    {file}" for file in self.files)
+                if len(self.files) > 1
+                else s
+            )
         )
+
+    __str__ = show
 
     def disk_files(self, root: str | Path) -> list[Path]:
         "List of files on disk corresponding to this URLCollection"

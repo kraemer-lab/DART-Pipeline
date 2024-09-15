@@ -3,7 +3,6 @@ Main code for DART Pipeline
 """
 
 import os
-import sys
 import inspect
 import argparse
 from pathlib import Path
@@ -13,14 +12,15 @@ from .types import DataFile, URLCollection
 from .constants import DEFAULT_SOURCES_ROOT, MSG_PROCESS, MSG_SOURCE, INTEGER_PARAMS
 from .collate import SOURCES, REQUIRES_AUTH
 from .process import PROCESSORS
-from .util import download_files, get_credentials, only_one_from_collection, output_path
+from .util import (
+    abort,
+    download_files,
+    get_credentials,
+    only_one_from_collection,
+    output_path,
+)
 
 DATA_PATH = Path(os.getenv("DART_PIPELINE_SOURCES_PATH", DEFAULT_SOURCES_ROOT))
-
-
-def abort(msg: str):
-    print(msg)
-    sys.exit(1)
 
 
 def list_all() -> list[str]:
@@ -32,6 +32,17 @@ def list_all() -> list[str]:
 
 def get(source: str, only_one: bool = True, update: bool = False, **kwargs):
     "Get files for a source"
+    if source not in SOURCES:
+        abort("source not found:", source)
+    link_getter = SOURCES[source]
+    non_default_params = {
+        p.name
+        for p in inspect.signature(link_getter).parameters.values()
+        if p.default is p.empty
+    }
+    if missing_params := non_default_params - set(kwargs):
+        abort(source, f"missing required parameters {missing_params}")
+
     if not (path := DATA_PATH / source).exists():
         path.mkdir(parents=True, exist_ok=True)
     links = SOURCES[source](**kwargs)
@@ -44,9 +55,9 @@ def get(source: str, only_one: bool = True, update: bool = False, **kwargs):
     auth = get_credentials(source) if source in REQUIRES_AUTH else None
     for coll in links if not only_one else map(only_one_from_collection, links):
         if not coll.missing_files(DATA_PATH / source) and not update:
-            print(f"✅ SKIP {source_fmt} {coll.show()}")
+            print(f"✅ SKIP {source_fmt} {coll}")
             continue
-        msg = f" GET {source_fmt} {coll.show()}"
+        msg = f" GET {source_fmt} {coll}"
         print(f" • {msg}", end="\r")
         success = download_files(coll, path, auth=auth)
         n_ok = sum(success)
@@ -58,9 +69,9 @@ def get(source: str, only_one: bool = True, update: bool = False, **kwargs):
             print(f"❌ {msg}")
 
 
-def process(source: str, **kwargs):
+def process_cli(source: str, **kwargs):
     if source not in PROCESSORS:
-        abort(f"❗ \033[1msource not found\033[0m: {source}")
+        abort("source not found:", source)
     processor = PROCESSORS[source]
     non_default_params = {
         p.name
@@ -68,7 +79,7 @@ def process(source: str, **kwargs):
         if p.default is p.empty
     }
     if missing_params := non_default_params - set(kwargs):
-        abort(f"❗ \033[1m{source}\033[0m missing required parameters {missing_params}")
+        abort(source, f"missing required parameters {missing_params}")
     result = processor(**kwargs)
     base_path = output_path(source)
     result = result if isinstance(result, list) else [result]
@@ -77,7 +88,7 @@ def process(source: str, **kwargs):
         if not out.parent.exists():
             out.parent.mkdir(parents=True)
         df.to_csv(out, index=False)
-        print(f"✅ \033[1m{source}\033[0m {filename}")
+        print(f"✅ \033[1m{source}\033[0m {out}")
 
 
 def check(source: str, only_one: bool = True, **kwargs):
@@ -90,7 +101,7 @@ def check(source: str, only_one: bool = True, **kwargs):
     for coll in links if not only_one else map(only_one_from_collection, links):
         missing = coll.missing_files(DATA_PATH / source)
         indicator = "✅" if not missing else "❌"
-        print(f"{indicator} \033[1m{source}\033[0m {coll.show()}")
+        print(f"{indicator} \033[1m{source}\033[0m {coll}")
         if missing:
             print("\n".join("   missing " + str(p) for p in missing))
 
@@ -135,7 +146,7 @@ def main():
         case "check":
             check(args.source, args.only_one)
         case "process":
-            process(args.source, **kwargs)
+            process_cli(args.source, **kwargs)
 
 
 if __name__ == "__main__":
