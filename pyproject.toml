@@ -19,7 +19,7 @@ dependencies = [
     "pycountry==24.6.1",
     "pyquadkey2==0.3.1",
     "rasterio==1.3.10",
-    "Shapely==2.0.4",
+    "shapely>2.0.5",
 ]
 scripts = { dart-pipeline = "dart_pipeline:main" }
 

@@ -119,8 +119,7 @@ def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel) -> ProcessRe
     # Iterate over the regions in the shape file
     for _, region in gdf.iterrows():
         # Initialise a new row for the output data frame
-        new_row = {}
-        new_row["Admin Level 0"] = region["COUNTRY"]
+        new_row = {"Admin Level 0": region["COUNTRY"]}
         # Initialise the title
         # Update the new row and the title if the admin level is high enough
         if int(admin_level) >= 1:

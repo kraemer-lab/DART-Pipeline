@@ -7,7 +7,7 @@ import argparse
 from pathlib import Path
 from typing import cast
 
-from .types import DataFile, URLCollection, ProcessResult
+from .types import DataFile, URLCollection
 from .constants import DEFAULT_SOURCES_ROOT, MSG_PROCESS, MSG_SOURCE, INTEGER_PARAMS
 from .collate import SOURCES, REQUIRES_AUTH
 from .process import PROCESSORS
