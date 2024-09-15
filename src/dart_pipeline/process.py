@@ -28,7 +28,7 @@ import numpy as np
 import pandas as pd
 import netCDF4 as nc
 
-from .util import source_path, days_in_year, output_path, get_country_name
+from .util import abort, source_path, days_in_year, output_path, get_country_name
 from .types import ProcessResult, PartialDate, AdminLevel
 
 TEST_MODE = os.getenv("DART_PIPELINE_TEST")
@@ -159,8 +159,6 @@ def process_aphrodite_precipitation_data() -> list[ProcessResult]:
         temp = []
         rstn = []
 
-        print(f"Reading: {fname}")
-        print("iday", "temp", "rstn")
         for iday in range(1, nday + 1):
             try:
                 with open(fname, "rb") as f:
@@ -191,8 +189,7 @@ def process_aphrodite_precipitation_data() -> list[ProcessResult]:
                     temp.append(mean_temp)
                     rstn.append(mean_rstn)
             except FileNotFoundError:
-                # print(f'ERROR: File not found - {fname}')
-                pass
+                abort(source, f"file not found: {fname}")
             except ValueError:
                 pass
 
@@ -215,17 +212,17 @@ def process_aphrodite_temperature_data() -> list[ProcessResult]:
         "025deg": ("TAVE_025deg", 360, 280),
         "050deg_nc": ("TAVE_050deg", 180, 140),
     }
-    base_path = source_path(source, Path("product", "APHRO_V1808_TEMP", "APHRO_MA"))
+    base_path = source_path(source)
     for res in ["005deg", "025deg", "050deg_nc"]:
         product, nx, ny = params[res]
         nday = days_in_year(year) if product != "TAVE_CLM_005deg" else 366
         match product:
             case "TAVE_CLM_005deg":
-                fname = base_path / res / f"APHRO_MA_{product}_{version}.grd.gz"
+                fname = base_path / f"APHRO_MA_{product}_{version}.grd.gz"
             case "TAVE_025deg":
-                fname = base_path / res / f"APHRO_MA_{product}_{version}.{year}.gz"
+                fname = base_path / f"APHRO_MA_{product}_{version}.{year}.gz"
             case "TAVE_050deg":
-                fname = base_path / res / f"APHRO_MA_{product}_{version}.{year}.nc.gz"
+                fname = base_path / f"APHRO_MA_{product}_{version}.{year}.nc.gz"
 
         # Initialise output lists
         temp = []
@@ -244,8 +241,7 @@ def process_aphrodite_temperature_data() -> list[ProcessResult]:
                     temp.append(temp_data[0, 0])
                     rstn.append(rstn_data[0, 0])
         except FileNotFoundError:
-            print(f"ERROR: File not found - {fname}")
-            pass
+            abort(source, f"file not found: {fname}")
         except ValueError:
             pass
 
