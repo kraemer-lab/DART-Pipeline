@@ -11,13 +11,12 @@ import datetime
 import calendar
 import logging
 from datetime import timedelta
-from typing import Generator, Literal, Callable
+from typing import Generator, Literal
 from functools import cache
 from pathlib import Path
 from collections.abc import Iterable
 
 from lxml import html
-import gzip
 import py7zr
 import requests
 import pycountry
@@ -40,14 +39,6 @@ def abort(bold_text: str, rest: str):
 def days_in_year(year: int) -> Literal[365, 366]:
     "Returns number of days in year"
     return 366 if calendar.isleap(year) else 365
-
-
-def show_urlcollection(c: URLCollection, _: bool = False) -> str:
-    file_list_str = c.files[0] if len(c.files) == 1 else f" [{len(c.files)} links]"
-    s = f"{c.base_url}{file_list_str}"
-    return (
-        s + "\n" + "\n".join(f"  {file}" for file in c.files) if len(c.files) > 1 else s
-    )
 
 
 def get_country_name(iso3: str) -> str:
@@ -254,16 +245,13 @@ def walk(
 
 def unpack_file(path: Path | str, same_folder: bool = False):
     "Unpack a zipped file"
-    print("Unpacking", path)
     path = Path(path)
     match path.suffix:
         case ".7z":
             with py7zr.SevenZipFile(path, mode="r") as archive:
-                archive.extractall(path.parent if same_folder else path.stem)
-        case ".gz":
-            with gzip.open(path, "rb") as f_in, open(path.stem, "wb") as f_out:
-                f_out.write(f_in.read())
+                archive.extractall(
+                    path.parent if same_folder else path.parent / path.stem
+                )
         case _:
-            extract_dir = path.parent if same_folder else path.stem
-            print("to", extract_dir)
+            extract_dir = path.parent if same_folder else path.parent / path.stem
             shutil.unpack_archive(path, str(extract_dir))
