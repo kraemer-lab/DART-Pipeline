@@ -30,7 +30,13 @@ def list_all() -> list[str]:
     ]
 
 
-def get(source: str, only_one: bool = True, update: bool = False, **kwargs):
+def get(
+    source: str,
+    only_one: bool = True,
+    update: bool = False,
+    process: bool = False,
+    **kwargs,
+):
     "Get files for a source"
     if source not in SOURCES:
         abort("source not found:", source)
@@ -67,11 +73,14 @@ def get(source: str, only_one: bool = True, update: bool = False, **kwargs):
             print(f"🟡 {msg} [{n_ok}/{len(success)} OK]")
         else:
             print(f"❌ {msg}")
+    if process and source in PROCESSORS:
+        process_cli(source, **kwargs)
 
 
 def process_cli(source: str, **kwargs):
     if source not in PROCESSORS:
         abort("source not found:", source)
+    print(f" • PROC \033[1m{source}\033[0m ...", end="\r")
     processor = PROCESSORS[source]
     non_default_params = {
         p.name
@@ -88,7 +97,7 @@ def process_cli(source: str, **kwargs):
         if not out.parent.exists():
             out.parent.mkdir(parents=True)
         df.to_csv(out, index=False)
-        print(f"✅ \033[1m{source}\033[0m {out}")
+        print(f"✅ PROC \033[1m{source}\033[0m {out}")
 
 
 def check(source: str, only_one: bool = True, **kwargs):
@@ -101,7 +110,7 @@ def check(source: str, only_one: bool = True, **kwargs):
     for coll in links if not only_one else map(only_one_from_collection, links):
         missing = coll.missing_files(DATA_PATH / source)
         indicator = "✅" if not missing else "❌"
-        print(f"{indicator} \033[1m{source}\033[0m {coll}")
+        print(f"{indicator} PROC \033[1m{source}\033[0m {coll}")
         if missing:
             print("\n".join("   missing " + str(p) for p in missing))
 
@@ -132,6 +141,12 @@ def main():
     get_parser.add_argument(
         "-1", "--only-one", help="Get only one file", action="store_true"
     )
+    get_parser.add_argument(
+        "-p",
+        "--process",
+        help="If the source can be directly processed, process immediately",
+        action="store_true",
+    )
 
     process_parser = subparsers.add_parser("process", help="Process a source")
     process_parser.add_argument("source", help="Source to process")
@@ -142,7 +157,7 @@ def main():
         case "list":
             print("\n".join(list_all()))
         case "get":
-            get(args.source, args.only_one, args.update, **kwargs)
+            get(args.source, args.only_one, args.update, args.process, **kwargs)
         case "check":
             check(args.source, args.only_one)
         case "process":
