@@ -643,10 +643,11 @@ def get_admin_region(lat: float, lon: float, polygons) -> str:
     return "null"
 
 
-def process_relative_wealth_index_vietnam():
+def process_relative_wealth_index_admin2(iso3: str):
     "Process Vietnam Relative Wealth Index data"
-    iso3 = "VNM"
-    rwifile = source_path("vendored", "vnm_relative_wealth_index.csv")
+    rwifile = source_path(
+        "economic/relative-wealth-index", f"{iso3.lower()}_relative_wealth_index.csv"
+    )
     shpfile = get_shapefile(iso3, admin_level="2")
 
     # Create a dictionary of polygons where the key is the ID of the polygon
@@ -655,13 +656,12 @@ def process_relative_wealth_index_vietnam():
     admin_geoid = "GID_2"
     polygons = dict(zip(shapefile[admin_geoid], shapefile["geometry"]))
 
-    print("Classifying locations of RWI values")
     rwi = pd.read_csv(rwifile)
     rwi["geo_id"] = rwi.apply(
         lambda x: get_admin_region(x["latitude"], x["longitude"], polygons), axis=1
     )
     rwi = rwi[rwi["geo_id"] != "null"]
-    return rwi, "VNM.csv"
+    return rwi, f"{iso3}.csv"
 
 
 PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
@@ -675,5 +675,5 @@ PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
     "sociodemographic/worldpop-density": process_worldpop_pop_density_data,
     "geospatial/chirps-rainfall": process_gadm_chirps_data,
     "geospatial/worldpop-count": process_gadm_worldpoppopulation_data,
-    "economic/relative-wealth-index": process_relative_wealth_index_vietnam,
+    "economic/relative-wealth-index": process_relative_wealth_index_admin2,
 }
