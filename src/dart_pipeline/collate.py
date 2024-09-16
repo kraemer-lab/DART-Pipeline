@@ -5,24 +5,7 @@ See `DART dataset summarisation.xls` for information about the data fields
 to be collated.
 
 This script has been tested on Python 3.12 and more versions will be tested in
-the future.
-
-**Installation and Setup**
-
-It is recommended to work in a virtual Python environment. Open a terminal in
-the "A Collate Data" folder and run the following:
-
-.. code-block::
-
-    $ python3 -m venv venv
-    $ source venv/bin/activate
-
-Package requirements for this script are listed in `requirements.txt`. Install
-these dependencies via:
-
-.. code-block::
-
-    $ python3 -m pip install -r requirements.txt
+the future. See README.md for installation instructions.
 
 Password management is done by creating a file called `credentials.json` in the
 top-level of the `DART-Pipeline` directory and adding login credentials into it
@@ -45,18 +28,18 @@ To download Daily mean temperature product (V1808) meteorological data an
 `APHRODITE account <http://aphrodite.st.hirosaki-u.ac.jp/download/>`_ is
 needed and the username and password need to be added to the `credentials.json`
 file as described above. The script can then be run as follows (note that these
-examples use the `--only_one` and `--dry_run` flags which are meant for script
+examples use the `--only-one` flags which are meant for script
 testing purposes only):
 
 .. code-block::
 
-    # Approx run time: 4.144
-    $ python3 collate_data.py "APHRODITE temperature" --only_one --dry_run
-    # Approx run time: 6:36.88
-    $ python3 collate_data.py "APHRODITE temperature" --only_one
+    # To download only one file
+    $ uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp --only-one
+    # To download all files
+    $ uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp
 
-This will create a `Meteorological Data` folder inside the A folder into which
-data will be downloaded.
+This will create a `data/sources/meteorological/aphrodite-daily-mean-temp` folder
+into which data will be downloaded.
 """
 
 import logging

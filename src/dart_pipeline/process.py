@@ -6,7 +6,7 @@ following commands
 
 .. code-block::
 
-    $ uv run dart-pipeline process geospatial/gadm admin=1
+    $ uv run dart-pipeline process geospatial/gadm admin-level=1
 
 
 In general, use `EPSG:9217 <https://epsg.io/9217>`_ or
@@ -14,6 +14,7 @@ In general, use `EPSG:9217 <https://epsg.io/9217>`_ or
 `ISO 3166-1 alpha-3 <https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3>`_
 format for country codes.
 """
+
 import os
 import logging
 from pathlib import Path
@@ -35,7 +36,7 @@ TEST_MODE = os.getenv("DART_PIPELINE_TEST")
 
 
 def process_ministerio_de_salud_peru_data(
-    admin_level: Literal["0", "1"] | None = None
+    admin_level: Literal["0", "1"] | None = None,
 ) -> ProcessResult:
     "Process data from the Ministerio de Salud - Peru"
     source = "epidemiological/dengue-peru"
