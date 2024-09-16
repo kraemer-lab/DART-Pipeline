@@ -79,6 +79,17 @@ without any parameters
 ❗ geospatial/gadm missing required parameters {'iso3', 'admin_level'}
 ```
 
+## Development
+
+Development requires the dev packages to be installed:
+```shell
+uv sync --all-extras
+uv run pytest
+```
+
+The project uses [pre-commit hooks](https://pre-commit.com), use
+`pre-commit install` to install hooks.
+
 ## Authors and Acknowledgments
 
 - OxRSE
