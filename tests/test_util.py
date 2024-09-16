@@ -3,9 +3,11 @@ Tests for utility functions
 """
 
 from pathlib import Path
+
+import pytest
 import requests_mock
 
-from dart_pipeline.util import download_file
+from dart_pipeline.util import download_file, days_in_year, get_country_name, use_range
 
 
 def test_download_file():
@@ -70,3 +72,18 @@ def test_download_file_unzip_create_folder():
         assert (source_path / "file" / "world.txt").read_text() == "Hello world\n"
         (source_path / "file" / "hello.txt").unlink()
         (source_path / "file" / "world.txt").unlink()
+
+
+@pytest.mark.parametrize("year,days", [(2024, 366), (2023, 365)])
+def test_days_in_year(year, days):
+    assert days_in_year(year) == days
+
+
+@pytest.mark.parametrize("iso3,name", [("BOL", "Bolivia"), ("IND", "India")])
+def test_get_country_name(iso3, name):
+    assert get_country_name(iso3) == name
+
+
+def test_use_range():
+    with pytest.raises(ValueError):
+        use_range(20, 5, 15, "something beyond range")
