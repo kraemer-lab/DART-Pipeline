@@ -28,9 +28,12 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import netCDF4 as nc
+from pandarallel import pandarallel
 
 from .util import abort, source_path, days_in_year, output_path, get_country_name
 from .types import ProcessResult, PartialDate, AdminLevel
+
+pandarallel.initialize()
 
 TEST_MODE = os.getenv("DART_PIPELINE_TEST")
 
@@ -656,10 +659,11 @@ def process_relative_wealth_index_admin2(iso3: str):
     admin_geoid = "GID_2"
     polygons = dict(zip(shapefile[admin_geoid], shapefile["geometry"]))
 
+    def get_admin(x):
+        return get_admin_region(x["latitude"], x["longitude"], polygons)
+
     rwi = pd.read_csv(rwifile)
-    rwi["geo_id"] = rwi.apply(
-        lambda x: get_admin_region(x["latitude"], x["longitude"], polygons), axis=1
-    )
+    rwi["geo_id"] = rwi.parallel_apply(get_admin, axis=1)  # type: ignore
     rwi = rwi[rwi["geo_id"] != "null"]
     return rwi, f"{iso3}.csv"
 
