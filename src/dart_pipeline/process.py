@@ -33,7 +33,7 @@ from pandarallel import pandarallel
 from .util import abort, source_path, days_in_year, output_path, get_country_name
 from .types import ProcessResult, PartialDate, AdminLevel
 
-pandarallel.initialize()
+pandarallel.initialize(verbose=0)
 
 TEST_MODE = os.getenv("DART_PIPELINE_TEST")
 

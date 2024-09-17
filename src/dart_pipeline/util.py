@@ -243,6 +243,11 @@ def walk(
     return download_list
 
 
+def bold_brackets(s: str) -> str:
+    """Given a text with brackets such as [this], renders it in bold font"""
+    return s.replace("[", "\033[1m").replace("]", "\033[0m")
+
+
 def unpack_file(path: Path | str, same_folder: bool = False):
     "Unpack a zipped file"
     path = Path(path)

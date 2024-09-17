@@ -9,11 +9,18 @@ from pathlib import Path
 from typing import cast
 
 from .types import DataFile, URLCollection
-from .constants import DEFAULT_SOURCES_ROOT, MSG_PROCESS, MSG_SOURCE, INTEGER_PARAMS
+from .constants import (
+    DEFAULT_SOURCES_ROOT,
+    DEFAULT_OUTPUT_ROOT,
+    MSG_PROCESS,
+    MSG_SOURCE,
+    INTEGER_PARAMS,
+)
 from .collate import SOURCES, REQUIRES_AUTH
 from .process import PROCESSORS
 from .util import (
     abort,
+    bold_brackets,
     download_files,
     get_credentials,
     only_one_from_collection,
@@ -21,6 +28,46 @@ from .util import (
 )
 
 DATA_PATH = Path(os.getenv("DART_PIPELINE_SOURCES_PATH", DEFAULT_SOURCES_ROOT))
+
+USAGE = f"""[DART] – [D]engue [A]dvanced [R]eadiness [T]ools pipeline
+
+The aim of this project is to develop a scalable and reproducible
+pipeline for the joint analysis of epidemiological, climate, and
+behavioural data to anticipate and predict dengue outbreaks.
+
+The [dart-pipeline] command line tool downloads and processes data for
+ingestion into a database. It has the following subcommands
+
+   [check]    Checks that data from a particular source exists
+     [get]    Gets data from a particular source. Sources may need
+            additional parameters to be set.
+    [list]    Lists sources and processors of the data
+ [process]    Processes data downloaded by a particular source
+
+To see detailed help on any of these, run
+    uv run dart-pipeline <subcommand> --help
+
+[EXAMPLES]
+
+To get geospatial GADM data for Vietnam:
+    uv run dart-pipeline get geospatial/gadm iso3=VNM
+
+If a processor with the same name exists, you can also process the data
+at the same time by adding a [-p] flag:
+    uv run dart-pipeline get geospatial/gadm iso3=VNM -p
+
+To find out if a processor or a getter requires parameters, run without:
+    uv run dart-pipeline process geospatial/gadm
+    ❗ geospatial/gadm missing required parameters {'iso3', 'admin_level'}
+
+[PATHS]
+
+       Default sources path = {DEFAULT_SOURCES_ROOT}
+Default process output path = {DEFAULT_OUTPUT_ROOT}
+
+Files will be downloaded into the sources path and process
+functions will write to the output path.
+"""
 
 
 def list_all() -> list[str]:
@@ -162,6 +209,8 @@ def main():
             check(args.source, args.only_one)
         case "process":
             process_cli(args.source, **kwargs)
+        case _:
+            print(bold_brackets(USAGE))
 
 
 if __name__ == "__main__":
