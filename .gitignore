@@ -1,9 +1,9 @@
 # Anything explicitly ignored
 gitignored/
 
-# Data folders
-A Collate Data/**/* Data/
-B Process Data/**/* Data/
+# Built files
+/*.html
+*.pdf
 
 # Data files
 *.7z
@@ -86,7 +86,7 @@ __pycache__
 # Test result files
 *.xml 
 
-# Latex files
+# LaTeX
 *.aux
 *.bbl
 *.blg
@@ -114,20 +114,26 @@ __pycache__
 # Hidden ipython notebook files
 .ipynb_checkpoints
 
-# Font files
+# Fonts
 *.ttf
 
-# Pass files
+# Passwords
+credentials.json
+# GNU Privacy Guard encrypted file
+*.gpg
+# Plaintext passwords
+*.pass
+# Pass
 *.password-store
 
-# Snakemake and GRAPEVNE build files
+# Snakemake and GRAPEVNE
 .snakemake
 **/results/out
-credentials.json
 
-# Sublime Text files
+# Visual Studio Code
+*.code-workspace
+.vscode/
+
+# Sublime Text
 *.sublime-project
 *.sublime-workspace
-
-# VS Code files
-*.code-workspace

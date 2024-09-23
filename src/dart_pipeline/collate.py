@@ -97,7 +97,7 @@ def relative_wealth_index(iso3: str) -> URLCollection:
 
 def ministerio_de_salud_peru_data() -> list[DataFile]:
     "Data from the Ministerio de Salud (Peru) https://www.dge.gob.pe/sala-situacional-dengue"
-    pages = ["Nacional_dengue"] + ["sala_dengue" + region for region in MEXICO_REGIONS]
+    pages = ["Nacional_dengue"] + ["sala_dengue_" + region for region in MEXICO_REGIONS]
     # If the user specifies that only one dataset should be downloaded
     data: list[DataFile] = []
     for page in pages:
