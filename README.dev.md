@@ -17,7 +17,7 @@ Done: ✅, in progress: ⏳, not working: ❌
  ├── ❌ `uv run dart-pipeline get sociodemographic/worldpop-count iso3=VNM`
  └── ❌ `uv run dart-pipeline get sociodemographic/worldpop-density iso3=VNM`
 
-`uv run dart-pipeline process `
+`uv run dart-pipeline process`
  ├── ✅ `uv run dart-pipeline process economic/relative-wealth-index iso3=VNM` 9.304s
  ├── `uv run dart-pipeline process epidemiological/dengue/peru`
  ├── ❌ `uv run dart-pipeline process geospatial/chirps-rainfall iso3=VNM partial_date=2023`
