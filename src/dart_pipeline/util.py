@@ -41,12 +41,15 @@ def days_in_year(year: int) -> Literal[365, 366]:
     return 366 if calendar.isleap(year) else 365
 
 
-def get_country_name(iso3: str) -> str:
+def get_country_name(iso3: str, common_name: bool = True) -> str:
     if (country := pycountry.countries.get(alpha_3=iso3)) is None:
         raise ValueError(f"Country ISO3 not found: {iso3}")
-    try:
-        return country.common_name
-    except AttributeError:
+    if common_name:
+        try:
+            return country.common_name
+        except AttributeError:
+            return country.name
+    else:
         return country.name
 
 
@@ -113,7 +116,7 @@ def get_credentials(source: str, credentials: str | Path | None = None) -> Crede
         if source in data:
             return data[source]["username"], data[source]["password"]
         else:
-            raise KeyError("metric={metric!r} not found in credentials")
+            raise KeyError(f'"{source}" not found within credentials')
 
     # read credentials from environment if present
     if credentials_env := os.getenv("CREDENTIALS_JSON"):

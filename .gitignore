@@ -5,6 +5,10 @@ gitignored/
 /*.html
 *.pdf
 
+# Metadata files
+data/**/*.txt
+data/**/*.html
+
 # Data files
 *.7z
 *.cpg

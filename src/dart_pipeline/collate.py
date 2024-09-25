@@ -142,7 +142,7 @@ def aphrodite_precipitation_data() -> list[URLCollection]:
         ),
         # 0.25 degree
         URLCollection(
-            f"{base_url}/'product/APHRO_V1901/APHRO_MA/025deg",
+            f"{base_url}/product/APHRO_V1901/APHRO_MA/025deg",
             [
                 "APHRO_MA_025deg_V1901.2015.gz",
                 "APHRO_MA_025deg_V1901.ctl.gz",
@@ -334,7 +334,11 @@ def worldpop_pop_count_data(iso3: str) -> URLCollection:
     files along with .tfw and .tif.aux.xml files. Most users will not find
     these files useful and so unzipping the .7z file is usually unnecessary.
     """
-    country = get_country_name(iso3)
+    # When iso3='VNM' the required output is country='Viet_Nam'. Hence the
+    # common name ('Vietnam') is not correct
+    country = get_country_name(iso3, common_name=False)
+    # When country='Viet Nam', replace the space with an underscore
+    country = country.replace(' ', '_')
     return URLCollection(
         "https://data.worldpop.org",
         [
@@ -343,6 +347,7 @@ def worldpop_pop_count_data(iso3: str) -> URLCollection:
             # otherwise zip file is downloaded
             f"GIS/Population/Individual_countries/{iso3}/{country}_100m_Population.7z",
         ],
+        relative_path=iso3,
     )
 
 
@@ -352,14 +357,17 @@ def worldpop_pop_density_data(iso3: str) -> URLCollection:
     return URLCollection(
         f"https://data.worldpop.org/GIS/Population_Density/Global_2000_2020_1km_UNadj/{year}/{iso3}",
         [
-            f"{iso3.lower()}_pd_{year}_1km_UNadj_ASCII_XYZ.zip"  # GeoDataFrame
-            f"{iso3.lower()}_pd_{year}_1km_UNadj.tif"  # GeoTIFF
+            # GeoDataFrame
+            f"{iso3.lower()}_pd_{year}_1km_UNadj_ASCII_XYZ.zip",
+            # GeoTIFF
+            f"{iso3.lower()}_pd_{year}_1km_UNadj.tif"
         ],
+        relative_path=iso3,
     )
 
 
 REQUIRES_AUTH = [
-    "meterological/aphrodite-daily-precip",
+    "meteorological/aphrodite-daily-precip",
     "meteorological/aphrodite-daily-mean-temp",
 ]
 
