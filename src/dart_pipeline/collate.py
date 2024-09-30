@@ -51,7 +51,7 @@ from typing import Final, Callable
 from bs4 import BeautifulSoup
 import requests
 
-from .constants import TERRACLIMATE_METRICS, MEXICO_REGIONS
+from .constants import TERRACLIMATE_METRICS, PERU_REGIONS
 from .types import URLCollection, DataFile
 from .util import daterange, use_range, get_country_name
 
@@ -97,7 +97,7 @@ def relative_wealth_index(iso3: str) -> URLCollection:
 
 def ministerio_de_salud_peru_data() -> list[DataFile]:
     "Data from the Ministerio de Salud (Peru) https://www.dge.gob.pe/sala-situacional-dengue"
-    pages = ["Nacional_dengue"] + ["sala_dengue_" + region for region in MEXICO_REGIONS]
+    pages = ["Nacional_dengue"] + ["sala_dengue_" + region for region in PERU_REGIONS]
     # If the user specifies that only one dataset should be downloaded
     data: list[DataFile] = []
     for page in pages:
@@ -231,6 +231,8 @@ def chirps_rainfall_data(year: int, month: int | None = None) -> list[URLCollect
     chirps_first_year: Final[int] = 1981
     chirps_first_month: Final[date] = date(1981, 1, 1)
     urls: list[URLCollection] = []
+    if month:
+        month = int(month)
 
     assert isinstance(year, int), "Year must be an integer"
     if month:

@@ -42,7 +42,7 @@ def process_ministerio_de_salud_peru_data(
     admin_level: Literal["0", "1"] | None = None,
 ) -> ProcessResult:
     "Process data from the Ministerio de Salud - Peru"
-    source = "epidemiological/dengue-peru"
+    source = "epidemiological/dengue/peru"
     if not admin_level:
         admin_level = "0"
         logging.info(f"Admin level: None, defaulting to {admin_level}")
@@ -504,21 +504,27 @@ def process_gadm_chirps_data(
     # Transform the shape file to match the GeoTIFF's coordinate system
     gdf = gdf.to_crs(src.crs)
 
-    output = pd.DataFrame()
+    # Initialise a list-of-lists that will be converted into a data frame
+    output = []
     # Iterate over each region in the shape file
     for _, region in gdf.iterrows():
         geometry = region.geometry
-
-        # Initialise a new row for the output data frame
-        new_row = {"Admin Level 0": region["COUNTRY"]}
-        # Initialise the title
-        # Update the new row and the title if the admin level is high enough
+        # Initialise a new row that will be added to the output list-of-lists
+        new_row = []
+        # Add the region information
+        new_row.append(region['COUNTRY'])
         if int(admin_level) >= 1:
-            new_row["Admin Level 1"] = region["NAME_1"]
+            new_row.append(region['NAME_1'])
+        else:
+            new_row.append('')
         if int(admin_level) >= 2:
-            new_row["Admin Level 2"] = region["NAME_2"]
+            new_row.append(region['NAME_2'])
+        else:
+            new_row.append('')
         if int(admin_level) >= 3:
-            new_row["Admin Level 3"] = region["NAME_3"]
+            new_row.append(region['NAME_3'])
+        else:
+            new_row.append('')
 
         # Check if the rainfall data intersects this region
         if raster_bbox.intersects(geometry):
@@ -531,15 +537,21 @@ def process_gadm_chirps_data(
             region_total = np.nansum(region_data)
         else:
             region_total = 0  # no rainfall data for this region
+        new_row.append(str(date))
+        new_row.append(region_total)
 
-        # Add to output data frame
-        new_row["Date"] = date
-        new_row["Rainfall"] = region_total
-        new_row_df = pd.DataFrame(new_row, index=[0])
-        output = pd.concat([output, new_row_df], ignore_index=True)
+        # Add to output list-of-lists
+        output.append(new_row)
+
+    # Convert to data frame
+    columns = [
+        'admin_level_0', 'admin_level_1', 'admin_level_2', 'admin_level_3',
+        'date', 'rainfall'
+    ]
+    df = pd.DataFrame(output, columns=columns)
 
     # Export
-    return output, f"{iso3}/admin{admin_level}/{date.year}/{date}.csv"
+    return df, f'{iso3}.csv'
 
 
 def process_gadm_worldpoppopulation_data(
@@ -646,7 +658,7 @@ def get_admin_region(lat: float, lon: float, polygons) -> str:
     return "null"
 
 
-def process_relative_wealth_index_admin2(iso3: str):
+def process_relative_wealth_index_admin(iso3: str):
     "Process Vietnam Relative Wealth Index data"
     rwifile = source_path(
         "economic/relative-wealth-index", f"{iso3.lower()}_relative_wealth_index.csv"
@@ -679,5 +691,5 @@ PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
     "sociodemographic/worldpop-density": process_worldpop_pop_density_data,
     "geospatial/chirps-rainfall": process_gadm_chirps_data,
     "geospatial/worldpop-count": process_gadm_worldpoppopulation_data,
-    "economic/relative-wealth-index": process_relative_wealth_index_admin2,
+    "economic/relative-wealth-index": process_relative_wealth_index_admin,
 }

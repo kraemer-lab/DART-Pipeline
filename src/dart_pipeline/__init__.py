@@ -8,6 +8,9 @@ import argparse
 from pathlib import Path
 from typing import cast
 
+import pandas as pd
+import numpy as np
+
 from .types import DataFile, URLCollection
 from .constants import (
     DEFAULT_SOURCES_ROOT,
@@ -102,24 +105,36 @@ def get(
     source_fmt = f"\033[1m{source}\033[0m"
     links = links if isinstance(links, list) else [links]
     if isinstance(links[0], DataFile):
-        print(f"-- {source_fmt} fetches data directly, nothing to do")
-        return
-    links = cast(list[URLCollection], links)
-    auth = get_credentials(source) if source in REQUIRES_AUTH else None
-    for coll in links if not only_one else map(only_one_from_collection, links):
-        if not coll.missing_files(DATA_PATH / source) and not update:
-            print(f"✅ SKIP {source_fmt} {coll}")
-            continue
-        msg = f" GET {source_fmt} {coll}"
-        print(f" • {msg}", end="\r")
-        success = download_files(coll, path, auth=auth)
-        n_ok = sum(success)
-        if n_ok == len(success):
+        for datafile in links:
+            decoded_bytes = datafile.data
+            path = Path(
+                DATA_PATH, source, datafile.relative_path, datafile.file
+            )
+            msg = f" GET {source_fmt} {datafile.file}"
+            print(f" • {msg}", end="\r")
+            with open(path, 'wb') as f:
+                f.write(decoded_bytes)
             print(f"✅ {msg}")
-        elif n_ok > 0:
-            print(f"🟡 {msg} [{n_ok}/{len(success)} OK]")
-        else:
-            print(f"❌ {msg}")
+        return
+    else:
+        links = cast(list[URLCollection], links)
+        auth = get_credentials(source) if source in REQUIRES_AUTH else None
+        for coll in links if not only_one else map(
+            only_one_from_collection, links
+        ):
+            if not coll.missing_files(DATA_PATH / source) and not update:
+                print(f"✅ SKIP {source_fmt} {coll}")
+                continue
+            msg = f" GET {source_fmt} {coll}"
+            print(f" • {msg}", end="\r")
+            success = download_files(coll, path, auth=auth)
+            n_ok = sum(success)
+            if n_ok == len(success):
+                print(f"✅ {msg}")
+            elif n_ok > 0:
+                print(f"🟡 {msg} [{n_ok}/{len(success)} OK]")
+            else:
+                print(f"❌ {msg}")
     if process and source in PROCESSORS:
         process_cli(source, **kwargs)
 
@@ -143,7 +158,29 @@ def process_cli(source: str, **kwargs):
         out = base_path / filename
         if not out.parent.exists():
             out.parent.mkdir(parents=True)
-        df.to_csv(out, index=False)
+        # Check if the CSV file already exists
+        if os.path.exists(out):
+            # Load the existing CSV file
+            dtype = {
+                'admin_level_1': str, 'admin_level_2': str,
+                'admin_level_3': str, 'date': str, 'rainfall': np.float32
+            }
+            old = pd.read_csv(out, dtype=dtype)
+            # Merge based on the first five columns
+            updated = pd.merge(
+                old, df,
+                on=list(old)[:5],
+                how='left',
+                suffixes=('', '_new')
+            )
+            # Replace the old values
+            updated['rainfall'] = \
+                updated['rainfall_new'].combine_first(updated['rainfall'])
+            updated.drop(columns=['rainfall_new'], inplace=True)
+        else:
+            # If file doesn't already exist, just use the new DataFrame
+            updated = df
+        updated.to_csv(out, index=False)
         print(f"✅ PROC \033[1m{source}\033[0m {out}")
 
 
@@ -152,7 +189,8 @@ def check(source: str, only_one: bool = True, **kwargs):
     links = SOURCES[source](**kwargs)
     links = links if isinstance(links, list) else [links]
     if isinstance(links, list) and isinstance(links[0], DataFile):
-        print("-- \033[1m{source}\033[0m directly returns data, checking not supported")
+        print(f"-- \033[1m{source}\033[0m directly returns data, checking not supported")
+        return
     links = cast(list[URLCollection], links)
     for coll in links if not only_one else map(only_one_from_collection, links):
         missing = coll.missing_files(DATA_PATH / source)
@@ -174,13 +212,17 @@ def parse_params(params: list[str]) -> dict[str, str | int]:
 
 def main():
     parser = argparse.ArgumentParser(description="DART Pipeline Operations")
-
     subparsers = parser.add_subparsers(dest="command")
+
     _ = subparsers.add_parser("list", help="List sources and processes")
+
     check_parser = subparsers.add_parser(
         "check", help="Check files exist for a given source"
     )
     check_parser.add_argument("source", help="Source to check files for")
+    check_parser.add_argument(
+        "-1", "--only-one", help="Get only one file", action="store_true"
+    )
 
     get_parser = subparsers.add_parser("get", help="Get files for a source")
     get_parser.add_argument("source", help="Source to get files for")
