@@ -25,6 +25,7 @@ from .util import (
     get_credentials,
     only_one_from_collection,
     output_path,
+    update_or_create_output
 )
 
 DATA_PATH = Path(os.getenv("DART_PIPELINE_SOURCES_PATH", DEFAULT_SOURCES_ROOT))
@@ -125,9 +126,10 @@ def get(
 
 
 def process_cli(source: str, **kwargs):
+    """Process a data source according to inputs from the command line."""
     if source not in PROCESSORS:
         abort("source not found:", source)
-    print(f" • PROC \033[1m{source}\033[0m ...", end="\r")
+    # print(f" • PROC \033[1m{source}\033[0m ...", end="\r")
     processor = PROCESSORS[source]
     non_default_params = {
         p.name
@@ -143,7 +145,7 @@ def process_cli(source: str, **kwargs):
         out = base_path / filename
         if not out.parent.exists():
             out.parent.mkdir(parents=True)
-        df.to_csv(out, index=False)
+        update_or_create_output(df, out)
         print(f"✅ PROC \033[1m{source}\033[0m {out}")
 
 

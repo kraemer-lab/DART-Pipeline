@@ -1,6 +1,4 @@
-"""
-Utility library for DART pipeline
-"""
+"""Utility library for DART pipeline."""
 
 import copy
 import json
@@ -20,6 +18,7 @@ from lxml import html
 import py7zr
 import requests
 import pycountry
+import pandas as pd
 
 from .constants import (
     DEFAULT_SOURCES_ROOT,
@@ -260,3 +259,26 @@ def unpack_file(path: Path | str, same_folder: bool = False):
         case _:
             extract_dir = path.parent if same_folder else path.parent / path.stem
             shutil.unpack_archive(path, str(extract_dir))
+
+
+def update_or_create_output(df: pd.DataFrame, out: str | Path):
+    """Either update an existing CSV or create a new one."""
+    # Check if the CSV file already exists
+    if out.exists():
+        existing_df = pd.read_csv(out)
+        # Merge the new data with the existing data, prioritising new values
+        key_columns = [f'admin_level_{x}' for x in range(4)]
+        output_df = pd.merge(
+            existing_df, df, on=key_columns, how='outer', suffixes=('_old', '')
+        )
+        # Update the data by prioritizing the new values (from the new data)
+        metric = list(existing_df)[-1]
+        output_df[metric] = \
+            output_df[metric].combine_first(output_df[f'{metric}_old'])
+        # Drop the old data column
+        output_df = output_df.drop(columns=[f'{metric}_old'], errors='ignore')
+    else:
+        # Output the data as-is
+        output_df = df
+    # Export
+    output_df.to_csv(out, index=False)
