@@ -165,11 +165,26 @@ def check(source: str, only_one: bool = True, **kwargs):
 
 
 def parse_params(params: list[str]) -> dict[str, str | int]:
+    """
+    Parse the parameters that have been passed to the script via the CLI.
+
+    Including a parameter such as `admin_level=0` on the command line will
+    result in it being parsed as `{'admin_level': '0'}`.
+
+    Command line arguments whose values get converted into integers:
+
+    - `year`
+
+    Shorthands that are recognised as standing for longer arguments:
+
+    - `a` (for `admin_level`)
+    - `3` (for `iso3`)
+    """
     out = {}
     for param in params:
         k, v = param.split("=")
         key = k.replace("-", "_")
-        v = v if key not in INTEGER_PARAMS else int(v)
+        v = int(v) if key in INTEGER_PARAMS else v
         out[key] = v
     # Replace shorthand kwargs
     if 'a' in out:
@@ -203,7 +218,12 @@ def main():
         action="store_true",
     )
 
-    process_parser = subparsers.add_parser("process", help="Process a source")
+    process_parser = subparsers.add_parser(
+        "process",
+        help="Process a source",
+        usage="dart-pipeline process [-h] source [**kwargs]",
+        description="Process a source with optional keyword arguments."
+    )
     process_parser.add_argument("source", help="Source to process")
 
     args, unknownargs = parser.parse_known_args()
