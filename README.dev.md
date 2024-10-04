@@ -18,7 +18,7 @@ Done: ✅, in progress: ⏳, not working: ❌
  └── ❌ `uv run dart-pipeline get sociodemographic/worldpop-density iso3=VNM`
 
 `uv run dart-pipeline process`
- ├── ✅ `uv run dart-pipeline process economic/relative-wealth-index`
+ ├── `uv run dart-pipeline process economic/relative-wealth-index`
  │   ├── ✅ `uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=0` 3m57.924s
  │   ├── ✅ `uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=1` 7.687s
  │   ├── ✅ `uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=2` 24.059s

@@ -212,7 +212,9 @@ def main():
         case "list":
             print("\n".join(list_all()))
         case "get":
-            get(args.source, args.only_one, args.update, args.process, **kwargs)
+            get(
+                args.source, args.only_one, args.update, args.process, **kwargs
+            )
         case "check":
             check(args.source, args.only_one)
         case "process":
