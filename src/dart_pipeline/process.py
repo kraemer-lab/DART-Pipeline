@@ -273,7 +273,7 @@ def get_chirps_rainfall_data_path(date: PartialDate) -> Path:
             file = Path("global_annual", f"chirps-v2.0.{date}.tif")
 
     if not (path := source_path("meteorological/chirps-rainfall", file)).exists():
-        raise FileNotFoundError(f"CHIRPS rainfall data not found for: {date}")
+        raise FileNotFoundError(f"CHIRPS rainfall data not found: {path}")
     return path
 
 
@@ -477,14 +477,11 @@ def process_worldpop_pop_density_data(iso3: str, year: int) -> ProcessResult:
 def process_gadm_chirps_data(
     iso3: str, partial_date: str, admin_level: Literal["0", "1"] = "0"
 ):
-    """
-    Process GADM administrative map and CHIRPS rainfall data.
-    """
+    """Process GADM administrative map and CHIRPS rainfall data."""
     # Sanitise the inputs
     date = PartialDate.from_string(partial_date)
     file = get_chirps_rainfall_data_path(date)
     src = rasterio.open(file)
-    print(f'Processing "{file}"')
     num_bands = src.count
     if num_bands != 1:
         msg = f"There is a number of bands other than 1: {num_bands}"
@@ -504,21 +501,27 @@ def process_gadm_chirps_data(
     # Transform the shape file to match the GeoTIFF's coordinate system
     gdf = gdf.to_crs(src.crs)
 
-    output = pd.DataFrame()
+    # Initialise a list-of-lists that will be converted into a data frame
+    output = []
     # Iterate over each region in the shape file
     for _, region in gdf.iterrows():
         geometry = region.geometry
-
-        # Initialise a new row for the output data frame
-        new_row = {"Admin Level 0": region["COUNTRY"]}
-        # Initialise the title
-        # Update the new row and the title if the admin level is high enough
+        # Initialise a new row that will be added to the output list-of-lists
+        new_row = []
+        # Add the region information
+        new_row.append(region['COUNTRY'])
         if int(admin_level) >= 1:
-            new_row["Admin Level 1"] = region["NAME_1"]
+            new_row.append(region['NAME_1'])
+        else:
+            new_row.append('')
         if int(admin_level) >= 2:
-            new_row["Admin Level 2"] = region["NAME_2"]
+            new_row.append(region['NAME_2'])
+        else:
+            new_row.append('')
         if int(admin_level) >= 3:
-            new_row["Admin Level 3"] = region["NAME_3"]
+            new_row.append(region['NAME_3'])
+        else:
+            new_row.append('')
 
         # Check if the rainfall data intersects this region
         if raster_bbox.intersects(geometry):
@@ -531,15 +534,21 @@ def process_gadm_chirps_data(
             region_total = np.nansum(region_data)
         else:
             region_total = 0  # no rainfall data for this region
+        new_row.append(str(date))
+        new_row.append(region_total)
 
-        # Add to output data frame
-        new_row["Date"] = date
-        new_row["Rainfall"] = region_total
-        new_row_df = pd.DataFrame(new_row, index=[0])
-        output = pd.concat([output, new_row_df], ignore_index=True)
+        # Add to output list-of-lists
+        output.append(new_row)
+
+    # Convert to data frame
+    columns = [
+        'admin_level_0', 'admin_level_1', 'admin_level_2', 'admin_level_3',
+        'date', 'rainfall'
+    ]
+    df = pd.DataFrame(output, columns=columns)
 
     # Export
-    return output, f"{iso3}/admin{admin_level}/{date.year}/{date}.csv"
+    return df, f'{iso3}.csv'
 
 
 def process_gadm_worldpoppopulation_data(

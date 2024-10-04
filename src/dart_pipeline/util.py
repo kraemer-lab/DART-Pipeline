@@ -15,10 +15,12 @@ from pathlib import Path
 from collections.abc import Iterable
 
 from lxml import html
-import py7zr
-import requests
-import pycountry
+import gzip
+import numpy as np
 import pandas as pd
+import py7zr
+import pycountry
+import requests
 
 from .constants import (
     DEFAULT_SOURCES_ROOT,
@@ -143,7 +145,7 @@ def download_file(
         with open(path, "wb") as out:
             for bits in r.iter_content():
                 out.write(bits)
-        # unpack file
+        # Unpack file
         if unpack and any(str(path).endswith(ext) for ext in COMPRESSED_FILE_EXTS):
             logging.info(f"Unpacking downloaded file {path}")
             unpack_file(path, same_folder=not unpack_create_folder)
@@ -156,13 +158,16 @@ def download_file(
 def download_files(
     links: URLCollection, out_dir: Path, auth: Credentials | None = None
 ) -> list[bool]:
-    "Download multiple files in a list"
+    """Download multiple files in a list."""
     out_dir = out_dir / links.relative_path
     Path(out_dir).mkdir(parents=True, exist_ok=True)
-    return [
-        download_file(links.base_url + "/" + file, out_dir / Path(file).name, auth)
-        for file in links.files
-    ]
+    successes = []
+    for file in links.files:
+        url = links.base_url + "/" + file
+        out_filepath = out_dir / Path(file).name
+        successes.append(download_file(url, out_filepath, auth))
+
+    return successes
 
 
 def default_path_getter(env_var: str, default: str) -> DefaultPathProtocol:
@@ -248,8 +253,20 @@ def bold_brackets(s: str) -> str:
 
 
 def unpack_file(path: Path | str, same_folder: bool = False):
-    "Unpack a zipped file"
+    """Unpack a zipped file."""
     path = Path(path)
+    if str(path).endswith('.tif.gz'):
+        with gzip.open(path, 'rb') as f_in:
+            if same_folder:
+                extract_path = path.with_suffix('')
+            else:
+                folder = str(path.name).replace('.tif.gz', '')
+                file = str(path.name).replace('.gz', '')
+                extract_path = path.parent / Path(folder) / Path(file)
+                extract_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(extract_path, 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+        return
     match path.suffix:
         case ".7z":
             with py7zr.SevenZipFile(path, mode="r") as archive:
@@ -267,13 +284,15 @@ def update_or_create_output(df: pd.DataFrame, out: str | Path):
     if out.exists():
         dtype = {
             'admin_level_0': str, 'admin_level_1': str, 'admin_level_2': str,
-            'admin_level_3': str
+            'admin_level_3': str, 'date': str
         }
-        existing_df = pd.read_csv(out, dtype=dtype)
+        existing_df = pd.read_csv(
+            out, dtype=dtype, keep_default_na=False, na_values=[]
+        )
         # Merge the new data with the existing data, prioritising new values
-        key_columns = [f'admin_level_{x}' for x in range(4)]
+        merge_on = list(existing_df)[:-1]
         output_df = pd.merge(
-            existing_df, df, on=key_columns, how='outer', suffixes=('_old', '')
+            existing_df, df, on=merge_on, how='outer', suffixes=('_old', '')
         )
         # Update the data by prioritizing the new values (from the new data)
         metric = list(existing_df)[-1]

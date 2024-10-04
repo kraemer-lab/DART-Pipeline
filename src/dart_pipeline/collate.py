@@ -231,6 +231,8 @@ def chirps_rainfall_data(year: int, month: int | None = None) -> list[URLCollect
     chirps_first_year: Final[int] = 1981
     chirps_first_month: Final[date] = date(1981, 1, 1)
     urls: list[URLCollection] = []
+    if month:
+        month = int(month)
 
     assert isinstance(year, int), "Year must be an integer"
     if month:
@@ -254,7 +256,7 @@ def chirps_rainfall_data(year: int, month: int | None = None) -> list[URLCollect
                 URLCollection(
                     f"{base_url}/products/CHIRPS-2.0/global_monthly/{fmt}",
                     [f"chirps-v2.0.{year}.{month:02d}.tif.gz"],
-                    relative_path="global_monthly",
+                    relative_path=f"global_monthly/{year}",
                 )
             )
         else:
@@ -272,7 +274,7 @@ def chirps_rainfall_data(year: int, month: int | None = None) -> list[URLCollect
                     f"chirps-v2.0.{str(day).replace('-', '.')}.tif.gz"
                     for day in daterange(month_requested, end)
                 ],
-                relative_path=f"global_daily/{year}",
+                relative_path=f"global_daily/{year}/{month:02d}",
             )
         )
     return urls

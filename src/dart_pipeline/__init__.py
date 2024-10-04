@@ -111,8 +111,8 @@ def get(
         if not coll.missing_files(DATA_PATH / source) and not update:
             print(f"✅ SKIP {source_fmt} {coll}")
             continue
-        msg = f" GET {source_fmt} {coll}"
-        print(f" • {msg}", end="\r")
+        msg = f"GET {source_fmt} {coll}"
+        print(f" •  {msg}", end="\r")
         success = download_files(coll, path, auth=auth)
         n_ok = sum(success)
         if n_ok == len(success):
@@ -176,6 +176,8 @@ def parse_params(params: list[str]) -> dict[str, str | int]:
         out['admin_level'] = out.pop('a')
     if '3' in out:
         out['iso3'] = out.pop('3')
+    if 'd' in out:
+        out['partial_date'] = out.pop('d')
 
     return out
 
