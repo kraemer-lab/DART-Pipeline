@@ -26,7 +26,11 @@ Done: ✅, in progress: ⏳, not working: ❌
       └── ✅ `uv run dart-pipeline get sociodemographic/worldpop-density iso3=VNM` 1s840ms
 
 `uv run dart-pipeline process`
- ├── ✅ `uv run dart-pipeline process economic/relative-wealth-index iso3=VNM` 9s304ms
+ ├── ✅ `uv run dart-pipeline process economic/relative-wealth-index`
+ │   ├── ✅ `uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=0` 3m57.924s
+ │   ├── ✅ `uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=1` 7.687s
+ │   ├── ✅ `uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=2` 24.059s
+ │   └── ✅ `uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=3` 7m18.860s
  ├── ✅ `uv run dart-pipeline process epidemiological/dengue/peru` 694ms
  ├── `uv run dart-pipeline process geospatial/chirps-rainfall`
  │    ├── ✅ `uv run dart-pipeline process geospatial/chirps-rainfall iso3=VNM partial_date=2023` 1s46ms

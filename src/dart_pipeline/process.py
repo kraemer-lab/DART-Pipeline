@@ -658,17 +658,18 @@ def get_admin_region(lat: float, lon: float, polygons) -> str:
     return "null"
 
 
-def process_relative_wealth_index_admin(iso3: str):
-    "Process Vietnam Relative Wealth Index data"
+def process_relative_wealth_index_admin(iso3: str, admin_level: str):
+    """Process Vietnam Relative Wealth Index data."""
     rwifile = source_path(
-        "economic/relative-wealth-index", f"{iso3.lower()}_relative_wealth_index.csv"
+        "economic/relative-wealth-index",
+        f"{iso3.lower()}_relative_wealth_index.csv"
     )
-    shpfile = get_shapefile(iso3, admin_level="2")
+    shpfile = get_shapefile(iso3, admin_level=admin_level)
 
     # Create a dictionary of polygons where the key is the ID of the polygon
     # and the value is its geometry
     shapefile = gpd.read_file(shpfile)
-    admin_geoid = "GID_2"
+    admin_geoid = f"GID_{admin_level}"
     polygons = dict(zip(shapefile[admin_geoid], shapefile["geometry"]))
 
     def get_admin(x):
@@ -677,6 +678,30 @@ def process_relative_wealth_index_admin(iso3: str):
     rwi = pd.read_csv(rwifile)
     rwi["geo_id"] = rwi.parallel_apply(get_admin, axis=1)  # type: ignore
     rwi = rwi[rwi["geo_id"] != "null"]
+
+    # Get the mean RWI value for each region
+    rwi = rwi.groupby('geo_id')['rwi'].mean().reset_index()
+
+    # Dynamically choose which columns need to be added to the data
+    region_columns = ['COUNTRY', 'NAME_1', 'NAME_2', 'NAME_3']
+    admin_columns = region_columns[:int(admin_level) + 1]
+    # Merge with the shapefile to get the region names
+    rwi = rwi.merge(
+        shapefile[[admin_geoid] + admin_columns],
+        left_on='geo_id', right_on=admin_geoid, how='left'
+    )
+    # Rename the columns
+    columns = dict(zip(
+        admin_columns, [f"admin_level_{i}" for i in range(len(admin_columns))]
+    ))
+    rwi = rwi.rename(columns=columns)
+    # Add in the higher-level admin levels
+    for i in range(int(admin_level) + 1, 4):
+        rwi[f"admin_level_{i}"] = None
+    # Re-order the columns
+    output_columns = [f"admin_level_{i}" for i in range(4)] + ['rwi']
+    rwi = rwi[output_columns]
+
     return rwi, f"{iso3}.csv"
 
 

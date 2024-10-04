@@ -28,6 +28,7 @@ from .util import (
     get_credentials,
     only_one_from_collection,
     output_path,
+    update_or_create_output
 )
 
 DATA_PATH = Path(os.getenv("DART_PIPELINE_SOURCES_PATH", DEFAULT_SOURCES_ROOT))
@@ -140,6 +141,7 @@ def get(
 
 
 def process_cli(source: str, **kwargs):
+    """Process a data source according to inputs from the command line."""
     if source not in PROCESSORS:
         abort("source not found:", source)
     print(f" • PROC \033[1m{source}\033[0m ...", end="\r")
@@ -158,29 +160,7 @@ def process_cli(source: str, **kwargs):
         out = base_path / filename
         if not out.parent.exists():
             out.parent.mkdir(parents=True)
-        # Check if the CSV file already exists
-        if os.path.exists(out):
-            # Load the existing CSV file
-            dtype = {
-                'admin_level_1': str, 'admin_level_2': str,
-                'admin_level_3': str, 'date': str, 'rainfall': np.float32
-            }
-            old = pd.read_csv(out, dtype=dtype)
-            # Merge based on the first five columns
-            updated = pd.merge(
-                old, df,
-                on=list(old)[:5],
-                how='left',
-                suffixes=('', '_new')
-            )
-            # Replace the old values
-            updated['rainfall'] = \
-                updated['rainfall_new'].combine_first(updated['rainfall'])
-            updated.drop(columns=['rainfall_new'], inplace=True)
-        else:
-            # If file doesn't already exist, just use the new DataFrame
-            updated = df
-        updated.to_csv(out, index=False)
+        update_or_create_output(df, out)
         print(f"✅ PROC \033[1m{source}\033[0m {out}")
 
 
@@ -207,6 +187,12 @@ def parse_params(params: list[str]) -> dict[str, str | int]:
         key = k.replace("-", "_")
         v = v if key not in INTEGER_PARAMS else int(v)
         out[key] = v
+    # Replace shorthand kwargs
+    if 'a' in out:
+        out['admin_level'] = out.pop('a')
+    if '3' in out:
+        out['iso3'] = out.pop('3')
+
     return out
 
 
