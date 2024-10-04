@@ -265,7 +265,11 @@ def update_or_create_output(df: pd.DataFrame, out: str | Path):
     """Either update an existing CSV or create a new one."""
     # Check if the CSV file already exists
     if out.exists():
-        existing_df = pd.read_csv(out)
+        dtype = {
+            'admin_level_0': str, 'admin_level_1': str, 'admin_level_2': str,
+            'admin_level_3': str
+        }
+        existing_df = pd.read_csv(out, dtype=dtype)
         # Merge the new data with the existing data, prioritising new values
         key_columns = [f'admin_level_{x}' for x in range(4)]
         output_df = pd.merge(

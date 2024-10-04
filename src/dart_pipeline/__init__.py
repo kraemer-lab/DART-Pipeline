@@ -129,7 +129,7 @@ def process_cli(source: str, **kwargs):
     """Process a data source according to inputs from the command line."""
     if source not in PROCESSORS:
         abort("source not found:", source)
-    # print(f" • PROC \033[1m{source}\033[0m ...", end="\r")
+    print(f" • PROC \033[1m{source}\033[0m ...", end="\r")
     processor = PROCESSORS[source]
     non_default_params = {
         p.name
@@ -171,6 +171,12 @@ def parse_params(params: list[str]) -> dict[str, str | int]:
         key = k.replace("-", "_")
         v = v if key not in INTEGER_PARAMS else int(v)
         out[key] = v
+    # Replace shorthand kwargs
+    if 'a' in out:
+        out['admin_level'] = out.pop('a')
+    if '3' in out:
+        out['iso3'] = out.pop('3')
+
     return out
 
 
