@@ -1,10 +1,9 @@
-"""
-Main code for DART Pipeline
-"""
+"""Main code for DART Pipeline."""
 
 import os
 import inspect
 import argparse
+import textwrap
 from pathlib import Path
 from typing import cast
 
@@ -169,7 +168,7 @@ def parse_params(params: list[str]) -> dict[str, str | int]:
     Parse the parameters that have been passed to the script via the CLI.
 
     Including a parameter such as `admin_level=0` on the command line will
-    result in it being parsed as `{'admin_level': '0'}`.
+    result in it being parsed as a dictionary: `{'admin_level': '0'}`.
 
     Command line arguments whose values get converted into integers:
 
@@ -220,11 +219,20 @@ def main():
 
     process_parser = subparsers.add_parser(
         "process",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
         help="Process a source",
         usage="dart-pipeline process [-h] source [**kwargs]",
-        description="Process a source with optional keyword arguments."
+        description="Process a source with optional keyword arguments.",
+        epilog=textwrap.dedent("""
+        keyword arguments:
+          3=, iso3=         an ISO 3166-1 alpha-3 country code
+          a=, admin_level=  an administrative level for the given country; must
+                            be one of the following: 0, 1, 2 or 3.
+          partial_date=     either a year in YYYY format, a month in YYYY-MM
+                            format or a day in YYYY-MM-DD format.
+        """)
     )
-    process_parser.add_argument("source", help="Source to process")
+    process_parser.add_argument("source", help="source to process")
 
     args, unknownargs = parser.parse_known_args()
     kwargs = parse_params(unknownargs)
