@@ -265,6 +265,15 @@ def update_or_create_output(
     df: pd.DataFrame, out: str | Path, return_df=False
 ):
     """Either update an existing CSV or create a new one."""
+    # Validate the input
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError('Expected a pandas DataFrame as input')
+    cols = ['admin_level_0', 'admin_level_1', 'admin_level_2', 'admin_level_3']
+    if not all(col in df.columns for col in cols):
+        raise ValueError('DataFrame is missing required columns')
+    if not isinstance(out, (str, Path)):
+        raise TypeError('Expected a valid file path')
+
     # Check if the CSV file already exists
     if out.exists():
         dtype = {

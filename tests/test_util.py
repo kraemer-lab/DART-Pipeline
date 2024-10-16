@@ -144,7 +144,7 @@ def test_update_or_create_output_update_existing(
     mock_path = MagicMock(spec=Path)
     mock_path.exists.return_value = True
 
-    # Mock the read_csv call to return the existing dataframe
+    # Mock the read_csv call to return the existing data frame
     mock_read_csv.return_value = old_dataframe
 
     # Call the function being tested
@@ -164,3 +164,35 @@ def test_update_or_create_output_update_existing(
     # Check that the merged data frame has the expected values
     assert df.loc[0, 'metric'] == 0.998
     assert len(df) == 1
+
+
+def test_update_or_create_output_invalid_input():
+    """Test for when these is invalid input."""
+    # Invalid data frame
+    invalid_input = 'not_a_dataframe'
+    mock_path = Path("dummy_path.csv")
+    match = 'Expected a pandas DataFrame as input'
+    with pytest.raises(TypeError, match=match):
+        update_or_create_output(invalid_input, mock_path)
+
+    # Missing required columns
+    df_with_missing_columns = pd.DataFrame({
+        'admin_level_0': ['Country1'],
+        'admin_level_1': ['State1']
+        # Missing 'admin_level_2', 'admin_level_3', and 'metric' columns
+    })
+    match = 'DataFrame is missing required columns'
+    with pytest.raises(ValueError, match=match):
+        update_or_create_output(df_with_missing_columns, mock_path)
+
+    # Invalid path
+    df = pd.DataFrame({
+        'admin_level_0': ['Country1'],
+        'admin_level_1': ['State1'],
+        'admin_level_2': ['City1'],
+        'admin_level_3': ['District1'],
+        'metric': [100]
+    })
+    invalid_path = 12345
+    with pytest.raises(TypeError, match="Expected a valid file path"):
+        update_or_create_output(df, invalid_path)
