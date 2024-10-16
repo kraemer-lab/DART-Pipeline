@@ -261,7 +261,9 @@ def unpack_file(path: Path | str, same_folder: bool = False):
             shutil.unpack_archive(path, str(extract_dir))
 
 
-def update_or_create_output(df: pd.DataFrame, out: str | Path):
+def update_or_create_output(
+    df: pd.DataFrame, out: str | Path, return_df=False
+):
     """Either update an existing CSV or create a new one."""
     # Check if the CSV file already exists
     if out.exists():
@@ -286,3 +288,6 @@ def update_or_create_output(df: pd.DataFrame, out: str | Path):
         output_df = df
     # Export
     output_df.to_csv(out, index=False)
+    # When testing we want to be able to inspect the data frame
+    if return_df:
+        return output_df

@@ -93,66 +93,74 @@ def test_use_range():
 
 
 @pytest.fixture
-def sample_dataframe():
-    """Fixture to create a sample DataFrame for testing."""
+def new_dataframe():
+    """Fixture to create a sample data frame."""
     return pd.DataFrame({
-        'admin_level_0': ['Country1'],
-        'admin_level_1': ['State1'],
-        'admin_level_2': ['City1'],
-        'admin_level_3': ['District1'],
-        'metric': [100]
+        'admin_level_0': ['Vietnam'],
+        'admin_level_1': ['An Giang'],
+        'admin_level_2': ['An Phú'],
+        'admin_level_3': ['Khánh An'],
+        'metric': [0.998]
     })
 
+
 @pytest.fixture
-def existing_dataframe():
-    """Fixture to create a mock existing DataFrame for testing."""
+def old_dataframe():
+    """Fixture to create a mock existing data frame."""
     return pd.DataFrame({
-        'admin_level_0': ['Country1'],
-        'admin_level_1': ['State1'],
-        'admin_level_2': ['City1'],
-        'admin_level_3': ['District1'],
-        'metric': [50]  # Older value
+        'admin_level_0': ['Vietnam'],
+        'admin_level_1': ['An Giang'],
+        'admin_level_2': ['An Phú'],
+        'admin_level_3': ['Khánh An'],
+        'metric': [0.002]
     })
+
 
 @patch('pandas.read_csv')
 @patch('pandas.DataFrame.to_csv')
-def test_update_or_create_output_create_new(mock_to_csv, mock_read_csv, sample_dataframe):
-    """Test case when the CSV file does not exist, creating a new one."""
-    # Simulate the file not existing
+def test_update_or_create_output_create_new(
+    mock_to_csv, mock_read_csv, new_dataframe
+):
+    """Test that when a file does not already exist a new one is created."""
+    # Mock a non-existing file
     mock_path = MagicMock(spec=Path)
     mock_path.exists.return_value = False
 
-    # Call the function
-    update_or_create_output(sample_dataframe, mock_path)
+    update_or_create_output(new_dataframe, mock_path)
 
-    # Check that read_csv was never called, and to_csv was called with the correct DataFrame
+    # Check that read_csv was never called
     mock_read_csv.assert_not_called()
+    # Check that to_csv was called with the correct data frame
     mock_to_csv.assert_called_once_with(mock_path, index=False)
+
 
 @patch('pandas.read_csv')
 @patch('pandas.DataFrame.to_csv')
-def test_update_or_create_output_update_existing(mock_to_csv, mock_read_csv, sample_dataframe, existing_dataframe):
-    """Test case when the CSV file already exists, updating it."""
-    # Simulate the file existing
+def test_update_or_create_output_update_existing(
+    mock_to_csv, mock_read_csv, new_dataframe, old_dataframe
+):
+    """Test that when the file already exists it gets updated."""
+    # Mock an existing file
     mock_path = MagicMock(spec=Path)
     mock_path.exists.return_value = True
 
     # Mock the read_csv call to return the existing dataframe
-    mock_read_csv.return_value = existing_dataframe
+    mock_read_csv.return_value = old_dataframe
 
-    # Call the function
-    update_or_create_output(sample_dataframe, mock_path)
+    # Call the function being tested
+    df = update_or_create_output(new_dataframe, mock_path, return_df=True)
 
     # Verify that read_csv was called with the correct path
-    mock_read_csv.assert_called_once_with(mock_path, dtype={
+    dtype = {
         'admin_level_0': str, 'admin_level_1': str,
         'admin_level_2': str, 'admin_level_3': str
-    })
+    }
+    mock_read_csv.assert_called_once_with(mock_path, dtype=dtype)
 
-    # Check that to_csv was called once with the correct merged DataFrame
+    # Check that to_csv was called once
     mock_to_csv.assert_called_once()
-    saved_df = mock_to_csv.call_args[0][0]
-
-    # Check that the merged DataFrame has the expected values
-    assert saved_df.loc[0, 'metric'] == 100  # New value overrides the old one
-    assert len(saved_df) == 1  # Should have only one row
+    # Check that the returned object is indeed a data frame
+    assert isinstance(df, pd.DataFrame)
+    # Check that the merged data frame has the expected values
+    assert df.loc[0, 'metric'] == 0.998
+    assert len(df) == 1
