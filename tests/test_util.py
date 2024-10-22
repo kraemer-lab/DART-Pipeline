@@ -3,11 +3,14 @@ Tests for utility functions
 """
 
 from pathlib import Path
+from unittest.mock import patch, MagicMock
 
 import pytest
 import requests_mock
+import pandas as pd
 
-from dart_pipeline.util import download_file, days_in_year, get_country_name, use_range
+from dart_pipeline.util import download_file, days_in_year, get_country_name, \
+    use_range, update_or_create_output
 
 
 def test_download_file():
@@ -87,3 +90,109 @@ def test_get_country_name(iso3, name):
 def test_use_range():
     with pytest.raises(ValueError):
         use_range(20, 5, 15, "something beyond range")
+
+
+@pytest.fixture
+def new_dataframe():
+    """Fixture to create a sample data frame."""
+    return pd.DataFrame({
+        'admin_level_0': ['Vietnam'],
+        'admin_level_1': ['An Giang'],
+        'admin_level_2': ['An Phú'],
+        'admin_level_3': ['Khánh An'],
+        'metric': [0.998]
+    })
+
+
+@pytest.fixture
+def old_dataframe():
+    """Fixture to create a mock existing data frame."""
+    return pd.DataFrame({
+        'admin_level_0': ['Vietnam'],
+        'admin_level_1': ['An Giang'],
+        'admin_level_2': ['An Phú'],
+        'admin_level_3': ['Khánh An'],
+        'metric': [0.002]
+    })
+
+
+@patch('pandas.read_csv')
+@patch('pandas.DataFrame.to_csv')
+def test_update_or_create_output_create_new(
+    mock_to_csv, mock_read_csv, new_dataframe
+):
+    """Test that when a file does not already exist a new one is created."""
+    # Mock a non-existing file
+    mock_path = MagicMock(spec=Path)
+    mock_path.exists.return_value = False
+
+    update_or_create_output(new_dataframe, mock_path)
+
+    # Check that read_csv was never called
+    mock_read_csv.assert_not_called()
+    # Check that to_csv was called with the correct data frame
+    mock_to_csv.assert_called_once_with(mock_path, index=False)
+
+
+@patch('pandas.read_csv')
+@patch('pandas.DataFrame.to_csv')
+def test_update_or_create_output_update_existing(
+    mock_to_csv, mock_read_csv, new_dataframe, old_dataframe
+):
+    """Test that when the file already exists it gets updated."""
+    # Mock an existing file
+    mock_path = MagicMock(spec=Path)
+    mock_path.exists.return_value = True
+
+    # Mock the read_csv call to return the existing data frame
+    mock_read_csv.return_value = old_dataframe
+
+    # Call the function being tested
+    df = update_or_create_output(new_dataframe, mock_path, return_df=True)
+
+    # Verify that read_csv was called with the correct path
+    dtype = {
+        'admin_level_0': str, 'admin_level_1': str,
+        'admin_level_2': str, 'admin_level_3': str
+    }
+    mock_read_csv.assert_called_once_with(mock_path, dtype=dtype)
+
+    # Check that to_csv was called once
+    mock_to_csv.assert_called_once()
+    # Check that the returned object is indeed a data frame
+    assert isinstance(df, pd.DataFrame)
+    # Check that the merged data frame has the expected values
+    assert df.loc[0, 'metric'] == 0.998
+    assert len(df) == 1
+
+
+def test_update_or_create_output_invalid_input():
+    """Test for when these is invalid input."""
+    # Invalid data frame
+    invalid_input = 'not_a_dataframe'
+    mock_path = Path("dummy_path.csv")
+    match = 'Expected a pandas DataFrame as input'
+    with pytest.raises(TypeError, match=match):
+        update_or_create_output(invalid_input, mock_path)
+
+    # Missing required columns
+    df_with_missing_columns = pd.DataFrame({
+        'admin_level_0': ['Country1'],
+        'admin_level_1': ['State1']
+        # Missing 'admin_level_2', 'admin_level_3', and 'metric' columns
+    })
+    match = 'DataFrame is missing required columns'
+    with pytest.raises(ValueError, match=match):
+        update_or_create_output(df_with_missing_columns, mock_path)
+
+    # Invalid path
+    df = pd.DataFrame({
+        'admin_level_0': ['Country1'],
+        'admin_level_1': ['State1'],
+        'admin_level_2': ['City1'],
+        'admin_level_3': ['District1'],
+        'metric': [100]
+    })
+    invalid_path = 12345
+    with pytest.raises(TypeError, match="Expected a valid file path"):
+        update_or_create_output(df, invalid_path)
