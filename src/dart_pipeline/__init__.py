@@ -84,7 +84,7 @@ def get(
     process: bool = False,
     **kwargs,
 ):
-    "Get files for a source"
+    """Get files for a source."""
     if source not in SOURCES:
         abort("source not found:", source)
     link_getter = SOURCES[source]
@@ -106,7 +106,11 @@ def get(
         return
     links = cast(list[URLCollection], links)
     auth = get_credentials(source) if source in REQUIRES_AUTH else None
-    for coll in links if not only_one else map(only_one_from_collection, links):
+    # If only one link is being downloaded, reduce the list of links to one
+    if only_one:
+        links = map(only_one_from_collection, links)
+    # Iterate over the links
+    for coll in links:
         if not coll.missing_files(DATA_PATH / source) and not update:
             print(f"✅ SKIP {source_fmt} {coll}")
             continue
@@ -128,7 +132,7 @@ def process_cli(source: str, **kwargs):
     """Process a data source according to inputs from the command line."""
     if source not in PROCESSORS:
         abort("source not found:", source)
-    print(f" • PROC \033[1m{source}\033[0m ...", end="\r")
+    # print(f" • PROC \033[1m{source}\033[0m ...", end="\r")
     processor = PROCESSORS[source]
     non_default_params = {
         p.name
@@ -138,14 +142,14 @@ def process_cli(source: str, **kwargs):
     if missing_params := non_default_params - set(kwargs):
         abort(source, f"missing required parameters {missing_params}")
     result = processor(**kwargs)
-    base_path = output_path(source)
-    result = result if isinstance(result, list) else [result]
-    for df, filename in result:
-        out = base_path / filename
-        if not out.parent.exists():
-            out.parent.mkdir(parents=True)
-        update_or_create_output(df, out)
-        print(f"✅ PROC \033[1m{source}\033[0m {out}")
+    # base_path = output_path(source)
+    # result = result if isinstance(result, list) else [result]
+    # for df, filename in result:
+    #     out = base_path / filename
+    #     if not out.parent.exists():
+    #         out.parent.mkdir(parents=True)
+    #     update_or_create_output(df, out)
+    #     print(f"✅ PROC \033[1m{source}\033[0m {out}")
 
 
 def check(source: str, only_one: bool = True, **kwargs):

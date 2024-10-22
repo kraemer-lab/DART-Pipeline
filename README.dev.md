@@ -31,5 +31,6 @@ Done: ✅, in progress: ⏳, not working: ❌
  ├── ❌ `uv run dart-pipeline process meteorological/aphrodite-daily-precip`
  ├── ✅ `uv run dart-pipeline process meteorological/chirps-rainfall date=2023` 0.489s
  ├── ❌ `uv run dart-pipeline process meteorological/era5-reanalysis`
+ ├── ❌ `uv run dart-pipeline process meteorological/terraclimate year=2023`
  ├── ❌ `uv run dart-pipeline process sociodemographic/worldpop-count iso3=VNM`
  └── ❌ `uv run dart-pipeline process sociodemographic/worldpop-density iso3=VNM year=2023`

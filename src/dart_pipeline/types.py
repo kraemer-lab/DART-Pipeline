@@ -91,7 +91,7 @@ class URLCollection:
         return [(Path(root) / self.relative_path / Path(f).name) for f in self.files]
 
     def missing_files(self, root: str | Path) -> list[Path]:
-        "Returns True if all files corresponding to this URLCollection exist"
+        """Return True if all files in this URLCollection exist."""
         return [p for p in self.disk_files(root) if not p.exists()]
 
 

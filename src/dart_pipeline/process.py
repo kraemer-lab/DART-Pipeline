@@ -14,24 +14,28 @@ In general, use `EPSG:9217 <https://epsg.io/9217>`_ or
 `ISO 3166-1 alpha-3 <https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3>`_
 format for country codes.
 """
-
-import os
-import logging
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Literal, Callable
+import logging
+import os
 
+from affine import Affine
+from matplotlib import pyplot as plt
+from pandarallel import pandarallel
+import geopandas as gpd
+import netCDF4 as nc
+import numpy as np
+import pandas as pd
 import rasterio
 import rasterio.mask
 import rasterio.transform
 import shapely.geometry
-import geopandas as gpd
-import numpy as np
-import pandas as pd
-import netCDF4 as nc
-from pandarallel import pandarallel
 
-from .util import abort, source_path, days_in_year, output_path, get_country_name
+from .util import \
+    abort, source_path, days_in_year, output_path, get_country_name
 from .types import ProcessResult, PartialDate, AdminLevel
+from .constants import TERRACLIMATE_METRICS
 
 pandarallel.initialize(verbose=0)
 
@@ -388,6 +392,100 @@ def process_era5_reanalysis_data() -> ProcessResult:
     return df, "ERA5-ml-temperature-subarea.csv"
 
 
+def process_terraclimate(year: int, iso3: str, admin_level: str):
+    """
+    Process TerraClimate data.
+
+    This metric incorporates TerraClimate gridded temperature, precipitation,
+    and other water balance variables. The data is stored in NetCDF (`.nc`)
+    files for which the `netCDF4` library is needed.
+    """
+    global TERRACLIMATE_METRICS
+    source = 'meteorological/terraclimate'
+
+    # In 2023 the capitalization of pdsi changed
+    if year == 2023:
+        TERRACLIMATE_METRICS = \
+            ['PDSI' if x == 'pdsi' else x for x in TERRACLIMATE_METRICS]
+
+    # Iterate over the metrics
+    for metric in TERRACLIMATE_METRICS[:1]:
+        # Import the raw data
+        print(source_path(source, f'TerraClimate_{metric}_{str(year)}.nc'))
+        path = source_path(source, f'TerraClimate_{metric}_{str(year)}.nc')
+        ds = nc.Dataset(path)
+
+        # Extract the variables
+        lat = ds.variables['lat'][:]
+        lon = ds.variables['lon'][:]
+        time = ds.variables['time'][:]  # Time in days since 1900-01-01
+        data = ds.variables[metric][:]
+
+        # Define the affine transformation for the dataset (for rasterio to
+        # read it correctly)
+        n_lon = len(lon)
+        n_lat = len(lat)
+        res_lon = (lon.max() - lon.min()) / (n_lon - 1)
+        res_lat = (lat.max() - lat.min()) / (n_lat - 1)
+        transform = Affine.translation(
+            lon.min() - res_lon / 2, lat.min() - res_lat / 2
+        ) * Affine.scale(res_lon, res_lat)
+
+        # Convert time to actual dates
+        base_time = datetime(1900, 1, 1)
+        months = [base_time + timedelta(days=t) for t in time]
+
+        # Import a shapefile
+        gdf = gpd.read_file(get_shapefile(iso3, admin_level))
+
+        # Ensure the shapefile is in the same CRS as the dataset
+        if gdf.crs.to_string() != 'EPSG:4326':
+            gdf = gdf.to_crs('EPSG:4326')
+
+        for i, month in enumerate(months):
+            print(month)
+            # Extract the data for the chosen month
+            this_month = data[i, :, :]
+
+            # Create an in-memory dataset to allow raster masking
+            with rasterio.io.MemoryFile() as memfile:
+                with memfile.open(
+                    driver='GTiff',
+                    height=this_month.shape[0],
+                    width=this_month.shape[1],
+                    count=1,
+                    dtype=this_month.dtype,
+                    crs='EPSG:4326',  # Assuming WGS84
+                    transform=transform,
+                    nodata=np.nan  # Mark nodata with NaN
+                ) as dataset:
+                    dataset.write(this_month, 1)
+
+                    # Mask the data with the shapefile
+                    out_image, out_transform = rasterio.mask.mask(
+                        dataset, gdf.geometry, crop=True
+                    )
+                    # Mask the nodata values (NaN)
+                    out_image = np.ma.masked_invalid(out_image)
+
+            # Plot
+            plt.imshow(out_image[0], cmap='coolwarm', origin='lower')
+            plt.colorbar(label=f'{metric.capitalize()} Value')
+            plt.title(f'{metric.capitalize()} in {iso3} - {month.strftime("%B %Y")}')
+
+            # Export
+            path = Path(
+                output_path(source), str(year), month.strftime('%m'), metric,
+                iso3 + '.png'
+            )
+            path.parent.mkdir(parents=True, exist_ok=True)
+            plt.savefig(path)
+            plt.close()
+
+        # Close the NetCDF file after use
+        ds.close()
+
+
 def process_worldpop_pop_count_data(
     iso3: str, year: int = 2020, rt: str = "pop"
 ) -> ProcessResult:
@@ -700,6 +798,7 @@ PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
     "meteorological/aphrodite-daily-precip": process_aphrodite_precipitation_data,
     "meteorological/chirps-rainfall": process_chirps_rainfall_data,
     "meteorological/era5-reanalysis": process_era5_reanalysis_data,
+    "meteorological/terraclimate": process_terraclimate,
     "sociodemographic/worldpop-count": process_worldpop_pop_count_data,
     "sociodemographic/worldpop-density": process_worldpop_pop_density_data,
     "geospatial/chirps-rainfall": process_gadm_chirps_data,
