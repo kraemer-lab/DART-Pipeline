@@ -8,7 +8,9 @@ Done: ✅, in progress: ⏳, not working: ❌
 `uv run dart-pipeline get`
  ├── ✅ `uv run dart-pipeline get economic/relative-wealth-index iso3=VNM` 6.309s
  ├── ❌ `uv run dart-pipeline get epidemiological/dengue/peru` 21m31.33s
- ├── ✅ `uv run dart-pipeline get geospatial/gadm iso3=VNM` 17.964s
+ ├── `uv run dart-pipeline get geospatial/gadm`
+ │   ├── ✅ `uv run dart-pipeline get geospatial/gadm iso3=PER` 
+ │   └── ✅ `uv run dart-pipeline get geospatial/gadm iso3=VNM` 17.964s
  ├── ✅ `uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp` 12m56.12s
  ├── ❌ `uv run dart-pipeline get meteorological/aphrodite-daily-precip` 4.551s
  ├── ✅ `uv run dart-pipeline get meteorological/chirps-rainfall year=2023` 14.731s
@@ -31,6 +33,8 @@ Done: ✅, in progress: ⏳, not working: ❌
  ├── ❌ `uv run dart-pipeline process meteorological/aphrodite-daily-precip`
  ├── ✅ `uv run dart-pipeline process meteorological/chirps-rainfall date=2023` 0.489s
  ├── ❌ `uv run dart-pipeline process meteorological/era5-reanalysis`
- ├── ❌ `uv run dart-pipeline process meteorological/terraclimate year=2023`
+ ├── `uv run dart-pipeline process meteorological/terraclimate`
+ │   ├── ✅ `uv run dart-pipeline process meteorological/terraclimate year=2023 3=PER a=0`
+ │   └── ✅ `uv run dart-pipeline process meteorological/terraclimate year=2023 3=PER a=1`
  ├── ❌ `uv run dart-pipeline process sociodemographic/worldpop-count iso3=VNM`
  └── ❌ `uv run dart-pipeline process sociodemographic/worldpop-density iso3=VNM year=2023`

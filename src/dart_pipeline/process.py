@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Literal, Callable
 import logging
 import os
+import re
 
 from affine import Affine
 from matplotlib import pyplot as plt
@@ -30,6 +31,7 @@ import pandas as pd
 import rasterio
 import rasterio.mask
 import rasterio.transform
+import rasterio.features
 import shapely.geometry
 
 from .util import \
@@ -392,7 +394,7 @@ def process_era5_reanalysis_data() -> ProcessResult:
     return df, "ERA5-ml-temperature-subarea.csv"
 
 
-def process_terraclimate(year: int, iso3: str, admin_level: str):
+def process_terraclimate(year: int, iso3: str, admin_level: str, plots=False):
     """
     Process TerraClimate data.
 
@@ -408,8 +410,15 @@ def process_terraclimate(year: int, iso3: str, admin_level: str):
         TERRACLIMATE_METRICS = \
             ['PDSI' if x == 'pdsi' else x for x in TERRACLIMATE_METRICS]
 
+    # Initialise output data frame
+    columns = [
+        'admin_level_0', 'admin_level_1', 'admin_level_2', 'admin_level_3',
+        'year', 'month'
+    ]
+    output = pd.DataFrame(columns=columns)
+
     # Iterate over the metrics
-    for metric in TERRACLIMATE_METRICS[:1]:
+    for metric in TERRACLIMATE_METRICS:
         # Import the raw data
         print(source_path(source, f'TerraClimate_{metric}_{str(year)}.nc'))
         path = source_path(source, f'TerraClimate_{metric}_{str(year)}.nc')
@@ -419,17 +428,13 @@ def process_terraclimate(year: int, iso3: str, admin_level: str):
         lat = ds.variables['lat'][:]
         lon = ds.variables['lon'][:]
         time = ds.variables['time'][:]  # Time in days since 1900-01-01
-        data = ds.variables[metric][:]
+        raw = ds.variables[metric]
 
-        # Define the affine transformation for the dataset (for rasterio to
-        # read it correctly)
-        n_lon = len(lon)
-        n_lat = len(lat)
-        res_lon = (lon.max() - lon.min()) / (n_lon - 1)
-        res_lat = (lat.max() - lat.min()) / (n_lat - 1)
-        transform = Affine.translation(
-            lon.min() - res_lon / 2, lat.min() - res_lat / 2
-        ) * Affine.scale(res_lon, res_lat)
+        # Apply scale factor
+        data = raw[:].astype(np.float32)
+        data = data * raw.scale_factor + raw.add_offset
+        # Replace fill values with NaN
+        data[data == raw._FillValue] = np.nan
 
         # Convert time to actual dates
         base_time = datetime(1900, 1, 1)
@@ -438,52 +443,90 @@ def process_terraclimate(year: int, iso3: str, admin_level: str):
         # Import a shapefile
         gdf = gpd.read_file(get_shapefile(iso3, admin_level))
 
-        # Ensure the shapefile is in the same CRS as the dataset
-        if gdf.crs.to_string() != 'EPSG:4326':
-            gdf = gdf.to_crs('EPSG:4326')
-
         for i, month in enumerate(months):
-            print(month)
             # Extract the data for the chosen month
             this_month = data[i, :, :]
 
-            # Create an in-memory dataset to allow raster masking
-            with rasterio.io.MemoryFile() as memfile:
-                with memfile.open(
-                    driver='GTiff',
-                    height=this_month.shape[0],
-                    width=this_month.shape[1],
-                    count=1,
-                    dtype=this_month.dtype,
-                    crs='EPSG:4326',  # Assuming WGS84
+            # Iterate over the regions in the shape file
+            for j, region in gdf.iterrows():
+                geometry = region.geometry
+
+                # Initialise a new row for the output data frame
+                idx = i * len(months) + j
+                output.loc[idx, 'admin_level_0'] = region['COUNTRY']
+                output.loc[idx, 'admin_level_1'] = None
+                output.loc[idx, 'admin_level_2'] = None
+                output.loc[idx, 'admin_level_3'] = None
+                output.loc[idx, 'year'] = month.year
+                output.loc[idx, 'month'] = month.month
+                # Initialise the graph title
+                title = region['COUNTRY']
+                # Update the new row and the title if the admin level is high
+                # enough
+                if int(admin_level) >= 1:
+                    output.loc[idx, 'admin_level_1'] = region['NAME_1']
+                    title = region['NAME_1']
+                if int(admin_level) >= 2:
+                    output.loc[idx, 'admin_level_2'] = region['NAME_2']
+                    title = region['NAME_2']
+                if int(admin_level) >= 3:
+                    output.loc[idx, 'admin_level_3'] = region['NAME_3']
+                    title = region['NAME_3']
+
+                # Define transform for geometry_mask based on grid resolution
+                transform = rasterio.transform.from_origin(
+                    lon.min(), lat.max(), abs(lon[1] - lon[0]),
+                    abs(lat[1] - lat[0])
+                )
+
+                # Create a mask that is True for points outside the geometries
+                mask = rasterio.features.geometry_mask(
+                    [geometry],
                     transform=transform,
-                    nodata=np.nan  # Mark nodata with NaN
-                ) as dataset:
-                    dataset.write(this_month, 1)
+                    out_shape=this_month.shape
+                )
+                masked_data = np.ma.masked_array(this_month, mask=mask)
 
-                    # Mask the data with the shapefile
-                    out_image, out_transform = rasterio.mask.mask(
-                        dataset, gdf.geometry, crop=True
+                if plots:
+                    # Plot
+                    plt.imshow(
+                        masked_data, cmap='coolwarm', origin='upper',
+                        extent=[lon.min(), lon.max(), lat.min(), lat.max()]
                     )
-                    # Mask the nodata values (NaN)
-                    out_image = np.ma.masked_invalid(out_image)
+                    plt.colorbar(label=f'{raw.description} [{raw.units}]')
+                    month_str = month.strftime('%B %Y')
+                    plt.title(f'{raw.description}\n{title} - {month_str}')
+                    # Get the bounds of the region
+                    min_lon, min_lat, max_lon, max_lat = geometry.bounds
+                    plt.xlim(min_lon, max_lon)
+                    plt.ylim(min_lat, max_lat)
+                    plt.ylabel('Latitude')
+                    plt.xlabel('Longitude')
+                    # Make the plot title file-system safe
+                    title = re.sub(r'[<>:"/\\|?*]', '_', title)
+                    title = title.strip()
+                    # Export
+                    path = Path(
+                        output_path(source), str(year), month.strftime('%m'),
+                        raw.standard_name, title + '.png'
+                    )
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    print('Exporting', path)
+                    plt.savefig(path)
+                    plt.close()
 
-            # Plot
-            plt.imshow(out_image[0], cmap='coolwarm', origin='lower')
-            plt.colorbar(label=f'{metric.capitalize()} Value')
-            plt.title(f'{metric.capitalize()} in {iso3} - {month.strftime("%B %Y")}')
-
-            # Export
-            path = Path(
-                output_path(source), str(year), month.strftime('%m'), metric,
-                iso3 + '.png'
-            )
-            path.parent.mkdir(parents=True, exist_ok=True)
-            plt.savefig(path)
-            plt.close()
+                # Add to output data frame
+                output.loc[idx, raw.standard_name] = np.nansum(masked_data)
 
         # Close the NetCDF file after use
         ds.close()
+
+    # # Export
+    # path = Path(output_path(source), str(year), iso3 + '.csv')
+    # print('Exporting', path)
+    # output.to_csv(path, index=False)
+
+    return output, f'{iso3}.csv'
 
 
 def process_worldpop_pop_count_data(

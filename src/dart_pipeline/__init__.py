@@ -142,14 +142,14 @@ def process_cli(source: str, **kwargs):
     if missing_params := non_default_params - set(kwargs):
         abort(source, f"missing required parameters {missing_params}")
     result = processor(**kwargs)
-    # base_path = output_path(source)
-    # result = result if isinstance(result, list) else [result]
-    # for df, filename in result:
-    #     out = base_path / filename
-    #     if not out.parent.exists():
-    #         out.parent.mkdir(parents=True)
-    #     update_or_create_output(df, out)
-    #     print(f"✅ PROC \033[1m{source}\033[0m {out}")
+    base_path = output_path(source)
+    result = result if isinstance(result, list) else [result]
+    for df, filename in result:
+        out = base_path / filename
+        if not out.parent.exists():
+            out.parent.mkdir(parents=True)
+        update_or_create_output(df, out)
+        print(f"✅ PROC \033[1m{source}\033[0m {out}")
 
 
 def check(source: str, only_one: bool = True, **kwargs):
