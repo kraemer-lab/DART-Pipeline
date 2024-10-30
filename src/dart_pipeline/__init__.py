@@ -1,10 +1,9 @@
-"""
-Main code for DART Pipeline
-"""
+"""Main code for DART Pipeline."""
 
 import os
 import inspect
 import argparse
+import textwrap
 from pathlib import Path
 from typing import cast
 
@@ -28,6 +27,7 @@ from .util import (
     get_credentials,
     only_one_from_collection,
     output_path,
+    update_or_create_output
 )
 
 DATA_PATH = Path(os.getenv("DART_PIPELINE_SOURCES_PATH", DEFAULT_SOURCES_ROOT))
@@ -87,7 +87,7 @@ def get(
     process: bool = False,
     **kwargs,
 ):
-    "Get files for a source"
+    """Get files for a source."""
     if source not in SOURCES:
         abort("source not found:", source)
     link_getter = SOURCES[source]
@@ -116,6 +116,23 @@ def get(
                 f.write(decoded_bytes)
             print(f"✅ {msg}")
         return
+    links = cast(list[URLCollection], links)
+    auth = get_credentials(source) if source in REQUIRES_AUTH else None
+    # If only one link is being downloaded, reduce the list of links to one
+    if only_one:
+        links = map(only_one_from_collection, links)
+    # Iterate over the links
+    for coll in links:
+        if not coll.missing_files(DATA_PATH / source) and not update:
+            print(f"✅ SKIP {source_fmt} {coll}")
+            continue
+        msg = f" GET {source_fmt} {coll}"
+        print(f" • {msg}", end="\r")
+        success = download_files(coll, path, auth=auth)
+        n_ok = sum(success)
+        if n_ok == len(success):
+            print(f"✅ {msg}")
+        return
     else:
         links = cast(list[URLCollection], links)
         auth = get_credentials(source) if source in REQUIRES_AUTH else None
@@ -140,9 +157,10 @@ def get(
 
 
 def process_cli(source: str, **kwargs):
+    """Process a data source according to inputs from the command line."""
     if source not in PROCESSORS:
         abort("source not found:", source)
-    print(f" • PROC \033[1m{source}\033[0m ...", end="\r")
+    # print(f" • PROC \033[1m{source}\033[0m ...", end="\r")
     processor = PROCESSORS[source]
     non_default_params = {
         p.name
@@ -158,29 +176,7 @@ def process_cli(source: str, **kwargs):
         out = base_path / filename
         if not out.parent.exists():
             out.parent.mkdir(parents=True)
-        # Check if the CSV file already exists
-        if os.path.exists(out):
-            # Load the existing CSV file
-            dtype = {
-                'admin_level_1': str, 'admin_level_2': str,
-                'admin_level_3': str, 'date': str, 'rainfall': np.float32
-            }
-            old = pd.read_csv(out, dtype=dtype)
-            # Merge based on the first five columns
-            updated = pd.merge(
-                old, df,
-                on=list(old)[:5],
-                how='left',
-                suffixes=('', '_new')
-            )
-            # Replace the old values
-            updated['rainfall'] = \
-                updated['rainfall_new'].combine_first(updated['rainfall'])
-            updated.drop(columns=['rainfall_new'], inplace=True)
-        else:
-            # If file doesn't already exist, just use the new DataFrame
-            updated = df
-        updated.to_csv(out, index=False)
+        update_or_create_output(df, out)
         print(f"✅ PROC \033[1m{source}\033[0m {out}")
 
 
@@ -201,12 +197,33 @@ def check(source: str, only_one: bool = True, **kwargs):
 
 
 def parse_params(params: list[str]) -> dict[str, str | int]:
+    """
+    Parse the parameters that have been passed to the script via the CLI.
+
+    Including a parameter such as `admin_level=0` on the command line will
+    result in it being parsed as a dictionary: `{'admin_level': '0'}`.
+
+    Command line arguments whose values get converted into integers:
+
+    - `year`
+
+    Shorthands that are recognised as standing for longer arguments:
+
+    - `a` (for `admin_level`)
+    - `3` (for `iso3`)
+    """
     out = {}
     for param in params:
         k, v = param.split("=")
         key = k.replace("-", "_")
-        v = v if key not in INTEGER_PARAMS else int(v)
+        v = int(v) if key in INTEGER_PARAMS else v
         out[key] = v
+    # Replace shorthand kwargs
+    if 'a' in out:
+        out['admin_level'] = out.pop('a')
+    if '3' in out:
+        out['iso3'] = out.pop('3')
+
     return out
 
 
@@ -237,8 +254,22 @@ def main():
         action="store_true",
     )
 
-    process_parser = subparsers.add_parser("process", help="Process a source")
-    process_parser.add_argument("source", help="Source to process")
+    process_parser = subparsers.add_parser(
+        "process",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        help="Process a source",
+        usage="dart-pipeline process [-h] source [**kwargs]",
+        description="Process a source with optional keyword arguments.",
+        epilog=textwrap.dedent("""
+        keyword arguments:
+          3=, iso3=         an ISO 3166-1 alpha-3 country code
+          a=, admin_level=  an administrative level for the given country; must
+                            be one of the following: 0, 1, 2 or 3.
+          partial_date=     either a year in YYYY format, a month in YYYY-MM
+                            format or a day in YYYY-MM-DD format.
+        """)
+    )
+    process_parser.add_argument("source", help="source to process")
 
     args, unknownargs = parser.parse_known_args()
     kwargs = parse_params(unknownargs)
@@ -246,7 +277,9 @@ def main():
         case "list":
             print("\n".join(list_all()))
         case "get":
-            get(args.source, args.only_one, args.update, args.process, **kwargs)
+            get(
+                args.source, args.only_one, args.update, args.process, **kwargs
+            )
         case "check":
             check(args.source, args.only_one)
         case "process":
