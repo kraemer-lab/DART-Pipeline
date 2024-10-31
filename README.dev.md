@@ -34,7 +34,9 @@ Done: ✅, in progress: ⏳, not working: ❌
  ├── ✅ `uv run dart-pipeline process meteorological/chirps-rainfall date=2023` 0.489s
  ├── ❌ `uv run dart-pipeline process meteorological/era5-reanalysis`
  ├── `uv run dart-pipeline process meteorological/terraclimate`
- │   ├── ✅ `uv run dart-pipeline process meteorological/terraclimate year=2023 3=PER a=0`
- │   └── ✅ `uv run dart-pipeline process meteorological/terraclimate year=2023 3=PER a=1`
+ │   ├── ✅ `uv run dart-pipeline process meteorological/terraclimate d=2023-01 3=PER a=0 l=INFO`
+ │   ├── ✅ `uv run dart-pipeline process meteorological/terraclimate d=2023-01 3=PER a=1 l=INFO`
+ │   ├──  `uv run dart-pipeline process meteorological/terraclimate d=2023-01 3=VNM a=0 l=INFO plots`
+ │   └──  `uv run dart-pipeline process meteorological/terraclimate d=2023-01 3=VNM a=1 l=INFO plots`
  ├── ❌ `uv run dart-pipeline process sociodemographic/worldpop-count iso3=VNM`
  └── ❌ `uv run dart-pipeline process sociodemographic/worldpop-density iso3=VNM year=2023`

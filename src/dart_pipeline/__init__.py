@@ -1,11 +1,12 @@
 """Main code for DART Pipeline."""
 
-import os
-import inspect
-import argparse
-import textwrap
 from pathlib import Path
 from typing import cast
+import argparse
+import inspect
+import logging
+import os
+import textwrap
 
 from .types import DataFile, URLCollection
 from .constants import (
@@ -182,18 +183,28 @@ def parse_params(params: list[str]) -> dict[str, str | int]:
 
     - `a` (for `admin_level`)
     - `3` (for `iso3`)
+    - `d` (for `partial_date`)
+    - `l` (for `logging_level`)
     """
     out = {}
     for param in params:
-        k, v = param.split("=")
-        key = k.replace("-", "_")
-        v = int(v) if key in INTEGER_PARAMS else v
-        out[key] = v
+        if '=' in param:
+            k, v = param.split("=")
+            key = k.replace("-", "_")
+            v = int(v) if key in INTEGER_PARAMS else v
+            out[key] = v
+        else:
+            # This is a Boolean
+            out[param] = True
     # Replace shorthand kwargs
     if 'a' in out:
         out['admin_level'] = out.pop('a')
     if '3' in out:
         out['iso3'] = out.pop('3')
+    if 'd' in out:
+        out['partial_date'] = out.pop('d')
+    if 'l' in out:
+        out['logging_level'] = out.pop('l')
 
     return out
 
@@ -229,17 +240,34 @@ def main():
         description="Process a source with optional keyword arguments.",
         epilog=textwrap.dedent("""
         keyword arguments:
-          3=, iso3=         an ISO 3166-1 alpha-3 country code
-          a=, admin_level=  an administrative level for the given country; must
-                            be one of the following: 0, 1, 2 or 3.
-          partial_date=     either a year in YYYY format, a month in YYYY-MM
-                            format or a day in YYYY-MM-DD format.
+          3=, iso3=          an ISO 3166-1 alpha-3 country code
+          a=, admin_level=   an administrative level for the given country;
+                             must be one of the following: 0, 1, 2 or 3.
+          d=, partial_date=  either a year in YYYY format, a month in YYYY-MM
+                             format or a day in YYYY-MM-DD format.
+          l=, logging_level= minimum logging level to display, defaults to
+                             'WARNING'
+        Boolean flags:
+          plots              plots will be created
         """)
     )
     process_parser.add_argument("source", help="source to process")
 
     args, unknownargs = parser.parse_known_args()
     kwargs = parse_params(unknownargs)
+
+    if 'logging_level' in kwargs:
+        match kwargs['logging_level']:
+            case 'DEBUG':
+                logging.basicConfig(level=logging.DEBUG)
+            case 'INFO':
+                logging.basicConfig(level=logging.INFO)
+            case 'ERROR':
+                logging.basicConfig(level=logging.ERROR)
+            case 'CRITICAL':
+                logging.basicConfig(level=logging.CRITICAL)
+        del kwargs['logging_level']
+
     match args.command:
         case "list":
             print("\n".join(list_all()))

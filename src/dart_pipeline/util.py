@@ -319,6 +319,7 @@ def update_or_create_output(
         # Output the data as-is
         output_df = df
     # Export
+    logging.info(f'Exporting {out}')
     output_df.to_csv(out, index=False)
     # When testing we want to be able to inspect the data frame
     if return_df:

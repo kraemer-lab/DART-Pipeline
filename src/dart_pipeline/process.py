@@ -394,7 +394,9 @@ def process_era5_reanalysis_data() -> ProcessResult:
     return df, "ERA5-ml-temperature-subarea.csv"
 
 
-def process_terraclimate(year: int, iso3: str, admin_level: str, plots=False):
+def process_terraclimate(
+    partial_date: str, iso3: str, admin_level: str, plots=False
+):
     """
     Process TerraClimate data.
 
@@ -402,13 +404,10 @@ def process_terraclimate(year: int, iso3: str, admin_level: str, plots=False):
     and other water balance variables. The data is stored in NetCDF (`.nc`)
     files for which the `netCDF4` library is needed.
     """
+    date = PartialDate.from_string(partial_date)
+    year = date.year
     global TERRACLIMATE_METRICS
     source = 'meteorological/terraclimate'
-
-    # In 2023 the capitalization of pdsi changed
-    if year == 2023:
-        TERRACLIMATE_METRICS = \
-            ['PDSI' if x == 'pdsi' else x for x in TERRACLIMATE_METRICS]
 
     # Initialise output data frame
     columns = [
@@ -420,8 +419,12 @@ def process_terraclimate(year: int, iso3: str, admin_level: str, plots=False):
     # Iterate over the metrics
     for metric in TERRACLIMATE_METRICS:
         # Import the raw data
-        print(source_path(source, f'TerraClimate_{metric}_{str(year)}.nc'))
-        path = source_path(source, f'TerraClimate_{metric}_{str(year)}.nc')
+        if (year == 2023) and (metric == 'pdsi'):
+            # In 2023 the capitalization of pdsi changed
+            path = source_path(source, f'TerraClimate_PDSI_2023.nc')
+        else:
+            path = source_path(source, f'TerraClimate_{metric}_{year}.nc')
+        logging.info(f'Importing {path}')
         ds = nc.Dataset(path)
 
         # Extract the variables
@@ -429,6 +432,12 @@ def process_terraclimate(year: int, iso3: str, admin_level: str, plots=False):
         lon = ds.variables['lon'][:]
         time = ds.variables['time'][:]  # Time in days since 1900-01-01
         raw = ds.variables[metric]
+
+        # Check if a standard name is provided for this metric
+        try:
+            standard_name = raw.standard_name
+        except AttributeError:
+            standard_name = metric
 
         # Apply scale factor
         data = raw[:].astype(np.float32)
@@ -444,6 +453,14 @@ def process_terraclimate(year: int, iso3: str, admin_level: str, plots=False):
         gdf = gpd.read_file(get_shapefile(iso3, admin_level))
 
         for i, month in enumerate(months):
+            # If a month has been specified on the command line
+            if date.month:
+                # If this data come from a month that does not match the
+                # requested month
+                if date.month != month.month:
+                    # Skip this iteration
+                    continue
+
             # Extract the data for the chosen month
             this_month = data[i, :, :]
 
@@ -508,21 +525,21 @@ def process_terraclimate(year: int, iso3: str, admin_level: str, plots=False):
                     # Export
                     path = Path(
                         output_path(source), str(year), month.strftime('%m'),
-                        raw.standard_name, title + '.png'
+                        standard_name, title + '.png'
                     )
                     path.parent.mkdir(parents=True, exist_ok=True)
-                    print('Exporting', path)
+                    logging.info(f'Exporting {path}')
                     plt.savefig(path)
                     plt.close()
 
                 # Add to output data frame
-                output.loc[idx, raw.standard_name] = np.nansum(masked_data)
+                output.loc[idx, standard_name] = np.nansum(masked_data)
 
         # Close the NetCDF file after use
         ds.close()
 
     # # Export
-    # path = Path(output_path(source), str(year), iso3 + '.csv')
+    # path = Path(output_path(source), year, iso3 + '.csv')
     # print('Exporting', path)
     # output.to_csv(path, index=False)
 
