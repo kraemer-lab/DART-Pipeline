@@ -76,13 +76,11 @@ def relative_wealth_index(iso3: str) -> URLCollection:
     "Relative Wealth Index"
     if not iso3:
         raise ValueError("No ISO3 code has been provided")
-    if (
-        r := requests.get("https://data.humdata.org/dataset/relative-wealth-index")
-    ).status_code == 200:
+    url = "https://data.humdata.org/dataset/relative-wealth-index"
+    if (r := requests.get(url)).status_code == 200:
         # Search for a URL in the HTML content
         soup = BeautifulSoup(r.text, "html.parser")
         # Find all anchor tags (<a>) with href attribute containing the ISO3
-        # target = pycountry.countries.get(alpha_3=iso3).common_name.lower().replace(' ', '-')
         target = iso3.lower()
         links = soup.find_all("a", href=lambda href: href and target in href)  # type: ignore
         # Return the first link found

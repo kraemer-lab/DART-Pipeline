@@ -69,7 +69,7 @@ class URLCollection:
     )
 
     def show(self, show_links: bool = False) -> str:
-        "Pretty printer for URLCollection"
+        """Pretty printer for URLCollection."""
         file_list_str = (
             self.files[0] if len(self.files) == 1 else f" [{len(self.files)} links]"
         )
@@ -87,11 +87,11 @@ class URLCollection:
     __str__ = show
 
     def disk_files(self, root: str | Path) -> list[Path]:
-        "List of files on disk corresponding to this URLCollection"
+        """List of files on disk corresponding to this URLCollection."""
         return [(Path(root) / self.relative_path / Path(f).name) for f in self.files]
 
     def missing_files(self, root: str | Path) -> list[Path]:
-        """Return True if all files in this URLCollection exist."""
+        """Check if all files corresponding to this URLCollection exist."""
         return [p for p in self.disk_files(root) if not p.exists()]
 
 
