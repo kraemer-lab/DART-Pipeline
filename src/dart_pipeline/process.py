@@ -21,7 +21,6 @@ import logging
 import os
 import re
 
-from affine import Affine
 from matplotlib import pyplot as plt
 from pandarallel import pandarallel
 import geopandas as gpd
@@ -406,7 +405,6 @@ def process_terraclimate(
     """
     date = PartialDate.from_string(partial_date)
     year = date.year
-    global TERRACLIMATE_METRICS
     source = 'meteorological/terraclimate'
 
     # Initialise output data frame
@@ -421,7 +419,7 @@ def process_terraclimate(
         # Import the raw data
         if (year == 2023) and (metric == 'pdsi'):
             # In 2023 the capitalization of pdsi changed
-            path = source_path(source, f'TerraClimate_PDSI_2023.nc')
+            path = source_path(source, 'TerraClimate_PDSI_2023.nc')
         else:
             path = source_path(source, f'TerraClimate_{metric}_{year}.nc')
         logging.info(f'Importing {path}')
