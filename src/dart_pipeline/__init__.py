@@ -1,5 +1,4 @@
 """Main code for DART Pipeline."""
-
 from pathlib import Path
 from typing import cast
 import argparse
