@@ -449,7 +449,6 @@ def process_terraclimate(
 
         # Import a shapefile
         gdf = gpd.read_file(get_shapefile(iso3, admin_level))
-
         for i, month in enumerate(months):
             # If a month has been specified on the command line
             if date.month:
@@ -501,7 +500,6 @@ def process_terraclimate(
                     out_shape=this_month.shape
                 )
                 masked_data = np.ma.masked_array(this_month, mask=mask)
-
                 if plots:
                     # Plot
                     plt.imshow(

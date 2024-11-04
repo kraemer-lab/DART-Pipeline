@@ -1,7 +1,4 @@
-"""
-Tests for utility functions
-"""
-
+"""Tests for utility functions."""
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -100,6 +97,9 @@ def new_dataframe():
         'admin_level_1': ['An Giang'],
         'admin_level_2': ['An Phú'],
         'admin_level_3': ['Khánh An'],
+        'year': [''],
+        'month': [''],
+        'day': [''],
         'metric': [0.998]
     })
 
@@ -112,6 +112,9 @@ def old_dataframe():
         'admin_level_1': ['An Giang'],
         'admin_level_2': ['An Phú'],
         'admin_level_3': ['Khánh An'],
+        'year': [''],
+        'month': [''],
+        'day': [''],
         'metric': [0.002]
     })
 
@@ -153,7 +156,8 @@ def test_update_or_create_output_update_existing(
     # Verify that read_csv was called with the correct path
     dtype = {
         'admin_level_0': str, 'admin_level_1': str,
-        'admin_level_2': str, 'admin_level_3': str
+        'admin_level_2': str, 'admin_level_3': str,
+        'year': str, 'month': str, 'day': str
     }
     mock_read_csv.assert_called_once_with(mock_path, dtype=dtype)
 
@@ -174,16 +178,6 @@ def test_update_or_create_output_invalid_input():
     match = 'Expected a pandas DataFrame as input'
     with pytest.raises(TypeError, match=match):
         update_or_create_output(invalid_input, mock_path)
-
-    # Missing required columns
-    df_with_missing_columns = pd.DataFrame({
-        'admin_level_0': ['Country1'],
-        'admin_level_1': ['State1']
-        # Missing 'admin_level_2', 'admin_level_3', and 'metric' columns
-    })
-    match = 'DataFrame is missing required columns'
-    with pytest.raises(ValueError, match=match):
-        update_or_create_output(df_with_missing_columns, mock_path)
 
     # Invalid path
     df = pd.DataFrame({

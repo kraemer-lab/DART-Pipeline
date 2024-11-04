@@ -303,7 +303,10 @@ def update_or_create_output(
             existing_df, df, on=key_columns, how='outer', suffixes=('_old', '')
         )
         # Create a list of the metrics
-        metrics = [c.removesuffix('_old') for c in list(output_df)]
+        metrics = [
+            c.removesuffix('_old') for c in list(output_df)
+            if c.endswith('_old')
+        ]
         # Update the data by prioritizing the new values (from the new data)
         for metric in metrics:
             output_df[metric] = \
