@@ -1,6 +1,4 @@
-"""
-Utility library for DART pipeline
-"""
+"""Utility library for DART pipeline."""
 
 import copy
 import json
@@ -20,6 +18,7 @@ from lxml import html
 import py7zr
 import requests
 import pycountry
+import pandas as pd
 
 from .constants import (
     DEFAULT_SOURCES_ROOT,
@@ -260,3 +259,44 @@ def unpack_file(path: Path | str, same_folder: bool = False):
         case _:
             extract_dir = path.parent if same_folder else path.parent / path.stem
             shutil.unpack_archive(path, str(extract_dir))
+
+
+def update_or_create_output(
+    df: pd.DataFrame, out: str | Path, return_df=False
+):
+    """Either update an existing CSV or create a new one."""
+    # Validate the input
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError('Expected a pandas DataFrame as input')
+    cols = ['admin_level_0', 'admin_level_1', 'admin_level_2', 'admin_level_3']
+    if not all(col in df.columns for col in cols):
+        raise ValueError('DataFrame is missing required columns')
+    if not isinstance(out, (str, Path)):
+        raise TypeError('Expected a valid file path')
+
+    # Check if the CSV file already exists
+    if out.exists():
+        dtype = {
+            'admin_level_0': str, 'admin_level_1': str, 'admin_level_2': str,
+            'admin_level_3': str
+        }
+        existing_df = pd.read_csv(out, dtype=dtype)
+        # Merge the new data with the existing data, prioritising new values
+        key_columns = [f'admin_level_{x}' for x in range(4)]
+        output_df = pd.merge(
+            existing_df, df, on=key_columns, how='outer', suffixes=('_old', '')
+        )
+        # Update the data by prioritizing the new values (from the new data)
+        metric = list(existing_df)[-1]
+        output_df[metric] = \
+            output_df[metric].combine_first(output_df[f'{metric}_old'])
+        # Drop the old data column
+        output_df = output_df.drop(columns=[f'{metric}_old'], errors='ignore')
+    else:
+        # Output the data as-is
+        output_df = df
+    # Export
+    output_df.to_csv(out, index=False)
+    # When testing we want to be able to inspect the data frame
+    if return_df:
+        return output_df
