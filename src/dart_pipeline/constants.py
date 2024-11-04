@@ -1,4 +1,4 @@
-"Global constants"
+"""Global constants."""
 
 COMPRESSED_FILE_EXTS = [".tar.gz", ".tar.bz2", ".zip", ".7z"]
 

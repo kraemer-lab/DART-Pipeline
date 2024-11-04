@@ -21,7 +21,6 @@ import logging
 import os
 import re
 
-from affine import Affine
 from matplotlib import pyplot as plt
 from pandarallel import pandarallel
 import geopandas as gpd
@@ -48,7 +47,7 @@ def process_ministerio_de_salud_peru_data(
     admin_level: Literal["0", "1"] | None = None,
 ) -> ProcessResult:
     "Process data from the Ministerio de Salud - Peru"
-    source = "epidemiological/dengue/peru"
+    source = "epidemiological/dengue-peru"
     if not admin_level:
         admin_level = "0"
         logging.info(f"Admin level: None, defaulting to {admin_level}")
@@ -394,7 +393,9 @@ def process_era5_reanalysis_data() -> ProcessResult:
     return df, "ERA5-ml-temperature-subarea.csv"
 
 
-def process_terraclimate(year: int, iso3: str, admin_level: str, plots=False):
+def process_terraclimate(
+    partial_date: str, iso3: str, admin_level: str, plots=False
+):
     """
     Process TerraClimate data.
 
@@ -402,13 +403,9 @@ def process_terraclimate(year: int, iso3: str, admin_level: str, plots=False):
     and other water balance variables. The data is stored in NetCDF (`.nc`)
     files for which the `netCDF4` library is needed.
     """
-    global TERRACLIMATE_METRICS
+    date = PartialDate.from_string(partial_date)
+    year = date.year
     source = 'meteorological/terraclimate'
-
-    # In 2023 the capitalization of pdsi changed
-    if year == 2023:
-        TERRACLIMATE_METRICS = \
-            ['PDSI' if x == 'pdsi' else x for x in TERRACLIMATE_METRICS]
 
     # Initialise output data frame
     columns = [
@@ -420,8 +417,12 @@ def process_terraclimate(year: int, iso3: str, admin_level: str, plots=False):
     # Iterate over the metrics
     for metric in TERRACLIMATE_METRICS:
         # Import the raw data
-        print(source_path(source, f'TerraClimate_{metric}_{str(year)}.nc'))
-        path = source_path(source, f'TerraClimate_{metric}_{str(year)}.nc')
+        if (year == 2023) and (metric == 'pdsi'):
+            # In 2023 the capitalization of pdsi changed
+            path = source_path(source, 'TerraClimate_PDSI_2023.nc')
+        else:
+            path = source_path(source, f'TerraClimate_{metric}_{year}.nc')
+        logging.info(f'Importing {path}')
         ds = nc.Dataset(path)
 
         # Extract the variables
@@ -429,6 +430,12 @@ def process_terraclimate(year: int, iso3: str, admin_level: str, plots=False):
         lon = ds.variables['lon'][:]
         time = ds.variables['time'][:]  # Time in days since 1900-01-01
         raw = ds.variables[metric]
+
+        # Check if a standard name is provided for this metric
+        try:
+            standard_name = raw.standard_name
+        except AttributeError:
+            standard_name = metric
 
         # Apply scale factor
         data = raw[:].astype(np.float32)
@@ -442,8 +449,15 @@ def process_terraclimate(year: int, iso3: str, admin_level: str, plots=False):
 
         # Import a shapefile
         gdf = gpd.read_file(get_shapefile(iso3, admin_level))
-
         for i, month in enumerate(months):
+            # If a month has been specified on the command line
+            if date.month:
+                # If this data come from a month that does not match the
+                # requested month
+                if date.month != month.month:
+                    # Skip this iteration
+                    continue
+
             # Extract the data for the chosen month
             this_month = data[i, :, :]
 
@@ -486,7 +500,6 @@ def process_terraclimate(year: int, iso3: str, admin_level: str, plots=False):
                     out_shape=this_month.shape
                 )
                 masked_data = np.ma.masked_array(this_month, mask=mask)
-
                 if plots:
                     # Plot
                     plt.imshow(
@@ -508,21 +521,21 @@ def process_terraclimate(year: int, iso3: str, admin_level: str, plots=False):
                     # Export
                     path = Path(
                         output_path(source), str(year), month.strftime('%m'),
-                        raw.standard_name, title + '.png'
+                        standard_name, title + '.png'
                     )
                     path.parent.mkdir(parents=True, exist_ok=True)
-                    print('Exporting', path)
+                    logging.info(f'Exporting {path}')
                     plt.savefig(path)
                     plt.close()
 
                 # Add to output data frame
-                output.loc[idx, raw.standard_name] = np.nansum(masked_data)
+                output.loc[idx, standard_name] = np.nansum(masked_data)
 
         # Close the NetCDF file after use
         ds.close()
 
     # # Export
-    # path = Path(output_path(source), str(year), iso3 + '.csv')
+    # path = Path(output_path(source), year, iso3 + '.csv')
     # print('Exporting', path)
     # output.to_csv(path, index=False)
 
@@ -645,27 +658,21 @@ def process_gadm_chirps_data(
     # Transform the shape file to match the GeoTIFF's coordinate system
     gdf = gdf.to_crs(src.crs)
 
-    # Initialise a list-of-lists that will be converted into a data frame
-    output = []
+    output = pd.DataFrame()
     # Iterate over each region in the shape file
     for _, region in gdf.iterrows():
         geometry = region.geometry
-        # Initialise a new row that will be added to the output list-of-lists
-        new_row = []
-        # Add the region information
-        new_row.append(region['COUNTRY'])
+
+        # Initialise a new row for the output data frame
+        new_row = {"Admin Level 0": region["COUNTRY"]}
+        # Initialise the title
+        # Update the new row and the title if the admin level is high enough
         if int(admin_level) >= 1:
-            new_row.append(region['NAME_1'])
-        else:
-            new_row.append('')
+            new_row["Admin Level 1"] = region["NAME_1"]
         if int(admin_level) >= 2:
-            new_row.append(region['NAME_2'])
-        else:
-            new_row.append('')
+            new_row["Admin Level 2"] = region["NAME_2"]
         if int(admin_level) >= 3:
-            new_row.append(region['NAME_3'])
-        else:
-            new_row.append('')
+            new_row["Admin Level 3"] = region["NAME_3"]
 
         # Check if the rainfall data intersects this region
         if raster_bbox.intersects(geometry):
@@ -678,21 +685,15 @@ def process_gadm_chirps_data(
             region_total = np.nansum(region_data)
         else:
             region_total = 0  # no rainfall data for this region
-        new_row.append(str(date))
-        new_row.append(region_total)
 
-        # Add to output list-of-lists
-        output.append(new_row)
-
-    # Convert to data frame
-    columns = [
-        'admin_level_0', 'admin_level_1', 'admin_level_2', 'admin_level_3',
-        'date', 'rainfall'
-    ]
-    df = pd.DataFrame(output, columns=columns)
+        # Add to output data frame
+        new_row["Date"] = date
+        new_row["Rainfall"] = region_total
+        new_row_df = pd.DataFrame(new_row, index=[0])
+        output = pd.concat([output, new_row_df], ignore_index=True)
 
     # Export
-    return df, f'{iso3}.csv'
+    return output, f"{iso3}/admin{admin_level}/{date.year}/{date}.csv"
 
 
 def process_gadm_worldpoppopulation_data(
