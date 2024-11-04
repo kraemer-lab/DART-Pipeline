@@ -14,24 +14,29 @@ In general, use `EPSG:9217 <https://epsg.io/9217>`_ or
 `ISO 3166-1 alpha-3 <https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3>`_
 format for country codes.
 """
-
-import os
-import logging
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Literal, Callable
+import logging
+import os
+import re
 
+from matplotlib import pyplot as plt
+from pandarallel import pandarallel
+import geopandas as gpd
+import netCDF4 as nc
+import numpy as np
+import pandas as pd
 import rasterio
 import rasterio.mask
 import rasterio.transform
+import rasterio.features
 import shapely.geometry
-import geopandas as gpd
-import numpy as np
-import pandas as pd
-import netCDF4 as nc
-from pandarallel import pandarallel
 
-from .util import abort, source_path, days_in_year, output_path, get_country_name
+from .util import \
+    abort, source_path, days_in_year, output_path, get_country_name
 from .types import ProcessResult, PartialDate, AdminLevel
+from .constants import TERRACLIMATE_METRICS
 
 pandarallel.initialize(verbose=0)
 
@@ -388,6 +393,155 @@ def process_era5_reanalysis_data() -> ProcessResult:
     return df, "ERA5-ml-temperature-subarea.csv"
 
 
+def process_terraclimate(
+    partial_date: str, iso3: str, admin_level: str, plots=False
+):
+    """
+    Process TerraClimate data.
+
+    This metric incorporates TerraClimate gridded temperature, precipitation,
+    and other water balance variables. The data is stored in NetCDF (`.nc`)
+    files for which the `netCDF4` library is needed.
+    """
+    date = PartialDate.from_string(partial_date)
+    year = date.year
+    source = 'meteorological/terraclimate'
+
+    # Initialise output data frame
+    columns = [
+        'admin_level_0', 'admin_level_1', 'admin_level_2', 'admin_level_3',
+        'year', 'month'
+    ]
+    output = pd.DataFrame(columns=columns)
+
+    # Iterate over the metrics
+    for metric in TERRACLIMATE_METRICS:
+        # Import the raw data
+        if (year == 2023) and (metric == 'pdsi'):
+            # In 2023 the capitalization of pdsi changed
+            path = source_path(source, 'TerraClimate_PDSI_2023.nc')
+        else:
+            path = source_path(source, f'TerraClimate_{metric}_{year}.nc')
+        logging.info(f'Importing {path}')
+        ds = nc.Dataset(path)
+
+        # Extract the variables
+        lat = ds.variables['lat'][:]
+        lon = ds.variables['lon'][:]
+        time = ds.variables['time'][:]  # Time in days since 1900-01-01
+        raw = ds.variables[metric]
+
+        # Check if a standard name is provided for this metric
+        try:
+            standard_name = raw.standard_name
+        except AttributeError:
+            standard_name = metric
+
+        # Apply scale factor
+        data = raw[:].astype(np.float32)
+        data = data * raw.scale_factor + raw.add_offset
+        # Replace fill values with NaN
+        data[data == raw._FillValue] = np.nan
+
+        # Convert time to actual dates
+        base_time = datetime(1900, 1, 1)
+        months = [base_time + timedelta(days=t) for t in time]
+
+        # Import a shapefile
+        gdf = gpd.read_file(get_shapefile(iso3, admin_level))
+        for i, month in enumerate(months):
+            # If a month has been specified on the command line
+            if date.month:
+                # If this data come from a month that does not match the
+                # requested month
+                if date.month != month.month:
+                    # Skip this iteration
+                    continue
+
+            # Extract the data for the chosen month
+            this_month = data[i, :, :]
+
+            # Iterate over the regions in the shape file
+            for j, region in gdf.iterrows():
+                geometry = region.geometry
+
+                # Initialise a new row for the output data frame
+                idx = i * len(months) + j
+                output.loc[idx, 'admin_level_0'] = region['COUNTRY']
+                output.loc[idx, 'admin_level_1'] = None
+                output.loc[idx, 'admin_level_2'] = None
+                output.loc[idx, 'admin_level_3'] = None
+                output.loc[idx, 'year'] = month.year
+                output.loc[idx, 'month'] = month.month
+                # Initialise the graph title
+                title = region['COUNTRY']
+                # Update the new row and the title if the admin level is high
+                # enough
+                if int(admin_level) >= 1:
+                    output.loc[idx, 'admin_level_1'] = region['NAME_1']
+                    title = region['NAME_1']
+                if int(admin_level) >= 2:
+                    output.loc[idx, 'admin_level_2'] = region['NAME_2']
+                    title = region['NAME_2']
+                if int(admin_level) >= 3:
+                    output.loc[idx, 'admin_level_3'] = region['NAME_3']
+                    title = region['NAME_3']
+
+                # Define transform for geometry_mask based on grid resolution
+                transform = rasterio.transform.from_origin(
+                    lon.min(), lat.max(), abs(lon[1] - lon[0]),
+                    abs(lat[1] - lat[0])
+                )
+
+                # Create a mask that is True for points outside the geometries
+                mask = rasterio.features.geometry_mask(
+                    [geometry],
+                    transform=transform,
+                    out_shape=this_month.shape
+                )
+                masked_data = np.ma.masked_array(this_month, mask=mask)
+                if plots:
+                    # Plot
+                    plt.imshow(
+                        masked_data, cmap='coolwarm', origin='upper',
+                        extent=[lon.min(), lon.max(), lat.min(), lat.max()]
+                    )
+                    plt.colorbar(label=f'{raw.description} [{raw.units}]')
+                    month_str = month.strftime('%B %Y')
+                    plt.title(f'{raw.description}\n{title} - {month_str}')
+                    # Get the bounds of the region
+                    min_lon, min_lat, max_lon, max_lat = geometry.bounds
+                    plt.xlim(min_lon, max_lon)
+                    plt.ylim(min_lat, max_lat)
+                    plt.ylabel('Latitude')
+                    plt.xlabel('Longitude')
+                    # Make the plot title file-system safe
+                    title = re.sub(r'[<>:"/\\|?*]', '_', title)
+                    title = title.strip()
+                    # Export
+                    path = Path(
+                        output_path(source), str(year), month.strftime('%m'),
+                        standard_name, title + '.png'
+                    )
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    logging.info(f'Exporting {path}')
+                    plt.savefig(path)
+                    plt.close()
+
+                # Add to output data frame
+                output.loc[idx, standard_name] = np.nansum(masked_data)
+
+        # Close the NetCDF file after use
+        ds.close()
+
+    # # Export
+    # path = Path(output_path(source), year, iso3 + '.csv')
+    # print('Exporting', path)
+    # output.to_csv(path, index=False)
+
+    return output, f'{iso3}.csv'
+
+
 def process_worldpop_pop_count_data(
     iso3: str, year: int = 2020, rt: str = "pop"
 ) -> ProcessResult:
@@ -700,6 +854,7 @@ PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
     "meteorological/aphrodite-daily-precip": process_aphrodite_precipitation_data,
     "meteorological/chirps-rainfall": process_chirps_rainfall_data,
     "meteorological/era5-reanalysis": process_era5_reanalysis_data,
+    "meteorological/terraclimate": process_terraclimate,
     "sociodemographic/worldpop-count": process_worldpop_pop_count_data,
     "sociodemographic/worldpop-density": process_worldpop_pop_density_data,
     "geospatial/chirps-rainfall": process_gadm_chirps_data,

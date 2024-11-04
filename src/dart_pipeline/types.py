@@ -26,7 +26,7 @@ class PartialDate(NamedTuple):
         if re.match(r"^[12]\d\d\d$", date):
             return PartialDate(int(date))
         if re.match(r"^[12]\d\d\d-[01]\d$", date):
-            dt = datetime.strptime("2024-08", "%Y-%m")
+            dt = datetime.strptime(date, "%Y-%m")
             return PartialDate(dt.year, dt.month)
         dt = datetime.fromisoformat(date)
         return PartialDate(dt.year, dt.month, dt.day)
@@ -91,7 +91,7 @@ class URLCollection:
         return [(Path(root) / self.relative_path / Path(f).name) for f in self.files]
 
     def missing_files(self, root: str | Path) -> list[Path]:
-        "Returns True if all files corresponding to this URLCollection exist"
+        """Return True if all files in this URLCollection exist."""
         return [p for p in self.disk_files(root) if not p.exists()]
 
 
