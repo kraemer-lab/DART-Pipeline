@@ -279,10 +279,13 @@ def get_chirps_rainfall_data_path(date: PartialDate) -> Path:
 
     if not (path := source_path("meteorological/chirps-rainfall", file)).exists():
         raise FileNotFoundError(f"CHIRPS rainfall data not found: {path}")
+
     return path
 
 
-def process_chirps_rainfall_data(date: str) -> ProcessResult:
+def process_chirps_rainfall_data(
+    partial_date: str, iso3: str, admin_level: str, plots=False
+) -> ProcessResult:
     """
     Process CHIRPS Rainfall data.
 
@@ -290,63 +293,128 @@ def process_chirps_rainfall_data(date: str) -> ProcessResult:
     Station.
     """
     source = "meteorological/chirps-rainfall"
-    pdate = PartialDate.from_string(date)
+    pdate = PartialDate.from_string(partial_date)
+    logging.info(f'partial_date:{pdate}')
+    logging.info(f'scope:{pdate.scope}')
+    logging.info(f'iso3:{iso3}')
+    logging.info(f'admin_level:{admin_level}')
+    logging.info(f'plots:{plots}')
 
+    # Import the TIFF file
     file = get_chirps_rainfall_data_path(pdate)
-    print(f"Global {pdate.scope} data will be processed for {date}")
+    logging.info(f'Importing:{file}')
     src = rasterio.open(file)
-    print(f'Processing "{file}"')
+    # Get the affine transformation coefficients
+    transform = src.transform
     # Rasterio stores image layers in 'bands'
-    if (num_bands := src.count) != 1:
-        raise ValueError(f"There is a number of bands other than 1: {num_bands}")
-
-    data = src.read(1)  # Get the data in the first band as an array
-    data[data == -9999] = 0  # Hide nulls
-
-    # Create a DataFrame from the dictionary
-    new_row = pd.DataFrame(
-        {
-            "year": pdate.year,
-            "month": pdate.month,
-            "day": pdate.day,
-            "region": "global",
-            "rainfall": np.sum(data),
-        },
-        index=[0],
+    # Get the data in the first band as an array
+    if src.count != 1:
+        raise ValueError(f'Found {src.count} (expected 1)')
+    data = src.read(1)
+    # Replace placeholder numbers with 0
+    # (-3.4e+38 is the smallest single-precision floating-point number)
+    data[data == -3.4028234663852886e38] = 0
+    # Hide nulls
+    data[data == -9999] = 0
+    # Create a bounding box from raster bounds
+    bounds = src.bounds
+    raster_bbox = shapely.geometry.box(
+        bounds.left, bounds.bottom, bounds.right, bounds.top
     )
 
-    # Check if a CSV already exists
-    if (path := output_path(source, "output.csv")).exists():
-        # Use existing CSV to build a new dataframe
-        df = pd.read_csv(path)
-        # Check if a row with the same year, month, and day exists
-        match pdate.scope:
-            case "daily":
-                mask = (
-                    (df["year"] == pdate.year)
-                    & (df["month"] == pdate.month)
-                    & (df["day"] == pdate.day)
-                )
-            case "monthly":
-                mask = (
-                    (df["year"] == pdate.year)
-                    & (df["month"] == pdate.month)
-                    & df["day"].isna()
-                )
-            case "annual":
-                mask = (
-                    (df["year"] == pdate.year) & df["month"].isna() & df["day"].isna()
-                )
-        if mask.any():
-            # Update the row if an entry for this date already exists
-            df.loc[mask, "rainfall"] = np.sum(data)
-        else:
-            # Append a new row if an entry for this date does not exist
-            df = pd.concat([df, new_row], ignore_index=True)
-    else:
-        # If the CSV does not exist, create it with this as the only row
-        df = new_row
-    return df, "output.csv"
+    # Convert pixel coordinates to latitude and longitude
+    cols = np.arange(data.shape[1])
+    lon, _ = rasterio.transform.xy(transform, (1,), cols)
+    rows = np.arange(data.shape[0])
+    _, lat = rasterio.transform.xy(transform, rows, (1,))
+
+    # Initialise the data frame that will store the output data for each region
+    columns = [
+        'admin_level_0', 'admin_level_1', 'admin_level_2', 'admin_level_3',
+        'year', 'month', 'day'
+    ]
+    output = pd.DataFrame(columns=columns)
+
+    # Import shape file
+    path = get_shapefile(iso3, admin_level)
+    logging.info(f'Importing:{path}')
+    gdf = gpd.read_file(path)
+    # Transform the shape file to match the GeoTIFF's coordinate system
+    # EPSG:4326 - WGS 84: latitude/longitude coordinate system based on the
+    # Earth's center of mass
+    gdf = gdf.to_crs(src.crs)
+
+    # Iterate over the regions in the shape file
+    for i, region in gdf.iterrows():
+        geometry = region.geometry
+
+        # Initialise a new row for the output data frame
+        output.loc[i, 'admin_level_0'] = region['COUNTRY']
+        output.loc[i, 'admin_level_1'] = None
+        output.loc[i, 'admin_level_2'] = None
+        output.loc[i, 'admin_level_3'] = None
+        output.loc[i, 'year'] = pdate.year
+        output.loc[i, 'month'] = pdate.month
+        output.loc[i, 'day'] = pdate.day
+        # Initialise the graph title
+        title = region['COUNTRY']
+        # Update the new row and the title if the admin level is high
+        # enough
+        if int(admin_level) >= 1:
+            output.loc[i, 'admin_level_1'] = region['NAME_1']
+            title = region['NAME_1']
+        if int(admin_level) >= 2:
+            output.loc[i, 'admin_level_2'] = region['NAME_2']
+            title = region['NAME_2']
+        if int(admin_level) >= 3:
+            output.loc[i, 'admin_level_3'] = region['NAME_3']
+            title = region['NAME_3']
+
+        # Define transform for geometry_mask based on grid resolution
+        transform = rasterio.transform.from_origin(
+            min(lon), max(lat), abs(lon[1] - lon[0]),
+            abs(lat[1] - lat[0])
+        )
+
+        # Create a mask that is True for points outside the geometries
+        mask = rasterio.features.geometry_mask(
+            [geometry],
+            transform=transform,
+            out_shape=data.shape
+        )
+        masked_data = np.ma.masked_array(data, mask=mask)
+        if plots:
+            # Plot
+            plt.imshow(
+                masked_data, cmap='coolwarm', origin='upper',
+                extent=[min(lon), max(lon), min(lat), max(lat)]
+            )
+            plt.colorbar(label=f'Rainfall [mm]')
+            plt.title(f'Rainfall\n{title} - {pdate}')
+            # Get the bounds of the region
+            min_lon, min_lat, max_lon, max_lat = geometry.bounds
+            plt.xlim(min_lon, max_lon)
+            plt.ylim(min_lat, max_lat)
+            plt.ylabel('Latitude')
+            plt.xlabel('Longitude')
+            # Make the plot title file-system safe
+            title = re.sub(r'[<>:"/\\|?*]', '_', title)
+            title = title.strip()
+            # Export
+            path = Path(
+                output_path(source), str(pdate).replace('-', '/'),
+                title + '.png'
+            )
+            path.parent.mkdir(parents=True, exist_ok=True)
+            logging.info(f'Exporting:{path}')
+            plt.savefig(path)
+            plt.close()
+
+        # Add to output data frame
+        output.loc[i, 'rainfall'] = np.nansum(masked_data)
+
+    # Export
+    return output, f'{iso3}.csv'
 
 
 def process_era5_reanalysis_data() -> ProcessResult:
@@ -566,7 +634,6 @@ def process_worldpop_pop_count_data(
     filename = Path(f"{iso3}_{rt}_v2b_{year}_UNadj.tif")
     print(f'Processing "{filename}"')
     src = rasterio.open(base_path / filename)
-
     # Get the affine transformation coefficients
     transform = src.transform
     # Read data from band 1
@@ -602,6 +669,7 @@ def process_worldpop_pop_count_data(
     rows = np.arange(source_data.shape[0])
     _, lat = rasterio.transform.xy(transform, rows, (1,))
     # Replace placeholder numbers with 0
+    # (-3.4e+38 is the smallest single-precision floating-point number)
     mask = source_data == -3.4028234663852886e38
     source_data[mask] = 0
     # Create a DataFrame with latitude, longitude, and pixel values
@@ -719,13 +787,14 @@ def process_gadm_worldpoppopulation_data(
     # Search for the actual folder that has the data
     folders = [d for d in os.listdir(path) if d.endswith("_100m_Population")]
     folder = folders[0]
-    # Now we can construct the full path
+    # Construct full path
     path = Path(path, folder, filename)
-    # Now we can import it
+    # Import
     src = rasterio.open(path)
     # Read the first band
     data = src.read(1)
     # Replace placeholder numbers with 0
+    # (-3.4e+38 is the smallest single-precision floating-point number)
     data[data == -3.4028234663852886e38] = 0
     # Create a bounding box from raster bounds
     bounds = src.bounds
@@ -739,6 +808,7 @@ def process_gadm_worldpoppopulation_data(
     if (iso3 == "PER") and (year == "2020"):
         assert data.sum() == 32434896.0, f"{data.sum()} != 32434896.0"  # 32,434,896
 
+    # Import shape file
     gdf = gpd.read_file(get_shapefile(iso3, admin_level))
     # Transform the shape file to match the GeoTIFF's coordinate system
     # EPSG:4326 - WGS 84: latitude/longitude coordinate system based on the
