@@ -48,9 +48,9 @@ def test_relative_wealth_index():
         )
 
 
-def test_chirps_rainfall_data_year():
+def test_chirps_rainfall_data():
     base_url = "https://data.chc.ucsb.edu"
-    assert chirps_rainfall_data(2020) == [
+    assert chirps_rainfall_data('2020') == [
         URLCollection(
             f"{base_url}/products/CHIRPS-2.0/global_annual/tifs",
             ["chirps-v2.0.2020.tif"],
@@ -58,24 +58,22 @@ def test_chirps_rainfall_data_year():
         )
     ]
 
-
-def test_chirps_rainfall_data_year_month():
-    base_url = "https://data.chc.ucsb.edu"
-    assert chirps_rainfall_data(2020, 1) == [
+    base_url = 'https://data.chc.ucsb.edu'
+    assert chirps_rainfall_data('2020-01') == [
         URLCollection(
-            f"{base_url}/products/CHIRPS-2.0/global_annual/tifs",
-            ["chirps-v2.0.2020.tif"],
-            relative_path="global_annual",
+            f'{base_url}/products/CHIRPS-2.0/global_annual/tifs',
+            ['chirps-v2.0.2020.tif'],
+            relative_path='global_annual',
         ),
         URLCollection(
             f"{base_url}/products/CHIRPS-2.0/global_monthly/tifs",
-            ["chirps-v2.0.2020.01.tif.gz"],
-            relative_path="global_monthly",
+            ['chirps-v2.0.2020.01.tif.gz'],
+            relative_path='global_monthly/2020',
         ),
         URLCollection(
-            f"{base_url}/products/CHIRPS-2.0/global_daily/tifs/p05/2020",
-            [f"chirps-v2.0.2020.01.{day:02d}.tif.gz" for day in range(1, 32)],
-            relative_path="global_daily/2020",
+            f'{base_url}/products/CHIRPS-2.0/global_daily/tifs/p05/2020',
+            [f'chirps-v2.0.2020.01.{day:02d}.tif.gz' for day in range(1, 32)],
+            relative_path='global_daily/2020/01',
         ),
     ]
 

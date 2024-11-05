@@ -14,8 +14,8 @@ Done: ✅, in progress: ⏳, not working: ❌
  ├── ✅ `uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp` 12m56.12s
  ├── ❌ `uv run dart-pipeline get meteorological/aphrodite-daily-precip` 4.551s
  ├── `uv run dart-pipeline get meteorological/chirps-rainfall`
- │   ├── ✅ `uv run dart-pipeline get meteorological/chirps-rainfall year=2023` 7.24s
- │   └── ✅ `uv run dart-pipeline get meteorological/chirps-rainfall year=2023 month=05` 1m32.80s
+ │   ├── ✅ `uv run dart-pipeline get meteorological/chirps-rainfall d=2023` 7.24s
+ │   └── ✅ `uv run dart-pipeline get meteorological/chirps-rainfall d=2023-05` 1m32.80s
  ├── ✅ `uv run dart-pipeline get meteorological/terraclimate year=2023` 9m30.29s
  ├── ✅ `uv run dart-pipeline get sociodemographic/meta-pop-density iso3=VNM` 10m25.46s
  ├── ❌ `uv run dart-pipeline get sociodemographic/worldpop-count iso3=VNM`

@@ -132,7 +132,7 @@ def process_cli(source: str, **kwargs):
     """Process a data source according to inputs from the command line."""
     if source not in PROCESSORS:
         abort("source not found:", source)
-    # print(f" • PROC \033[1m{source}\033[0m ...", end="\r")
+    print(f" • PROC \033[1m{source}\033[0m ...", end="\r")
     processor = PROCESSORS[source]
     non_default_params = {
         p.name
