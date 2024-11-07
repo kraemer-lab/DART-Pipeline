@@ -8,8 +8,147 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from dart_pipeline.process import \
+    process_gadm_chirps_rainfall, \
+    process_chirps_rainfall, \
+    process_terraclimate
 
-from dart_pipeline.process import process_terraclimate
+
+@patch('geopandas.read_file')
+@patch("dart_pipeline.process.PartialDate.from_string")
+@patch("dart_pipeline.process.get_chirps_rainfall_data_path")
+@patch("dart_pipeline.process.get_shapefile")
+@patch("rasterio.open")
+@patch("dart_pipeline.process.output_path")
+@patch("matplotlib.pyplot.savefig")
+def test_process_gadm_chirps_rainfall(
+    mock_savefig,
+    mock_output_path,
+    mock_raster_open,
+    mock_get_shapefile,
+    mock_get_chirps_rainfall_data_path,
+    mock_partial_date_from_string,
+    mock_read_file
+):
+    iso3 = 'VNM'
+    admin_level = '3'
+    partial_date = '2023-05'
+    plots = False
+
+    # Mock the partial date object and related function calls
+    mock_partial_date = MagicMock()
+    mock_partial_date.year = 2023
+    mock_partial_date.month = 5
+    mock_partial_date.day = None
+    mock_partial_date.scope = 'monthly'
+    mock_partial_date_from_string.return_value = mock_partial_date
+
+    # Mock the file paths
+    mock_get_chirps_rainfall_data_path.return_value = 'mocked_file.tif'
+    mock_get_shapefile.return_value = 'mocked_shapefile.shp'
+    mock_output_path.return_value = 'mocked_output_path'
+
+    # Mock rasterio dataset and set up a test array for rainfall data
+    mock_dataset = MagicMock()
+    mock_data = np.array(
+        [[0, 1, 2], [3, 4, -3.4028234663852886e38], [np.nan, -9999, 5]]
+    )
+    mock_dataset.bounds = MagicMock()
+    mock_dataset.bounds.left = -180
+    mock_dataset.bounds.bottom = -90
+    mock_dataset.bounds.right = 180
+    mock_dataset.bounds.top = 90
+    mock_raster_open.return_value.__enter__.return_value = mock_dataset
+
+    # Mock GeoDataFrame and region data
+    mock_gdf = MagicMock(spec=gpd.GeoDataFrame)
+    region_geometry = Polygon([(-180, -90), (0, -90), (0, 0), (-180, 0)])
+    mock_region = MagicMock()
+    mock_region.geometry = region_geometry
+    mock_region.__getitem__.side_effect = lambda key: {
+        'COUNTRY': 'Vietnam',
+        'NAME_1': 'Hanoi',
+        'NAME_2': 'District 1',
+        'NAME_3': 'Ward 1'
+    }[key]
+    mock_gdf.iterrows.return_value = [(0, mock_region)]
+    mock_gdf.to_crs.return_value = mock_gdf
+    mock_read_file.return_value = mock_gdf
+
+    # Call the function
+    output, filename = process_gadm_chirps_rainfall(
+        iso3, admin_level, partial_date, plots=plots
+    )
+    print(output)
+
+    # Verify the output DataFrame
+    expected_data = {
+        'admin_level_0': ['Vietnam'],
+        'admin_level_1': ['Hanoi'],
+        'admin_level_2': ['District 1'],
+        'admin_level_3': ['Ward 1'],
+        'year': [2023],
+        'month': [5],
+        'day': [None],
+        'rainfall': [0]
+    }
+    expected_df = pd.DataFrame(expected_data).astype(object)
+    pd.testing.assert_frame_equal(output, expected_df)
+
+    # Verify the CSV filename
+    assert filename == 'VNM.csv'
+
+    # Verify the interaction with GeoDataFrame and rasterio
+    mock_gdf.to_crs.assert_called_once()
+
+    # Verify the correct handling of bounds and plot creation
+    min_lon, min_lat, max_lon, max_lat = region_geometry.bounds
+
+
+@patch('dart_pipeline.process.output_path')
+@patch('rasterio.open')
+@patch('dart_pipeline.process.get_chirps_rainfall_data_path')
+@patch('dart_pipeline.process.PartialDate.from_string')
+def test_process_chirps_rainfall(
+    mock_from_string, mock_data_path, mock_raster_open, mock_output_path
+):
+    partial_date = '2023-05'
+    plots = False
+
+    # Mock the partial date object and related function calls
+    mock_partial_date = MagicMock()
+    mock_partial_date.year = 2023
+    mock_partial_date.month = 5
+    mock_partial_date.day = None
+    mock_partial_date.scope = 'monthly'
+
+    mock_from_string.return_value = mock_partial_date
+    mock_data_path.return_value = 'mocked_file.tif'
+    mock_output_path.return_value = 'mocked_output_path'
+
+    # Mock rasterio dataset and set up a test array for rainfall data
+    mock_dataset = MagicMock()
+    mock_data = np.array(
+        [[0, 1, 2], [3, 4, -3.4028234663852886e38], [np.nan, -9999, 5]]
+    )
+    mock_dataset.read.return_value = mock_data
+    mock_raster_open.return_value.__enter__.return_value = mock_dataset
+
+    # Call the function
+    output, filename = process_chirps_rainfall(partial_date, plots=plots)
+
+    # Verify the output DataFrame
+    expected_data = {
+        'year': [2023],
+        'month': [5],
+        'day': [None],
+        'rainfall': [0.0]
+    }
+    expected_df = pd.DataFrame(expected_data).astype(object)
+    pd.testing.assert_frame_equal(output, expected_df)
+
+    # Verify file output name
+    assert filename == 'chirps-rainfall.csv'
 
 
 @patch('netCDF4.Dataset')

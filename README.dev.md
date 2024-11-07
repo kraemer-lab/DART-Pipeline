@@ -29,17 +29,16 @@ Done: ✅, in progress: ⏳, not working: ❌
  │    └── ✅ `uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=3` 7m18.860s
  ├── `uv run dart-pipeline process epidemiological/dengue/peru`
  ├── `uv run dart-pipeline process geospatial/chirps-rainfall`
- │    ├── ✅ `uv run dart-pipeline process geospatial/chirps-rainfall 3=VNM d=2023` 0.52s
- │    ├── ✅ `uv run dart-pipeline process geospatial/chirps-rainfall 3=VNM d=2023-05` 0.649s
- │    └── ✅ `uv run dart-pipeline process geospatial/chirps-rainfall 3=VNM d=2023-05 a=1` 0.683s
+ │    ├── ✅ `uv run dart-pipeline process geospatial/chirps-rainfall 3=VNM d=2023 a=0 l=INFO plots`
+ │    ├── ✅ `uv run dart-pipeline process geospatial/chirps-rainfall 3=VNM d=2023-05 a=0 l=INFO plots`
+ │    └── ✅ `uv run dart-pipeline process geospatial/chirps-rainfall 3=VNM d=2023-05-11 a=0 l=INFO plots`
  ├── ❌ `uv run dart-pipeline process geospatial/worldpop-count`
  ├── ✅ `uv run dart-pipeline process meteorological/aphrodite-daily-mean-temp` 0.691s
  ├── ❌ `uv run dart-pipeline process meteorological/aphrodite-daily-precip`
  ├── `uv run dart-pipeline process meteorological/chirps-rainfall`
- │    ├── ✅ `uv run dart-pipeline process meteorological/chirps-rainfall d=2023 3=VNM a=0 l=INFO plots`
- │    ├── ✅ `uv run dart-pipeline process meteorological/chirps-rainfall d=2023-05 3=VNM a=0 l=INFO plots`
- │    ├── ✅ `uv run dart-pipeline process meteorological/chirps-rainfall d=2023-05-11 3=VNM a=0 l=INFO plots`
- │    └── ✅ `uv run dart-pipeline process meteorological/chirps-rainfall d=2023-05-11 3=VNM a=1 l=INFO plots`
+ │    ├── ✅ `uv run dart-pipeline process meteorological/chirps-rainfall d=2023 l=INFO`
+ │    ├── ✅ `uv run dart-pipeline process meteorological/chirps-rainfall d=2023 l=INFO`
+ │    └── ✅ `uv run dart-pipeline process meteorological/chirps-rainfall d=2023 l=INFO`
  ├── ❌ `uv run dart-pipeline process meteorological/era5-reanalysis`
  ├── `uv run dart-pipeline process meteorological/terraclimate`
  │    ├── ✅ `uv run dart-pipeline process meteorological/terraclimate d=2023-01 3=PER a=0 l=INFO`
