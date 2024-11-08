@@ -50,9 +50,6 @@ def test_process_gadm_chirps_rainfall(
 
     # Mock rasterio dataset and set up a test array for rainfall data
     mock_dataset = MagicMock()
-    mock_data = np.array(
-        [[0, 1, 2], [3, 4, -3.4028234663852886e38], [np.nan, -9999, 5]]
-    )
     mock_dataset.bounds = MagicMock()
     mock_dataset.bounds.left = -180
     mock_dataset.bounds.bottom = -90
@@ -79,7 +76,6 @@ def test_process_gadm_chirps_rainfall(
     output, filename = process_gadm_chirps_rainfall(
         iso3, admin_level, partial_date, plots=plots
     )
-    print(output)
 
     # Verify the output DataFrame
     expected_data = {
