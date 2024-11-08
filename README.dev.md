@@ -37,8 +37,8 @@ Done: ✅, in progress: ⏳, not working: ❌
  ├── ❌ `uv run dart-pipeline process meteorological/aphrodite-daily-precip`
  ├── `uv run dart-pipeline process meteorological/chirps-rainfall`
  │    ├── ✅ `uv run dart-pipeline process meteorological/chirps-rainfall d=2023 l=INFO`
- │    ├── ✅ `uv run dart-pipeline process meteorological/chirps-rainfall d=2023 l=INFO`
- │    └── ✅ `uv run dart-pipeline process meteorological/chirps-rainfall d=2023 l=INFO`
+ │    ├── ✅ `uv run dart-pipeline process meteorological/chirps-rainfall d=2023-05 l=INFO`
+ │    └── ✅ `uv run dart-pipeline process meteorological/chirps-rainfall d=2023-05-11 l=INFO`
  ├── ❌ `uv run dart-pipeline process meteorological/era5-reanalysis`
  ├── `uv run dart-pipeline process meteorological/terraclimate`
  │    ├── ✅ `uv run dart-pipeline process meteorological/terraclimate d=2023-01 3=PER a=0 l=INFO`
