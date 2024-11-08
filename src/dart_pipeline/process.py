@@ -328,7 +328,7 @@ def process_chirps_rainfall(partial_date: str, plots=False) -> ProcessResult:
         plt.imshow(
             data, cmap='coolwarm', origin='upper',
         )
-        plt.colorbar(label=f'Rainfall [mm]')
+        plt.colorbar(label='Rainfall [mm]')
         plt.title(f'Rainfall\n{pdate}')
         # Make the plot title file-system safe
         title = re.sub(r'[<>:"/\\|?*]', '_', str(pdate))
@@ -724,7 +724,7 @@ def process_gadm_chirps_rainfall(
             # Add the geographical borders
             gdf.plot(ax=ax, color='none', edgecolor='gray')
             gpd.GeoDataFrame([region]).plot(ax=ax, color='none', edgecolor='k')
-            plt.colorbar(im, ax=ax, label=f'Rainfall [mm]')
+            plt.colorbar(im, ax=ax, label='Rainfall [mm]')
             ax.set_title(f'Rainfall\n{title} - {pdate}')
             ax.set_xlim(min_lon, max_lon)
             ax.set_ylim(min_lat, max_lat)
