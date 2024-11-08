@@ -154,11 +154,7 @@ def test_update_or_create_output_update_existing(
     df = update_or_create_output(new_dataframe, mock_path, return_df=True)
 
     # Verify that read_csv was called with the correct path
-    dtype = {
-        'admin_level_0': str, 'admin_level_1': str,
-        'admin_level_2': str, 'admin_level_3': str,
-        'year': str, 'month': str, 'day': str
-    }
+    dtype = new_dataframe.dtypes.to_dict()
     mock_read_csv.assert_called_once_with(mock_path, dtype=dtype)
 
     # Check that to_csv was called once

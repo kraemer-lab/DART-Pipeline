@@ -300,7 +300,7 @@ def update_or_create_output(
     key_columns = []
     if 'admin_level_0' in list(df):
         key_columns.append('admin_level_0')
-        df['admin_level_0'] = df['year'].astype(str)
+        df['admin_level_0'] = df['admin_level_0'].astype(str)
     if 'admin_level_1' in list(df):
         key_columns.append('admin_level_1')
         df['admin_level_1'] = df['admin_level_1'].astype(str)
