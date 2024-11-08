@@ -16,7 +16,6 @@ from collections.abc import Iterable
 
 from lxml import html
 import gzip
-import numpy as np
 import pandas as pd
 import py7zr
 import pycountry
