@@ -33,7 +33,7 @@ import rasterio.transform
 import rasterio.features
 import shapely.geometry
 
-from .plots import plot_heatmap
+from .plots import plot_heatmap, plot_gadm_heatmap
 from .util import \
     abort, source_path, days_in_year, output_path, get_country_name
 from .types import ProcessResult, PartialDate, AdminLevel
@@ -387,8 +387,8 @@ def process_terraclimate(
     and other water balance variables. The data is stored in NetCDF (`.nc`)
     files for which the `netCDF4` library is needed.
     """
-    date = PartialDate.from_string(partial_date)
-    year = date.year
+    pdate = PartialDate.from_string(partial_date)
+    year = pdate.year
     source = 'meteorological/terraclimate'
 
     # Initialise output data frame
@@ -434,10 +434,10 @@ def process_terraclimate(
         gdf = gpd.read_file(get_shapefile(iso3, admin_level))
         for i, month in enumerate(months):
             # If a month has been specified on the command line
-            if date.month:
+            if pdate.month:
                 # If this data come from a month that does not match the
                 # requested month
-                if date.month != month.month:
+                if pdate.month != month.month:
                     # Skip this iteration
                     continue
 
@@ -478,41 +478,21 @@ def process_terraclimate(
 
                 # Create a mask that is True for points outside the geometries
                 mask = rasterio.features.geometry_mask(
-                    [geometry],
-                    transform=transform,
-                    out_shape=this_month.shape
+                    [geometry], transform=transform, out_shape=this_month.shape
                 )
                 masked_data = np.ma.masked_array(this_month, mask=mask)
-                if plots:
-                    # Plot
-                    plt.imshow(
-                        masked_data, cmap='coolwarm', origin='upper',
-                        extent=[lon.min(), lon.max(), lat.min(), lat.max()]
-                    )
-                    plt.colorbar(label=f'{raw.description} [{raw.units}]')
-                    month_str = month.strftime('%B %Y')
-                    plt.title(f'{raw.description}\n{title} - {month_str}')
-                    # Get the bounds of the region
-                    min_lon, min_lat, max_lon, max_lat = geometry.bounds
-                    plt.xlim(min_lon, max_lon)
-                    plt.ylim(min_lat, max_lat)
-                    plt.ylabel('Latitude')
-                    plt.xlabel('Longitude')
-                    # Make the plot title file-system safe
-                    title = re.sub(r'[<>:"/\\|?*]', '_', title)
-                    title = title.strip()
-                    # Export
-                    path = Path(
-                        output_path(source), str(year), month.strftime('%m'),
-                        standard_name, title + '.png'
-                    )
-                    path.parent.mkdir(parents=True, exist_ok=True)
-                    logging.info(f'Exporting {path}')
-                    plt.savefig(path)
-                    plt.close()
-
                 # Add to output data frame
                 output.loc[idx, standard_name] = np.nansum(masked_data)
+
+                if plots:
+                    month_str = month.strftime('%B %Y')
+                    title = f'{raw.description}\n{title} - {month_str}'
+                    colourbar_label = f'{raw.description} [{raw.units}]'
+                    extent = [lon.min(), lon.max(), lat.min(), lat.max()]
+                    plot_gadm_heatmap(
+                        source, masked_data, gdf, pdate, title,
+                        colourbar_label, region, extent
+                    )
 
         # Close the NetCDF file after use
         ds.close()
@@ -620,11 +600,12 @@ def process_gadm_chirps_rainfall(
     "CHIRPS" stands for Climate Hazards Group InfraRed Precipitation with
     Station.
     """
+    source = 'geospatial/chirps-rainfall'
     pdate = PartialDate.from_string(partial_date)
     logging.info(f'iso3:{iso3}')
     logging.info(f'admin_level:{admin_level}')
     logging.info(f'partial_date:{pdate}')
-    logging.info(f'scope:{pdate.scope}')
+    logging.info(f'timeframe:{pdate.scope}')
     logging.info(f'plots:{plots}')
 
     # Import the GeoTIFF file
@@ -696,37 +677,15 @@ def process_gadm_chirps_rainfall(
         output.loc[i, 'rainfall'] = region_total
 
         if plots:
-            # Get the bounds of the region
-            min_lon, min_lat, max_lon, max_lat = geometry.bounds
-            # Plot
-            fig, ax = plt.subplots()
             ar = region_data[0]
             ar[ar == 0] = np.nan
-            im = ax.imshow(
-                ar, cmap='coolwarm', origin='upper',
-                extent=[min_lon, max_lon, min_lat, max_lat]
+            title = f'Rainfall\n{title} - {pdate}'
+            colourbar_label = 'Rainfall [mm]'
+            min_lon, min_lat, max_lon, max_lat = geometry.bounds
+            extent = [min_lon, max_lon, min_lat, max_lat]
+            plot_gadm_heatmap(
+                source, ar, gdf, pdate, title, colourbar_label, region, extent
             )
-            # Add the geographical borders
-            gdf.plot(ax=ax, color='none', edgecolor='gray')
-            gpd.GeoDataFrame([region]).plot(ax=ax, color='none', edgecolor='k')
-            plt.colorbar(im, ax=ax, label='Rainfall [mm]')
-            ax.set_title(f'Rainfall\n{title} - {pdate}')
-            ax.set_xlim(min_lon, max_lon)
-            ax.set_ylim(min_lat, max_lat)
-            ax.set_ylabel('Latitude')
-            ax.set_xlabel('Longitude')
-            # Make the plot title file-system safe
-            title = re.sub(r'[<>:"/\\|?*]', '_', title)
-            title = title.strip()
-            # Export
-            path = Path(
-                output_path('geospatial/chirps-rainfall'),
-                str(pdate).replace('-', '/'), title + '.png'
-            )
-            path.parent.mkdir(parents=True, exist_ok=True)
-            logging.info(f'Exporting:{path}')
-            plt.savefig(path)
-            plt.close()
 
     # Export
     return output, f'{iso3}.csv'
