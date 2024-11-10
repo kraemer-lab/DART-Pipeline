@@ -33,6 +33,7 @@ import rasterio.transform
 import rasterio.features
 import shapely.geometry
 
+from .plots import plot_heatmap
 from .util import \
     abort, source_path, days_in_year, output_path, get_country_name
 from .types import ProcessResult, PartialDate, AdminLevel
@@ -323,27 +324,10 @@ def process_chirps_rainfall(partial_date: str, plots=False) -> ProcessResult:
     output.loc[0, 'rainfall'] = np.nansum(data)
 
     if plots:
-        # Plot
-        data[data == 0] = np.nan
-        plt.imshow(
-            data, cmap='coolwarm', origin='upper',
-        )
-        plt.colorbar(label='Rainfall [mm]')
-        plt.title(f'Rainfall\n{pdate}')
-        # Make the plot title file-system safe
-        title = re.sub(r'[<>:"/\\|?*]', '_', str(pdate))
-        title = title.strip()
-        # Export
-        path = Path(
-            output_path(source),
-            str(pdate).replace('-', '/'), title + '.png'
-        )
-        path.parent.mkdir(parents=True, exist_ok=True)
-        logging.info(f'Exporting:{path}')
-        plt.savefig(path)
-        plt.close()
+        title = f'Rainfall\n{pdate}'
+        colourbar_label = 'Rainfall [mm]'
+        plot_heatmap(source, data, pdate, title, colourbar_label)
 
-    # Export
     return output, 'chirps-rainfall.csv'
 
 
@@ -352,7 +336,8 @@ def process_era5_reanalysis_data() -> ProcessResult:
     Process ERA5 atmospheric reanalysis data.
     """
     source = "meteorological/era5-atmospheric-reanalysis"
-    file = nc.Dataset(source_path(source, "ERA5-ml-temperature-subarea.nc"), "r")  # type: ignore
+    path = source_path(source, "ERA5-ml-temperature-subarea.nc")
+    file = nc.Dataset(path, "r")  # type: ignore
 
     # Import variables as arrays
     longitude = file.variables["longitude"][:]
@@ -388,6 +373,7 @@ def process_era5_reanalysis_data() -> ProcessResult:
         }
     )
     file.close()
+
     return df, "ERA5-ml-temperature-subarea.csv"
 
 
@@ -417,10 +403,9 @@ def process_terraclimate(
         # Import the raw data
         if (year == 2023) and (metric == 'pdsi'):
             # In 2023 the capitalization of pdsi changed
-            path = source_path(source, 'TerraClimate_PDSI_2023.nc')
-        else:
-            path = source_path(source, f'TerraClimate_{metric}_{year}.nc')
-        logging.info(f'Importing {path}')
+            metric = 'PDSI'
+        path = source_path(source, f'TerraClimate_{metric}_{year}.nc')
+        logging.info(f'Importing:{path}')
         ds = nc.Dataset(path)
 
         # Extract the variables
