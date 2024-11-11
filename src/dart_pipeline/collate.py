@@ -51,7 +51,7 @@ from typing import Final, Callable
 from bs4 import BeautifulSoup
 import requests
 
-from .constants import TERRACLIMATE_METRICS, MEXICO_REGIONS, PERU_REGIONS
+from .constants import TERRACLIMATE_METRICS, PERU_REGIONS
 from .types import URLCollection, DataFile, PartialDate
 from .util import daterange, use_range, get_country_name
 
@@ -94,38 +94,51 @@ def relative_wealth_index(iso3: str) -> URLCollection:
 
 
 def ministerio_de_salud_peru_data() -> list[DataFile]:
-    "Data from the Ministerio de Salud (Peru) https://www.dge.gob.pe/sala-situacional-dengue"
-    pages = ["Nacional_dengue"] + ["sala_dengue_" + region for region in PERU_REGIONS]
+    """
+    Download data from the Ministerio de Salud (Peru).
+
+    https://www.dge.gob.pe/sala-situacional-dengue
+    """
+    pages = ["Nacional_dengue"] + \
+        ["sala_dengue_" + region for region in PERU_REGIONS]
     # If the user specifies that only one dataset should be downloaded
     data: list[DataFile] = []
     for page in pages:
-        url = "https://www.dge.gob.pe/sala-situacional-dengue/uploads/" + f"{page}.html"
-        print(f'Accessing "{url}"')
+        url = "https://www.dge.gob.pe/sala-situacional-dengue/uploads/" + \
+            f"{page}.html"
+        print(f'Accessing {url}')
         response = requests.get(url)
-        response.raise_for_status()  # raise an exception for bad response status
+        # Raise an exception for bad response status
+        response.raise_for_status()
         # Parse HTML content
         soup = BeautifulSoup(response.content, "html.parser")
         # Find links with the onclick attribute in both <a> and <button> tags
         onclick_elements = soup.find_all(
             lambda tag: tag.name in ["a", "button"] and tag.has_attr("onclick")
         )
-        if not (links := [element.get("onclick") for element in onclick_elements]):
+        links = [element.get("onclick") for element in onclick_elements]
+        if not links:
             raise ValueError("No links found on the page")
 
         for link in links:
             # Search the link for the data embedded in it
-            if matches := re.findall(r"base64,(.*?)(?='\).then)", link, re.DOTALL):
+            matches = re.findall(r"base64,(.*?)(?='\).then)", link, re.DOTALL)
+            if matches:
                 base64_string = matches[0]
             else:
                 raise ValueError("No data found embedded in the link")
 
             # Search the link for the filename
-            if matches := re.findall(r"a\.download = '(.*?)';\s*a\.click", link):
-                filename = matches[0]  # there is an actual filename for this data
+            matches = re.findall(r"a\.download = '(.*?)';\s*a\.click", link)
+            if matches:
+                # There is an actual filename for this data
+                filename = matches[0]
             else:
-                filename = page + ".xlsx"  # use the page name for the file
+                # Use the page name for the file
+                filename = page + ".xlsx"
 
-            data.append(DataFile(filename, ".", base64.b64decode(base64_string)))
+            file = DataFile(filename, ".", base64.b64decode(base64_string))
+            data.append(file)
     return data
 
 

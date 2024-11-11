@@ -6,20 +6,20 @@ Development Status
 Done: ✅, in progress: ⏳, not working: ❌
 
 `uv run dart-pipeline get`
- ├── ✅ `uv run dart-pipeline get economic/relative-wealth-index iso3=VNM` 6.309s
+ ├── ✅ `uv run dart-pipeline get economic/relative-wealth-index 3=VNM` 14.083s
  ├── ❌ `uv run dart-pipeline get epidemiological/dengue/peru` 21m31.33s
  ├── `uv run dart-pipeline get geospatial/gadm`
- │    ├── ✅ `uv run dart-pipeline get geospatial/gadm iso3=PER` 
- │    └── ✅ `uv run dart-pipeline get geospatial/gadm iso3=VNM` 17.964s
+ │    ├── ✅ `uv run dart-pipeline get geospatial/gadm 3=PER` 
+ │    └── ✅ `uv run dart-pipeline get geospatial/gadm 3=VNM` 17.964s
  ├── ✅ `uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp` 12m56.12s
  ├── ❌ `uv run dart-pipeline get meteorological/aphrodite-daily-precip` 4.551s
  ├── `uv run dart-pipeline get meteorological/chirps-rainfall`
  │    ├── ✅ `uv run dart-pipeline get meteorological/chirps-rainfall d=2023` 19.750s
  │    └── ✅ `uv run dart-pipeline get meteorological/chirps-rainfall d=2023-05` 1m32.80s
  ├── ✅ `uv run dart-pipeline get meteorological/terraclimate year=2023` 9m30.29s
- ├── ✅ `uv run dart-pipeline get sociodemographic/meta-pop-density iso3=VNM` 10m25.46s
- ├── ❌ `uv run dart-pipeline get sociodemographic/worldpop-count iso3=VNM`
- └── ❌ `uv run dart-pipeline get sociodemographic/worldpop-density iso3=VNM`
+ ├── ✅ `uv run dart-pipeline get sociodemographic/meta-pop-density 3=VNM` 10m25.46s
+ ├── ❌ `uv run dart-pipeline get sociodemographic/worldpop-count 3=VNM`
+ └── ❌ `uv run dart-pipeline get sociodemographic/worldpop-density 3=VNM`
 
 `uv run dart-pipeline process`
  ├── `uv run dart-pipeline process economic/relative-wealth-index`
