@@ -1,15 +1,11 @@
-"""
-Main code for DART Pipeline
-"""
-
-import os
-import inspect
-import argparse
+"""Main code for DART Pipeline."""
 from pathlib import Path
 from typing import cast
-
-import pandas as pd
-import numpy as np
+import argparse
+import inspect
+import logging
+import os
+import textwrap
 
 from .types import DataFile, URLCollection
 from .constants import (
@@ -88,7 +84,7 @@ def get(
     process: bool = False,
     **kwargs,
 ):
-    "Get files for a source"
+    """Get files for a source."""
     if source not in SOURCES:
         abort("source not found:", source)
     link_getter = SOURCES[source]
@@ -106,36 +102,28 @@ def get(
     source_fmt = f"\033[1m{source}\033[0m"
     links = links if isinstance(links, list) else [links]
     if isinstance(links[0], DataFile):
-        for datafile in links:
-            decoded_bytes = datafile.data
-            path = Path(
-                DATA_PATH, source, datafile.relative_path, datafile.file
-            )
-            msg = f" GET {source_fmt} {datafile.file}"
-            print(f" • {msg}", end="\r")
-            with open(path, 'wb') as f:
-                f.write(decoded_bytes)
-            print(f"✅ {msg}")
+        print(f"-- {source_fmt} fetches data directly, nothing to do")
         return
-    else:
-        links = cast(list[URLCollection], links)
-        auth = get_credentials(source) if source in REQUIRES_AUTH else None
-        for coll in links if not only_one else map(
-            only_one_from_collection, links
-        ):
-            if not coll.missing_files(DATA_PATH / source) and not update:
-                print(f"✅ SKIP {source_fmt} {coll}")
-                continue
-            msg = f" GET {source_fmt} {coll}"
-            print(f" • {msg}", end="\r")
-            success = download_files(coll, path, auth=auth)
-            n_ok = sum(success)
-            if n_ok == len(success):
-                print(f"✅ {msg}")
-            elif n_ok > 0:
-                print(f"🟡 {msg} [{n_ok}/{len(success)} OK]")
-            else:
-                print(f"❌ {msg}")
+    links = cast(list[URLCollection], links)
+    auth = get_credentials(source) if source in REQUIRES_AUTH else None
+    # If only one link is being downloaded, reduce the list of links to one
+    if only_one:
+        links = map(only_one_from_collection, links)
+    # Iterate over the links
+    for coll in links:
+        if not coll.missing_files(DATA_PATH / source) and not update:
+            print(f"✅ SKIP {source_fmt} {coll}")
+            continue
+        msg = f" GET {source_fmt} {coll}"
+        print(f" • {msg}", end="\r")
+        success = download_files(coll, path, auth=auth)
+        n_ok = sum(success)
+        if n_ok == len(success):
+            print(f"✅ {msg}")
+        elif n_ok > 0:
+            print(f"🟡 {msg} [{n_ok}/{len(success)} OK]")
+        else:
+            print(f"❌ {msg}")
     if process and source in PROCESSORS:
         process_cli(source, **kwargs)
 
@@ -144,7 +132,7 @@ def process_cli(source: str, **kwargs):
     """Process a data source according to inputs from the command line."""
     if source not in PROCESSORS:
         abort("source not found:", source)
-    print(f" • PROC \033[1m{source}\033[0m ...", end="\r")
+    # print(f" • PROC \033[1m{source}\033[0m ...", end="\r")
     processor = PROCESSORS[source]
     non_default_params = {
         p.name
@@ -169,8 +157,7 @@ def check(source: str, only_one: bool = True, **kwargs):
     links = SOURCES[source](**kwargs)
     links = links if isinstance(links, list) else [links]
     if isinstance(links, list) and isinstance(links[0], DataFile):
-        print(f"-- \033[1m{source}\033[0m directly returns data, checking not supported")
-        return
+        print("-- \033[1m{source}\033[0m directly returns data, checking not supported")
     links = cast(list[URLCollection], links)
     for coll in links if not only_one else map(only_one_from_collection, links):
         missing = coll.missing_files(DATA_PATH / source)
@@ -181,34 +168,55 @@ def check(source: str, only_one: bool = True, **kwargs):
 
 
 def parse_params(params: list[str]) -> dict[str, str | int]:
+    """
+    Parse the parameters that have been passed to the script via the CLI.
+
+    Including a parameter such as `admin_level=0` on the command line will
+    result in it being parsed as a dictionary: `{'admin_level': '0'}`.
+
+    Command line arguments whose values get converted into integers:
+
+    - `year`
+
+    Shorthands that are recognised as standing for longer arguments:
+
+    - `a` (for `admin_level`)
+    - `3` (for `iso3`)
+    - `d` (for `partial_date`)
+    - `l` (for `logging_level`)
+    """
     out = {}
     for param in params:
-        k, v = param.split("=")
-        key = k.replace("-", "_")
-        v = v if key not in INTEGER_PARAMS else int(v)
-        out[key] = v
+        if '=' in param:
+            k, v = param.split("=")
+            key = k.replace("-", "_")
+            v = int(v) if key in INTEGER_PARAMS else v
+            out[key] = v
+        else:
+            # This is a Boolean
+            out[param] = True
     # Replace shorthand kwargs
     if 'a' in out:
         out['admin_level'] = out.pop('a')
     if '3' in out:
         out['iso3'] = out.pop('3')
+    if 'd' in out:
+        out['partial_date'] = out.pop('d')
+    if 'l' in out:
+        out['logging_level'] = out.pop('l')
 
     return out
 
 
 def main():
     parser = argparse.ArgumentParser(description="DART Pipeline Operations")
+
     subparsers = parser.add_subparsers(dest="command")
-
     _ = subparsers.add_parser("list", help="List sources and processes")
-
     check_parser = subparsers.add_parser(
         "check", help="Check files exist for a given source"
     )
     check_parser.add_argument("source", help="Source to check files for")
-    check_parser.add_argument(
-        "-1", "--only-one", help="Get only one file", action="store_true"
-    )
 
     get_parser = subparsers.add_parser("get", help="Get files for a source")
     get_parser.add_argument("source", help="Source to get files for")
@@ -223,16 +231,49 @@ def main():
         action="store_true",
     )
 
-    process_parser = subparsers.add_parser("process", help="Process a source")
-    process_parser.add_argument("source", help="Source to process")
+    process_parser = subparsers.add_parser(
+        "process",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        help="Process a source",
+        usage="dart-pipeline process [-h] source [**kwargs]",
+        description="Process a source with optional keyword arguments.",
+        epilog=textwrap.dedent("""
+        keyword arguments:
+          3=, iso3=          an ISO 3166-1 alpha-3 country code
+          a=, admin_level=   an administrative level for the given country;
+                             must be one of the following: 0, 1, 2 or 3.
+          d=, partial_date=  either a year in YYYY format, a month in YYYY-MM
+                             format or a day in YYYY-MM-DD format.
+          l=, logging_level= minimum logging level to display, defaults to
+                             'WARNING'
+        Boolean flags:
+          plots              plots will be created
+        """)
+    )
+    process_parser.add_argument("source", help="source to process")
 
     args, unknownargs = parser.parse_known_args()
     kwargs = parse_params(unknownargs)
+
+    if 'logging_level' in kwargs:
+        match kwargs['logging_level']:
+            case 'DEBUG':
+                logging.basicConfig(level=logging.DEBUG)
+            case 'INFO':
+                logging.basicConfig(level=logging.INFO)
+            case 'ERROR':
+                logging.basicConfig(level=logging.ERROR)
+            case 'CRITICAL':
+                logging.basicConfig(level=logging.CRITICAL)
+        del kwargs['logging_level']
+
     match args.command:
         case "list":
             print("\n".join(list_all()))
         case "get":
-            get(args.source, args.only_one, args.update, args.process, **kwargs)
+            get(
+                args.source, args.only_one, args.update, args.process, **kwargs
+            )
         case "check":
             check(args.source, args.only_one)
         case "process":

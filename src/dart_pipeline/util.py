@@ -28,6 +28,12 @@ from .constants import (
 )
 from .types import Credentials, URLCollection, DefaultPathProtocol
 
+# Pandas display options
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
+pd.set_option('display.max_colwidth', 40)
+pd.set_option('display.width', 228)  # sierra
+
 
 def abort(bold_text: str, rest: str):
     print(f"❗ \033[1m{bold_text}\033[0m {rest}")
@@ -40,15 +46,12 @@ def days_in_year(year: int) -> Literal[365, 366]:
     return 366 if calendar.isleap(year) else 365
 
 
-def get_country_name(iso3: str, common_name: bool = True) -> str:
+def get_country_name(iso3: str) -> str:
     if (country := pycountry.countries.get(alpha_3=iso3)) is None:
         raise ValueError(f"Country ISO3 not found: {iso3}")
-    if common_name:
-        try:
-            return country.common_name
-        except AttributeError:
-            return country.name
-    else:
+    try:
+        return country.common_name
+    except AttributeError:
         return country.name
 
 
@@ -115,7 +118,7 @@ def get_credentials(source: str, credentials: str | Path | None = None) -> Crede
         if source in data:
             return data[source]["username"], data[source]["password"]
         else:
-            raise KeyError(f'"{source}" not found within credentials')
+            raise KeyError("metric={metric!r} not found in credentials")
 
     # read credentials from environment if present
     if credentials_env := os.getenv("CREDENTIALS_JSON"):
@@ -264,28 +267,60 @@ def unpack_file(path: Path | str, same_folder: bool = False):
             shutil.unpack_archive(path, str(extract_dir))
 
 
-def update_or_create_output(df: pd.DataFrame, out: str | Path):
+def update_or_create_output(
+    df: pd.DataFrame, out: str | Path, return_df=False
+):
     """Either update an existing CSV or create a new one."""
+    # Validate the input
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError('Expected a pandas DataFrame as input')
+    if not isinstance(out, (str, Path)):
+        raise TypeError('Expected a valid file path')
+
+    # Create a list of the key columns
+    key_columns = [
+        'admin_level_0', 'admin_level_1', 'admin_level_2', 'admin_level_3'
+    ]
+    if 'year' in list(df):
+        key_columns.append('year')
+        df['year'] = df['year'].astype(str)
+    if 'month' in list(df):
+        key_columns.append('month')
+        df['month'] = df['month'].astype(str)
+    if 'day' in list(df):
+        key_columns.append('day')
+        df['day'] = df['day'].astype(str)
+
     # Check if the CSV file already exists
     if out.exists():
         dtype = {
             'admin_level_0': str, 'admin_level_1': str, 'admin_level_2': str,
-            'admin_level_3': str
+            'admin_level_3': str, 'year': str, 'month': str, 'day': str
         }
         existing_df = pd.read_csv(out, dtype=dtype)
         # Merge the new data with the existing data, prioritising new values
-        key_columns = [f'admin_level_{x}' for x in range(4)]
         output_df = pd.merge(
             existing_df, df, on=key_columns, how='outer', suffixes=('_old', '')
         )
+        # Create a list of the metrics
+        metrics = [
+            c.removesuffix('_old') for c in list(output_df)
+            if c.endswith('_old')
+        ]
         # Update the data by prioritizing the new values (from the new data)
-        metric = list(existing_df)[-1]
-        output_df[metric] = \
-            output_df[metric].combine_first(output_df[f'{metric}_old'])
-        # Drop the old data column
-        output_df = output_df.drop(columns=[f'{metric}_old'], errors='ignore')
+        for metric in metrics:
+            output_df[metric] = \
+                output_df[metric].combine_first(output_df[f'{metric}_old'])
+            # Drop the old data column
+            output_df = output_df.drop(
+                columns=[f'{metric}_old'], errors='ignore'
+            )
     else:
         # Output the data as-is
         output_df = df
     # Export
+    logging.info(f'Exporting {out}')
     output_df.to_csv(out, index=False)
+    # When testing we want to be able to inspect the data frame
+    if return_df:
+        return output_df
