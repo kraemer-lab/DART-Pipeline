@@ -20,7 +20,6 @@ from typing import Literal, Callable
 import logging
 import os
 
-from matplotlib import pyplot as plt
 from pandarallel import pandarallel
 import geopandas as gpd
 import netCDF4 as nc
@@ -34,7 +33,7 @@ import shapely.geometry
 
 from .plots import plot_heatmap, plot_gadm_heatmap
 from .util import \
-    abort, source_path, days_in_year, output_path, get_country_name
+    abort, source_path, days_in_year, get_country_name
 from .types import ProcessResult, PartialDate, AdminLevel
 from .constants import TERRACLIMATE_METRICS
 
