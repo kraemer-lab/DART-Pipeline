@@ -7,7 +7,6 @@ import tempfile
 from shapely.geometry import Polygon
 import geopandas as gpd
 import numpy as np
-import pytest
 
 from dart_pipeline.plots import plot_heatmap, plot_gadm_heatmap
 
