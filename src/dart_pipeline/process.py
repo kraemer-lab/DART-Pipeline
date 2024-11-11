@@ -19,7 +19,6 @@ from pathlib import Path
 from typing import Literal, Callable
 import logging
 import os
-import re
 
 from matplotlib import pyplot as plt
 from pandarallel import pandarallel
