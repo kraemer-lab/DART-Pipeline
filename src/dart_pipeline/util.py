@@ -15,10 +15,11 @@ from pathlib import Path
 from collections.abc import Iterable
 
 from lxml import html
-import py7zr
-import requests
-import pycountry
+import gzip
 import pandas as pd
+import py7zr
+import pycountry
+import requests
 
 from .constants import (
     DEFAULT_SOURCES_ROOT,
@@ -149,7 +150,7 @@ def download_file(
         with open(path, "wb") as out:
             for bits in r.iter_content():
                 out.write(bits)
-        # unpack file
+        # Unpack file
         if unpack and any(str(path).endswith(ext) for ext in COMPRESSED_FILE_EXTS):
             logging.info(f"Unpacking downloaded file {path}")
             unpack_file(path, same_folder=not unpack_create_folder)
@@ -162,13 +163,16 @@ def download_file(
 def download_files(
     links: URLCollection, out_dir: Path, auth: Credentials | None = None
 ) -> list[bool]:
-    "Download multiple files in a list"
+    """Download multiple files in a list."""
     out_dir = out_dir / links.relative_path
     Path(out_dir).mkdir(parents=True, exist_ok=True)
-    return [
-        download_file(links.base_url + "/" + file, out_dir / Path(file).name, auth)
-        for file in links.files
-    ]
+    successes = []
+    for file in links.files:
+        url = links.base_url + "/" + file
+        out_filepath = out_dir / Path(file).name
+        successes.append(download_file(url, out_filepath, auth))
+
+    return successes
 
 
 def default_path_getter(env_var: str, default: str) -> DefaultPathProtocol:
@@ -254,8 +258,20 @@ def bold_brackets(s: str) -> str:
 
 
 def unpack_file(path: Path | str, same_folder: bool = False):
-    "Unpack a zipped file"
+    """Unpack a zipped file."""
     path = Path(path)
+    if str(path).endswith('.tif.gz'):
+        with gzip.open(path, 'rb') as f_in:
+            if same_folder:
+                extract_path = path.with_suffix('')
+            else:
+                folder = str(path.name).replace('.tif.gz', '')
+                file = str(path.name).replace('.gz', '')
+                extract_path = path.parent / Path(folder) / Path(file)
+                extract_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(extract_path, 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+        return
     match path.suffix:
         case ".7z":
             with py7zr.SevenZipFile(path, mode="r") as archive:
@@ -277,10 +293,23 @@ def update_or_create_output(
     if not isinstance(out, (str, Path)):
         raise TypeError('Expected a valid file path')
 
+    with pd.option_context('future.no_silent_downcasting', True):
+        df = df.fillna('').infer_objects(copy=False)
+
     # Create a list of the key columns
-    key_columns = [
-        'admin_level_0', 'admin_level_1', 'admin_level_2', 'admin_level_3'
-    ]
+    key_columns = []
+    if 'admin_level_0' in list(df):
+        key_columns.append('admin_level_0')
+        df['admin_level_0'] = df['admin_level_0'].astype(str)
+    if 'admin_level_1' in list(df):
+        key_columns.append('admin_level_1')
+        df['admin_level_1'] = df['admin_level_1'].astype(str)
+    if 'admin_level_2' in list(df):
+        key_columns.append('admin_level_2')
+        df['admin_level_2'] = df['admin_level_2'].astype(str)
+    if 'admin_level_3' in list(df):
+        key_columns.append('admin_level_3')
+        df['admin_level_3'] = df['admin_level_3'].astype(str)
     if 'year' in list(df):
         key_columns.append('year')
         df['year'] = df['year'].astype(str)
@@ -293,11 +322,10 @@ def update_or_create_output(
 
     # Check if the CSV file already exists
     if out.exists():
-        dtype = {
-            'admin_level_0': str, 'admin_level_1': str, 'admin_level_2': str,
-            'admin_level_3': str, 'year': str, 'month': str, 'day': str
-        }
-        existing_df = pd.read_csv(out, dtype=dtype)
+        # Import the existing CSV, using the same dtypes as the new data frame
+        dtypes = df.dtypes.to_dict()
+        existing_df = pd.read_csv(out, dtype=dtypes)
+        existing_df.fillna('', inplace=True)
         # Merge the new data with the existing data, prioritising new values
         output_df = pd.merge(
             existing_df, df, on=key_columns, how='outer', suffixes=('_old', '')
@@ -318,9 +346,11 @@ def update_or_create_output(
     else:
         # Output the data as-is
         output_df = df
+
     # Export
-    logging.info(f'Exporting {out}')
+    logging.info(f'Exporting:{out}')
     output_df.to_csv(out, index=False)
+
     # When testing we want to be able to inspect the data frame
     if return_df:
         return output_df

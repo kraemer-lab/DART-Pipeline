@@ -114,8 +114,8 @@ def get(
         if not coll.missing_files(DATA_PATH / source) and not update:
             print(f"✅ SKIP {source_fmt} {coll}")
             continue
-        msg = f" GET {source_fmt} {coll}"
-        print(f" • {msg}", end="\r")
+        msg = f"GET {source_fmt} {coll}"
+        print(f" •  {msg}", end="\r")
         success = download_files(coll, path, auth=auth)
         n_ok = sum(success)
         if n_ok == len(success):
@@ -132,7 +132,7 @@ def process_cli(source: str, **kwargs):
     """Process a data source according to inputs from the command line."""
     if source not in PROCESSORS:
         abort("source not found:", source)
-    # print(f" • PROC \033[1m{source}\033[0m ...", end="\r")
+    print(f" • PROC \033[1m{source}\033[0m ...", end="\r")
     processor = PROCESSORS[source]
     non_default_params = {
         p.name

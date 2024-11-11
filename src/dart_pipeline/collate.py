@@ -51,8 +51,8 @@ from typing import Final, Callable
 from bs4 import BeautifulSoup
 import requests
 
-from .constants import TERRACLIMATE_METRICS, PERU_REGIONS
-from .types import URLCollection, DataFile
+from .constants import TERRACLIMATE_METRICS, MEXICO_REGIONS, PERU_REGIONS
+from .types import URLCollection, DataFile, PartialDate
 from .util import daterange, use_range, get_country_name
 
 
@@ -215,7 +215,7 @@ def aphrodite_temperature_data() -> list[URLCollection]:
     ]
 
 
-def chirps_rainfall_data(year: int, month: int | None = None) -> list[URLCollection]:
+def chirps_rainfall_data(partial_date: str) -> list[URLCollection]:
     """
     CHIRPS Rainfall Estimates from Rain Gauge, Satellite Observations.
 
@@ -224,57 +224,58 @@ def chirps_rainfall_data(year: int, month: int | None = None) -> list[URLCollect
 
     Data is in TIF format (.tif.gz), not COG format (.cog).
     """
-    base_url = "https://data.chc.ucsb.edu"
-    fmt = "tifs"  # cogs is unsupported at the moment
+    pdate = PartialDate.from_string(partial_date)
+    base_url = 'https://data.chc.ucsb.edu'
+    fmt = 'tifs'  # cogs is unsupported at the moment
     chirps_first_year: Final[int] = 1981
     chirps_first_month: Final[date] = date(1981, 1, 1)
     urls: list[URLCollection] = []
     if month:
         month = int(month)
 
-    assert isinstance(year, int), "Year must be an integer"
-    if month:
-        use_range(month, 1, 12, "Month range")
+    if pdate.month:
+        use_range(pdate.month, 1, 12, 'Month range')
 
     today = date.today()
-    use_range(year, chirps_first_year, today.year, "CHIRPS annual data range")
+    use_range(
+        pdate.year, chirps_first_year, today.year, 'CHIRPS annual data range'
+    )
     urls.append(
         URLCollection(
             f"{base_url}/products/CHIRPS-2.0/global_annual/{fmt}",
-            [f"chirps-v2.0.{year}.tif"],
+            [f"chirps-v2.0.{pdate.year}.tif"],
             relative_path="global_annual",
         )
     )
 
-    if month:
+    if pdate.month:
         # Download the monthly data for the year and month provided
-        month_requested = date(year, month, 1)
-        if chirps_first_month <= month_requested < date(today.year, today.month, 1):
-            urls.append(
-                URLCollection(
-                    f"{base_url}/products/CHIRPS-2.0/global_monthly/{fmt}",
-                    [f"chirps-v2.0.{year}.{month:02d}.tif.gz"],
-                    relative_path="global_monthly",
-                )
-            )
+        month_requested = date(pdate.year, pdate.month, 1)
+        this_month = date(today.year, today.month, 1)
+        if chirps_first_month <= month_requested < this_month:
+            base = f'{base_url}/products/CHIRPS-2.0/global_monthly/{fmt}'
+            files = [f'chirps-v2.0.{pdate.year}.{pdate.month:02d}.tif.gz']
+            path = f'global_monthly/{pdate.year}'
+            urls.append(URLCollection(base, files, relative_path=path))
         else:
             logging.warning(
-                f"Monthly data is only available from {chirps_first_year}-01 onwards"
+                'Monthly data is only available from ' +
+                f'{chirps_first_year}-01 onwards'
             )
             return urls
 
         # Download the daily data for the year and month provided
-        end = date(int(year), int(month) + 1, 1) - timedelta(days=1)
-        urls.append(
-            URLCollection(
-                f"{base_url}/products/CHIRPS-2.0/global_daily/{fmt}/p05/{year}",
-                [
-                    f"chirps-v2.0.{str(day).replace('-', '.')}.tif.gz"
-                    for day in daterange(month_requested, end)
-                ],
-                relative_path=f"global_daily/{year}",
-            )
-        )
+        end = date(int(pdate.year), int(pdate.month) + 1, 1)
+        end = end - timedelta(days=1)
+        base = f'{base_url}/products/CHIRPS-2.0/global_daily/' + \
+            f'{fmt}/p05/{pdate.year}'
+        files = [
+            f"chirps-v2.0.{str(day).replace('-', '.')}.tif.gz"
+            for day in daterange(month_requested, end)
+        ]
+        path = f'global_daily/{pdate.year}/{pdate.month:02d}'
+        urls.append(URLCollection(base, files, relative_path=path))
+
     return urls
 
 
