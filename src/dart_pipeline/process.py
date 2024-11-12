@@ -898,9 +898,7 @@ def process_relative_wealth_index_admin(
         title = re.sub(r'[<>:"/\\|?*]', '_', title)
         title = title.strip()
         # Export
-        path = Path(
-            output_path(source), title + '.png'
-        )
+        path = Path(output_path(source), title + '.png')
         path.parent.mkdir(parents=True, exist_ok=True)
         logging.info(f'Exporting:{path}')
         plt.savefig(path)
