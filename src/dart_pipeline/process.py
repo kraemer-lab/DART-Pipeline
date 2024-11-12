@@ -19,7 +19,9 @@ from pathlib import Path
 from typing import Literal, Callable
 import logging
 import os
+import re
 
+from matplotlib import pyplot as plt
 from pandarallel import pandarallel
 import geopandas as gpd
 import netCDF4 as nc
@@ -31,15 +33,16 @@ import rasterio.transform
 import rasterio.features
 import shapely.geometry
 
-from .plots import plot_heatmap, plot_gadm_heatmap
 from .util import \
-    abort, source_path, days_in_year, get_country_name
+    abort, source_path, days_in_year, output_path, get_country_name
 from .types import ProcessResult, PartialDate, AdminLevel
 from .constants import TERRACLIMATE_METRICS
 
 pandarallel.initialize(verbose=0)
 
 TEST_MODE = os.getenv("DART_PIPELINE_TEST")
+# Smallest single-precision floating-point number
+MIN_FLOAT = -3.4028234663852886e38
 
 
 def process_ministerio_de_salud_peru_data(
@@ -314,18 +317,34 @@ def process_chirps_rainfall(partial_date: str, plots=False) -> ProcessResult:
     # Get the data in the first band as an array
     data = src.read(1)
     # Replace placeholder numbers with 0
-    # (-3.4e+38 is the smallest single-precision floating-point number)
-    data[data == -3.4028234663852886e38] = 0
+    data[data == MIN_FLOAT] = 0
     # Hide nulls
     data[data == -9999] = 0
     # Add the result to the output data frame
     output.loc[0, 'rainfall'] = np.nansum(data)
 
     if plots:
-        title = f'Rainfall\n{pdate}'
-        colourbar_label = 'Rainfall [mm]'
-        plot_heatmap(source, data, pdate, title, colourbar_label)
+        # Plot
+        data[data == 0] = np.nan
+        plt.imshow(
+            data, cmap='coolwarm', origin='upper',
+        )
+        plt.colorbar(label='Rainfall [mm]')
+        plt.title(f'Rainfall\n{pdate}')
+        # Make the plot title file-system safe
+        title = re.sub(r'[<>:"/\\|?*]', '_', str(pdate))
+        title = title.strip()
+        # Export
+        path = Path(
+            output_path(source),
+            str(pdate).replace('-', '/'), title + '.png'
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        logging.info(f'Exporting:{path}')
+        plt.savefig(path)
+        plt.close()
 
+    # Export
     return output, 'chirps-rainfall.csv'
 
 
@@ -334,8 +353,7 @@ def process_era5_reanalysis_data() -> ProcessResult:
     Process ERA5 atmospheric reanalysis data.
     """
     source = "meteorological/era5-atmospheric-reanalysis"
-    path = source_path(source, "ERA5-ml-temperature-subarea.nc")
-    file = nc.Dataset(path, "r")  # type: ignore
+    file = nc.Dataset(source_path(source, "ERA5-ml-temperature-subarea.nc"), "r")  # type: ignore
 
     # Import variables as arrays
     longitude = file.variables["longitude"][:]
@@ -371,7 +389,6 @@ def process_era5_reanalysis_data() -> ProcessResult:
         }
     )
     file.close()
-
     return df, "ERA5-ml-temperature-subarea.csv"
 
 
@@ -385,8 +402,8 @@ def process_terraclimate(
     and other water balance variables. The data is stored in NetCDF (`.nc`)
     files for which the `netCDF4` library is needed.
     """
-    pdate = PartialDate.from_string(partial_date)
-    year = pdate.year
+    date = PartialDate.from_string(partial_date)
+    year = date.year
     source = 'meteorological/terraclimate'
 
     # Initialise output data frame
@@ -401,9 +418,10 @@ def process_terraclimate(
         # Import the raw data
         if (year == 2023) and (metric == 'pdsi'):
             # In 2023 the capitalization of pdsi changed
-            metric = 'PDSI'
-        path = source_path(source, f'TerraClimate_{metric}_{year}.nc')
-        logging.info(f'Importing:{path}')
+            path = source_path(source, 'TerraClimate_PDSI_2023.nc')
+        else:
+            path = source_path(source, f'TerraClimate_{metric}_{year}.nc')
+        logging.info(f'Importing {path}')
         ds = nc.Dataset(path)
 
         # Extract the variables
@@ -432,10 +450,10 @@ def process_terraclimate(
         gdf = gpd.read_file(get_shapefile(iso3, admin_level))
         for i, month in enumerate(months):
             # If a month has been specified on the command line
-            if pdate.month:
+            if date.month:
                 # If this data come from a month that does not match the
                 # requested month
-                if pdate.month != month.month:
+                if date.month != month.month:
                     # Skip this iteration
                     continue
 
@@ -476,21 +494,41 @@ def process_terraclimate(
 
                 # Create a mask that is True for points outside the geometries
                 mask = rasterio.features.geometry_mask(
-                    [geometry], transform=transform, out_shape=this_month.shape
+                    [geometry],
+                    transform=transform,
+                    out_shape=this_month.shape
                 )
                 masked_data = np.ma.masked_array(this_month, mask=mask)
+                if plots:
+                    # Plot
+                    plt.imshow(
+                        masked_data, cmap='coolwarm', origin='upper',
+                        extent=[lon.min(), lon.max(), lat.min(), lat.max()]
+                    )
+                    plt.colorbar(label=f'{raw.description} [{raw.units}]')
+                    month_str = month.strftime('%B %Y')
+                    plt.title(f'{raw.description}\n{title} - {month_str}')
+                    # Get the bounds of the region
+                    min_lon, min_lat, max_lon, max_lat = geometry.bounds
+                    plt.xlim(min_lon, max_lon)
+                    plt.ylim(min_lat, max_lat)
+                    plt.ylabel('Latitude')
+                    plt.xlabel('Longitude')
+                    # Make the plot title file-system safe
+                    title = re.sub(r'[<>:"/\\|?*]', '_', title)
+                    title = title.strip()
+                    # Export
+                    path = Path(
+                        output_path(source), str(year), month.strftime('%m'),
+                        standard_name, title + '.png'
+                    )
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    logging.info(f'Exporting {path}')
+                    plt.savefig(path)
+                    plt.close()
+
                 # Add to output data frame
                 output.loc[idx, standard_name] = np.nansum(masked_data)
-
-                if plots:
-                    month_str = month.strftime('%B %Y')
-                    title = f'{raw.description}\n{title} - {month_str}'
-                    colourbar_label = f'{raw.description} [{raw.units}]'
-                    extent = [lon.min(), lon.max(), lat.min(), lat.max()]
-                    plot_gadm_heatmap(
-                        source, masked_data, gdf, pdate, title,
-                        colourbar_label, region, extent
-                    )
 
         # Close the NetCDF file after use
         ds.close()
@@ -537,7 +575,7 @@ def process_worldpop_pop_count_data(
     # Replace placeholder numbers with 0
     # (-3.4e+38 is the smallest single-precision floating-point number)
     df = pd.DataFrame(source_data)
-    population_data = df[df != -3.4028234663852886e38]
+    population_data = df[df != MIN_FLOAT]
     """
     Sanity check: calculate the total population
     Google says that Vietnam's population was 96.65 million (2020)
@@ -562,9 +600,7 @@ def process_worldpop_pop_count_data(
     rows = np.arange(source_data.shape[0])
     _, lat = rasterio.transform.xy(transform, rows, (1,))
     # Replace placeholder numbers with 0
-    # (-3.4e+38 is the smallest single-precision floating-point number)
-    mask = source_data == -3.4028234663852886e38
-    source_data[mask] = 0
+    source_data[source_data == MIN_FLOAT] = 0
     # Create a DataFrame with latitude, longitude, and pixel values
     df = pd.DataFrame(source_data, index=lat, columns=lon)
     return df, "{iso3}/{filename.stem}.csv"
@@ -598,12 +634,11 @@ def process_gadm_chirps_rainfall(
     "CHIRPS" stands for Climate Hazards Group InfraRed Precipitation with
     Station.
     """
-    source = 'geospatial/chirps-rainfall'
     pdate = PartialDate.from_string(partial_date)
     logging.info(f'iso3:{iso3}')
     logging.info(f'admin_level:{admin_level}')
     logging.info(f'partial_date:{pdate}')
-    logging.info(f'timeframe:{pdate.scope}')
+    logging.info(f'scope:{pdate.scope}')
     logging.info(f'plots:{plots}')
 
     # Import the GeoTIFF file
@@ -675,15 +710,37 @@ def process_gadm_chirps_rainfall(
         output.loc[i, 'rainfall'] = region_total
 
         if plots:
+            # Get the bounds of the region
+            min_lon, min_lat, max_lon, max_lat = geometry.bounds
+            # Plot
+            fig, ax = plt.subplots()
             ar = region_data[0]
             ar[ar == 0] = np.nan
-            title = f'Rainfall\n{title} - {pdate}'
-            colourbar_label = 'Rainfall [mm]'
-            min_lon, min_lat, max_lon, max_lat = geometry.bounds
-            extent = [min_lon, max_lon, min_lat, max_lat]
-            plot_gadm_heatmap(
-                source, ar, gdf, pdate, title, colourbar_label, region, extent
+            im = ax.imshow(
+                ar, cmap='coolwarm', origin='upper',
+                extent=[min_lon, max_lon, min_lat, max_lat]
             )
+            # Add the geographical borders
+            gdf.plot(ax=ax, color='none', edgecolor='gray')
+            gpd.GeoDataFrame([region]).plot(ax=ax, color='none', edgecolor='k')
+            plt.colorbar(im, ax=ax, label='Rainfall [mm]')
+            ax.set_title(f'Rainfall\n{title} - {pdate}')
+            ax.set_xlim(min_lon, max_lon)
+            ax.set_ylim(min_lat, max_lat)
+            ax.set_ylabel('Latitude')
+            ax.set_xlabel('Longitude')
+            # Make the plot title file-system safe
+            title = re.sub(r'[<>:"/\\|?*]', '_', title)
+            title = title.strip()
+            # Export
+            path = Path(
+                output_path('geospatial/chirps-rainfall'),
+                str(pdate).replace('-', '/'), title + '.png'
+            )
+            path.parent.mkdir(parents=True, exist_ok=True)
+            logging.info(f'Exporting:{path}')
+            plt.savefig(path)
+            plt.close()
 
     # Export
     return output, f'{iso3}.csv'
@@ -710,8 +767,7 @@ def process_gadm_worldpoppopulation_data(
     # Read the first band
     data = src.read(1)
     # Replace placeholder numbers with 0
-    # (-3.4e+38 is the smallest single-precision floating-point number)
-    data[data == -3.4028234663852886e38] = 0
+    data[data == MIN_FLOAT] = 0
     # Create a bounding box from raster bounds
     bounds = src.bounds
     raster_bbox = shapely.geometry.box(
