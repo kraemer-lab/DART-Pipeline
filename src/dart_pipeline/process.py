@@ -853,24 +853,29 @@ def get_admin_region(lat: float, lon: float, polygons) -> str:
 
 def process_relative_wealth_index_admin(iso3: str, admin_level: str):
     """Process Vietnam Relative Wealth Index data."""
-    rwifile = source_path(
-        "economic/relative-wealth-index",
-        f"{iso3.lower()}_relative_wealth_index.csv"
-    )
-    shpfile = get_shapefile(iso3, admin_level=admin_level)
+    source = 'economic/relative-wealth-index'
+    logging.info(f'iso3:{iso3}')
+    logging.info(f'admin_level:{admin_level}')
 
     # Create a dictionary of polygons where the key is the ID of the polygon
     # and the value is its geometry
-    shapefile = gpd.read_file(shpfile)
-    admin_geoid = f"GID_{admin_level}"
-    polygons = dict(zip(shapefile[admin_geoid], shapefile["geometry"]))
+    path = get_shapefile(iso3, admin_level=admin_level)
+    logging.info(f'Importing:{path}')
+    shapefile = gpd.read_file(path)
+    admin_geoid = f'GID_{admin_level}'
+    polygons = dict(zip(shapefile[admin_geoid], shapefile['geometry']))
+
+    # Import the relative wealth index data
+    path = source_path(source, f'{iso3.lower()}_relative_wealth_index.csv')
+    logging.info(f'Importing:{path}')
+    rwi = pd.read_csv(path)
 
     def get_admin(x):
-        return get_admin_region(x["latitude"], x["longitude"], polygons)
+        return get_admin_region(x['latitude'], x['longitude'], polygons)
 
-    rwi = pd.read_csv(rwifile)
-    rwi["geo_id"] = rwi.parallel_apply(get_admin, axis=1)  # type: ignore
-    rwi = rwi[rwi["geo_id"] != "null"]
+    # Assign each latitude and longitude to an admin region
+    rwi['geo_id'] = rwi.parallel_apply(get_admin, axis=1)  # type: ignore
+    rwi = rwi[rwi['geo_id'] != 'null']
 
     # Get the mean RWI value for each region
     rwi = rwi.groupby('geo_id')['rwi'].mean().reset_index()
@@ -885,17 +890,17 @@ def process_relative_wealth_index_admin(iso3: str, admin_level: str):
     )
     # Rename the columns
     columns = dict(zip(
-        admin_columns, [f"admin_level_{i}" for i in range(len(admin_columns))]
+        admin_columns, [f'admin_level_{i}' for i in range(len(admin_columns))]
     ))
     rwi = rwi.rename(columns=columns)
     # Add in the higher-level admin levels
     for i in range(int(admin_level) + 1, 4):
-        rwi[f"admin_level_{i}"] = None
+        rwi[f'admin_level_{i}'] = None
     # Re-order the columns
-    output_columns = [f"admin_level_{i}" for i in range(4)] + ['rwi']
+    output_columns = [f'admin_level_{i}' for i in range(4)] + ['rwi']
     rwi = rwi[output_columns]
 
-    return rwi, f"{iso3}.csv"
+    return rwi, f'{iso3}.csv'
 
 
 PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
