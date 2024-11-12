@@ -138,5 +138,6 @@ credentials.json
 *.sublime-project
 *.sublime-workspace
 
-# VS Code files
-*.code-workspace
+# Obsidian
+*.canvas
+.obsidian/
