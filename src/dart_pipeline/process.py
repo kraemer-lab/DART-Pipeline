@@ -851,7 +851,9 @@ def get_admin_region(lat: float, lon: float, polygons) -> str:
     return "null"
 
 
-def process_relative_wealth_index_admin(iso3: str, admin_level: str):
+def process_relative_wealth_index_admin(
+    iso3: str, admin_level: str, plots=False
+):
     """Process Vietnam Relative Wealth Index data."""
     source = 'economic/relative-wealth-index'
     logging.info(f'iso3:{iso3}')
@@ -869,6 +871,40 @@ def process_relative_wealth_index_admin(iso3: str, admin_level: str):
     path = source_path(source, f'{iso3.lower()}_relative_wealth_index.csv')
     logging.info(f'Importing:{path}')
     rwi = pd.read_csv(path)
+
+    # Create a plot
+    if plots:
+        data = rwi.pivot('latitude', 'longitude', 'rwi')
+        min_lon = data['longitude'].min()
+        max_lon = data['longitude'].max()
+        min_lat = data['latitude'].min()
+        max_lat = data['latitude'].max()
+        country = get_country_name(iso3)
+        title = f'Relative Wealth Index\n{country} - Admin Level {admin_level}'
+        # Plot
+        fig, ax = plt.subplots()
+        extent = [min_lon, max_lon, min_lat, max_lat]
+        im = ax.imshow(data, cmap='coolwarm', origin='upper', extent=extent)
+        shapefile.boundary.plot(ax=ax, color='none', edgecolor='k')
+        # Add colour bar
+        plt.colorbar(im, ax=ax, label='Relative Wealth Index [unitless]')
+        # Titles and axes
+        ax.set_title(title)
+        ax.set_xlim(min_lon, max_lon)
+        ax.set_ylim(min_lat, max_lat)
+        ax.set_xlabel('Longitude')
+        ax.set_ylabel('Latitude')
+        # Make the plot title file-system safe
+        title = re.sub(r'[<>:"/\\|?*]', '_', title)
+        title = title.strip()
+        # Export
+        path = Path(
+            output_path(source), title + '.png'
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        logging.info(f'Exporting:{path}')
+        plt.savefig(path)
+        plt.close()
 
     def get_admin(x):
         return get_admin_region(x['latitude'], x['longitude'], polygons)
