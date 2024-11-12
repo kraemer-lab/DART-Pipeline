@@ -41,6 +41,8 @@ from .constants import TERRACLIMATE_METRICS
 pandarallel.initialize(verbose=0)
 
 TEST_MODE = os.getenv("DART_PIPELINE_TEST")
+# Smallest single-precision floating-point number
+MIN_FLOAT = -3.4028234663852886e38
 
 
 def process_ministerio_de_salud_peru_data(
@@ -315,8 +317,7 @@ def process_chirps_rainfall(partial_date: str, plots=False) -> ProcessResult:
     # Get the data in the first band as an array
     data = src.read(1)
     # Replace placeholder numbers with 0
-    # (-3.4e+38 is the smallest single-precision floating-point number)
-    data[data == -3.4028234663852886e38] = 0
+    data[data == MIN_FLOAT] = 0
     # Hide nulls
     data[data == -9999] = 0
     # Add the result to the output data frame
@@ -574,7 +575,7 @@ def process_worldpop_pop_count_data(
     # Replace placeholder numbers with 0
     # (-3.4e+38 is the smallest single-precision floating-point number)
     df = pd.DataFrame(source_data)
-    population_data = df[df != -3.4028234663852886e38]
+    population_data = df[df != MIN_FLOAT]
     """
     Sanity check: calculate the total population
     Google says that Vietnam's population was 96.65 million (2020)
@@ -599,9 +600,7 @@ def process_worldpop_pop_count_data(
     rows = np.arange(source_data.shape[0])
     _, lat = rasterio.transform.xy(transform, rows, (1,))
     # Replace placeholder numbers with 0
-    # (-3.4e+38 is the smallest single-precision floating-point number)
-    mask = source_data == -3.4028234663852886e38
-    source_data[mask] = 0
+    source_data[source_data == MIN_FLOAT] = 0
     # Create a DataFrame with latitude, longitude, and pixel values
     df = pd.DataFrame(source_data, index=lat, columns=lon)
     return df, "{iso3}/{filename.stem}.csv"
@@ -768,8 +767,7 @@ def process_gadm_worldpoppopulation_data(
     # Read the first band
     data = src.read(1)
     # Replace placeholder numbers with 0
-    # (-3.4e+38 is the smallest single-precision floating-point number)
-    data[data == -3.4028234663852886e38] = 0
+    data[data == MIN_FLOAT] = 0
     # Create a bounding box from raster bounds
     bounds = src.bounds
     raster_bbox = shapely.geometry.box(
