@@ -11,8 +11,8 @@ Done: ✅, in progress: ⏳, not working: ❌
  ├── `uv run dart-pipeline get geospatial/gadm`
  │    ├── ✅ `uv run dart-pipeline get geospatial/gadm 3=PER` 
  │    └── ✅ `uv run dart-pipeline get geospatial/gadm 3=VNM` 17.964s
- ├── ✅ `uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp` 12m56.12s
- ├── ❌ `uv run dart-pipeline get meteorological/aphrodite-daily-precip` 4.551s
+ ├── ✅ `uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp` 16m6.556s
+ ├── ✅ `uv run dart-pipeline get meteorological/aphrodite-daily-precip` 1m23.727s
  ├── `uv run dart-pipeline get meteorological/chirps-rainfall`
  │    ├── ✅ `uv run dart-pipeline get meteorological/chirps-rainfall d=2023` 19.750s
  │    └── ✅ `uv run dart-pipeline get meteorological/chirps-rainfall d=2023-05` 1m32.80s
