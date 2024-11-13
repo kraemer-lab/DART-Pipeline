@@ -10,7 +10,7 @@ import numpy as np
 from .util import output_path
 
 
-def plot_heatmap(source, data, pdate, title, colourbar_label):
+def plot_heatmap(data, title, colourbar_label, path):
     """Create a heat map."""
     data[data == 0] = np.nan
     plt.imshow(data, cmap='coolwarm', origin='upper')
@@ -20,16 +20,13 @@ def plot_heatmap(source, data, pdate, title, colourbar_label):
     title = re.sub(r'[<>:"/\\|?*]', '_', title)
     title = title.strip()
     # Export
-    path = Path(
-        output_path(source), str(pdate).replace('-', '/'), title + '.png'
-    )
     path.parent.mkdir(parents=True, exist_ok=True)
     logging.info('exporting:%s', path)
     plt.savefig(path)
     plt.close()
 
 
-def plot_gadm_heatmap(
+def plot_gadm_micro_heatmap(
     source, data, gdf, pdate, title, colourbar_label, region, extent
 ):
     """Create a heat map with GADM region overlaid."""
@@ -61,31 +58,25 @@ def plot_gadm_heatmap(
     plt.close()
 
 
-def plot_rwi_gadm_heatmap(source, rwi, shapefile, title):
-    """Create a heat map of Relative Wealth Index with GADM region overlaid."""
-    min_lon = rwi['longitude'].min()
-    max_lon = rwi['longitude'].max()
-    min_lat = rwi['latitude'].min()
-    max_lat = rwi['latitude'].max()
-    # Plot
+def plot_gadm_macro_heatmap(
+    data, origin, extent, limits, gdf, zorder, title, colourbar_label, path
+):
+    """Create a heat map with a macro GADM region overlaid."""
     _, ax = plt.subplots()
-    shapefile.boundary.plot(ax=ax, edgecolor='k', linewidth=0.5, zorder=0)
-    extent = [min_lon, max_lon, min_lat, max_lat]
-    data = rwi.pivot(columns='longitude', index='latitude', values='rwi')
-    im = ax.imshow(data, cmap='coolwarm', origin='lower', extent=extent)
+    gdf.boundary.plot(ax=ax, edgecolor='k', linewidth=0.5, zorder=zorder)
+    im = ax.imshow(data, cmap='coolwarm', origin=origin, extent=extent)
     # Add colour bar
-    plt.colorbar(im, ax=ax, label='Relative Wealth Index [unitless]')
+    plt.colorbar(im, ax=ax, label=colourbar_label)
     # Titles and axes
     ax.set_title(title)
-    ax.set_xlim(min_lon, max_lon)
-    ax.set_ylim(min_lat, max_lat)
+    ax.set_xlim(limits[0], limits[2])
+    ax.set_ylim(limits[1], limits[3])
     ax.set_xlabel('Longitude')
     ax.set_ylabel('Latitude')
     # Make the plot title file-system safe
     title = re.sub(r'[<>:"/\\|?*]', '_', title)
     title = title.strip()
     # Export
-    path = Path(output_path(source), title + '.png')
     path.parent.mkdir(parents=True, exist_ok=True)
     logging.info('exporting:%s', path)
     plt.savefig(path)

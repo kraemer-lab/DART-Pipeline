@@ -33,7 +33,7 @@ import rasterio.transform
 import rasterio.features
 import shapely.geometry
 
-from .plots import plot_heatmap, plot_gadm_heatmap, plot_rwi_gadm_heatmap
+from .plots import plot_heatmap, plot_gadm_micro_heatmap, plot_gadm_macro_heatmap
 from .util import \
     abort, source_path, days_in_year, output_path, get_country_name
 from .types import ProcessResult, PartialDate, AdminLevel
@@ -326,7 +326,11 @@ def process_chirps_rainfall(partial_date: str, plots=False) -> ProcessResult:
     if plots:
         title = f'Rainfall\n{pdate}'
         colourbar_label = 'Rainfall [mm]'
-        plot_heatmap(source, data, pdate, title, colourbar_label)
+        path = Path(
+            output_path(source), str(pdate).replace('-', '/'),
+            str(pdate) + '.png'
+        )
+        plot_heatmap(data, title, colourbar_label, path)
 
     # Export
     return output, 'chirps-rainfall.csv'
@@ -371,6 +375,7 @@ def process_era5_reanalysis_data() -> ProcessResult:
     }
     df = pd.DataFrame(dct)
     file.close()
+
     return df, "ERA5-ml-temperature-subarea.csv"
 
 
@@ -398,15 +403,18 @@ def process_terraclimate(
     ]
     output = pd.DataFrame(columns=columns)
 
+    # Import a shapefile
+    path = get_shapefile(iso3, admin_level)
+    logging.info('importing:%s', path)
+    gdf = gpd.read_file(path)
+
     # Iterate over the metrics
     for metric in TERRACLIMATE_METRICS:
         # Import the raw data
         if (pdate.year == 2023) and (metric == 'pdsi'):
             # In 2023 the capitalization of pdsi changed
-            path = source_path(source, 'TerraClimate_PDSI_2023.nc')
-        else:
-            filename = f'TerraClimate_{metric}_{pdate.year}.nc'
-            path = source_path(source, filename)
+            metric = 'PDSI'
+        path = source_path(source, f'TerraClimate_{metric}_{pdate.year}.nc')
         logging.info('importing:%s', path)
         ds = nc.Dataset(path)
 
@@ -432,8 +440,6 @@ def process_terraclimate(
         base_time = datetime(1900, 1, 1)
         months = [base_time + timedelta(days=t) for t in time]
 
-        # Import a shapefile
-        gdf = gpd.read_file(get_shapefile(iso3, admin_level))
         for i, month in enumerate(months):
             # If a month has been specified on the command line
             if pdate.month:
@@ -445,6 +451,24 @@ def process_terraclimate(
 
             # Extract the data for the chosen month
             this_month = data[i, :, :]
+
+            # Plot
+            if plots:
+                origin = 'upper'
+                extent = [lon.min(), lon.max(), lat.min(), lat.max()]
+                limits = gdf.total_bounds
+                zorder = 1
+                month_str = month.strftime('%B %Y')
+                title = f'{raw.description}\n{iso3} - {month_str}'
+                colourbar_label = f'{raw.description} [{raw.units}]'
+                path = Path(
+                    output_path(source), str(pdate).replace('-', '/'),
+                    f'admin_level_{admin_level}', title + '.png'
+                )
+                plot_gadm_macro_heatmap(
+                    this_month, origin, extent, limits, gdf, zorder, title,
+                    colourbar_label, path
+                )
 
             # Iterate over the regions in the shape file
             for j, region in gdf.iterrows():
@@ -480,19 +504,17 @@ def process_terraclimate(
 
                 # Create a mask that is True for points outside the geometries
                 mask = rasterio.features.geometry_mask(
-                    [geometry],
-                    transform=transform,
-                    out_shape=this_month.shape
+                    [geometry], transform=transform, out_shape=this_month.shape
                 )
                 masked_data = np.ma.masked_array(this_month, mask=mask)
 
                 # Plot
-                if plots:
+                if plots and (admin_level == 0):
                     month_str = month.strftime('%B %Y')
                     title = f'{raw.description}\n{title} - {month_str}'
                     colourbar_label = f'{raw.description} [{raw.units}]'
                     extent = [lon.min(), lon.max(), lat.min(), lat.max()]
-                    plot_gadm_heatmap(
+                    plot_gadm_micro_heatmap(
                         source, masked_data, gdf, pdate, title,
                         colourbar_label, region, extent
                     )
@@ -831,9 +853,9 @@ def process_relative_wealth_index_admin(
     # and the value is its geometry
     path = get_shapefile(iso3, admin_level=admin_level)
     logging.info('Importing:%s', path)
-    shapefile = gpd.read_file(path)
+    gdf = gpd.read_file(path)
     admin_geoid = f'GID_{admin_level}'
-    polygons = dict(zip(shapefile[admin_geoid], shapefile['geometry']))
+    polygons = dict(zip(gdf[admin_geoid], gdf['geometry']))
 
     # Import the relative wealth index data
     path = source_path(source, f'{iso3.lower()}_relative_wealth_index.csv')
@@ -842,9 +864,23 @@ def process_relative_wealth_index_admin(
 
     # Create a plot
     if plots:
+        data = rwi.pivot(columns='longitude', index='latitude', values='rwi')
+        origin = 'lower'
+        min_lon = rwi['longitude'].min()
+        max_lon = rwi['longitude'].max()
+        min_lat = rwi['latitude'].min()
+        max_lat = rwi['latitude'].max()
+        extent = [min_lon, max_lon, min_lat, max_lat]
+        limits = [min_lon, min_lat, max_lon, max_lat]
+        zorder = 0
         country = get_country_name(iso3)
         title = f'Relative Wealth Index\n{country} - Admin Level {admin_level}'
-        plot_rwi_gadm_heatmap(source, rwi, shapefile, title)
+        colourbar_label = 'Relative Wealth Index [unitless]'
+        path = Path(output_path(source), title + '.png')
+        plot_gadm_macro_heatmap(
+            data, origin, extent, limits, gdf, zorder, title, colourbar_label,
+            path
+        )
 
     def get_admin(x):
         return get_admin_region(x['latitude'], x['longitude'], polygons)
@@ -861,7 +897,7 @@ def process_relative_wealth_index_admin(
     admin_columns = region_columns[:int(admin_level) + 1]
     # Merge with the shapefile to get the region names
     rwi = rwi.merge(
-        shapefile[[admin_geoid] + admin_columns],
+        gdf[[admin_geoid] + admin_columns],
         left_on='geo_id', right_on=admin_geoid, how='left'
     )
     # Rename the columns
