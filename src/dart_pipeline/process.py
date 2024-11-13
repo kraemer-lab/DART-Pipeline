@@ -33,7 +33,8 @@ import rasterio.transform
 import rasterio.features
 import shapely.geometry
 
-from .plots import plot_heatmap, plot_gadm_micro_heatmap, plot_gadm_macro_heatmap
+from .plots import \
+    plot_heatmap, plot_gadm_micro_heatmap, plot_gadm_macro_heatmap
 from .util import \
     abort, source_path, days_in_year, output_path, get_country_name
 from .types import ProcessResult, PartialDate, AdminLevel
