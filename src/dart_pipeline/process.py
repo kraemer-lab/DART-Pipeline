@@ -36,7 +36,8 @@ import shapely.geometry
 from .plots import \
     plot_heatmap, plot_gadm_micro_heatmap, plot_gadm_macro_heatmap
 from .util import \
-    abort, source_path, days_in_year, output_path, get_country_name
+    abort, source_path, days_in_year, output_path, get_country_name, \
+    get_shapefile
 from .types import ProcessResult, PartialDate, AdminLevel
 from .constants import TERRACLIMATE_METRICS
 
@@ -105,14 +106,6 @@ def process_ministerio_de_salud_peru_data(
     return master, f"{iso3}/admin{admin_level}.csv"
 
 
-def get_shapefile(iso3: str, admin_level: Literal["0", "1", "2"]) -> Path:
-    """Get a shape file."""
-    return source_path(
-        "geospatial/gadm",
-        Path(iso3, f"gadm41_{iso3}_{admin_level}.shp"),
-    )
-
-
 def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
     """Process GADM administrative map data."""
     gdf = gpd.read_file(get_shapefile(iso3, admin_level))
@@ -153,6 +146,154 @@ def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
         output = pd.concat([output, new_row_df], ignore_index=True)
 
     return output, f"{iso3}/admin{admin_level}_area.csv"
+
+
+def process_gadm_worldpopcount(
+    iso3, partial_date: str, admin_level: AdminLevel = '0', rt: str = 'ppp',
+    plots=False
+):
+    """Process GADM administrative map and WorldPop population count data."""
+    sub_pipeline = 'geospatial/worldpop-count'
+    logging.info('iso3:%s', iso3)
+    logging.info('partial_date:%s', partial_date)
+    logging.info('admin_level:%s', admin_level)
+    logging.info('rt:%s', rt)
+    logging.info('plots:%s', plots)
+
+    pdate = PartialDate.from_string(partial_date)
+    if pdate.day:
+        msg = f'The date {partial_date} includes a day. Provide only a ' + \
+            'year in YYYY format.'
+        raise ValueError(msg)
+    if pdate.month:
+        msg = f'The date {partial_date} includes a month. Provide only a ' + \
+            'year in YYYY format.'
+        raise ValueError(msg)
+
+    # Import the GeoTIFF file
+    source = 'sociodemographic/worldpop-count'
+    path = Path(iso3, f'{iso3}_{rt}_v2b_{pdate.year}_UNadj.tif')
+    path = source_path(source, path)
+    logging.info('importing:%s', path)
+    try:
+        src = rasterio.open(path)
+    except rasterio.errors.RasterioIOError:
+        # Could not find the file
+        file_found = False
+        for year in range(datetime.today().year, 1990, -1):
+            filename = f'{iso3}_{rt}_v2b_{year}_UNadj.tif'
+            if filename in os.listdir(path.parent):
+                new_path = source_path(source, Path(iso3, filename))
+                logging.info('importing:%s', new_path)
+                print(f'File {path} not found.')
+                print(f'Importing {new_path} instead')
+                src = rasterio.open(new_path)
+                file_found = True
+                break
+        if not file_found:
+            msg = f'{path}: No such file or directory'
+            raise rasterio.errors.RasterioIOError(msg)
+
+    # Rasterio stores image layers in 'bands'
+    # Get the data in the first band as an array
+    data = src.read(1)
+    # Replace placeholder numbers with 0
+    data[data == MIN_FLOAT] = 0
+    # Hide nulls
+    data[data == -9999] = 0
+
+    # Create a bounding box from raster bounds
+    bounds = src.bounds
+    raster_bbox = shapely.geometry.box(
+        bounds.left, bounds.bottom, bounds.right, bounds.top
+    )
+
+    # Sanity checking
+    # TODO: put these in tests!
+    if (iso3 == "VNM") and (year == "2020"):
+        assert data.sum() == 96355088.0, f"{data.sum()} != 96355088.0"  # 96,355,088
+    if (iso3 == "PER") and (year == "2020"):
+        assert data.sum() == 32434896.0, f"{data.sum()} != 32434896.0"  # 32,434,896
+
+    # Import shape file
+    path = get_shapefile(iso3, admin_level)
+    logging.info('importing:%s', path)
+    gdf = gpd.read_file(path)
+    # Transform the shape file to match the GeoTIFF's coordinate system
+    gdf = gdf.to_crs(src.crs)
+    # EPSG:4326 - WGS 84: latitude/longitude coordinate system based on the
+    # Earth's center of mass
+
+    # Initialise the data frame that will store the output data for each region
+    columns = [
+        'admin_level_0', 'admin_level_1', 'admin_level_2', 'admin_level_3',
+        'year', 'metric', 'value', 'unit'
+    ]
+    output = pd.DataFrame(columns=columns)
+
+    # Iterate over each region in the shape file
+    for i, region in gdf.iterrows():
+        # Add the region name to the output data frame
+        output.loc[i, 'admin_level_0'] = region['COUNTRY']
+        # Initialise the graph title
+        title = region['COUNTRY']
+        # Add more region names and update the graph title if the admin level
+        # is high enough to warrant it
+        if int(admin_level) >= 1:
+            output.loc[i, 'admin_level_1'] = region['NAME_1']
+            title = region['NAME_1']
+        if int(admin_level) >= 2:
+            output.loc[i, 'admin_level_2'] = region['NAME_2']
+            title = region['NAME_2']
+        if int(admin_level) >= 3:
+            output.loc[i, 'admin_level_3'] = region['NAME_3']
+            title = region['NAME_3']
+
+        # Add date information to the output data frame
+        output.loc[i, 'year'] = pdate.year
+
+        # Check if the population data intersects this region
+        geometry = region.geometry
+        if raster_bbox.intersects(geometry):
+            # There is population data for this region
+            # Clip the data using the polygon of the current region
+            region_data, _ = rasterio.mask.mask(src, [geometry], crop=True)
+            # Replace negative values (if any exist)
+            region_data = np.where(region_data < 0, np.nan, region_data)
+            # Sum the pixel values to get the total for the region
+            region_total = np.nansum(region_data)
+        else:
+            # There is no population data for this regionx
+            region_total = 0
+        logging.info('region:%s', title)
+        logging.info('region_total:%s', region_total)
+        # Add the result to the output data frame
+        metric = 'Population Count'
+        output.loc[i, 'metric'] = metric
+        output.loc[i, 'value'] = region_total
+        unit = 'people'
+        output.loc[i, 'unit'] = unit
+
+    # Create a plot
+    if plots:
+        data[data == 0] = np.nan
+        data = np.log(data)
+        origin = 'upper'
+        min_lon, min_lat, max_lon, max_lat = gdf.total_bounds
+        extent = [min_lon, max_lon, min_lat, max_lat]
+        limits = [min_lon, min_lat, max_lon, max_lat]
+        zorder = 1
+        name = get_country_name(iso3, common_name=False)
+        title = f'Log {metric}\n{name} - {pdate.year}'
+        colourbar_label = f'Log {metric} [{unit}]'
+        path = output_path(sub_pipeline, f'{iso3}/admin_level_{admin_level}')
+        plot_gadm_macro_heatmap(
+            data, origin, extent, limits, gdf, zorder, title, colourbar_label,
+            path
+        )
+
+    # Export
+    return output, f'{iso3}.csv'
 
 
 def process_aphrodite_precipitation_data() -> list[ProcessResult]:
@@ -692,13 +833,15 @@ def process_gadm_chirps_rainfall(
             # There is rainfall data for this region
             # Clip the data using the polygon of the current region
             region_data, _ = rasterio.mask.mask(src, [geometry], crop=True)
-            # Replace negative values (where no rainfall was measured)
+            # Replace negative values (if any exist)
             region_data = np.where(region_data < 0, np.nan, region_data)
             # Sum the pixel values to get the total for the region
             region_total = np.nansum(region_data)
         else:
             # No rainfall data for this region
             region_total = 0
+        logging.info('region:%s', title)
+        logging.info('region_total:%s', region_total)
         # Add the result to the output data frame
         output.loc[i, 'rainfall'] = region_total
 
@@ -737,94 +880,6 @@ def process_gadm_chirps_rainfall(
 
     # Export
     return output, f'{iso3}.csv'
-
-
-def process_gadm_worldpoppopulation_data(
-    iso3, year: int, admin_level: AdminLevel = "0", rt: str = "ppp"
-):
-    """Process GADM administrative map and WorldPop population count data."""
-    source = "sociodemographic/worldpop-density"
-
-    # Import the TIFF file
-    filename = Path(f"{iso3}_{rt}_v2b_{year}_UNadj.tif")
-    path = source_path(source, iso3)
-    # Search for the actual folder that has the data
-    folders = [d for d in os.listdir(path) if d.endswith("_100m_Population")]
-    folder = folders[0]
-    # Construct full path
-    path = Path(path, folder, filename)
-    # Import
-    src = rasterio.open(path)
-    # Read the first band
-    data = src.read(1)
-    # Replace placeholder numbers with 0
-    data[data == MIN_FLOAT] = 0
-    # Create a bounding box from raster bounds
-    bounds = src.bounds
-    raster_bbox = shapely.geometry.box(
-        bounds.left, bounds.bottom, bounds.right, bounds.top
-    )
-    # Sanity checking
-    # TODO: put these in tests!
-    if (iso3 == "VNM") and (year == "2020"):
-        assert data.sum() == 96355088.0, f"{data.sum()} != 96355088.0"  # 96,355,088
-    if (iso3 == "PER") and (year == "2020"):
-        assert data.sum() == 32434896.0, f"{data.sum()} != 32434896.0"  # 32,434,896
-
-    # Import shape file
-    gdf = gpd.read_file(get_shapefile(iso3, admin_level))
-    # Transform the shape file to match the GeoTIFF's coordinate system
-    # EPSG:4326 - WGS 84: latitude/longitude coordinate system based on the
-    # Earth's center of mass
-    gdf = gdf.to_crs(src.crs)
-
-    output = pd.DataFrame()
-    # Iterate over the regions in the shape file
-    for _, region in gdf.iterrows():
-        geometry = region.geometry
-
-        # Initialise a new row for the output data frame
-        new_row = {}
-        new_row["Admin Level 0"] = region["COUNTRY"]
-        # Initialise the title
-        title = region["COUNTRY"]
-        # Update the new row and the title if the admin level is high enough
-        if int(admin_level) >= 1:
-            new_row["Admin Level 1"] = region["NAME_1"]
-            title = region["NAME_1"]
-        if int(admin_level) >= 2:
-            new_row["Admin Level 2"] = region["NAME_2"]
-            title = region["NAME_2"]
-        if int(admin_level) >= 3:
-            new_row["Admin Level 3"] = region["NAME_3"]
-            title = region["NAME_3"]
-
-        # Check if the population data intersects this region
-        if raster_bbox.intersects(geometry):
-            # There is population data for this region
-            # Clip the data using the polygon of the current region
-            region_data, _ = rasterio.mask.mask(src, [geometry], crop=True)
-            # Replace negative values (if any exist)
-            region_data = np.where(region_data < 0, np.nan, region_data)
-            # Define the extent
-
-            # Sum the pixel values to get the total for the region
-            region_total = np.nansum(region_data)
-            print(title, region_total)
-
-        else:
-            # There is no population data for this region
-            region_total = 0
-            print(title, region_total)
-
-        # Add to output data frame
-        new_row["Population"] = region_total
-        # Export
-        new_row_df = pd.DataFrame(new_row, index=[0])
-        output = pd.concat([output, new_row_df], ignore_index=True)
-
-    # Export
-    return output, f"{iso3}/admin{admin_level}/{iso3}_admin{admin_level}_population.csv"
 
 
 def get_admin_region(lat: float, lon: float, polygons) -> str:
@@ -921,7 +976,7 @@ PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
     "epidemiological/dengue/peru": process_ministerio_de_salud_peru_data,
     "geospatial/chirps-rainfall": process_gadm_chirps_rainfall,
     "geospatial/gadm": process_gadm_admin_map_data,
-    "geospatial/worldpop-count": process_gadm_worldpoppopulation_data,
+    "geospatial/worldpop-count": process_gadm_worldpopcount,
     "meteorological/aphrodite-daily-mean-temp": process_aphrodite_temperature_data,
     "meteorological/aphrodite-daily-precip": process_aphrodite_precipitation_data,
     "meteorological/chirps-rainfall": process_chirps_rainfall,

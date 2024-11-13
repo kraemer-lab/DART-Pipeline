@@ -360,3 +360,11 @@ def update_or_create_output(
     # When testing we want to be able to inspect the data frame
     if return_df:
         return output_df
+
+
+def get_shapefile(iso3: str, admin_level: Literal["0", "1", "2"]) -> Path:
+    """Get a shape file."""
+    return source_path(
+        "geospatial/gadm",
+        Path(iso3, f"gadm41_{iso3}_{admin_level}.shp"),
+    )

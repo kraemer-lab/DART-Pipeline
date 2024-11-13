@@ -49,6 +49,34 @@ Done: ✅, in progress: ⏳, not working: ❌
  ├── ❌ `uv run dart-pipeline process sociodemographic/worldpop-count iso3=VNM`
  └── ❌ `uv run dart-pipeline process sociodemographic/worldpop-density iso3=VNM year=2023`
 
+## Geospatial
+
+```
+uv run dart-pipeline process geospatial/chirps-rainfall
+uv run dart-pipeline process geospatial/gadm
+uv run dart-pipeline process geospatial/worldpop-count
+```
+
+### CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations
+
+```
+uv run dart-pipeline process geospatial/chirps-rainfall 3=VNM d=2023 a=0 l=INFO plots
+uv run dart-pipeline process geospatial/chirps-rainfall 3=VNM d=2023-05 a=0 l=INFO plots
+uv run dart-pipeline process geospatial/chirps-rainfall 3=VNM d=2023-05-11 a=0 l=INFO plots
+```
+
+### Global Administrative Areas (GADM)
+
+```
+uv run dart-pipeline process geospatial/gadm 3=VNM a=0
+```
+
+### WorldPop Population Counts
+
+```
+uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=0 d=2023 l=INFO
+```
+
 Functions
 ---------
 Index of functions that are working and tested:
