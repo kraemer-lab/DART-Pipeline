@@ -18,8 +18,8 @@ Done: ✅, in progress: ⏳, not working: ❌
  │    └── ✅ `uv run dart-pipeline get meteorological/chirps-rainfall d=2023-05` 1m32.80s
  ├── ✅ `uv run dart-pipeline get meteorological/terraclimate year=2023` 9m30.29s
  ├── ✅ `uv run dart-pipeline get sociodemographic/meta-pop-density 3=VNM` 10m25.46s
- ├── ❌ `uv run dart-pipeline get sociodemographic/worldpop-count 3=VNM`
- └── ❌ `uv run dart-pipeline get sociodemographic/worldpop-density 3=VNM`
+ ├── ✅ `uv run dart-pipeline get sociodemographic/worldpop-count 3=VNM`
+ └── ✅ `uv run dart-pipeline get sociodemographic/worldpop-density 3=VNM`
 
 `uv run dart-pipeline process`
  ├── `uv run dart-pipeline process economic/relative-wealth-index`

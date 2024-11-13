@@ -47,12 +47,18 @@ def days_in_year(year: int) -> Literal[365, 366]:
     return 366 if calendar.isleap(year) else 365
 
 
-def get_country_name(iso3: str) -> str:
+def get_country_name(iso3: str, common_name=True) -> str:
     if (country := pycountry.countries.get(alpha_3=iso3)) is None:
         raise ValueError(f"Country ISO3 not found: {iso3}")
-    try:
-        return country.common_name
-    except AttributeError:
+    # By default, the function tries to return the country's common name
+    if common_name:
+        try:
+            return country.common_name
+        except AttributeError:
+            return country.name
+    # The default can be overridden and the country's "name" (not
+    # "common name") can be returned explicitly
+    else:
         return country.name
 
 
