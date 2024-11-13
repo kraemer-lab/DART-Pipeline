@@ -1,5 +1,4 @@
 """Tests for process functions in process.py."""
-from pathlib import PosixPath
 from unittest.mock import patch, MagicMock
 
 from shapely.geometry import Polygon
@@ -15,7 +14,6 @@ from dart_pipeline.process import \
 
 
 @patch('geopandas.read_file')
-@patch("dart_pipeline.process.PartialDate.from_string")
 @patch("dart_pipeline.process.get_chirps_rainfall_data_path")
 @patch("dart_pipeline.process.get_shapefile")
 @patch("rasterio.open")
@@ -27,21 +25,12 @@ def test_process_gadm_chirps_rainfall(
     mock_raster_open,
     mock_get_shapefile,
     mock_get_chirps_rainfall_data_path,
-    mock_partial_date_from_string,
     mock_read_file
 ):
     iso3 = 'VNM'
     admin_level = '3'
     partial_date = '2023-05'
     plots = False
-
-    # Mock the partial date object and related function calls
-    mock_partial_date = MagicMock()
-    mock_partial_date.year = 2023
-    mock_partial_date.month = 5
-    mock_partial_date.day = None
-    mock_partial_date.scope = 'monthly'
-    mock_partial_date_from_string.return_value = mock_partial_date
 
     # Mock the file paths
     mock_get_chirps_rainfall_data_path.return_value = 'mocked_file.tif'
@@ -104,21 +93,12 @@ def test_process_gadm_chirps_rainfall(
 @patch('dart_pipeline.process.output_path')
 @patch('rasterio.open')
 @patch('dart_pipeline.process.get_chirps_rainfall_data_path')
-@patch('dart_pipeline.process.PartialDate.from_string')
 def test_process_chirps_rainfall(
-    mock_from_string, mock_data_path, mock_raster_open, mock_output_path
+    mock_data_path, mock_raster_open, mock_output_path
 ):
     partial_date = '2023-05'
     plots = False
 
-    # Mock the partial date object and related function calls
-    mock_partial_date = MagicMock()
-    mock_partial_date.year = 2023
-    mock_partial_date.month = 5
-    mock_partial_date.day = None
-    mock_partial_date.scope = 'monthly'
-
-    mock_from_string.return_value = mock_partial_date
     mock_data_path.return_value = 'mocked_file.tif'
     mock_output_path.return_value = 'mocked_output_path'
 
@@ -184,7 +164,7 @@ def test_process_terraclimate(
             description='Temperature',
             units='C'
         ),
-        'pdsi': MagicMock(
+        'PDSI': MagicMock(
             __getitem__=MagicMock(
                 return_value=np.array([[[0.5, 0.6], [0.7, 0.8]]])
             ),
@@ -339,7 +319,7 @@ def test_process_terraclimate(
 
     # Check that source_path was called with correct arguments
     mock_source_path.assert_called_with(
-        'geospatial/gadm', PosixPath('MCK/gadm41_MCK_1.shp')
+        'meteorological/terraclimate', 'TerraClimate_ws_2023.nc'
     )
 
     # Validate the returned DataFrame structure
