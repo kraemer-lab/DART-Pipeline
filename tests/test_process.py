@@ -165,7 +165,7 @@ def test_process_terraclimate(
             description='Temperature',
             units='C'
         ),
-        'pdsi': MagicMock(
+        'PDSI': MagicMock(
             __getitem__=MagicMock(
                 return_value=np.array([[[0.5, 0.6], [0.7, 0.8]]])
             ),
@@ -320,7 +320,7 @@ def test_process_terraclimate(
 
     # Check that source_path was called with correct arguments
     mock_source_path.assert_called_with(
-        'geospatial/gadm', PosixPath('MCK/gadm41_MCK_1.shp')
+        'meteorological/terraclimate', 'TerraClimate_ws_2023.nc'
     )
 
     # Validate the returned DataFrame structure
