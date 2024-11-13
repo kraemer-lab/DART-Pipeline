@@ -1,5 +1,4 @@
 """Tests for process functions in process.py."""
-from pathlib import PosixPath
 from unittest.mock import patch, MagicMock
 
 from shapely.geometry import Polygon
