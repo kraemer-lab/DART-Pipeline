@@ -243,9 +243,6 @@ def chirps_rainfall_data(partial_date: str) -> list[URLCollection]:
     chirps_first_year: Final[int] = 1981
     chirps_first_month: Final[date] = date(1981, 1, 1)
     urls: list[URLCollection] = []
-    if month:
-        month = int(month)
-
     if pdate.month:
         use_range(pdate.month, 1, 12, 'Month range')
 
