@@ -906,6 +906,7 @@ def process_relative_wealth_index_admin(
 ):
     """Process Vietnam Relative Wealth Index data."""
     source = 'economic/relative-wealth-index'
+    iso3 = iso3.upper()
     logging.info('iso3:%s', iso3)
     logging.info('admin_level:%s', admin_level)
 
@@ -936,7 +937,7 @@ def process_relative_wealth_index_admin(
         country = get_country_name(iso3)
         title = f'Relative Wealth Index\n{country} - Admin Level {admin_level}'
         colourbar_label = 'Relative Wealth Index [unitless]'
-        path = Path(output_path(source), title + '.png')
+        path = Path(output_path(source), f'{iso3}/admin_level_{admin_level}')
         plot_gadm_macro_heatmap(
             data, origin, extent, limits, gdf, zorder, title, colourbar_label,
             path
@@ -960,16 +961,22 @@ def process_relative_wealth_index_admin(
         gdf[[admin_geoid] + admin_columns],
         left_on='geo_id', right_on=admin_geoid, how='left'
     )
+
     # Rename the columns
     columns = dict(zip(
         admin_columns, [f'admin_level_{i}' for i in range(len(admin_columns))]
     ))
     rwi = rwi.rename(columns=columns)
+    rwi = rwi.rename(columns={'rwi': 'value'})
     # Add in the higher-level admin levels
     for i in range(int(admin_level) + 1, 4):
         rwi[f'admin_level_{i}'] = None
+    # Add the metric name and unit
+    rwi['metric'] = 'Relative Wealth Index'
+    rwi['unit'] = 'unitless'
     # Re-order the columns
-    output_columns = [f'admin_level_{i}' for i in range(4)] + ['rwi']
+    output_columns = \
+        [f'admin_level_{i}' for i in range(4)] + ['metric', 'value', 'unit']
     rwi = rwi[output_columns]
 
     return rwi, f'{iso3}.csv'
