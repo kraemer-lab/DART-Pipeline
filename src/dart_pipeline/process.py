@@ -191,7 +191,8 @@ def process_gadm_worldpopcount(
                 file_found = True
                 break
         if not file_found:
-            msg = f'{path}: No such file or directory'
+            msg = f'{path}: No such file or directory. Either it has not ' + \
+                'been downloaded or data does not exist for this year.'
             raise rasterio.errors.RasterioIOError(msg)
 
     # Rasterio stores image layers in 'bands'
@@ -263,7 +264,7 @@ def process_gadm_worldpopcount(
             # Sum the pixel values to get the total for the region
             region_total = np.nansum(region_data)
         else:
-            # There is no population data for this regionx
+            # There is no population data for this region
             region_total = 0
         logging.info('region:%s', title)
         logging.info('region_total:%s', region_total)
@@ -282,14 +283,17 @@ def process_gadm_worldpopcount(
         min_lon, min_lat, max_lon, max_lat = gdf.total_bounds
         extent = [min_lon, max_lon, min_lat, max_lat]
         limits = [min_lon, min_lat, max_lon, max_lat]
-        zorder = 1
-        name = get_country_name(iso3, common_name=False)
-        title = f'Log {metric}\n{name} - {pdate.year}'
-        colourbar_label = f'Log {metric} [{unit}]'
+        if admin_level in ['2', '3']:
+            zorder = 0
+        else:
+            zorder = 1
+        name = get_country_name(iso3, common_name=True)
+        title = f'{metric}\n{name} - {pdate.year}'
+        colourbar_label = f'Average {metric} per pixel [{unit}]'
         path = output_path(sub_pipeline, f'{iso3}/admin_level_{admin_level}')
         plot_gadm_macro_heatmap(
             data, origin, extent, limits, gdf, zorder, title, colourbar_label,
-            path
+            path, log_plot=True
         )
 
     # Export

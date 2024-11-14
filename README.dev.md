@@ -32,7 +32,11 @@ Done: ✅, in progress: ⏳, not working: ❌
  │    ├── ✅ `uv run dart-pipeline process geospatial/chirps-rainfall 3=VNM d=2023 a=0 l=INFO plots` 1.503s
  │    ├── ✅ `uv run dart-pipeline process geospatial/chirps-rainfall 3=VNM d=2023-05 a=0 l=INFO plots` 1.500s
  │    └── ✅ `uv run dart-pipeline process geospatial/chirps-rainfall 3=VNM d=2023-05-11 a=0 l=INFO plots` 1.474s
- ├── ❌ `uv run dart-pipeline process geospatial/worldpop-count`
+ ├── `uv run dart-pipeline process geospatial/worldpop-count`
+ │    ├── ✅ `uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=0 d=2023 l=INFO plots`
+ │    ├── ✅ `uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=1 d=2023 l=INFO plots`
+ │    ├── ✅ `uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=2 d=2023 l=INFO plots`
+ │    └── ✅ `uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=3 d=2023 l=INFO plots`
  ├── ✅ `uv run dart-pipeline process meteorological/aphrodite-daily-mean-temp` 0.691s
  ├── ❌ `uv run dart-pipeline process meteorological/aphrodite-daily-precip`
  ├── `uv run dart-pipeline process meteorological/chirps-rainfall`
@@ -74,7 +78,10 @@ uv run dart-pipeline process geospatial/gadm 3=VNM a=0
 ### WorldPop Population Counts
 
 ```
-uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=0 d=2023 l=INFO
+uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=0 d=2023 l=INFO plots
+uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=1 d=2023 l=INFO plots
+uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=2 d=2023 l=INFO plots
+uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=3 d=2023 l=INFO plots
 ```
 
 Functions
