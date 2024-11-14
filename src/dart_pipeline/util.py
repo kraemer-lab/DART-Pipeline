@@ -47,12 +47,18 @@ def days_in_year(year: int) -> Literal[365, 366]:
     return 366 if calendar.isleap(year) else 365
 
 
-def get_country_name(iso3: str) -> str:
+def get_country_name(iso3: str, common_name=True) -> str:
     if (country := pycountry.countries.get(alpha_3=iso3)) is None:
         raise ValueError(f"Country ISO3 not found: {iso3}")
-    try:
-        return country.common_name
-    except AttributeError:
+    # By default, the function tries to return the country's common name
+    if common_name:
+        try:
+            return country.common_name
+        except AttributeError:
+            return country.name
+    # The default can be overridden and the country's "name" (not
+    # "common name") can be returned explicitly
+    else:
         return country.name
 
 
@@ -293,9 +299,6 @@ def update_or_create_output(
     if not isinstance(out, (str, Path)):
         raise TypeError('Expected a valid file path')
 
-    with pd.option_context('future.no_silent_downcasting', True):
-        df = df.fillna('').infer_objects(copy=False)
-
     # Create a list of the key columns
     key_columns = []
     if 'admin_level_0' in list(df):
@@ -354,3 +357,11 @@ def update_or_create_output(
     # When testing we want to be able to inspect the data frame
     if return_df:
         return output_df
+
+
+def get_shapefile(iso3: str, admin_level: Literal["0", "1", "2"]) -> Path:
+    """Get a shape file."""
+    return source_path(
+        "geospatial/gadm",
+        Path(iso3, f"gadm41_{iso3}_{admin_level}.shp"),
+    )

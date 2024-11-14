@@ -51,7 +51,7 @@ from typing import Final, Callable
 from bs4 import BeautifulSoup
 import requests
 
-from .constants import TERRACLIMATE_METRICS, MEXICO_REGIONS
+from .constants import TERRACLIMATE_METRICS, PERU_REGIONS
 from .types import URLCollection, DataFile, PartialDate
 from .util import daterange, use_range, get_country_name
 
@@ -76,13 +76,11 @@ def relative_wealth_index(iso3: str) -> URLCollection:
     "Relative Wealth Index"
     if not iso3:
         raise ValueError("No ISO3 code has been provided")
-    if (
-        r := requests.get("https://data.humdata.org/dataset/relative-wealth-index")
-    ).status_code == 200:
+    url = "https://data.humdata.org/dataset/relative-wealth-index"
+    if (r := requests.get(url)).status_code == 200:
         # Search for a URL in the HTML content
         soup = BeautifulSoup(r.text, "html.parser")
         # Find all anchor tags (<a>) with href attribute containing the ISO3
-        # target = pycountry.countries.get(alpha_3=iso3).common_name.lower().replace(' ', '-')
         target = iso3.lower()
         links = soup.find_all("a", href=lambda href: href and target in href)  # type: ignore
         # Return the first link found
@@ -96,38 +94,51 @@ def relative_wealth_index(iso3: str) -> URLCollection:
 
 
 def ministerio_de_salud_peru_data() -> list[DataFile]:
-    "Data from the Ministerio de Salud (Peru) https://www.dge.gob.pe/sala-situacional-dengue"
-    pages = ["Nacional_dengue"] + ["sala_dengue_" + region for region in MEXICO_REGIONS]
+    """
+    Download data from the Ministerio de Salud (Peru).
+
+    https://www.dge.gob.pe/sala-situacional-dengue
+    """
+    pages = ["Nacional_dengue"] + \
+        ["sala_dengue_" + region for region in PERU_REGIONS]
     # If the user specifies that only one dataset should be downloaded
     data: list[DataFile] = []
     for page in pages:
-        url = "https://www.dge.gob.pe/sala-situacional-dengue/uploads/" + f"{page}.html"
-        print(f'Accessing "{url}"')
+        url = "https://www.dge.gob.pe/sala-situacional-dengue/uploads/" + \
+            f"{page}.html"
+        print(f'Accessing {url}')
         response = requests.get(url)
-        response.raise_for_status()  # raise an exception for bad response status
+        # Raise an exception for bad response status
+        response.raise_for_status()
         # Parse HTML content
         soup = BeautifulSoup(response.content, "html.parser")
         # Find links with the onclick attribute in both <a> and <button> tags
         onclick_elements = soup.find_all(
             lambda tag: tag.name in ["a", "button"] and tag.has_attr("onclick")
         )
-        if not (links := [element.get("onclick") for element in onclick_elements]):
+        links = [element.get("onclick") for element in onclick_elements]
+        if not links:
             raise ValueError("No links found on the page")
 
         for link in links:
             # Search the link for the data embedded in it
-            if matches := re.findall(r"base64,(.*?)(?='\).then)", link, re.DOTALL):
+            matches = re.findall(r"base64,(.*?)(?='\).then)", link, re.DOTALL)
+            if matches:
                 base64_string = matches[0]
             else:
                 raise ValueError("No data found embedded in the link")
 
             # Search the link for the filename
-            if matches := re.findall(r"a\.download = '(.*?)';\s*a\.click", link):
-                filename = matches[0]  # there is an actual filename for this data
+            matches = re.findall(r"a\.download = '(.*?)';\s*a\.click", link)
+            if matches:
+                # There is an actual filename for this data
+                filename = matches[0]
             else:
-                filename = page + ".xlsx"  # use the page name for the file
+                # Use the page name for the file
+                filename = page + ".xlsx"
 
-            data.append(DataFile(filename, ".", base64.b64decode(base64_string)))
+            file = DataFile(filename, ".", base64.b64decode(base64_string))
+            data.append(file)
     return data
 
 
@@ -142,7 +153,7 @@ def aphrodite_precipitation_data() -> list[URLCollection]:
         ),
         # 0.25 degree
         URLCollection(
-            f"{base_url}/'product/APHRO_V1901/APHRO_MA/025deg",
+            f"{base_url}/product/APHRO_V1901/APHRO_MA/025deg",
             [
                 "APHRO_MA_025deg_V1901.2015.gz",
                 "APHRO_MA_025deg_V1901.ctl.gz",
@@ -232,7 +243,6 @@ def chirps_rainfall_data(partial_date: str) -> list[URLCollection]:
     chirps_first_year: Final[int] = 1981
     chirps_first_month: Final[date] = date(1981, 1, 1)
     urls: list[URLCollection] = []
-
     if pdate.month:
         use_range(pdate.month, 1, 12, 'Month range')
 
@@ -335,7 +345,11 @@ def worldpop_pop_count_data(iso3: str) -> URLCollection:
     files along with .tfw and .tif.aux.xml files. Most users will not find
     these files useful and so unzipping the .7z file is usually unnecessary.
     """
-    country = get_country_name(iso3)
+    # When iso3='VNM' the required output is country='Viet_Nam'. Hence the
+    # common name ('Vietnam') is not correct
+    country = get_country_name(iso3, common_name=False)
+    # When country='Viet Nam', replace the space with an underscore
+    country = country.replace(' ', '_')
     return URLCollection(
         "https://data.worldpop.org",
         [
@@ -344,6 +358,7 @@ def worldpop_pop_count_data(iso3: str) -> URLCollection:
             # otherwise zip file is downloaded
             f"GIS/Population/Individual_countries/{iso3}/{country}_100m_Population.7z",
         ],
+        relative_path=iso3,
     )
 
 
@@ -353,14 +368,17 @@ def worldpop_pop_density_data(iso3: str) -> URLCollection:
     return URLCollection(
         f"https://data.worldpop.org/GIS/Population_Density/Global_2000_2020_1km_UNadj/{year}/{iso3}",
         [
-            f"{iso3.lower()}_pd_{year}_1km_UNadj_ASCII_XYZ.zip"  # GeoDataFrame
-            f"{iso3.lower()}_pd_{year}_1km_UNadj.tif"  # GeoTIFF
+            # GeoDataFrame
+            f"{iso3.lower()}_pd_{year}_1km_UNadj_ASCII_XYZ.zip",
+            # GeoTIFF
+            f"{iso3.lower()}_pd_{year}_1km_UNadj.tif"
         ],
+        relative_path=iso3,
     )
 
 
 REQUIRES_AUTH = [
-    "meterological/aphrodite-daily-precip",
+    "meteorological/aphrodite-daily-precip",
     "meteorological/aphrodite-daily-mean-temp",
 ]
 
