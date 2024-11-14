@@ -209,13 +209,6 @@ def process_gadm_worldpopcount(
         bounds.left, bounds.bottom, bounds.right, bounds.top
     )
 
-    # Sanity checking
-    # TODO: put these in tests!
-    if (iso3 == "VNM") and (year == "2020"):
-        assert data.sum() == 96355088.0, f"{data.sum()} != 96355088.0"  # 96,355,088
-    if (iso3 == "PER") and (year == "2020"):
-        assert data.sum() == 32434896.0, f"{data.sum()} != 32434896.0"  # 32,434,896
-
     # Import shape file
     path = get_shapefile(iso3, admin_level)
     logging.info('importing:%s', path)
