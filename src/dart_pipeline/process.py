@@ -128,34 +128,32 @@ def process_rwi(iso3: str, admin_level: str, plots=False):
     return rwi, f'{iso3}.csv'
 
 
-def process_ministerio_de_salud_peru_data(
-    admin_level: Literal["0", "1"] | None = None,
-) -> ProcessResult:
+def process_dengueperu(admin_level: Literal['0', '1'] | None = None):
     """Process data from the Ministerio de Salud - Peru."""
-    source = "epidemiological/dengue-peru"
+    source = 'epidemiological/dengue/peru'
     if not admin_level:
-        admin_level = "0"
-        logging.info('Admin level:None, defaulting to %s', admin_level)
-    elif admin_level in ["0", "1"]:
-        logging.info('Admin level:%s', admin_level)
+        admin_level = '0'
+        logging.info('admin_level:None (defaulting to %s)', admin_level)
+    elif admin_level in ['0', '1']:
+        logging.info('admin_level:%s', admin_level)
     else:
-        raise ValueError(f"Invalid admin level: {admin_level}")
+        raise ValueError(f'Invalid admin level: {admin_level}')
 
     # Find the raw data
     path = source_path(source)
-    iso3 = "PER"
-    if admin_level == "0":
-        filepaths = [Path(path, "casos_dengue_nacional.xlsx")]
+    iso3 = 'PER'
+    if admin_level == '0':
+        filepaths = [Path(path, 'casos_dengue_nacional.xlsx')]
     else:
         filepaths = []
         for dirpath, _, filenames in os.walk(path):
             filenames.sort()
             for filename in filenames:
                 # Skip hidden files
-                if filename.startswith("."):
+                if filename.startswith('.'):
                     continue
                 # Skip admin levels that have not been requested for analysis
-                if filename == "casos_dengue_nacional.xlsx":
+                if filename == 'casos_dengue_nacional.xlsx':
                     continue
                 filepaths.append(Path(dirpath, filename))
 
@@ -164,26 +162,39 @@ def process_ministerio_de_salud_peru_data(
 
     # Import the raw data
     for filepath in filepaths:
+        logging.info('importing:%s', filepath)
         df = pd.read_excel(filepath)
+
+        # Rename the headings
+        df = df.rename(columns={'ano': 'year'})
+        df = df.rename(columns={'semana': 'week'})
+        df = df.rename(columns={'n': 'value'})
 
         # Get the name of the administrative divisions
         filename = filepath.name
-        name = filename.removesuffix(".xlsx").split("_")[-1].capitalize()
-        logging.info('Processing:%s', name)
+        name = filename.removesuffix('.xlsx').split('_')[-1].capitalize()
+        logging.info('processing:%s', name)
         # Add to the output data frame
-        df["admin_level_0"] = "Peru"
-        if admin_level == "1":
-            df["admin_level_1"] = name
+        df['admin_level_0'] = 'Peru'
+        if admin_level == '1':
+            df['admin_level_1'] = name
+        else:
+            df['admin_level_1'] = ''
 
         # Convert 'year' and 'week' to datetime format
-        df["date"] = pd.to_datetime(
-            df["ano"].astype(str) + "-" + df["semana"].astype(str) + "-1",
-            format="%G-%V-%u",
+        df['date'] = pd.to_datetime(
+            df['year'].astype(str) + '-' + df['week'].astype(str) + '-1',
+            format='%G-%V-%u',
         )
+        df = df.drop('week', axis=1)
+        df['month'] = df['date'].dt.month
+        df['day'] = df['date'].dt.day
+        df = df.drop('date', axis=1)
+
         # Add to master data frame
         master = pd.concat([master, df], ignore_index=True)
 
-    return master, f"{iso3}/admin{admin_level}.csv"
+    return master, f'{iso3}.csv'
 
 
 def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
@@ -976,7 +987,7 @@ def get_admin_region(lat: float, lon: float, polygons) -> str:
 
 PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
     "economic/relative-wealth-index": process_rwi,
-    "epidemiological/dengue/peru": process_ministerio_de_salud_peru_data,
+    "epidemiological/dengue/peru": process_dengueperu,
     "geospatial/chirps-rainfall": process_gadm_chirps_rainfall,
     "geospatial/gadm": process_gadm_admin_map_data,
     "geospatial/worldpop-count": process_gadm_worldpopcount,

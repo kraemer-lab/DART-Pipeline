@@ -21,6 +21,14 @@ Get
  ├── ✅ `uv run dart-pipeline get sociodemographic/worldpop-count 3=VNM`
  └── ✅ `uv run dart-pipeline get sociodemographic/worldpop-density 3=VNM`
 
+### Epidemiological
+
+#### Dengue - Peru
+
+```
+uv run dart-pipeline get epidemiological/dengue/peru
+```
+
 ### Meteorological
 
 #### CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations
@@ -74,6 +82,14 @@ uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=0 l=INFO plo
 uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=1 l=INFO plots
 uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=2 l=INFO plots
 uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=3 l=INFO plots
+```
+
+### Epidemiological
+
+#### Dengue - Peru
+
+```
+uv run dart-pipeline process epidemiological/dengue/peru l=INFO
 ```
 
 ### Geospatial
