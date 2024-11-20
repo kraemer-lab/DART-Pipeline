@@ -9,3 +9,5 @@ time uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=2 l=INF
 6.672s
 time uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=3 l=INFO plots
 1m18.97s
+
+uv run dart-pipeline process epidemiological/dengue/peru l=INFO

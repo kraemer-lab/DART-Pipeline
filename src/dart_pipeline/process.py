@@ -14,7 +14,7 @@ In general, use `EPSG:9217 <https://epsg.io/9217>`_ or
 `ISO 3166-1 alpha-3 <https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3>`_
 format for country codes.
 """
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Literal, Callable
 import logging
@@ -34,7 +34,8 @@ import rasterio.features
 import shapely.geometry
 
 from .plots import \
-    plot_heatmap, plot_gadm_micro_heatmap, plot_gadm_macro_heatmap
+    plot_heatmap, plot_gadm_micro_heatmap, plot_gadm_macro_heatmap, \
+    plot_timeseries
 from .util import \
     abort, source_path, days_in_year, output_path, get_country_name, \
     get_shapefile
@@ -46,6 +47,22 @@ pandarallel.initialize(verbose=0)
 TEST_MODE = os.getenv("DART_PIPELINE_TEST")
 # Smallest single-precision floating-point number
 MIN_FLOAT = -3.4028234663852886e38
+# Column names in the output CSVs
+OUTPUT_COLUMNS = [
+    'iso3',
+    'admin_level_0',
+    'admin_level_1',
+    'admin_level_2',
+    'admin_level_3',
+    'year',
+    'month',
+    'day',
+    'week',
+    'metric',
+    'value',
+    'unit',
+    'creation_date'
+]
 
 
 def process_rwi(iso3: str, admin_level: str, plots=False):
@@ -128,7 +145,9 @@ def process_rwi(iso3: str, admin_level: str, plots=False):
     return rwi, f'{iso3}.csv'
 
 
-def process_dengueperu(admin_level: Literal['0', '1'] | None = None):
+def process_dengueperu(
+    admin_level: Literal['0', '1'] | None = None, plots=False
+):
     """Process data from the Ministerio de Salud - Peru."""
     source = 'epidemiological/dengue/peru'
     if not admin_level:
@@ -141,7 +160,6 @@ def process_dengueperu(admin_level: Literal['0', '1'] | None = None):
 
     # Find the raw data
     path = source_path(source)
-    iso3 = 'PER'
     if admin_level == '0':
         filepaths = [Path(path, 'casos_dengue_nacional.xlsx')]
     else:
@@ -158,7 +176,7 @@ def process_dengueperu(admin_level: Literal['0', '1'] | None = None):
                 filepaths.append(Path(dirpath, filename))
 
     # Initialise an output data frame
-    master = pd.DataFrame()
+    master = pd.DataFrame(columns=OUTPUT_COLUMNS)
 
     # Import the raw data
     for filepath in filepaths:
@@ -168,7 +186,16 @@ def process_dengueperu(admin_level: Literal['0', '1'] | None = None):
         # Rename the headings
         df = df.rename(columns={'ano': 'year'})
         df = df.rename(columns={'semana': 'week'})
+        df = df.rename(columns={'tipo_dx': 'metric'})
         df = df.rename(columns={'n': 'value'})
+
+        # Define two metrics
+        df.loc[df['metric'] == 'C', 'metric'] = 'Confirmed Dengue Cases'
+        df.loc[df['metric'] == 'P', 'metric'] = 'Probable Dengue Cases'
+        # Confirm no rows have been missed
+        metrics = ['Confirmed Dengue Cases', 'Probable Dengue Cases']
+        mask = ~df['metric'].isin(metrics)
+        assert len(df[mask]) == 0
 
         # Get the name of the administrative divisions
         filename = filepath.name
@@ -180,21 +207,32 @@ def process_dengueperu(admin_level: Literal['0', '1'] | None = None):
             df['admin_level_1'] = name
         else:
             df['admin_level_1'] = ''
-
-        # Convert 'year' and 'week' to datetime format
-        df['date'] = pd.to_datetime(
-            df['year'].astype(str) + '-' + df['week'].astype(str) + '-1',
-            format='%G-%V-%u',
-        )
-        df = df.drop('week', axis=1)
-        df['month'] = df['date'].dt.month
-        df['day'] = df['date'].dt.day
-        df = df.drop('date', axis=1)
+        df['admin_level_2'] = ''
+        df['admin_level_3'] = ''
 
         # Add to master data frame
         master = pd.concat([master, df], ignore_index=True)
 
-    return master, f'{iso3}.csv'
+        # Plot
+        if plots:
+            df['date'] = pd.to_datetime(
+                df['year'].astype(str) + df['week'].astype(str) + '1',
+                format='%Y%U%w'
+            )
+            start = df.loc[0, 'year']
+            end = df.loc[len(df) - 1, 'year']
+            title = f'Dengue Cases\nPeru - {start} to {end}'
+            path = Path(output_path(source), name + '.png')
+            plot_timeseries(df, title, path)
+
+    # Fill in additional columns
+    master['iso3'] = 'PER'
+    master['month'] = ''
+    master['day'] = ''
+    master['unit'] = 'cases'
+    master['creation_date'] = date.today()
+
+    return master, f'dengue_peru.csv'
 
 
 def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):

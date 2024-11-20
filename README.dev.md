@@ -7,7 +7,7 @@ Get
 
 `uv run dart-pipeline get`
  ├── ✅ `uv run dart-pipeline get economic/relative-wealth-index 3=VNM` 6.309s
- ├── ✅ `uv run dart-pipeline get epidemiological/dengue/peru` 21m31.33s
+ ├── ✅ `uv run dart-pipeline get epidemiological/dengue/peru`
  ├── `uv run dart-pipeline get geospatial/gadm`
  │    ├── ✅ `uv run dart-pipeline get geospatial/gadm 3=PER` 
  │    └── ✅ `uv run dart-pipeline get geospatial/gadm 3=VNM` 17.964s

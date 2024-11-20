@@ -1,4 +1,5 @@
 """Plot data."""
+from datetime import date
 from pathlib import Path
 import logging
 import re
@@ -84,6 +85,28 @@ def plot_gadm_macro_heatmap(
     # Make the plot title file-system safe
     title = re.sub(r'[<>:"/\\|?*]', '_', title)
     title = title.strip()
+    # Export
+    path.parent.mkdir(parents=True, exist_ok=True)
+    logging.info('exporting:%s', path)
+    plt.savefig(path)
+    plt.close()
+
+
+def plot_timeseries(df, title, path):
+    """Plot time series data."""
+    plt.figure()
+    for metric in df['metric'].unique():
+        subset = df[df['metric'] == metric]
+        plt.plot(subset['date'], subset['value'], label=metric)
+    for year in df['year'].unique():
+        year_dt = date(year, 1, 1)
+        plt.axvline(year_dt, linestyle='--', alpha=0.3, c='gray')
+    plt.title(title)
+    plt.xlabel('Year', fontsize=12)
+    plt.ylabel('Cases', fontsize=12)
+    plt.xticks(rotation=30)
+    plt.legend()
+    plt.tight_layout()
     # Export
     path.parent.mkdir(parents=True, exist_ok=True)
     logging.info('exporting:%s', path)
