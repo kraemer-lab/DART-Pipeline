@@ -90,6 +90,9 @@ uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=3 l=INFO plo
 
 ```
 uv run dart-pipeline process epidemiological/dengue/peru l=INFO
+uv run dart-pipeline process epidemiological/dengue/peru l=INFO plots
+uv run dart-pipeline process epidemiological/dengue/peru a=1 l=INFO
+uv run dart-pipeline process epidemiological/dengue/peru a=1 l=INFO plots
 ```
 
 ### Geospatial

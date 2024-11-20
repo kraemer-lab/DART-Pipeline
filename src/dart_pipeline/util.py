@@ -26,6 +26,7 @@ from .constants import (
     DEFAULT_OUTPUT_ROOT,
     DEFAULT_PLOTS_ROOT,
     COMPRESSED_FILE_EXTS,
+    OUTPUT_COLUMNS
 )
 from .types import Credentials, URLCollection, DefaultPathProtocol
 
@@ -290,73 +291,57 @@ def unpack_file(path: Path | str, same_folder: bool = False):
 
 
 def update_or_create_output(
-    df: pd.DataFrame, out: str | Path, return_df=False
+    new_df: pd.DataFrame, out: str | Path, return_df=False
 ):
     """Either update an existing CSV or create a new one."""
     # Validate the input
-    if not isinstance(df, pd.DataFrame):
+    if not isinstance(new_df, pd.DataFrame):
         raise TypeError('Expected a pandas DataFrame as input')
     if not isinstance(out, (str, Path)):
         raise TypeError('Expected a valid file path')
 
-    # Create a list of the key columns
-    key_columns = []
-    if 'admin_level_0' in list(df):
-        key_columns.append('admin_level_0')
-        df['admin_level_0'] = df['admin_level_0'].astype(str)
-    if 'admin_level_1' in list(df):
-        key_columns.append('admin_level_1')
-        df['admin_level_1'] = df['admin_level_1'].astype(str)
-    if 'admin_level_2' in list(df):
-        key_columns.append('admin_level_2')
-        df['admin_level_2'] = df['admin_level_2'].astype(str)
-    if 'admin_level_3' in list(df):
-        key_columns.append('admin_level_3')
-        df['admin_level_3'] = df['admin_level_3'].astype(str)
-    if 'year' in list(df):
-        key_columns.append('year')
-        df['year'] = df['year'].astype(str)
-    if 'month' in list(df):
-        key_columns.append('month')
-        df['month'] = df['month'].astype(str)
-    if 'day' in list(df):
-        key_columns.append('day')
-        df['day'] = df['day'].astype(str)
-
     # Check if the CSV file already exists
     if out.exists():
-        # Import the existing CSV, using the same dtypes as the new data frame
-        dtypes = df.dtypes.to_dict()
-        existing_df = pd.read_csv(out, dtype=dtypes)
-        existing_df.fillna('', inplace=True)
-        # Merge the new data with the existing data, prioritising new values
-        output_df = pd.merge(
-            existing_df, df, on=key_columns, how='outer', suffixes=('_old', '')
+        # Import the existing CSV with everything as a string
+        old_df = pd.read_csv(out, dtype=str)
+        old_df.fillna('', inplace=True)
+        # Convert the new data frame to str
+        new_df = new_df.astype(str)
+        new_df.fillna('', inplace=True)
+
+        # Merge the new data with the existing data
+        key_columns = OUTPUT_COLUMNS
+        key_columns.remove('value')
+        merged_df = old_df.merge(
+            new_df, on=key_columns, suffixes=('_old', '_new'), how='outer'
         )
-        # Create a list of the metrics
-        metrics = [
-            c.removesuffix('_old') for c in list(output_df)
-            if c.endswith('_old')
-        ]
-        # Update the data by prioritizing the new values (from the new data)
-        for metric in metrics:
-            output_df[metric] = \
-                output_df[metric].combine_first(output_df[f'{metric}_old'])
-            # Drop the old data column
-            output_df = output_df.drop(
-                columns=[f'{metric}_old'], errors='ignore'
-            )
+
+        # Update values where creation_date is the same but value is different
+        updated_values = merged_df['value_new'].notna() & \
+            (merged_df['value_old'] != merged_df['value_new'])
+        merged_df.loc[updated_values, 'value_old'] = merged_df['value_new']
+
+        # Keep the updated/old values and drop the helper column
+        merged_df = merged_df.rename(columns={'value_old': 'value'})
+        df = merged_df.drop(columns=['value_new'])
+        df = df.drop_duplicates()
+
+        # Add rows from the new data frame not in the old one
+        mask = ~new_df.apply(tuple, axis=1).isin(old_df.apply(tuple, axis=1))
+        df = pd.concat([df, new_df[mask]])
+
+    # If a CSV of output data does not already exist
     else:
         # Output the data as-is
-        output_df = df
+        pass
 
     # Export
     logging.info(f'Exporting:{out}')
-    output_df.to_csv(out, index=False)
+    df.to_csv(out, index=False)
 
     # When testing we want to be able to inspect the data frame
     if return_df:
-        return output_df
+        return df
 
 
 def get_shapefile(iso3: str, admin_level: Literal["0", "1", "2"]) -> Path:

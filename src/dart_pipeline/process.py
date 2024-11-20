@@ -40,29 +40,13 @@ from .util import \
     abort, source_path, days_in_year, output_path, get_country_name, \
     get_shapefile
 from .types import ProcessResult, PartialDate, AdminLevel
-from .constants import TERRACLIMATE_METRICS
+from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS
 
 pandarallel.initialize(verbose=0)
 
 TEST_MODE = os.getenv("DART_PIPELINE_TEST")
 # Smallest single-precision floating-point number
 MIN_FLOAT = -3.4028234663852886e38
-# Column names in the output CSVs
-OUTPUT_COLUMNS = [
-    'iso3',
-    'admin_level_0',
-    'admin_level_1',
-    'admin_level_2',
-    'admin_level_3',
-    'year',
-    'month',
-    'day',
-    'week',
-    'metric',
-    'value',
-    'unit',
-    'creation_date'
-]
 
 
 def process_rwi(iso3: str, admin_level: str, plots=False):
@@ -221,7 +205,10 @@ def process_dengueperu(
             )
             start = df.loc[0, 'year']
             end = df.loc[len(df) - 1, 'year']
-            title = f'Dengue Cases\nPeru - {start} to {end}'
+            if admin_level == '0':
+                title = f'Dengue Cases\nPeru - {start} to {end}'
+            else:
+                title = f'Dengue Cases\n{name} - {start} to {end}'
             path = Path(output_path(source), name + '.png')
             plot_timeseries(df, title, path)
 
@@ -230,6 +217,7 @@ def process_dengueperu(
     master['month'] = ''
     master['day'] = ''
     master['unit'] = 'cases'
+    master['resolution'] = ''
     master['creation_date'] = date.today()
 
     return master, f'dengue_peru.csv'

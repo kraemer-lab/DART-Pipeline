@@ -98,13 +98,16 @@ def plot_timeseries(df, title, path):
     for metric in df['metric'].unique():
         subset = df[df['metric'] == metric]
         plt.plot(subset['date'], subset['value'], label=metric)
-    for year in df['year'].unique():
+    for year in range(df['year'].min(), df['year'].max() + 1):
         year_dt = date(year, 1, 1)
         plt.axvline(year_dt, linestyle='--', alpha=0.3, c='gray')
     plt.title(title)
     plt.xlabel('Year', fontsize=12)
     plt.ylabel('Cases', fontsize=12)
     plt.xticks(rotation=30)
+    ymin, ymax = plt.ylim()
+    plt.ylim(0, ymax)
+    plt.xlim(date(df['year'].min(), 1, 1), date(df['year'].max(), 12, 31))
     plt.legend()
     plt.tight_layout()
     # Export
