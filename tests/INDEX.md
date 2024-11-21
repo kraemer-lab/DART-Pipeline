@@ -23,3 +23,18 @@ INDEX
 ✅ def test_process_chirps_rainfall(
 ✅ def test_process_terraclimate(
 ```
+
+`pytest tests/test_util.py`
+
+```
+✅ def test_download_file():
+✅ def test_download_file_unzip():
+✅ def test_download_file_without_unzip():
+✅ def test_download_file_unzip_create_folder():
+✅ def test_days_in_year(year, days):
+✅ def test_get_country_name(iso3, name):
+✅ def test_use_range():
+✅ def test_update_or_create_output_create_new(
+✅ def test_update_or_create_output_update_existing(
+✅ def test_update_or_create_output_invalid_input():
+```
