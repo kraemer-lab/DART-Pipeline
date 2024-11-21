@@ -5,6 +5,24 @@ gitignored/
 /*.html
 *.pdf
 
+# Metadata files
+data/**/*.txt
+data/**/*.html
+
+# Images
+*.avif
+*.bmp
+*.eps
+*.gif
+*.ico
+*.jpeg
+*.jpg
+*.png
+*.svg
+*.tif
+*.tiff
+*.webp
+
 # Data files
 *.7z
 *.cpg
@@ -61,17 +79,11 @@ gitignored/
 *.dcm
 *.doc
 *.docx
-*.jpeg
-*.jpg
 *.ods
 *.pdf
-*.png
 *.pptx
-*.session
-*.tiff
 *.vsdx
 *.xls
-*.xls#
 *.xlsx
 
 # Pycharm helper files

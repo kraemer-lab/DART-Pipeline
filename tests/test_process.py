@@ -1,17 +1,151 @@
 """Tests for process functions in process.py."""
 from unittest.mock import patch, MagicMock
 
-from pathlib import PosixPath
 from shapely.geometry import Polygon
 import geopandas as gpd
 import numpy as np
 import pandas as pd
+import rasterio
 import pytest
 
 from dart_pipeline.process import \
+    process_rwi, \
+    process_dengueperu, \
     process_gadm_chirps_rainfall, \
+    process_gadm_worldpopcount, \
     process_chirps_rainfall, \
     process_terraclimate
+
+
+@patch('pandas.DataFrame.parallel_apply')
+@patch('pandas.read_csv')
+@patch('dart_pipeline.util.source_path')
+@patch('geopandas.read_file')
+@patch('dart_pipeline.process.get_shapefile')
+def test_process_rwi(
+    mock_get_shapefile, mock_read_file, mock_source_path, mock_read_csv,
+    mock_parallel_apply
+):
+    # Test Case 1: Valid data processing
+    # Mocking shapefile
+    mock_get_shapefile.return_value = 'mock_path_to_shapefile'
+    mock_read_file.return_value = pd.DataFrame({
+        'GID_2': ['ID1', 'ID2'],
+        'geometry': [MagicMock(), MagicMock()],
+        'COUNTRY': ['Country', 'Country'],
+        'NAME_1': ['Region1', 'Region2'],
+        'NAME_2': ['Subregion1', 'Subregion2']
+    })
+    mock_source_path.return_value = 'mock_path_to_csv'
+    # Mock RWI data with latitude, longitude, and rwi columns
+    mock_read_csv.return_value = pd.DataFrame({
+        'latitude': [10.5, 20.5],
+        'longitude': [105.5, 110.5],
+        'rwi': [1.2, 0.5]
+    })
+    # Mock parallel_apply()
+    mock_parallel_apply.return_value = None
+
+    # Run the function
+    rwi_df, csv_filename = process_rwi('VNM', '2', plots=False)
+
+    # Assertions for valid data processing
+    assert isinstance(rwi_df, pd.DataFrame), 'Output should be a DataFrame'
+    assert 'admin_level_0' in rwi_df.columns, 'Expected column missing'
+    assert 'value' in rwi_df.columns, 'Expected column missing in output'
+    assert csv_filename == 'VNM.csv', 'CSV filename does not match expected'
+
+    # Test Case 2: Missing RWI CSV file
+    # Simulate missing CSV file
+    mock_read_csv.side_effect = FileNotFoundError('RWI CSV file not found')
+    with pytest.raises(FileNotFoundError):
+        process_rwi('VNM', '2')
+    # Reset the side effect to avoid affecting the next test case
+    mock_read_csv.side_effect = None
+
+    # Test Case 3: Check for plotting
+    with patch('dart_pipeline.process.plot_gadm_macro_heatmap') as mock_plot:
+        # Run with plotting enabled
+        rwi_df, csv_filename = process_rwi('VNM', '2', plots=True)
+        # Assert plot function was called
+        mock_plot.assert_called_once()
+
+
+@pytest.fixture
+def mock_source_path():
+    with patch('dart_pipeline.util.source_path') as mock_path:
+        mock_path.return_value = '/mock/source/path'
+        yield mock_path
+
+
+@pytest.fixture
+def mock_output_path():
+    with patch('dart_pipeline.util.output_path') as mock_path:
+        mock_path.return_value = '/mock/output/path'
+        yield mock_path
+
+
+@pytest.fixture
+def mock_plot_timeseries():
+    with patch('dart_pipeline.plots.plot_timeseries') as mock_plot:
+        yield mock_plot
+
+
+@pytest.fixture
+def mock_read_excel():
+    with patch('pandas.read_excel') as mock_read:
+        mock_read.return_value = pd.DataFrame({
+            'ano': [2023, 2023],
+            'semana': [1, 2],
+            'tipo_dx': ['C', 'P'],
+            'n': [10, 20],
+        })
+        yield mock_read
+
+
+@pytest.fixture
+def mock_os_walk():
+    with patch('os.walk') as mock_walk:
+        mock_walk.return_value = [(
+            '/mock/source/path', ['subdir'],
+            ['casos_dengue_nacional.xlsx', 'casos_dengue_region1.xlsx']
+        )]
+        yield mock_walk
+
+
+@pytest.mark.parametrize(
+    'admin_level, expected_admin_level_1, expected_plot_calls, should_raise',
+    [
+        ('0', '', 1, False),  # Admin level 0
+        ('1', 'Region1', 1, False),  # Admin level 1
+        ('2', None, 0, True),  # Invalid admin level
+    ]
+)
+def test_process_dengueperu(
+    admin_level, expected_admin_level_1, expected_plot_calls, should_raise,
+    mock_source_path, mock_output_path, mock_plot_timeseries,
+    mock_read_excel, mock_os_walk
+):
+    if should_raise:
+        match = f'Invalid admin level: {admin_level}'
+        with pytest.raises(ValueError, match=match):
+            process_dengueperu(admin_level=admin_level)
+    else:
+        master, output_filename = process_dengueperu(
+            admin_level=admin_level, plots=True
+        )
+
+        # Validate the output DataFrame
+        assert isinstance(master, pd.DataFrame)
+        assert master['admin_level_0'].iloc[0] == 'Peru'
+        assert master['admin_level_1'].iloc[0] == expected_admin_level_1
+        assert master['metric'].tolist() == [
+            'Confirmed Dengue Cases', 'Probable Dengue Cases'
+        ]
+        assert output_filename == 'dengue_peru.csv'
+
+        # Check the mock calls
+        mock_read_excel.assert_called()
 
 
 @patch('geopandas.read_file')
@@ -91,6 +225,51 @@ def test_process_gadm_chirps_rainfall(
     min_lon, min_lat, max_lon, max_lat = region_geometry.bounds
 
 
+@patch('os.listdir')
+@patch('geopandas.gpd.read_file')
+@patch('dart_pipeline.process.get_shapefile')
+@patch('dart_pipeline.util.source_path')
+@patch("rasterio.open")
+def test_process_gadm_worldpopcount(
+    mock_rasterio_open, mock_source_path, mock_get_shapefile, mock_read_file,
+    mock_listdir
+):
+    # Test case 1: Process valid data
+    mock_read_file.return_value = MagicMock()
+    mock_rasterio_open.return_value = MagicMock(
+        read=lambda x: [[1, 1], [1, 1]]
+    )
+    # Run the function with valid data
+    output, csv_filename = process_gadm_worldpopcount('VNM', '2020', '2')
+    # Assertions for valid data processing
+    assert isinstance(output, pd.DataFrame), 'Output should be a DataFrame'
+    msg = 'Expected column missing in output'
+    assert 'admin_level_0' in output.columns, msg
+    assert 'metric' in output.columns, 'Expected column missing in output'
+    msg = 'CSV filename does not match expected value'
+    assert csv_filename == 'VNM.csv', msg
+
+    # Test case 2: Invalid date with day included
+    with pytest.raises(ValueError, match='Provide only a year in YYYY format'):
+        process_gadm_worldpopcount('VNM', '2020-01-01', admin_level='0')
+
+    # Test case 3: Invalid date with month included
+    with pytest.raises(ValueError, match='Provide only a year in YYYY format'):
+        process_gadm_worldpopcount('VNM', '2020-01', admin_level='0')
+
+    # Test case 4: Missing raster file, falling back to previous year
+    # Simulate missing file for the given year but available fallback file
+    mock_listdir.return_value = ['VNM_ppp_v2b_2019_UNadj.tif']
+    mock_rasterio_open.side_effect = [
+        rasterio.errors.RasterioIOError, MagicMock()
+    ]
+    # Call the function
+    output, csv_filename = process_gadm_worldpopcount('VNM', '2020', '0')
+    # Check that fallback file was used and output generated
+    msg = 'Output should be a DataFrame even with fallback file'
+    assert isinstance(output, pd.DataFrame), msg
+
+
 @patch('dart_pipeline.process.output_path')
 @patch('rasterio.open')
 @patch('dart_pipeline.process.get_chirps_rainfall_data_path')
@@ -165,7 +344,7 @@ def test_process_terraclimate(
             description='Temperature',
             units='C'
         ),
-        'pdsi': MagicMock(
+        'PDSI': MagicMock(
             __getitem__=MagicMock(
                 return_value=np.array([[[0.5, 0.6], [0.7, 0.8]]])
             ),
@@ -320,7 +499,7 @@ def test_process_terraclimate(
 
     # Check that source_path was called with correct arguments
     mock_source_path.assert_called_with(
-        'geospatial/gadm', PosixPath('MCK/gadm41_MCK_1.shp')
+        'meteorological/terraclimate', 'TerraClimate_ws_2023.nc'
     )
 
     # Validate the returned DataFrame structure

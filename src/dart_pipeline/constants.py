@@ -32,7 +32,7 @@ TERRACLIMATE_METRICS = [
     "ws",  # wind_speed_m_per_s
 ]
 
-MEXICO_REGIONS = [
+PERU_REGIONS = [
     "AMAZONAS",
     "ANCASH",
     "AREQUIPA",
@@ -55,4 +55,22 @@ MEXICO_REGIONS = [
     "SAN MARTIN",
     "TUMBES",
     "UCAYALI",
+]
+
+# Column names in the output CSVs
+OUTPUT_COLUMNS = [
+    'iso3',
+    'admin_level_0',
+    'admin_level_1',
+    'admin_level_2',
+    'admin_level_3',
+    'year',
+    'month',
+    'day',
+    'week',
+    'metric',
+    'value',
+    'unit',
+    'resolution',
+    'creation_date'
 ]
