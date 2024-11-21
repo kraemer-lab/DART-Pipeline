@@ -59,14 +59,22 @@ def plot_gadm_micro_heatmap(
 
 
 def plot_gadm_macro_heatmap(
-    data, origin, extent, limits, gdf, zorder, title, colourbar_label, path
+    data, origin, extent, limits, gdf, zorder, title, colourbar_label, path,
+    log_plot=False
 ):
     """Create a heat map with a macro GADM region overlaid."""
     _, ax = plt.subplots()
     gdf.boundary.plot(ax=ax, edgecolor='k', linewidth=0.5, zorder=zorder)
     im = ax.imshow(data, cmap='coolwarm', origin=origin, extent=extent)
     # Add colour bar
-    plt.colorbar(im, ax=ax, label=colourbar_label)
+    cbar = plt.colorbar(im, ax=ax, label=colourbar_label)
+    # Raise the ticklabels to the power of e
+    if log_plot:
+        min_val, max_val = np.nanmin(data), np.nanmax(data)
+        ticks = cbar.get_ticks()
+        ticks = [t for t in ticks if (t > min_val) and (t < max_val)]
+        cbar.set_ticks(ticks)
+        cbar.set_ticklabels([f'{np.exp(tick):.2f}' for tick in ticks])
     # Titles and axes
     ax.set_title(title)
     ax.set_xlim(limits[0], limits[2])

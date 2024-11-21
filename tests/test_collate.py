@@ -115,14 +115,16 @@ def test_worldpop_pop_count_data():
     assert worldpop_pop_count_data("VNM") == URLCollection(
         "https://data.worldpop.org",
         [
-            "GIS/Population/Individual_countries/VNM/Vietnam_100m_Population/VNM_ppp_v2b_2020_UNadj.tif",
-            "GIS/Population/Individual_countries/VNM/Vietnam_100m_Population.7z",
+            "GIS/Population/Individual_countries/VNM/Viet_Nam_100m_Population/VNM_ppp_v2b_2020_UNadj.tif",
+            "GIS/Population/Individual_countries/VNM/Viet_Nam_100m_Population.7z",
         ],
+        relative_path='VNM',
     )
 
 
 def test_worldpop_pop_density_data():
     assert worldpop_pop_density_data("VNM") == URLCollection(
         "https://data.worldpop.org/GIS/Population_Density/Global_2000_2020_1km_UNadj/2020/VNM",
-        ["vnm_pd_2020_1km_UNadj_ASCII_XYZ.zip" "vnm_pd_2020_1km_UNadj.tif"],
+        ["vnm_pd_2020_1km_UNadj_ASCII_XYZ.zip", "vnm_pd_2020_1km_UNadj.tif"],
+        relative_path='VNM',
     )

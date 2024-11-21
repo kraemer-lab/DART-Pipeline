@@ -32,7 +32,7 @@ TERRACLIMATE_METRICS = [
     "ws",  # wind_speed_m_per_s
 ]
 
-MEXICO_REGIONS = [
+PERU_REGIONS = [
     "AMAZONAS",
     "ANCASH",
     "AREQUIPA",
