@@ -333,7 +333,7 @@ def update_or_create_output(
     # If a CSV of output data does not already exist
     else:
         # Output the data as-is
-        pass
+        df = new_df
 
     # Export
     logging.info(f'Exporting:{out}')
