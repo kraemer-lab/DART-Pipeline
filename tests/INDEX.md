@@ -13,7 +13,6 @@ INDEX
 ✅ def test_worldpop_pop_density_data():
 ```
 
-
 `pytest tests/test_process.py`
 
 ```

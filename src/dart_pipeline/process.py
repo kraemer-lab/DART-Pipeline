@@ -220,7 +220,7 @@ def process_dengueperu(
     master['resolution'] = ''
     master['creation_date'] = date.today()
 
-    return master, f'dengue_peru.csv'
+    return master, 'dengue_peru.csv'
 
 
 def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
