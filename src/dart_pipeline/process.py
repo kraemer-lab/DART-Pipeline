@@ -412,14 +412,14 @@ def process_gadm_worldpopcount(
 
 def process_aphrodite_precipitation_data() -> list[ProcessResult]:
     """Process APHRODITE Daily accumulated precipitation (V1901) data."""
-    source = "meteorological/aphrodite-daily-precip"
-    base_path = source_path(source, "product/APHRO_V1901/APHRO_MA")
-    version = "V1901"
+    source = 'meteorological/aphrodite-daily-precip'
+    base_path = source_path(source, '')
+    version = 'V1901'
     results = []
     year = 2015  # TODO: should this be a parameter?
-    n_deg = {"025deg": (360, 280), "050deg": (180, 140)}
-    for res in ["025deg", "050deg"]:
-        fname = base_path / res / f"APHRO_MA_{res}_{version}.{year}.gz"
+    n_deg = {'025deg': (360, 280), '050deg': (180, 140)}
+    for res in ['025deg', '050deg']:
+        fname = base_path / f'APHRO_MA_{res}_{version}.{year}.gz'
         nx, ny = n_deg[res]
         nday = days_in_year(year)
         temp = []
@@ -427,7 +427,7 @@ def process_aphrodite_precipitation_data() -> list[ProcessResult]:
 
         for iday in range(1, nday + 1):
             try:
-                with open(fname, "rb") as f:
+                with open(fname, 'rb') as f:
                     # Seek to the appropriate position in the file for the
                     # current day's data
                     # 4 bytes per float, 2 variables (temp and rstn)
@@ -442,25 +442,25 @@ def process_aphrodite_precipitation_data() -> list[ProcessResult]:
                     data = np.where(abs(data) < 0.000000001, np.nan, data)
                     data = np.where(abs(data) > 99999999999, np.nan, data)
                     # Reshape the data based on Fortran's column-major order
-                    data = data.reshape((2, nx, ny), order="F")
+                    data = data.reshape((2, nx, ny), order='F')
                     temp_data = data[0, :, :]
                     rstn_data = data[1, :, :]
                     # Get the averages
                     mean_temp = np.nanmean(temp_data)
                     mean_rstn = np.nanmean(rstn_data)
                     # Print average values for temp and rstn
-                    print(f"Day {iday}: ", end="")
-                    print(f"Temp average = {mean_temp:.2f}, ", end="")
-                    print(f"Rstn average = {mean_rstn:.2f}")
+                    print(f'Day {iday}: ', end='')
+                    print(f'Temp average = {mean_temp:.2f}, ', end='')
+                    print(f'Rstn average = {mean_rstn:.2f}')
                     temp.append(mean_temp)
                     rstn.append(mean_rstn)
             except FileNotFoundError:
-                abort(source, f"file not found: {fname}")
+                abort(source, f'file not found: {fname}')
             except ValueError:
                 pass
 
-        df = pd.DataFrame({"temp": temp, "rstn": rstn})
-        results.append((df, f"{res}.csv"))
+        df = pd.DataFrame({'temp': temp, 'rstn': rstn})
+        results.append((df, f'{res}.csv'))
     return results
 
 

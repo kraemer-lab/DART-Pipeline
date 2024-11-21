@@ -69,6 +69,7 @@ uv run dart-pipeline process meteorological/aphrodite-daily-mean-temp
 
 ```
 uv run dart-pipeline get meteorological/aphrodite-daily-precip
+uv run dart-pipeline process meteorological/aphrodite-daily-precip
 ```
 
 ### CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations
