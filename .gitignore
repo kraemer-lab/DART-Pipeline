@@ -1,6 +1,7 @@
 # Anything explicitly ignored
 gitignored/
 
+_build/
 # Built files
 /*.html
 *.pdf
