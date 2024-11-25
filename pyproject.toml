@@ -10,17 +10,15 @@ dependencies = [
     "lxml==4.9.*",
     "py7zr==0.20.6",
     "requests>=2",
-    # processing
-    "contextily==1.6.0",
     "geopandas==0.14.4",
     "netCDF4>=1.7.2",
     "openpyxl==3.1.*",
     "pandas==2.*",
     "pycountry==24.6.1",
-    "pyquadkey2==0.3.1",
     "rasterio==1.*",
     "shapely>2.0.5",
     "pandarallel>=1.6.5",
+    "matplotlib>=3.9.2",
 ]
 scripts = { dart-pipeline = "dart_pipeline:main" }
 
