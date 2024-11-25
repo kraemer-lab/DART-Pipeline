@@ -12,7 +12,7 @@ The aim of this project is to develop a scalable and reproducible
 pipeline for the joint analysis of epidemiological, climate, and
 behavioural data to anticipate and predict dengue outbreaks.
 
-[**Contributing Guide**](CONTRIBUTING.md)
+[**Documentation**](https://dart-pipeline.readthedocs.io) | [**Contributing Guide**](CONTRIBUTING.md)
 
 ## Setup
 
