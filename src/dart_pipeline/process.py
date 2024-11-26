@@ -416,7 +416,6 @@ def process_aphrodite_precipitation_data(year=None, plots=False) -> \
     sub_pipeline = 'meteorological/aphrodite-daily-precip'
     base_path = source_path(sub_pipeline, '')
     version = 'V1901'
-    results = []
     if not year:
         # Regex pattern to match the resolution, version and year in filenames
         pattern = r'APHRO_MA_(\d+deg)_V(\d+)\.(\d+)$'
@@ -425,7 +424,7 @@ def process_aphrodite_precipitation_data(year=None, plots=False) -> \
         for filename in Path(base_path).iterdir():
             match = re.match(pattern, str(filename.name))
             if match:
-                resolution, v, year = match.groups()
+                _, _, year = match.groups()
                 years.append(int(year))
         # Get the latest year
         year = str(max(years))
@@ -487,8 +486,8 @@ def process_aphrodite_precipitation_data(year=None, plots=False) -> \
             if plots:
                 title = f'Precipitation\n{this_date}'
                 colourbar_label = 'Precipitation [mm]'
-                file = res.replace('0', '0_')
-                path = output_path(sub_pipeline) / file / f'{this_date}.png'
+                folder = res.replace('0', '0_')
+                path = output_path(sub_pipeline) / folder / f'{this_date}.png'
                 plot_scatter(
                     valid_lon, valid_lat, valid_prcp, title, colourbar_label,
                     path
