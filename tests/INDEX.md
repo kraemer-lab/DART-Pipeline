@@ -14,6 +14,16 @@ INDEX
 ✅ def test_worldpop_pop_density_data():
 ```
 
+`pytest tests/test_plots.py`
+
+```
+✅ def test_plot_heatmap(
+✅ def test_plot_gadm_micro_heatmap(
+✅ def test_plot_gadm_macro_heatmap(
+✅ def test_plot_timeseries(mock_mkdir, mock_savefig, mock_close):
+✅ def test_plot_scatter(mock_mkdir, mock_savefig):
+```
+
 `pytest tests/test_process.py`
 
 ```
