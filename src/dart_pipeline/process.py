@@ -14,7 +14,7 @@ In general, use `EPSG:9217 <https://epsg.io/9217>`_ or
 `ISO 3166-1 alpha-3 <https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3>`_
 format for country codes.
 """
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Literal, Callable
 import logging
@@ -34,12 +34,13 @@ import rasterio.features
 import shapely.geometry
 
 from .plots import \
-    plot_heatmap, plot_gadm_micro_heatmap, plot_gadm_macro_heatmap
+    plot_heatmap, plot_gadm_micro_heatmap, plot_gadm_macro_heatmap, \
+    plot_timeseries
 from .util import \
     abort, source_path, days_in_year, output_path, get_country_name, \
     get_shapefile
 from .types import ProcessResult, PartialDate, AdminLevel
-from .constants import TERRACLIMATE_METRICS
+from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS
 
 pandarallel.initialize(verbose=0)
 
@@ -128,62 +129,98 @@ def process_rwi(iso3: str, admin_level: str, plots=False):
     return rwi, f'{iso3}.csv'
 
 
-def process_ministerio_de_salud_peru_data(
-    admin_level: Literal["0", "1"] | None = None,
-) -> ProcessResult:
+def process_dengueperu(
+    admin_level: Literal['0', '1'] | None = None, plots=False
+):
     """Process data from the Ministerio de Salud - Peru."""
-    source = "epidemiological/dengue-peru"
+    source = 'epidemiological/dengue/peru'
     if not admin_level:
-        admin_level = "0"
-        logging.info('Admin level:None, defaulting to %s', admin_level)
-    elif admin_level in ["0", "1"]:
-        logging.info('Admin level:%s', admin_level)
+        admin_level = '0'
+        logging.info('admin_level:None (defaulting to %s)', admin_level)
+    elif admin_level in ['0', '1']:
+        logging.info('admin_level:%s', admin_level)
     else:
-        raise ValueError(f"Invalid admin level: {admin_level}")
+        raise ValueError(f'Invalid admin level: {admin_level}')
 
     # Find the raw data
     path = source_path(source)
-    iso3 = "PER"
-    if admin_level == "0":
-        filepaths = [Path(path, "casos_dengue_nacional.xlsx")]
+    if admin_level == '0':
+        filepaths = [Path(path, 'casos_dengue_nacional.xlsx')]
     else:
         filepaths = []
         for dirpath, _, filenames in os.walk(path):
             filenames.sort()
             for filename in filenames:
                 # Skip hidden files
-                if filename.startswith("."):
+                if filename.startswith('.'):
                     continue
                 # Skip admin levels that have not been requested for analysis
-                if filename == "casos_dengue_nacional.xlsx":
+                if filename == 'casos_dengue_nacional.xlsx':
                     continue
                 filepaths.append(Path(dirpath, filename))
 
     # Initialise an output data frame
-    master = pd.DataFrame()
+    master = pd.DataFrame(columns=OUTPUT_COLUMNS)
 
     # Import the raw data
     for filepath in filepaths:
+        logging.info('importing:%s', filepath)
         df = pd.read_excel(filepath)
+
+        # Rename the headings
+        df = df.rename(columns={'ano': 'year'})
+        df = df.rename(columns={'semana': 'week'})
+        df = df.rename(columns={'tipo_dx': 'metric'})
+        df = df.rename(columns={'n': 'value'})
+
+        # Define two metrics
+        df.loc[df['metric'] == 'C', 'metric'] = 'Confirmed Dengue Cases'
+        df.loc[df['metric'] == 'P', 'metric'] = 'Probable Dengue Cases'
+        # Confirm no rows have been missed
+        metrics = ['Confirmed Dengue Cases', 'Probable Dengue Cases']
+        mask = ~df['metric'].isin(metrics)
+        assert len(df[mask]) == 0
 
         # Get the name of the administrative divisions
         filename = filepath.name
-        name = filename.removesuffix(".xlsx").split("_")[-1].capitalize()
-        logging.info('Processing:%s', name)
+        name = filename.removesuffix('.xlsx').split('_')[-1].capitalize()
+        logging.info('processing:%s', name)
         # Add to the output data frame
-        df["admin_level_0"] = "Peru"
-        if admin_level == "1":
-            df["admin_level_1"] = name
+        df['admin_level_0'] = 'Peru'
+        if admin_level == '1':
+            df['admin_level_1'] = name
+        else:
+            df['admin_level_1'] = ''
+        df['admin_level_2'] = ''
+        df['admin_level_3'] = ''
 
-        # Convert 'year' and 'week' to datetime format
-        df["date"] = pd.to_datetime(
-            df["ano"].astype(str) + "-" + df["semana"].astype(str) + "-1",
-            format="%G-%V-%u",
-        )
         # Add to master data frame
         master = pd.concat([master, df], ignore_index=True)
 
-    return master, f"{iso3}/admin{admin_level}.csv"
+        # Plot
+        if plots:
+            df['date'] = pd.to_datetime(
+                df['year'].astype(str) + df['week'].astype(str) + '1',
+                format='%Y%U%w'
+            )
+            start = df.loc[0, 'year']
+            end = df.loc[len(df) - 1, 'year']
+            if admin_level == '0':
+                title = f'Dengue Cases\nPeru - {start} to {end}'
+            else:
+                title = f'Dengue Cases\n{name} - {start} to {end}'
+            path = Path(output_path(source), name + '.png')
+            plot_timeseries(df, title, path)
+
+    # Fill in additional columns
+    master['iso3'] = 'PER'
+    master['month'] = ''
+    master['day'] = ''
+    master['unit'] = 'cases'
+    master['resolution'] = ''
+    master['creation_date'] = date.today()
+
+    return master, 'dengue_peru.csv'
 
 
 def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
@@ -976,7 +1013,7 @@ def get_admin_region(lat: float, lon: float, polygons) -> str:
 
 PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
     "economic/relative-wealth-index": process_rwi,
-    "epidemiological/dengue/peru": process_ministerio_de_salud_peru_data,
+    "epidemiological/dengue/peru": process_dengueperu,
     "geospatial/chirps-rainfall": process_gadm_chirps_rainfall,
     "geospatial/gadm": process_gadm_admin_map_data,
     "geospatial/worldpop-count": process_gadm_worldpopcount,
