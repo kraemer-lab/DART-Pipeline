@@ -6,7 +6,7 @@ import re
 import tempfile
 
 from matplotlib import pyplot as plt
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, box
 import geopandas as gpd
 import numpy as np
 import pandas as pd
@@ -16,7 +16,8 @@ from dart_pipeline.plots import \
     plot_gadm_micro_heatmap, \
     plot_gadm_macro_heatmap, \
     plot_timeseries, \
-    plot_scatter
+    plot_scatter, \
+    plot_gadm_scatter
 
 
 @patch('matplotlib.pyplot.savefig')
@@ -272,3 +273,40 @@ def test_plot_scatter(mock_mkdir, mock_savefig, mock_close):
     # Check the colorbar label
     colorbar = plt.gcf().get_axes()[-1]  # The last axis is the colorbar
     assert colorbar.get_ylabel() == colourbar_label, 'Colourbar label mismatch'
+
+
+@patch('matplotlib.pyplot.close')
+@patch('matplotlib.pyplot.savefig')
+@patch('pathlib.Path.mkdir')
+def test_plot_gadm_scatter(mock_mkdir, mock_savefig, mock_close):
+    # Mock data
+    lon = np.array([10, 20, 30])
+    lat = np.array([40, 50, 60])
+    data = np.array([1, 2, 3])
+    title = 'Test GADM Scatter Plot'
+    colourbar_label = 'Test Colourbar Label'
+    path = Path('/mock/path/to/gadm_scatter_plot.png')
+
+    # Mock GeoDataFrame
+    gdf = gpd.GeoDataFrame({
+        'geometry': [box(5, 35, 35, 65)]
+    })
+
+    # Call the function
+    plot_gadm_scatter(lon, lat, data, title, colourbar_label, path, gdf)
+
+    # Check if directories were created
+    mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
+    # Check if the plot was saved
+    mock_savefig.assert_called_once_with(path)
+    # Verify plot components
+    assert plt.gca().get_title() == title, 'Title mismatch'
+    assert plt.gca().get_xlabel() == 'Longitude', 'X-label mismatch'
+    assert plt.gca().get_ylabel() == 'Latitude', 'Y-label mismatch'
+    # Check the colorbar label
+    colorbar = plt.gcf().get_axes()[-1]  # The last axis is the colorbar
+    assert colorbar.get_ylabel() == colourbar_label, 'Colourbar label mismatch'
+    # Verify axis limits are set to GeoDataFrame bounds
+    minx, miny, maxx, maxy = gdf.total_bounds
+    assert plt.gca().get_xlim() == (minx, maxx), 'X-axis limits mismatch'
+    assert plt.gca().get_ylim() == (miny, maxy), 'Y-axis limits mismatch'
