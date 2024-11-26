@@ -299,9 +299,6 @@ def update_or_create_output(
     if not isinstance(out, (str, Path)):
         raise TypeError('Expected a valid file path')
 
-    with pd.option_context('future.no_silent_downcasting', True):
-        df = df.fillna('').infer_objects(copy=False)
-
     # Create a list of the key columns
     key_columns = []
     if 'admin_level_0' in list(df):
