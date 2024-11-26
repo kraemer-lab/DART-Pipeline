@@ -30,6 +30,16 @@ uv run dart-pipeline process epidemiological/dengue/peru a=1 l=INFO plots
 Geospatial
 ----------
 
+### APHRODITE Precipitation
+
+```
+uv run dart-pipeline get meteorological/aphrodite-daily-precip unpack
+uv run dart-pipeline get geospatial/gadm 3=VNM
+uv run dart-pipeline process geospatial/aphrodite-daily-precip 3=VNM a=0 d=2015-05-11 l=INFO plots
+uv run dart-pipeline process geospatial/aphrodite-daily-precip 3=VNM a=1 d=2015-05-11 l=INFO plots
+uv run dart-pipeline process geospatial/aphrodite-daily-precip 3=VNM a=3 d=2015-05-11 l=INFO plots
+```
+
 ### CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations
 
 ```
@@ -68,7 +78,9 @@ uv run dart-pipeline process meteorological/aphrodite-daily-mean-temp
 ### APHRODITE Precipitation
 
 ```
-uv run dart-pipeline get meteorological/aphrodite-daily-precip
+uv run dart-pipeline get meteorological/aphrodite-daily-precip unpack
+uv run dart-pipeline process meteorological/aphrodite-daily-precip
+uv run dart-pipeline process meteorological/aphrodite-daily-precip plots
 ```
 
 ### CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations

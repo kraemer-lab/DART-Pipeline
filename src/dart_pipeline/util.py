@@ -177,7 +177,7 @@ def download_files(
     for file in links.files:
         url = links.base_url + "/" + file
         out_filepath = out_dir / Path(file).name
-        successes.append(download_file(url, out_filepath, auth))
+        successes.append(download_file(url, out_filepath, auth, unpack))
 
     return successes
 
@@ -267,12 +267,12 @@ def bold_brackets(s: str) -> str:
 def unpack_file(path: Path | str, same_folder: bool = False):
     """Unpack a zipped file."""
     path = Path(path)
-    if str(path).endswith('.tif.gz'):
+    if str(path).endswith('.gz'):
         with gzip.open(path, 'rb') as f_in:
             if same_folder:
                 extract_path = path.with_suffix('')
             else:
-                folder = str(path.name).replace('.tif.gz', '')
+                folder = str(path.name).replace('.gz', '')
                 file = str(path.name).replace('.gz', '')
                 extract_path = path.parent / Path(folder) / Path(file)
                 extract_path.parent.mkdir(parents=True, exist_ok=True)
