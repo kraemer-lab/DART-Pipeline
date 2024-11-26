@@ -115,3 +115,18 @@ def plot_timeseries(df, title, path):
     logging.info('exporting:%s', path)
     plt.savefig(path)
     plt.close()
+
+
+def plot_scatter(x, y, z, title, colourbar_label, path):
+    """Plot a scatter plot."""
+    plt.figure()
+    scatter = plt.scatter(x, y, c=z, cmap='coolwarm', s=10)
+    plt.colorbar(scatter, label=colourbar_label)
+    plt.title(title)
+    plt.xlabel('Longitude')
+    plt.ylabel('Latitude')
+    plt.grid(True)
+    # Export
+    path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(path)
+    plt.close()
