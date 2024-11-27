@@ -35,6 +35,7 @@ data/**/*.html
 *.geojson
 *.gpg
 *.gpkg
+*.grd
 *.json
 *.kmz
 *.nc
