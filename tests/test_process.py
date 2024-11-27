@@ -18,6 +18,7 @@ from dart_pipeline.process import \
     process_gadm_aphroditeprecipitation, \
     process_gadm_chirps_rainfall, \
     process_gadm_worldpopcount, \
+    process_aphrodite_temperature_data, \
     process_aphrodite_precipitation_data, \
     process_chirps_rainfall, \
     process_terraclimate
@@ -347,6 +348,62 @@ def test_process_gadm_worldpopcount(
     # Check that fallback file was used and output generated
     msg = 'Output should be a DataFrame even with fallback file'
     assert isinstance(output, pd.DataFrame), msg
+
+
+@patch('dart_pipeline.util.output_path')
+@patch('dart_pipeline.util.source_path')
+@patch('dart_pipeline.util.days_in_year')
+@patch('dart_pipeline.process.plot_scatter')
+def test_process_aphrodite_temperature_data(
+    mock_plot_scatter, mock_days_in_year, mock_source_path, mock_output_path
+):
+    # Set up mocks
+    mock_output_path.return_value = \
+        'data/processed/meteorological/aphrodite-daily-mean-temp'
+    mock_source_path.return_value = MagicMock()
+    base_path = mock_source_path.return_value
+    base_path.iterdir.return_value = [
+        MagicMock(name='APHRO_MA_TAVE_025deg_V1808.2015'),
+    ]
+    mock_days_in_year.return_value = 365
+
+    # Create binary data for the temporary file
+    nx, ny, nday = 360, 280, 365
+    binary_data = b''.join([
+        np.zeros((ny * nx), dtype='float32').tobytes() for _ in range(nday * 2)
+    ])
+    # Create a temporary file with the binary data
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        temp_file.write(binary_data)
+        temp_file_path = Path(temp_file.name)
+
+    try:
+        # Mock file path to return the temporary file path
+        mock_source_path.return_value = temp_file_path.parent
+        mock_path = temp_file_path
+
+        # Call the function
+        output, filename = process_aphrodite_temperature_data(
+            year='2015', plots=True
+        )
+
+        # Assertions
+        assert filename == 'aphrodite-daily-mean-temp.csv'
+        assert isinstance(output, pd.DataFrame)
+        assert not output.empty
+        assert set(output.columns) == {
+            'iso3', 'admin_level_0', 'admin_level_1', 'admin_level_2',
+            'admin_level_3', 'year', 'month', 'day', 'week', 'metric',
+            'resolution', 'value', 'unit', 'creation_date'
+        }
+        assert output['year'].unique() == ['2015']
+        assert (output['metric'] == 'temperature').all()
+        assert (output['unit'] == '°C').all()
+        assert output['creation_date'].iloc[0] == date.today()
+        assert mock_plot_scatter.called
+    finally:
+        # Clean up the temporary file
+        temp_file_path.unlink()
 
 
 @patch('dart_pipeline.util.output_path')

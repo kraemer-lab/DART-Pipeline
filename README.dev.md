@@ -72,7 +72,8 @@ Meteorological
 
 ```
 uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp unpack
-uv run dart-pipeline process meteorological/aphrodite-daily-mean-temp
+uv run dart-pipeline process meteorological/aphrodite-daily-mean-temp l=INFO
+uv run dart-pipeline process meteorological/aphrodite-daily-mean-temp l=INFO plots
 ```
 
 ### APHRODITE Precipitation

@@ -281,11 +281,13 @@ def unpack_file(path: Path | str, same_folder: bool = False):
                 shutil.copyfileobj(f_in, f_out)
         return
     match path.suffix:
-        case ".7z":
+        case '.7z':
             with py7zr.SevenZipFile(path, mode="r") as archive:
                 archive.extractall(
                     path.parent if same_folder else path.parent / path.stem
                 )
+        case '.f90':
+            pass
         case _:
             extract_dir = path.parent if same_folder else path.parent / path.stem
             shutil.unpack_archive(path, str(extract_dir))
@@ -337,7 +339,7 @@ def update_or_create_output(
         df = new_df
 
     # Export
-    logging.info(f'Exporting:{out}')
+    logging.info(f'exporting:{out}')
     df.to_csv(out, index=False)
 
     # When testing we want to be able to inspect the data frame
