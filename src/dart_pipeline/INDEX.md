@@ -37,22 +37,22 @@ def download_era5_reanalysis_data(path: Path):
 
 ```
 def process_rwi(iso3: str, admin_level: str, plots=False):
+def get_admin(x):
 ✅ def process_dengueperu(
-def get_shapefile(iso3: str, admin_level: Literal["0", "1", "2"]) -> Path:
-def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel) -> ProcessResult:
-def process_aphrodite_precipitation_data() -> list[ProcessResult]:
-def process_aphrodite_temperature_data() -> list[ProcessResult]:
+✅ def process_gadm_aphroditetemperature(
+✅ def process_gadm_aphroditeprecipitation(
+def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
+def process_gadm_worldpopcount(
+✅ def process_aphrodite_temperature_data(year=None, plots=False) -> \
+✅ def process_aphrodite_precipitation_data(year=None, plots=False) -> \
 def get_chirps_rainfall_data_path(date: PartialDate) -> Path:
-def process_chirps_rainfall_data(date: str) -> ProcessResult:
+def process_chirps_rainfall(partial_date: str, plots=False) -> ProcessResult:
 def process_era5_reanalysis_data() -> ProcessResult:
 def process_terraclimate(
 def process_worldpop_pop_count_data(
 def process_worldpop_pop_density_data(iso3: str, year: int) -> ProcessResult:
-def process_gadm_chirps_data(
-def process_gadm_worldpoppopulation_data(
+def process_gadm_chirps_rainfall(
 def get_admin_region(lat: float, lon: float, polygons) -> str:
-def process_relative_wealth_index_admin(iso3: str, admin_level: str):
-def get_admin(x):
 ```
 
 `types.py`
