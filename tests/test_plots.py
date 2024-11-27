@@ -129,7 +129,7 @@ def test_plot_gadm_macro_heatmap(
     mock_savefig, mock_colorbar, mock_subplots, tmp_path
 ):
     # Sample data and parameters
-    data = np.random.rand(10, 10)
+    data = np.array([[1, 2], [3, 4]])
     origin = 'upper'
     extent = [100, 200, 100, 200]
     limits = [10, 5, 20, 15]
@@ -140,16 +140,18 @@ def test_plot_gadm_macro_heatmap(
     geometry = gpd.points_from_xy([100], [100])
     gdf = gpd.GeoDataFrame({'col': [1]}, geometry=geometry)
 
-    # Mock figure and axes
+    # Mock figure, axes and colour bar
     fig, ax = plt.figure(), plt.axes()
     mock_subplots.return_value = (fig, ax)
+    mock_cbar = MagicMock()
+    mock_colorbar.return_value = mock_cbar
 
     # Call the function
     plot_gadm_macro_heatmap(
         data, origin, extent, limits, gdf, zorder, title, colourbar_label, path
     )
 
-    # Check that plt.subplots() was called once
+    # Check plt.subplots() was called once
     mock_subplots.assert_called_once()
 
     # Check plt.colorbar() was called once
@@ -158,5 +160,38 @@ def test_plot_gadm_macro_heatmap(
     assert colorbar_kwargs['ax'] == ax
     assert colorbar_kwargs['label'] == colourbar_label
 
-    # Check that plt.savefig was called with the correct path
+    # Check set_ticklabels() was not called
+    mock_cbar.set_ticklabels.assert_not_called()
+
+    # Check plt.savefig was called with the correct path
+    mock_savefig.assert_called_once_with(path)
+
+    # Reset mocks
+    mock_subplots.reset_mock()
+    mock_colorbar.reset_mock()
+    mock_savefig.reset_mock()
+
+    # Mock figure, axes and colour bar
+    mock_ax = MagicMock()
+    mock_cbar = MagicMock()
+    mock_subplots.return_value = (None, mock_ax)
+    mock_colorbar.return_value = mock_cbar
+
+    # Define expected tick values after exponential transformation
+    expected_ticks = [2, 3]
+    expected_tick_labels = [f'{np.exp(tick):.2f}' for tick in expected_ticks]
+    # Configure the colour bar to return mock ticks within the data range
+    mock_cbar.get_ticks.return_value = [1, 2, 3, 4]
+
+    # Call the function
+    plot_gadm_macro_heatmap(
+        data, origin, extent, limits, gdf, zorder, title, colourbar_label,
+        path, log_plot=True
+    )
+
+    # Ensure cbar.set_ticks and cbar.set_ticklabels are called
+    mock_cbar.set_ticks.assert_called_once_with(expected_ticks)
+    mock_cbar.set_ticklabels.assert_called_once_with(expected_tick_labels)
+
+    # Ensure savefig was called with the correct path
     mock_savefig.assert_called_once_with(path)
