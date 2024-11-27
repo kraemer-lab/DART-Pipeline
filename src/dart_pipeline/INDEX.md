@@ -18,7 +18,7 @@ def main():
 def gadm_data(iso3: str) -> URLCollection:
 def relative_wealth_index(iso3: str) -> URLCollection:
 ✅ def ministerio_de_salud_peru_data() -> list[DataFile]:
-def aphrodite_precipitation_data() -> list[URLCollection]:
+✅ def aphrodite_precipitation_data() -> list[URLCollection]:
 def aphrodite_temperature_data() -> list[URLCollection]:
 ✅ def chirps_rainfall_data(partial_date: str) -> list[URLCollection]:
 def terraclimate_data(year: int) -> URLCollection:
