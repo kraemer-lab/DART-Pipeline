@@ -115,6 +115,12 @@ uv run dart-pipeline process meteorological/terraclimate d=2023-01 3=VNM a=0 l=I
 uv run dart-pipeline process meteorological/terraclimate d=2023-01 3=VNM a=1 l=INFO plots
 ```
 
+### ERA5 atmospheric reanalysis
+
+```
+uv run dart-pipeline get meteorological/era5-reanalysis
+```
+
 Socio-Demographic
 -----------------
 
