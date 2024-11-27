@@ -71,10 +71,26 @@ time uv run dart-pipeline process geospatial/gadm 3=VNM a=0
 ### WorldPop Population Counts
 
 ```
-time uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=0 d=2023 l=INFO plots
-time uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=1 d=2023 l=INFO plots
-time uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=2 d=2023 l=INFO plots
-time uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=3 d=2023 l=INFO plots
+time uv run dart-pipeline get sociodemographic/worldpop-count 3=VNM
+8m4.44s
+time uv run dart-pipeline get geospatial/gadm 3=VNM unpack
+14.945s
+time uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=0 d=2020
+4.646s
+time uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=1 d=2020
+3.231s
+time uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=2 d=2020
+3.585s
+time uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=3 d=2020
+14.168s
+time uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=0 d=2020 l=INFO plots
+7.069s
+time uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=1 d=2020 l=INFO plots
+5.429s
+time uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=2 d=2020 l=INFO plots
+5.842s
+time uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=3 d=2020 l=INFO plots
+16.962
 ```
 
 Meteorological
@@ -141,10 +157,14 @@ time uv run dart-pipeline get sociodemographic/meta-pop-density 3=VNM
 
 ```
 time uv run dart-pipeline get sociodemographic/worldpop-count 3=VNM
+8m4.44s
+time uv run dart-pipeline process sociodemographic/worldpop-count 3=VNM l=INFO
+4.287s
 ```
 
 ### WorldPop Population Density
 
 ```
 time uv run dart-pipeline get sociodemographic/worldpop-density 3=VNM
+time uv run dart-pipeline process sociodemographic/worldpop-density iso3=VNM year=2023
 ```

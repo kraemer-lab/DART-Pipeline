@@ -8,6 +8,11 @@ Economic
 ### Relative Wealth Index
 
 ```
+uv run dart-pipeline get economic/relative-wealth-index 3=VNM
+uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=0
+uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=1
+uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=2
+uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=3
 uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=0 l=INFO plots
 uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=1 l=INFO plots
 uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=2 l=INFO plots
@@ -69,10 +74,16 @@ uv run dart-pipeline process geospatial/gadm 3=VNM a=0
 ### WorldPop Population Counts
 
 ```
-uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=0 d=2023 l=INFO plots
-uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=1 d=2023 l=INFO plots
-uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=2 d=2023 l=INFO plots
-uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=3 d=2023 l=INFO plots
+uv run dart-pipeline get sociodemographic/worldpop-count 3=VNM
+uv run dart-pipeline get geospatial/gadm 3=VNM
+uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=0 d=2020
+uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=1 d=2020
+uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=2 d=2020
+uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=3 d=2020
+uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=0 d=2020 l=INFO plots
+uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=1 d=2020 l=INFO plots
+uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=2 d=2020 l=INFO plots
+uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=3 d=2020 l=INFO plots
 ```
 
 Meteorological
@@ -128,7 +139,7 @@ uv run dart-pipeline get sociodemographic/meta-pop-density 3=VNM
 
 ```
 uv run dart-pipeline get sociodemographic/worldpop-count 3=VNM
-uv run dart-pipeline process sociodemographic/worldpop-count iso3=VNM
+uv run dart-pipeline process sociodemographic/worldpop-count 3=VNM l=INFO
 ```
 
 ### WorldPop Population Density
