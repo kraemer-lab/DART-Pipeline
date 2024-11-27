@@ -65,6 +65,17 @@ Process
  ├── ❌ `uv run dart-pipeline process sociodemographic/worldpop-count iso3=VNM`
  └── ❌ `uv run dart-pipeline process sociodemographic/worldpop-density iso3=VNM year=2023`
 
+### Economic
+
+#### Relative Wealth Index
+
+```
+uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=0 l=INFO plots
+uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=1 l=INFO plots
+uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=2 l=INFO plots
+uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=3 l=INFO plots
+```
+
 ### Geospatial
 
 ```
