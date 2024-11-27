@@ -168,7 +168,8 @@ def download_file(
 
 
 def download_files(
-    links: URLCollection, out_dir: Path, auth: Credentials | None = None
+    links: URLCollection, out_dir: Path, auth: Credentials | None = None,
+    unpack: bool = True
 ) -> list[bool]:
     """Download multiple files in a list."""
     out_dir = out_dir / links.relative_path

@@ -553,6 +553,54 @@ def process_gadm_worldpopcount(
     return output, f'{iso3}.csv'
 
 
+def process_aphrodite_temperature_data() -> list[ProcessResult]:
+    """Process APHRODITE Daily mean temperature product (V1808) data."""
+    source = "meteorological/aphrodite-daily-mean-temp"
+    version = "V1808"
+    year = 2015
+    results = []
+    params = {
+        "005deg": ("TAVE_CLM_005deg", 1800, 1400),
+        "025deg": ("TAVE_025deg", 360, 280),
+        "050deg_nc": ("TAVE_050deg", 180, 140),
+    }
+    base_path = source_path(source)
+    for res in ["005deg", "025deg", "050deg_nc"]:
+        product, nx, ny = params[res]
+        nday = days_in_year(year) if product != "TAVE_CLM_005deg" else 366
+        match product:
+            case "TAVE_CLM_005deg":
+                fname = base_path / f"APHRO_MA_{product}_{version}.grd.gz"
+            case "TAVE_025deg":
+                fname = base_path / f"APHRO_MA_{product}_{version}.{year}.gz"
+            case "TAVE_050deg":
+                fname = base_path / f"APHRO_MA_{product}_{version}.{year}.nc.gz"
+
+        # Initialise output lists
+        temp = []
+        rstn = []
+
+        try:
+            with open(fname, "rb") as f:
+                print(f"Reading: {fname}")
+                print("iday", "temp", "rstn")
+                for iday in range(1, nday + 1):
+                    temp_data = np.fromfile(f, dtype=np.float32, count=nx * ny)
+                    rstn_data = np.fromfile(f, dtype=np.float32, count=nx * ny)
+                    temp_data = temp_data.reshape((nx, ny))
+                    rstn_data = rstn_data.reshape((nx, ny))
+                    print(iday, temp_data[0, 0], rstn_data[0, 0])
+                    temp.append(temp_data[0, 0])
+                    rstn.append(rstn_data[0, 0])
+        except FileNotFoundError:
+            abort(source, f"file not found: {fname}")
+        except ValueError:
+            pass
+
+        results.append((pd.DataFrame({"temp": temp, "rstn": rstn}), f"{res}.csv"))
+    return results
+
+
 def process_aphrodite_precipitation_data(year=None, plots=False) -> \
         list[ProcessResult]:
     """Process APHRODITE Daily accumulated precipitation (V1901) data."""
@@ -651,54 +699,6 @@ def process_aphrodite_precipitation_data(year=None, plots=False) -> \
     output['creation_date'] = date.today()
 
     return output, 'aphrodite-daily-precip.csv'
-
-
-def process_aphrodite_temperature_data() -> list[ProcessResult]:
-    """Process APHRODITE Daily mean temperature product (V1808) data."""
-    source = "meteorological/aphrodite-daily-mean-temp"
-    version = "V1808"
-    year = 2015
-    results = []
-    params = {
-        "005deg": ("TAVE_CLM_005deg", 1800, 1400),
-        "025deg": ("TAVE_025deg", 360, 280),
-        "050deg_nc": ("TAVE_050deg", 180, 140),
-    }
-    base_path = source_path(source)
-    for res in ["005deg", "025deg", "050deg_nc"]:
-        product, nx, ny = params[res]
-        nday = days_in_year(year) if product != "TAVE_CLM_005deg" else 366
-        match product:
-            case "TAVE_CLM_005deg":
-                fname = base_path / f"APHRO_MA_{product}_{version}.grd.gz"
-            case "TAVE_025deg":
-                fname = base_path / f"APHRO_MA_{product}_{version}.{year}.gz"
-            case "TAVE_050deg":
-                fname = base_path / f"APHRO_MA_{product}_{version}.{year}.nc.gz"
-
-        # Initialise output lists
-        temp = []
-        rstn = []
-
-        try:
-            with open(fname, "rb") as f:
-                print(f"Reading: {fname}")
-                print("iday", "temp", "rstn")
-                for iday in range(1, nday + 1):
-                    temp_data = np.fromfile(f, dtype=np.float32, count=nx * ny)
-                    rstn_data = np.fromfile(f, dtype=np.float32, count=nx * ny)
-                    temp_data = temp_data.reshape((nx, ny))
-                    rstn_data = rstn_data.reshape((nx, ny))
-                    print(iday, temp_data[0, 0], rstn_data[0, 0])
-                    temp.append(temp_data[0, 0])
-                    rstn.append(rstn_data[0, 0])
-        except FileNotFoundError:
-            abort(source, f"file not found: {fname}")
-        except ValueError:
-            pass
-
-        results.append((pd.DataFrame({"temp": temp, "rstn": rstn}), f"{res}.csv"))
-    return results
 
 
 def get_chirps_rainfall_data_path(date: PartialDate) -> Path:

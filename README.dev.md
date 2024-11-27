@@ -71,7 +71,7 @@ Meteorological
 ### APHRODITE Daily Mean Temperature
 
 ```
-uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp
+uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp unpack
 uv run dart-pipeline process meteorological/aphrodite-daily-mean-temp
 ```
 
