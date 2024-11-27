@@ -30,6 +30,7 @@ INDEX
 ```
 ✅ def test_process_rwi(
 ✅ def test_process_dengueperu(
+✅ def test_process_gadm_aphroditetemperature():
 ✅ def test_process_gadm_aphroditeprecipitation(
 ✅ def test_process_gadm_chirps_rainfall(
 ✅ def test_process_gadm_worldpopcount(

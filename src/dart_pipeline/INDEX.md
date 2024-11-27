@@ -39,7 +39,8 @@ def download_era5_reanalysis_data(path: Path):
 def process_rwi(iso3: str, admin_level: str, plots=False):
 def get_admin(x):
 ✅ def process_dengueperu(
-def process_gadm_aphroditeprecipitation(
+✅ def process_gadm_aphroditetemperature(
+✅ def process_gadm_aphroditeprecipitation(
 def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
 def process_gadm_worldpopcount(
 ✅ def process_aphrodite_temperature_data(year=None, plots=False) -> \

@@ -223,6 +223,152 @@ def process_dengueperu(
     return master, 'dengue_peru.csv'
 
 
+def process_gadm_aphroditetemperature(
+    iso3: str, admin_level: Literal['0', '1', '2', '3'], partial_date: str,
+    resolution=['025deg'], plots=False
+):
+    """
+    Process GADM and APHRODITE Daily mean temperature product (V1808) data.
+
+    Aggregates by given admin level for the given country (ISO3 code) and
+    partial date.
+    """
+    sub_pipeline = 'geospatial/aphrodite-daily-mean-temp'
+    pdate = PartialDate.from_string(partial_date)
+    logging.info('iso3:%s', iso3)
+    logging.info('admin_level:%s', admin_level)
+    logging.info('partial_date:%s', pdate)
+    logging.info('scope:%s', pdate.scope)
+    logging.info('plots:%s', plots)
+
+    # Import shape file
+    path = get_shapefile(iso3, admin_level)
+    logging.info('importing:%s', path)
+    gdf = gpd.read_file(path)
+
+    version = 'V1808'
+    year = pdate.year
+
+    # Initialise output data frame
+    output = pd.DataFrame(columns=OUTPUT_COLUMNS)
+
+    params = {
+        '025deg': ('TAVE', '025deg', '', 360, 280),
+        '025deg_nc': ('TAVE', '025deg', '.nc', 360, 280),
+        '050deg_nc': ('TAVE', '050deg', '.nc', 180, 140),
+        '005deg_nc': ('TAVE_CLM', '005deg', '.nc', 1800, 1400),
+    }
+    for data_type in resolution:
+        product, res, ext, nx, ny = params[data_type]
+        nday = days_in_year(int(year))
+        # Record length
+        recl = nx * ny
+        # Longitude and latitude bounds
+        x_start, y_start = 60.125, -14.875
+        xlon = x_start + np.arange(nx) * 0.25
+        ylat = y_start + np.arange(ny) * 0.25
+
+        # Open the file
+        path = source_path('meteorological/aphrodite-daily-mean-temp', '')
+        path = path / f'APHRO_MA_{product}_{res}_{version}.{year}{ext}'
+        # Read binary data
+        logging.info('importing:%s', path)
+        with open(path, 'rb') as f:
+            # Initialise arrays
+            temp_data = np.zeros((nday, ny, nx))
+            rstn_data = np.zeros((nday, ny, nx))
+
+            for iday in range(nday):
+                # Read `temp` record
+                temp_raw = np.fromfile(f, dtype='float32', count=recl)
+                temp_raw = temp_raw.reshape((ny, nx))
+                # Read `rstn` record
+                rstn_raw = np.fromfile(f, dtype='float32', count=recl)
+                rstn_raw = rstn_raw.reshape((ny, nx))
+                # Store in arrays
+                temp_data[iday, :, :] = temp_raw
+                rstn_data[iday, :, :] = rstn_raw
+
+        temp_data = temp_data.astype('float32')
+        rstn_data = rstn_data.astype('float32')
+        valid_xlon, valid_ylat = np.meshgrid(xlon, ylat, indexing='xy')
+
+        # Iterate through days
+        for iday in range(nday):
+            this_date = datetime(int(year), 1, 1) + timedelta(days=iday)
+            this_date = this_date.date()
+            # Skip if the day doesn't match the partial date
+            if pdate.month and pdate.month != this_date.month:
+                continue
+            if pdate.day and pdate.day != this_date.day:
+                continue
+
+            valid_mask = (rstn_data[iday, :, :] != 0.0) & \
+                (temp_data[iday, :, :] != -99.90)
+            valid_prcp = temp_data[iday][valid_mask]
+            valid_lon = valid_xlon[valid_mask]
+            valid_lat = valid_ylat[valid_mask]
+
+            # Create rows in output for each sub-region
+            to_append = []
+            for idx, row in gdf.iterrows():
+                # Extract the geometry of the current sub-region (polygon)
+                region_geom = row.geometry
+
+                # Filter to get data that falls within the sub-region geometry
+                points = [
+                    shapely.geometry.Point(lon, lat) for lon, lat in
+                    zip(valid_lon, valid_lat)
+                ]
+                region_mask = np.array(
+                    [region_geom.contains(point) for point in points]
+                )
+
+                # Filter data for this sub-region
+                valid_lon_region = valid_lon[region_mask]
+                valid_lat_region = valid_lat[region_mask]
+                valid_temp_region = valid_prcp[region_mask]
+
+                output_row = {
+                    'iso3': iso3,
+                    'admin_level_0': row['COUNTRY'],
+                    'admin_level_1': row.get('NAME_1', ''),
+                    'admin_level_2': row.get('NAME_2', ''),
+                    'admin_level_3': row.get('NAME_3', ''),
+                    'year': year,
+                    'month': this_date.month,
+                    'day': this_date.day,
+                    'week': '',
+                    'value': valid_temp_region.mean() if
+                    len(valid_temp_region) > 0 else '',
+                    'resolution': '0.25°' if res == '025deg' else '0.5°',
+                    'metric': 'temperature',
+                    'unit': '°C',
+                    'creation_date': date.today()
+                }
+                to_append.append(pd.DataFrame([output_row]))
+            # Concatenate the new rows to the output DataFrame
+            if to_append:
+                # Drop all-NA columns
+                to_append = [df.dropna(axis=1, how='all') for df in to_append]
+                # Drop empty data frames
+                to_append = [df for df in to_append if not df.empty]
+                output = pd.concat([output] + to_append, ignore_index=True)
+
+            # Scatter plot
+            if plots:
+                title = f'Temperature\n{this_date}'
+                colourbar_label = 'Temperature [°C]'
+                folder = f'admin_level_{admin_level}/{res.replace('0', '0_')}'
+                path = output_path(sub_pipeline) / folder / f'{this_date}.png'
+                plot_gadm_scatter(
+                    valid_lon, valid_lat, valid_prcp,
+                    title, colourbar_label, path, gdf
+                )
+
+    return output, 'aphrodite-daily-mean-temp.csv'
+
+
 def process_gadm_aphroditeprecipitation(
     iso3: str, admin_level: Literal['0', '1', '2', '3'], partial_date: str,
     resolution=['025deg', '050deg'], plots=False
@@ -247,12 +393,7 @@ def process_gadm_aphroditeprecipitation(
     gdf = gpd.read_file(path)
 
     # Initialise output data frame
-    columns = [
-        'iso3', 'admin_level_0', 'admin_level_1', 'admin_level_2',
-        'admin_level_3', 'year', 'month', 'day', 'week', 'metric',
-        'resolution', 'value', 'unit', 'creation_date'
-    ]
-    output = pd.DataFrame(columns=columns)
+    output = pd.DataFrame(columns=OUTPUT_COLUMNS)
 
     version = 'V1901'
     year = pdate.year
@@ -1269,5 +1410,6 @@ PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
     "meteorological/terraclimate": process_terraclimate,
     "sociodemographic/worldpop-count": process_worldpop_pop_count_data,
     "sociodemographic/worldpop-density": process_worldpop_pop_density_data,
+    'geospatial/aphrodite-daily-mean-temp': process_gadm_aphroditetemperature,
     'geospatial/aphrodite-daily-precip': process_gadm_aphroditeprecipitation,
 }
