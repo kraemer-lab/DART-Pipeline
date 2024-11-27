@@ -385,11 +385,11 @@ REQUIRES_AUTH = [
 SOURCES: dict[
     str, Callable[..., URLCollection | list[URLCollection] | list[DataFile]]
 ] = {
-    "epidemiological/dengue/peru": ministerio_de_salud_peru_data,
     "economic/relative-wealth-index": relative_wealth_index,
+    "epidemiological/dengue/peru": ministerio_de_salud_peru_data,
     "geospatial/gadm": gadm_data,
-    "meteorological/aphrodite-daily-precip": aphrodite_precipitation_data,
     "meteorological/aphrodite-daily-mean-temp": aphrodite_temperature_data,
+    "meteorological/aphrodite-daily-precip": aphrodite_precipitation_data,
     "meteorological/chirps-rainfall": chirps_rainfall_data,
     "meteorological/terraclimate": terraclimate_data,
     "sociodemographic/meta-pop-density": meta_pop_density_data,
