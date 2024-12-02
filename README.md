@@ -1,5 +1,10 @@
 # DART-Pipeline
 
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![Tests](https://github.com/kraemer-lab/DART-Pipeline/actions/workflows/tests.yml/badge.svg)](https://github.com/kraemer-lab/DART-Pipeline/actions/workflows/tests.yml)
+[![Documentation status](https://readthedocs.org/projects/insightboard/badge/?version=latest)](https://insightboard.readthedocs.io/en/latest/?badge=latest)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+
 Data analysis pipeline for the Dengue Advanced Readiness Tools (DART)
 project.
 
@@ -7,7 +12,7 @@ The aim of this project is to develop a scalable and reproducible
 pipeline for the joint analysis of epidemiological, climate, and
 behavioural data to anticipate and predict dengue outbreaks.
 
-[**Contributing Guide**](CONTRIBUTING.md)
+[**Documentation**](https://dart-pipeline.readthedocs.io) | [**Contributing Guide**](CONTRIBUTING.md)
 
 ## Setup
 
@@ -29,64 +34,6 @@ you can run `dart-pipeline` as follows
 git clone https://github.com/kraemer-lab/DART-Pipeline
 uv sync
 uv run dart-pipeline
-```
-
-## Data sources
-
-To see a list of data sources known to `dart-pipeline` and the
-associated processing steps:
-
-```shell
-> uv run dart-pipeline list
-  source economic/relative-wealth-index
-  source epidemiological/dengue/peru
-  source geospatial/gadm
-  source meteorological/aphrodite-daily-mean-temp
-  source meteorological/aphrodite-daily-precip
-  source meteorological/chirps-rainfall
-  source meteorological/terraclimate
-  source sociodemographic/meta-pop-density
-  source sociodemographic/worldpop-count
-  source sociodemographic/worldpop-density
- process economic/relative-wealth-index
- process epidemiological/dengue/peru
- process geospatial/chirps-rainfall
- process geospatial/gadm
- process geospatial/worldpop-count
- process meteorological/aphrodite-daily-mean-temp
- process meteorological/aphrodite-daily-precip
- process meteorological/chirps-rainfall
- process meteorological/era5-reanalysis
- process sociodemographic/worldpop-count
- process sociodemographic/worldpop-density
-```
-
-To get data for a source, run `dart-pipeline get`:
-
-```shell
-uv run dart-pipeline get geospatial/gadm iso3=VNM
-```
-
-Data is downloaded into the `data/sources` folder under the root of the
-repository by default. Here, the data will be downloaded into the
-`data/sources/geospatial/gadm/VNM` folder.
-
-## Data processing
-
-Once data is downloaded into `data/sources`, you can run the processing
-steps:
-
-```shell
-uv run dart-pipeline process geospatial/gadm iso3=VNM admin_level=2
-```
-
-Each processing step takes certain parameters such as `iso3`. To see the
-list of required parameters for a processing step, run the command
-without any parameters
-
-```shell
-> uv run dart-pipeline process geospatial/gadm
-❗ geospatial/gadm missing required parameters {'iso3', 'admin_level'}
 ```
 
 ## Development

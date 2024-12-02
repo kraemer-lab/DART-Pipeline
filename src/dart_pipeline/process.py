@@ -272,7 +272,8 @@ def process_gadm_worldpopcount(
                 break
         if not file_found:
             msg = f'{path}: No such file or directory. Either it has not ' + \
-                'been downloaded or data does not exist for this year.'
+                'been downloaded or data does not exist for this year or ' + \
+                'any year since 1990.'
             raise rasterio.errors.RasterioIOError(msg)
 
     # Rasterio stores image layers in 'bands'
