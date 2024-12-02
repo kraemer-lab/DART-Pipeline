@@ -4,6 +4,7 @@ Collate module for API-based retrievals.
 These require direct downloads to file.
 """
 from pathlib import Path
+import logging
 
 import cdsapi
 
@@ -18,6 +19,8 @@ def download_era5_reanalysis_data(path: Path):
     A Climate Data Store account is needed, see
     https://pypi.org/project/cdsapi/
     """
+    print('creating:%s', path)
+    path.parent.mkdir(parents=True, exist_ok=True)
     c = cdsapi.Client()
     request = {
         "date": "2013-01-01",  # The hyphens can be omitted
@@ -43,6 +46,7 @@ def download_era5_reanalysis_data(path: Path):
         # with 'grid'!
         "format": "netcdf",
     }
+    print('exporting:%s', path)
     c.retrieve(
         # Requests follow MARS syntax
         # Keywords 'expver' and 'class' can be dropped. They are obsolete
@@ -50,28 +54,12 @@ def download_era5_reanalysis_data(path: Path):
         "reanalysis-era5-complete",
         request,
         # Output file. Adapt as you wish.
-        path / "ERA5-ml-temperature-subarea.nc",
+        path,
     )
 
 
-# download_era5_reanalysis_data(Path('.'))
-
-# Initialize the CDS API client
-c = cdsapi.Client()
-
-# Request data
-c.retrieve(
-    'reanalysis-era5-single-levels',  # ERA5 single-level product
-    {
-        'product_type': 'monthly_averaged_reanalysis',  # Specify monthly averaged data
-        'variable': ['2m_temperature'],  # Variable to download
-        'year': '2020',  # Specify year
-        'month': [
-            '01', '02', '03', '04', '05', '06',
-            '07', '08', '09', '10', '11', '12',
-        ],  # Specify all months
-        'time': '00:00',  # Time of day
-        'format': 'netcdf',  # Output format
-    },
-    'era5_temperature_2020.nc'  # Output file name
+path = Path(
+    '..', '..', 'data', 'sources', 'meteorological', 'era5-reanalysis',
+    'ERA5-ml-temperature-subarea.nc'
 )
+download_era5_reanalysis_data(path.resolve())
