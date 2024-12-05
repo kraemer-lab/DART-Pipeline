@@ -38,4 +38,6 @@ maxdepth: 2
 ---
 
 overview
+schema
+metrics/index
 ```
