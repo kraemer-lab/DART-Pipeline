@@ -93,6 +93,7 @@ def test_use_range():
 def new_dataframe():
     """Fixture to create a sample data frame."""
     return pd.DataFrame({
+        'iso3': ['VNM'],
         'admin_level_0': ['Vietnam'],
         'admin_level_1': ['An Giang'],
         'admin_level_2': ['An Phú'],
@@ -100,7 +101,12 @@ def new_dataframe():
         'year': [''],
         'month': [''],
         'day': [''],
-        'metric': [0.998]
+        'week': [''],
+        'metric': ['Example'],
+        'value': [0.998],
+        'unit': [''],
+        'resolution': [''],
+        'creation_date': [''],
     })
 
 
@@ -108,6 +114,7 @@ def new_dataframe():
 def old_dataframe():
     """Fixture to create a mock existing data frame."""
     return pd.DataFrame({
+        'iso3': ['VNM'],
         'admin_level_0': ['Vietnam'],
         'admin_level_1': ['An Giang'],
         'admin_level_2': ['An Phú'],
@@ -115,7 +122,12 @@ def old_dataframe():
         'year': [''],
         'month': [''],
         'day': [''],
-        'metric': [0.002]
+        'week': [''],
+        'metric': ['Example'],
+        'value': [0.002],
+        'unit': [''],
+        'resolution': [''],
+        'creation_date': [''],
     })
 
 
@@ -154,29 +166,29 @@ def test_update_or_create_output_update_existing(
     df = update_or_create_output(new_dataframe, mock_path, return_df=True)
 
     # Verify that read_csv was called with the correct path
-    dtype = new_dataframe.dtypes.to_dict()
-    mock_read_csv.assert_called_once_with(mock_path, dtype=dtype)
+    mock_read_csv.assert_called_once_with(mock_path, dtype=str)
 
     # Check that to_csv was called once
     mock_to_csv.assert_called_once()
     # Check that the returned object is indeed a data frame
     assert isinstance(df, pd.DataFrame)
     # Check that the merged data frame has the expected values
-    assert df.loc[0, 'metric'] == 0.998
-    assert len(df) == 1
+    assert df.loc[0, 'value'].values[0] == '0.998'
+    assert len(df) == 2
 
 
 def test_update_or_create_output_invalid_input():
     """Test for when these is invalid input."""
     # Invalid data frame
     invalid_input = 'not_a_dataframe'
-    mock_path = Path("dummy_path.csv")
+    mock_path = Path('dummy_path.csv')
     match = 'Expected a pandas DataFrame as input'
     with pytest.raises(TypeError, match=match):
         update_or_create_output(invalid_input, mock_path)
 
     # Invalid path
     df = pd.DataFrame({
+        'iso3': ['AAA'],
         'admin_level_0': ['Country1'],
         'admin_level_1': ['State1'],
         'admin_level_2': ['City1'],
@@ -184,5 +196,5 @@ def test_update_or_create_output_invalid_input():
         'metric': [100]
     })
     invalid_path = 12345
-    with pytest.raises(TypeError, match="Expected a valid file path"):
+    with pytest.raises(TypeError, match='Expected a valid file path'):
         update_or_create_output(df, invalid_path)
