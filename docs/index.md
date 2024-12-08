@@ -39,5 +39,7 @@ maxdepth: 2
 
 overview
 schema
-metrics/index
+geospatial
+metrics
+reference
 ```
