@@ -1,2 +1,0 @@
-# Economic
-## relative-wealth-index

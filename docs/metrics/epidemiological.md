@@ -1,3 +1,0 @@
-# Epidemiological
-
-## dengue-peru

@@ -1,4 +1,4 @@
-# Geospatial
+# Geospatial data
 
 Geospatial data is downloaded from [GADM](https://gadm.org/). Data is
 downloaded in GeoJSON format ([RFC
