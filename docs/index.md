@@ -41,5 +41,4 @@ overview
 schema
 geospatial
 metrics
-reference
 ```
