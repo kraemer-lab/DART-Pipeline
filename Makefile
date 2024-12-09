@@ -11,4 +11,7 @@ lint:
 	uvx ruff check src
 	uvx ruff check tests
 
-.PHONY: install-uv install lint tests
+docs:
+	uv run -m sphinx -T -b html -d docs/_build/doctrees -D language=en docs html
+
+.PHONY: install-uv install lint tests docs

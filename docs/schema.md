@@ -22,7 +22,7 @@ Data is usually made available as text CSV files or in the parquet format.
   code](https://github.com/ucum-org/ucum/blob/main/common-units/TableOfExampleUcumCodesForElectronicMessagingwithPreface.pdf)
 - **`resolution`**: Geographical resolution of the measure, one of `world`,
   `admin0`, `admin1`, `admin2` or `admin3`.
-- **creation_date**: Date measure was recorded in DART database, in YYYY-MM-DD
+- **`creation_date`**: Date measure was recorded in DART database, in YYYY-MM-DD
   format.
 
 The schema is available as a [JSON Schema for
