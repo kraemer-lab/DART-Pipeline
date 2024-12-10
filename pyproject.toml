@@ -33,6 +33,7 @@ ignore_missing_imports = true
 [tool.uv]
 dev-dependencies = [
     "myst-parser>=4.0.0",
+    "pytest-cov>=6.0.0",
     "pytest>=8.3.2",
     "requests-mock>=1.12.1",
     "sphinx-book-theme>=1.1.3",
