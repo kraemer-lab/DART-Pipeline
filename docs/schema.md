@@ -15,8 +15,7 @@ Data is usually made available as text CSV files or in the parquet format.
 - **`month`**: Month of measurement (1-12)
 - **`day`**: Day of measurement (1-31)
 - **`week`**: Week of measurement (1-52)
-- **`metric`**: Name of the metric, possible values can be seen in the
-  [metrics](metrics/index.md) page
+- **`metric`**: Name of the metric, possible values can be seen in the <project:metrics.md> page.
 - **`value`**: Value of the metric
 - **`unit`**: Unit of the metric, specified as an [UCUM
   code](https://github.com/ucum-org/ucum/blob/main/common-units/TableOfExampleUcumCodesForElectronicMessagingwithPreface.pdf)
