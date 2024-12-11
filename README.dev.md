@@ -129,7 +129,10 @@ uv run dart-pipeline process meteorological/terraclimate d=2023-01 3=VNM a=1 l=I
 ### ERA5 atmospheric reanalysis
 
 ```
-uv run dart-pipeline get meteorological/era5-reanalysis
+uv run dart-pipeline get meteorological/era5-reanalysis d=2023 dataset=satellite-sea-ice-thickness l=INFO
+uv run dart-pipeline get meteorological/era5-reanalysis d=2024-10-01 dataset=derived-era5-land-daily-statistics l=INFO
+uv run dart-pipeline get meteorological/era5-reanalysis d=2024-10-01 dataset=reanalysis-era5-complete l=INFO
+uv run dart-pipeline get meteorological/era5-reanalysis d=2024-10-01 dataset=reanalysis-era5-single-levels l=INFO
 ```
 
 Socio-Demographic
