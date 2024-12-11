@@ -106,6 +106,9 @@ def get(
     if isinstance(links[0], DataFile):
         print(f"-- {source_fmt} fetches data directly, nothing to do")
         return
+    if not links[0]:
+        print(f"-- {source_fmt} downloads data directly, nothing to do")
+        return
     links = cast(list[URLCollection], links)
     auth = get_credentials(source) if source in REQUIRES_AUTH else None
     # If only one link is being downloaded, reduce the list of links to one
