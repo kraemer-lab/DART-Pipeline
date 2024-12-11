@@ -57,7 +57,7 @@ from .types import URLCollection, DataFile, PartialDate
 from .util import daterange, use_range, get_country_name
 
 
-def gadm_data(iso3: str, unpack: bool) -> URLCollection:
+def gadm_data(iso3: str, unpack: bool = False) -> URLCollection:
     "Download and unpack GADM (Database of Global Administrative Areas) data"
     return URLCollection(
         "https://geodata.ucdavis.edu/gadm/gadm4.1",

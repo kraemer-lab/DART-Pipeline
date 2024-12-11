@@ -122,8 +122,7 @@ def get(
             # been unpacked
             if unpack:
                 for file in coll.files:
-                    url = coll.base_url + '/' + file
-                    to_unpack = path / Path(file).name
+                    to_unpack = path / coll.relative_path / Path(file).name
                     print(f'• UNPACKING {to_unpack}', end='\r')
                     unpack_file(to_unpack, same_folder=True)
                     print(f'✅ UNPACKED {to_unpack}')
@@ -232,16 +231,28 @@ def main():
     )
     check_parser.add_argument("source", help="Source to check files for")
 
-    get_parser = subparsers.add_parser("get", help="Get files for a source")
-    get_parser.add_argument("source", help="Source to get files for")
-    get_parser.add_argument("--update", help="Update cached files")
+    get_parser = subparsers.add_parser(
+        "get",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        help="Get files for a source",
+        epilog=textwrap.dedent("""
+        keyword arguments:
+          3=, iso3=        an ISO 3166-1 alpha-3 country code
+
+        Boolean flags:
+          unpack           the downloaded files will be unpacked if they are
+                           zipped
+        """)
+    )
+    get_parser.add_argument("source", help="source to get files for")
+    get_parser.add_argument("--update", help="update cached files")
     get_parser.add_argument(
-        "-1", "--only-one", help="Get only one file", action="store_true"
+        "-1", "--only-one", help="get only one file", action="store_true"
     )
     get_parser.add_argument(
         "-p",
         "--process",
-        help="If the source can be directly processed, process immediately",
+        help="if the source can be directly processed, process immediately",
         action="store_true",
     )
 

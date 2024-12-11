@@ -75,7 +75,7 @@ uv run dart-pipeline process geospatial/gadm 3=VNM a=0
 
 ```
 uv run dart-pipeline get sociodemographic/worldpop-count 3=VNM
-uv run dart-pipeline get geospatial/gadm 3=VNM
+uv run dart-pipeline get geospatial/gadm 3=VNM unpack
 uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=0 d=2020
 uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=1 d=2020
 uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=2 d=2020
