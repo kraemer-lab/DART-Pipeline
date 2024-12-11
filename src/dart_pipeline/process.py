@@ -1389,11 +1389,6 @@ def process_terraclimate(
         # Close the NetCDF file after use
         ds.close()
 
-    # # Export
-    # path = Path(output_path(source), year, iso3 + '.csv')
-    # print('Exporting', path)
-    # output.to_csv(path, index=False)
-
     return output, f'{iso3}.csv'
 
 
@@ -1447,7 +1442,11 @@ def process_worldpop_pop_count_data(
         df.loc[0, 'resolution'] = 'people per hectare'
     df.loc[0, 'creation_date'] = date.today()
 
-    return df.fillna(''), 'worldpop-count.csv'
+    # Create the output filename
+    pipeline_slug = sub_pipeline.replace('/', '_')
+    filename = f'{iso3}_{pipeline_slug}_{year}_{date.today()}.csv'
+
+    return df.fillna(''), filename
 
 
 def process_worldpop_pop_density_data(iso3: str, year: int) -> ProcessResult:
