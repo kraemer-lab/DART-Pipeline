@@ -801,7 +801,7 @@ def process_gadm_worldpopcount(
     # EPSG:4326 - WGS 84: latitude/longitude coordinate system based on the
     # Earth's center of mass
 
-    # Initialise the data frame that will store the output data for each region
+    # Initialise an output data frame
     output = pd.DataFrame(columns=OUTPUT_COLUMNS)
 
     # Iterate over each region in the shape file
@@ -847,7 +847,7 @@ def process_gadm_worldpopcount(
         logging.info('region:%s', title)
         logging.info('region_total:%s', region_total)
         # Add the result to the output data frame
-        metric = 'Population Count'
+        metric = 'population'
         output.loc[i, 'metric'] = metric
         output.loc[i, 'value'] = region_total
         unit = 'people'
@@ -876,17 +876,18 @@ def process_gadm_worldpopcount(
 
     # Complete the output data frame
     output['iso3'] = iso3
-    output['month'] = ''
-    output['day'] = ''
-    output['week'] = ''
-    output['resolution'] = rt
+    if rt == 'ppp':
+        output['resolution'] = 'people per pixel'
+    elif rt == 'pph':
+        output['resolution'] = 'people per hectare'
     output['creation_date'] = date.today()
+
     # Create the output filename
     pipeline_slug = sub_pipeline.replace('/', '_')
     filename = f'{iso3}_{pipeline_slug}_{pdate}_{date.today()}.csv'
 
     # Export
-    return output, filename
+    return output.fillna(''), filename
 
 
 def process_aphrodite_temperature_data(year=None, plots=False) -> \
@@ -1002,8 +1003,9 @@ def process_aphrodite_temperature_data(year=None, plots=False) -> \
     return output, filename
 
 
-def process_aphrodite_precipitation_data(year=None, plots=False) -> \
-        list[ProcessResult]:
+def process_aphrodite_precipitation_data(
+    year=None, resolution=['025deg', '050deg'], plots=False
+) -> list[ProcessResult]:
     """Process APHRODITE Daily accumulated precipitation (V1901) data."""
     sub_pipeline = 'meteorological/aphrodite-daily-precip'
     base_path = source_path(sub_pipeline, '')
@@ -1025,7 +1027,7 @@ def process_aphrodite_precipitation_data(year=None, plots=False) -> \
     output = pd.DataFrame(columns=OUTPUT_COLUMNS)
 
     n_deg = {'025deg': (360, 280), '050deg': (180, 140)}
-    for res in ['025deg', '050deg']:
+    for res in resolution:
         nx, ny = n_deg[res]
         nday = days_in_year(int(year))
         # Record length
@@ -1036,7 +1038,7 @@ def process_aphrodite_precipitation_data(year=None, plots=False) -> \
         ylat = y_start + np.arange(ny) * 0.25
 
         # Open the file
-        file_path = base_path / f'APHRO_MA_{res}_{version}.{year}'
+        file_path = Path(base_path) / Path(f'APHRO_MA_{res}_{version}.{year}')
         # Read binary data
         with open(file_path, 'rb') as f:
             # Initialise arrays
@@ -1396,7 +1398,7 @@ def process_terraclimate(
 
 
 def process_worldpop_pop_count_data(
-    iso3: str, year: int = 2020, rt: str = "pop"
+    iso3: str, year: int = 2020, rt: str = 'ppp'
 ) -> ProcessResult:
     """
     Process WorldPop population count.
@@ -1405,59 +1407,47 @@ def process_worldpop_pop_count_data(
     - EPSG:4326: https://epsg.io/4326
     - EPSG = European Petroleum Survey Group
     """
-    source = "sociodemographic/worldpop-count"
+    sub_pipeline = 'sociodemographic/worldpop-count'
     country = get_country_name(iso3)
-    print("Year:       ", year)
-    print("Country:    ", iso3)
-    print("Resolution: ", rt)
-    print("")
+    logging.info('year:%s', year)
+    logging.info('iso3:%s', iso3)
+    logging.info('resolution_type:%s', rt)
 
-    base_path = source_path(
-        source,
-        f'GIS/population/by-country/{iso3}/{country.replace(' ', '_')}_100m_Population',
-    )
-    filename = Path(f"{iso3}_{rt}_v2b_{year}_UNadj.tif")
-    print(f'Processing "{filename}"')
-    src = rasterio.open(base_path / filename)
+    filename = Path(f'{iso3}_{rt}_v2b_{year}_UNadj.tif')
+    path = source_path(sub_pipeline, iso3) / filename
+    logging.info('importing:%s', path)
+    src = rasterio.open(path)
     # Get the affine transformation coefficients
     transform = src.transform
     # Read data from band 1
     if src.count != 1:
-        raise ValueError(f"Unexpected number of bands: {src.count}")
+        raise ValueError(f'Unexpected number of bands: {src.count}')
     source_data = src.read(1)
 
     # Replace placeholder numbers with 0
     # (-3.4e+38 is the smallest single-precision floating-point number)
     df = pd.DataFrame(source_data)
     population_data = df[df != MIN_FLOAT]
-    """
-    Sanity check: calculate the total population
-    Google says that Vietnam's population was 96.65 million (2020)
+    population = population_data.sum().sum()
+    logging.info('population:%s', population)
 
-    VNM_pph_v2b_2020.tif
-    90,049,150 (2020)
+    # Initialise an output data frame
+    df = pd.DataFrame(columns=OUTPUT_COLUMNS)
 
-    VNM_pph_v2b_2020_UNadj.tif
-    96,355,010 (2020)
+    # Populate output data frame
+    df.loc[0, 'iso3'] = iso3
+    df.loc[0, 'admin_level_0'] = country
+    df.loc[0, 'year'] = year
+    df.loc[0, 'metric'] = 'population'
+    df.loc[0, 'unit'] = 'people'
+    df.loc[0, 'value'] = population
+    if rt == 'ppp':
+        df.loc[0, 'resolution'] = 'people per pixel'
+    elif rt == 'pph':
+        df.loc[0, 'resolution'] = 'people per hectare'
+    df.loc[0, 'creation_date'] = date.today()
 
-    VNM_ppp_v2b_2020.tif
-    90,008,170 (2020)
-
-    VNM_ppp_v2b_2020_UNadj.tif
-    96,355,000 (2020)
-    """
-    print(f"Population as per {filename}: {population_data.sum().sum()}")
-
-    # Convert pixel coordinates to latitude and longitude
-    cols = np.arange(source_data.shape[1])
-    lon, _ = rasterio.transform.xy(transform, (1,), cols)
-    rows = np.arange(source_data.shape[0])
-    _, lat = rasterio.transform.xy(transform, rows, (1,))
-    # Replace placeholder numbers with 0
-    source_data[source_data == MIN_FLOAT] = 0
-    # Create a DataFrame with latitude, longitude, and pixel values
-    df = pd.DataFrame(source_data, index=lat, columns=lon)
-    return df, f"{iso3}/{filename.stem}.csv"
+    return df.fillna(''), 'worldpop-count.csv'
 
 
 def process_worldpop_pop_density_data(iso3: str, year: int) -> ProcessResult:
