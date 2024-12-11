@@ -1,5 +1,9 @@
 """Tests for process functions in process.py."""
+from datetime import date
+from io import BytesIO
+from pathlib import Path
 from unittest.mock import patch, MagicMock
+import tempfile
 
 from shapely.geometry import Polygon
 import geopandas as gpd
@@ -10,8 +14,13 @@ import pytest
 
 from dart_pipeline.process import \
     process_rwi, \
+    process_dengueperu, \
+    process_gadm_aphroditetemperature, \
+    process_gadm_aphroditeprecipitation, \
     process_gadm_chirps_rainfall, \
     process_gadm_worldpopcount, \
+    process_aphrodite_temperature_data, \
+    process_aphrodite_precipitation_data, \
     process_chirps_rainfall, \
     process_terraclimate
 
@@ -68,6 +77,225 @@ def test_process_rwi(
         rwi_df, csv_filename = process_rwi('VNM', '2', plots=True)
         # Assert plot function was called
         mock_plot.assert_called_once()
+
+
+@pytest.fixture
+def mock_source_path():
+    with patch('dart_pipeline.util.source_path') as mock_path:
+        mock_path.return_value = '/mock/source/path'
+        yield mock_path
+
+
+@pytest.fixture
+def mock_output_path():
+    with patch('dart_pipeline.util.output_path') as mock_path:
+        mock_path.return_value = '/mock/output/path'
+        yield mock_path
+
+
+@pytest.fixture
+def mock_plot_timeseries():
+    with patch('dart_pipeline.plots.plot_timeseries') as mock_plot:
+        yield mock_plot
+
+
+@pytest.fixture
+def mock_read_excel():
+    with patch('pandas.read_excel') as mock_read:
+        mock_read.return_value = pd.DataFrame({
+            'ano': [2023, 2023],
+            'semana': [1, 2],
+            'tipo_dx': ['C', 'P'],
+            'n': [10, 20],
+        })
+        yield mock_read
+
+
+@pytest.fixture
+def mock_os_walk():
+    with patch('os.walk') as mock_walk:
+        mock_walk.return_value = [(
+            '/mock/source/path', ['subdir'],
+            ['casos_dengue_nacional.xlsx', 'casos_dengue_region1.xlsx']
+        )]
+        yield mock_walk
+
+
+@pytest.mark.parametrize(
+    'admin_level, expected_admin_level_1, expected_plot_calls, should_raise',
+    [
+        ('0', '', 1, False),  # Admin level 0
+        ('1', 'Region1', 1, False),  # Admin level 1
+        ('2', None, 0, True),  # Invalid admin level
+    ]
+)
+def test_process_dengueperu(
+    admin_level, expected_admin_level_1, expected_plot_calls, should_raise,
+    mock_source_path, mock_output_path, mock_plot_timeseries,
+    mock_read_excel, mock_os_walk
+):
+    if should_raise:
+        match = f'Invalid admin level: {admin_level}'
+        with pytest.raises(ValueError, match=match):
+            process_dengueperu(admin_level=admin_level)
+    else:
+        master, output_filename = process_dengueperu(
+            admin_level=admin_level, plots=True
+        )
+
+        # Validate the output DataFrame
+        assert isinstance(master, pd.DataFrame)
+        assert master['admin_level_0'].iloc[0] == 'Peru'
+        assert master['admin_level_1'].iloc[0] == expected_admin_level_1
+        assert master['metric'].tolist() == [
+            'Confirmed Dengue Cases', 'Probable Dengue Cases'
+        ]
+        assert output_filename == 'dengue_peru.csv'
+
+        # Check the mock calls
+        mock_read_excel.assert_called()
+
+
+class MockFile(BytesIO):
+    """A mock file object that adds a fileno method."""
+    def fileno(self):
+        return 1
+
+
+def test_process_gadm_aphroditetemperature():
+    iso3 = 'VNM'
+    admin_level = '0'
+    partial_date = '2023-07'
+    resolution = ['025deg']
+    plots = False
+
+    with patch('dart_pipeline.process.PartialDate') as mock_partial_date, \
+         patch('dart_pipeline.util.get_shapefile') as mock_get_shapefile, \
+         patch('geopandas.read_file') as mock_read_file, \
+         patch('dart_pipeline.util.source_path') as mock_source_path, \
+         patch('dart_pipeline.util.output_path') as mock_output_path, \
+         patch('builtins.open') as mock_open, \
+         patch('numpy.fromfile') as mock_fromfile:
+
+        # Mock PartialDate to return a specific year when accessed
+        mock_partial_date.from_string.return_value = MagicMock(
+            year=2023, month=7, day=None, scope='year'
+        )
+
+        # Mock shapefile loading
+        mock_get_shapefile.return_value = 'mock_shapefile_path'
+
+        # Create a mock GeoDataFrame row with a geometry attribute
+        mock_row = MagicMock()
+        mock_row.geometry = Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])
+        mock_row.COUNTRY = 'Vietnam'
+        mock_row.NAME_1 = 'Mock Province'
+        mock_row.NAME_2 = 'Mock District'
+        mock_row.NAME_3 = 'Mock Sub-district'
+
+        # Mock geopandas dataframe and its iterrows method
+        mock_gdf = MagicMock()
+        mock_gdf.iterrows.return_value = iter([(0, mock_row)])
+        mock_read_file.return_value = mock_gdf
+
+        # Mock source_path and output_path
+        mock_source_path.return_value = MagicMock()
+        mock_output_path.return_value = MagicMock()
+
+        # Mock np.fromfile() to return a fake array
+        nx, ny, nday = 360, 280, 365
+        recl = nx * ny
+
+        # Create a fake array with the correct number of values
+        fake_array = np.ones(recl, dtype='float32')
+
+        # Mock np.fromfile() to return the fake array when called
+        mock_fromfile.return_value = fake_array
+
+        # Create a mock file object
+        mock_file = MockFile()
+        mock_open.return_value.__enter__.return_value = mock_file
+
+        # Call the function
+        output, csv_path = process_gadm_aphroditetemperature(
+            iso3, admin_level, partial_date, resolution, plots
+        )
+
+        # Assertions
+        assert isinstance(output, pd.DataFrame)
+        assert 'iso3' in output.columns
+        assert 'value' in output.columns
+        assert output['iso3'].iloc[0] == iso3
+        assert output['value'].iloc[0] == ''
+        assert csv_path == 'aphrodite-daily-mean-temp.csv'
+
+
+def test_process_gadm_aphroditeprecipitation():
+    iso3 = 'VNM'
+    admin_level = '0'
+    partial_date = '2023-07'
+    resolution = ['025deg']
+    plots = False
+
+    with patch('dart_pipeline.process.PartialDate') as mock_partial_date, \
+         patch('dart_pipeline.util.get_shapefile') as mock_get_shapefile, \
+         patch('geopandas.read_file') as mock_read_file, \
+         patch('dart_pipeline.util.source_path') as mock_source_path, \
+         patch('dart_pipeline.util.output_path') as mock_output_path, \
+         patch('builtins.open') as mock_open, \
+         patch('numpy.fromfile') as mock_fromfile:
+
+        # Mock PartialDate to return a specific year when accessed
+        mock_partial_date.from_string.return_value = MagicMock(
+            year=2023, month=7, day=None, scope='year'
+        )
+
+        # Mock shapefile loading
+        mock_get_shapefile.return_value = 'mock_shapefile_path'
+
+        # Create a mock GeoDataFrame row with a geometry attribute
+        mock_row = MagicMock()
+        mock_row.geometry = Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])  # Mock Polygon
+        mock_row.COUNTRY = 'Vietnam'
+        mock_row.NAME_1 = 'Mock Province'
+        mock_row.NAME_2 = 'Mock District'
+        mock_row.NAME_3 = 'Mock Sub-district'
+
+        # Mock geopandas dataframe and its iterrows method
+        mock_gdf = MagicMock()
+        mock_gdf.iterrows.return_value = iter([(0, mock_row)])  # Return the mock row
+        mock_read_file.return_value = mock_gdf
+
+        # Mock source_path and output_path
+        mock_source_path.return_value = MagicMock()
+        mock_output_path.return_value = MagicMock()
+
+        # Mock np.fromfile() to return a fake array
+        nx, ny, nday = 360, 280, 365
+        recl = nx * ny
+
+        # Create a fake array with the correct number of values
+        fake_array = np.ones(recl, dtype='float32')
+
+        # Mock np.fromfile() to return the fake array when called
+        mock_fromfile.return_value = fake_array
+
+        # Create a mock file object
+        mock_file = MockFile()
+        mock_open.return_value.__enter__.return_value = mock_file
+
+        # Call the function
+        output, csv_path = process_gadm_aphroditeprecipitation(
+            iso3, admin_level, partial_date, resolution, plots
+        )
+
+        # Assertions
+        assert isinstance(output, pd.DataFrame)
+        assert 'iso3' in output.columns
+        assert 'value' in output.columns
+        assert output['iso3'].iloc[0] == iso3
+        assert output['value'].sum() >= 0  # Ensure non-negative precipitation values
+        assert csv_path == 'aphrodite-daily-precip.csv'
 
 
 @patch('geopandas.read_file')
@@ -190,6 +418,119 @@ def test_process_gadm_worldpopcount(
     # Check that fallback file was used and output generated
     msg = 'Output should be a DataFrame even with fallback file'
     assert isinstance(output, pd.DataFrame), msg
+
+
+@patch('dart_pipeline.util.output_path')
+@patch('dart_pipeline.util.source_path')
+@patch('dart_pipeline.util.days_in_year')
+@patch('dart_pipeline.process.plot_scatter')
+def test_process_aphrodite_temperature_data(
+    mock_plot_scatter, mock_days_in_year, mock_source_path, mock_output_path
+):
+    # Set up mocks
+    mock_output_path.return_value = \
+        'data/processed/meteorological/aphrodite-daily-mean-temp'
+    mock_source_path.return_value = MagicMock()
+    base_path = mock_source_path.return_value
+    base_path.iterdir.return_value = [
+        MagicMock(name='APHRO_MA_TAVE_025deg_V1808.2015'),
+    ]
+    mock_days_in_year.return_value = 365
+
+    # Create binary data for the temporary file
+    nx, ny, nday = 360, 280, 365
+    binary_data = b''.join([
+        np.zeros((ny * nx), dtype='float32').tobytes() for _ in range(nday * 2)
+    ])
+    # Create a temporary file with the binary data
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        temp_file.write(binary_data)
+        temp_file_path = Path(temp_file.name)
+
+    try:
+        # Mock file path to return the temporary file path
+        mock_source_path.return_value = temp_file_path.parent
+        mock_path = temp_file_path
+
+        # Call the function
+        output, filename = process_aphrodite_temperature_data(
+            year='2015', plots=True
+        )
+
+        # Assertions
+        assert filename == 'aphrodite-daily-mean-temp.csv'
+        assert isinstance(output, pd.DataFrame)
+        assert not output.empty
+        assert set(output.columns) == {
+            'iso3', 'admin_level_0', 'admin_level_1', 'admin_level_2',
+            'admin_level_3', 'year', 'month', 'day', 'week', 'metric',
+            'resolution', 'value', 'unit', 'creation_date'
+        }
+        assert output['year'].unique() == ['2015']
+        assert (output['metric'] == 'temperature').all()
+        assert (output['unit'] == '°C').all()
+        assert output['creation_date'].iloc[0] == date.today()
+        assert mock_plot_scatter.called
+    finally:
+        # Clean up the temporary file
+        temp_file_path.unlink()
+
+
+@patch('dart_pipeline.util.output_path')
+@patch('dart_pipeline.util.source_path')
+@patch('dart_pipeline.util.days_in_year')
+@patch('dart_pipeline.process.plot_scatter')
+def test_process_aphrodite_precipitation_data(
+    mock_plot_scatter, mock_days_in_year, mock_source_path, mock_output_path
+):
+    # Set up mocks
+    mock_output_path.return_value = \
+        'data/processed/meteorological/aphrodite-daily-precip'
+    mock_source_path.return_value = MagicMock()
+    base_path = mock_source_path.return_value
+    base_path.iterdir.return_value = [
+        MagicMock(name='APHRO_MA_025deg_V1901.2015'),
+        MagicMock(name='APHRO_MA_050deg_V1901.2014'),
+    ]
+    mock_days_in_year.return_value = 365
+
+    # Create binary data for the temporary file
+    nx, ny, nday = 360, 280, 365
+    binary_data = b''.join([
+        np.zeros((ny * nx), dtype='float32').tobytes() for _ in range(nday * 2)
+    ])
+    # Create a temporary file with the binary data
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        temp_file.write(binary_data)
+        temp_file_path = Path(temp_file.name)
+
+    try:
+        # Mock file path to return the temporary file path
+        mock_source_path.return_value = temp_file_path.parent
+        mock_path = temp_file_path
+
+        # Call the function
+        output, filename = process_aphrodite_precipitation_data(
+            year='2015', plots=True
+        )
+
+        # Assertions
+        assert filename == 'aphrodite-daily-precip.csv'
+        assert isinstance(output, pd.DataFrame)
+        assert not output.empty
+        assert set(output.columns) == {
+            'iso3', 'admin_level_0', 'admin_level_1', 'admin_level_2',
+            'admin_level_3', 'year', 'month', 'day', 'week', 'metric',
+            'resolution', 'value', 'unit', 'creation_date'
+        }
+        assert output['year'].unique() == ['2015']
+        assert (output['metric'] == 'precipitation').all()
+        assert (output['unit'] == 'mm').all()
+        assert output['creation_date'].iloc[0] == date.today()
+        assert mock_plot_scatter.called
+    finally:
+        # Clean up the temporary file
+        temp_file_path.unlink()
 
 
 @patch('dart_pipeline.process.output_path')
