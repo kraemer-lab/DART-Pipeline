@@ -10,6 +10,7 @@ import pytest
 
 from dart_pipeline.process import \
     process_rwi, \
+    process_dengueperu, \
     process_gadm_chirps_rainfall, \
     process_gadm_worldpopcount, \
     process_chirps_rainfall, \
@@ -68,6 +69,83 @@ def test_process_rwi(
         rwi_df, csv_filename = process_rwi('VNM', '2', plots=True)
         # Assert plot function was called
         mock_plot.assert_called_once()
+
+
+@pytest.fixture
+def mock_source_path():
+    with patch('dart_pipeline.util.source_path') as mock_path:
+        mock_path.return_value = '/mock/source/path'
+        yield mock_path
+
+
+@pytest.fixture
+def mock_output_path():
+    with patch('dart_pipeline.util.output_path') as mock_path:
+        mock_path.return_value = '/mock/output/path'
+        yield mock_path
+
+
+@pytest.fixture
+def mock_plot_timeseries():
+    with patch('dart_pipeline.plots.plot_timeseries') as mock_plot:
+        yield mock_plot
+
+
+@pytest.fixture
+def mock_read_excel():
+    with patch('pandas.read_excel') as mock_read:
+        mock_read.return_value = pd.DataFrame({
+            'ano': [2023, 2023],
+            'semana': [1, 2],
+            'tipo_dx': ['C', 'P'],
+            'n': [10, 20],
+        })
+        yield mock_read
+
+
+@pytest.fixture
+def mock_os_walk():
+    with patch('os.walk') as mock_walk:
+        mock_walk.return_value = [(
+            '/mock/source/path', ['subdir'],
+            ['casos_dengue_nacional.xlsx', 'casos_dengue_region1.xlsx']
+        )]
+        yield mock_walk
+
+
+@pytest.mark.parametrize(
+    'admin_level, expected_admin_level_1, expected_plot_calls, should_raise',
+    [
+        ('0', '', 1, False),  # Admin level 0
+        ('1', 'Region1', 1, False),  # Admin level 1
+        ('2', None, 0, True),  # Invalid admin level
+    ]
+)
+def test_process_dengueperu(
+    admin_level, expected_admin_level_1, expected_plot_calls, should_raise,
+    mock_source_path, mock_output_path, mock_plot_timeseries,
+    mock_read_excel, mock_os_walk
+):
+    if should_raise:
+        match = f'Invalid admin level: {admin_level}'
+        with pytest.raises(ValueError, match=match):
+            process_dengueperu(admin_level=admin_level)
+    else:
+        master, output_filename = process_dengueperu(
+            admin_level=admin_level, plots=True
+        )
+
+        # Validate the output DataFrame
+        assert isinstance(master, pd.DataFrame)
+        assert master['admin_level_0'].iloc[0] == 'Peru'
+        assert master['admin_level_1'].iloc[0] == expected_admin_level_1
+        assert master['metric'].tolist() == [
+            'Confirmed Dengue Cases', 'Probable Dengue Cases'
+        ]
+        assert output_filename == 'dengue_peru.csv'
+
+        # Check the mock calls
+        mock_read_excel.assert_called()
 
 
 @patch('geopandas.read_file')
