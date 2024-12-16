@@ -369,7 +369,7 @@ requires-dist = [
     { name = "netcdf4", specifier = ">=1.7.2" },
     { name = "openpyxl", specifier = "==3.1.*" },
     { name = "pandarallel", specifier = ">=1.6.5" },
-    { name = "pandas", specifier = "==2.*" },
+    { name = "pandas", specifier = ">=2.2" },
     { name = "py7zr", specifier = "==0.20.6" },
     { name = "pycountry", specifier = "==24.6.1" },
     { name = "rasterio", specifier = "==1.*" },
