@@ -36,13 +36,16 @@ This will create a `data/sources/meteorological/aphrodite-daily-mean-temp` folde
 into which data will be downloaded.
 """
 
+import tempfile
 import logging
 import base64
 import re
 from datetime import date, timedelta
 from typing import Final, Callable
+from pathlib import Path
 
 from bs4 import BeautifulSoup
+import cdsapi
 import requests
 
 from .constants import TERRACLIMATE_METRICS, PERU_REGIONS
@@ -67,6 +70,53 @@ def gadm_data(iso3: str) -> URLCollection:
         relative_path=iso3,
     )
 
+def era5_reanalysis_data() -> DataFile:
+    """
+    Download ERA5 atmospheric reanalysis data.
+
+    How to use the Climate Data Store (CDS) Application Program Interface
+    (API): https://cds.climate.copernicus.eu/api-how-to
+
+    A Climate Data Store account is needed, see https://pypi.org/project/cdsapi/
+    """
+
+    c = cdsapi.Client()
+    request = {
+        "date": "2013-01-01",  # The hyphens can be omitted
+        # 1 is top level, 137 the lowest model level in ERA5. Use '/' to
+        # separate values.
+        "levelist": "1/10/100/137",
+        "levtype": "ml",
+        # Full information at https://apps.ecmwf.int/codes/grib/param-db/
+        # The native representation for temperature is spherical harmonics
+        "param": "130",
+        # Denotes ERA5. Ensemble members are selected by 'enda'
+        "stream": "oper",
+        # You can drop :00:00 and use MARS short-hand notation, instead of
+        # '00/06/12/18'
+        "time": "00/to/23/by/6",
+        "type": "an",
+        # North, West, South, East. Default: global
+        "area": "80/-50/-25/0",
+        # Latitude/longitude. Default: spherical harmonics or reduced Gaussian
+        # grid
+        "grid": "1.0/1.0",
+        # Output needs to be regular lat-lon, so only works in combination
+        # with 'grid'!
+        "format": "netcdf",
+    }
+    with tempfile.NamedTemporaryFile() as fp:
+        c.retrieve(
+            # Requests follow MARS syntax
+            # Keywords 'expver' and 'class' can be dropped. They are obsolete
+            # since their values are imposed by 'reanalysis-era5-complete'
+            "reanalysis-era5-complete",
+            request,
+            # Output file. Adapt as you wish.
+            fp.name,
+        )
+        data = Path(fp.name).read_bytes()
+        return DataFile("ERA5-ml-temperature-subarea.nc", ".", data)
 
 def relative_wealth_index(iso3: str) -> URLCollection:
     """This dataset contains the relative wealth index, which is the relative
@@ -396,11 +446,12 @@ REQUIRES_AUTH = [
 ]
 
 SOURCES: dict[
-    str, Callable[..., URLCollection | list[URLCollection] | list[DataFile]]
+    str, Callable[..., URLCollection | list[URLCollection] | DataFile | list[DataFile]]
 ] = {
     "epidemiological/dengue/peru": ministerio_de_salud_peru_data,
     "economic/relative-wealth-index": relative_wealth_index,
     "geospatial/gadm": gadm_data,
+    "meteorological/era5-reanalysis": era5_reanalysis_data,
     "meteorological/aphrodite-daily-precip": aphrodite_precipitation_data,
     "meteorological/aphrodite-daily-mean-temp": aphrodite_temperature_data,
     "meteorological/chirps-rainfall": chirps_rainfall_data,
