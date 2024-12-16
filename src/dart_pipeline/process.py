@@ -168,10 +168,13 @@ def process_dengueperu(
         df = pd.read_excel(filepath)
 
         # Rename the headings
-        df = df.rename(columns={'ano': 'year'})
-        df = df.rename(columns={'semana': 'week'})
-        df = df.rename(columns={'tipo_dx': 'metric'})
-        df = df.rename(columns={'n': 'value'})
+        columns = {
+            'ano': 'year',
+            'semana': 'week',
+            'tipo_dx': 'metric',
+            'n': 'value'
+        }
+        df = df.rename(columns=columns)
 
         # Define two metrics
         df.loc[df['metric'] == 'C', 'metric'] = 'Confirmed Dengue Cases'
@@ -217,7 +220,7 @@ def process_dengueperu(
     master['month'] = ''
     master['day'] = ''
     master['unit'] = 'cases'
-    master['resolution'] = ''
+    master['resolution'] = f'admin{admin_level}'
     master['creation_date'] = date.today()
 
     return master, 'dengue_peru.csv'
