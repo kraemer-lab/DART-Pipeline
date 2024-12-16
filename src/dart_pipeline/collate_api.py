@@ -3,7 +3,6 @@ Collate module for API-based retrievals.
 
 These require direct downloads to file.
 """
-from pathlib import Path
 import logging
 
 import cdsapi
@@ -247,7 +246,8 @@ def download_era5_reanalysis_data(dataset: str, partial_date: str):
                 'low_vegetation_cover',
                 'maximum_2m_temperature_since_previous_post_processing',
                 'maximum_individual_wave_height',
-                'maximum_total_precipitation_rate_since_previous_post_processing',
+                'maximum_total_precipitation_rate_since_previous_' +
+                'post_processing',
                 'mean_boundary_layer_dissipation',
                 'mean_convective_precipitation_rate',
                 'mean_convective_snowfall_rate',
@@ -307,8 +307,10 @@ def download_era5_reanalysis_data(dataset: str, partial_date: str):
                 'mean_zero_crossing_wave_period',
                 'medium_cloud_cover',
                 'minimum_2m_temperature_since_previous_post_processing',
-                'minimum_total_precipitation_rate_since_previous_post_processing',
-                'minimum_vertical_gradient_of_refractivity_inside_trapping_layer',
+                'minimum_total_precipitation_rate_since_previous_' +
+                'post_processing',
+                'minimum_vertical_gradient_of_refractivity_inside_' +
+                'trapping_layer',
                 'model_bathymetry',
                 'near_ir_albedo_for_diffuse_radiation',
                 'near_ir_albedo_for_direct_radiation',
