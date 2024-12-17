@@ -117,15 +117,24 @@ def process_rwi(iso3: str, admin_level: str, plots=False):
     # Add in the higher-level admin levels
     for i in range(int(admin_level) + 1, 4):
         rwi[f'admin_level_{i}'] = None
-    # Add the metric name and unit
+    # Add additional columns
+    rwi['iso3'] = iso3
+    rwi['year'] = ''
+    rwi['month'] = ''
+    rwi['day'] = ''
+    rwi['week'] = ''
     rwi['metric'] = 'Relative Wealth Index'
     rwi['unit'] = 'unitless'
-    # Re-order the columns
-    output_columns = \
-        [f'admin_level_{i}' for i in range(4)] + ['metric', 'value', 'unit']
-    rwi = rwi[output_columns]
+    rwi['resolution'] = f'admin{admin_level}'
+    rwi['creation_date'] = date.today()
+    # Remove unnecessary columns
+    rwi = rwi.drop('geo_id', axis=1)
+    rwi = rwi.drop(f'GID_{admin_level}', axis=1)
 
-    return rwi, f'{iso3}.csv'
+    # Re-order the columns
+    rwi = rwi[OUTPUT_COLUMNS]
+
+    return rwi.fillna(''), 'relative_wealth_index.csv'
 
 
 def process_ministerio_de_salud_peru_data(
