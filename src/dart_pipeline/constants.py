@@ -56,3 +56,21 @@ PERU_REGIONS = [
     "TUMBES",
     "UCAYALI",
 ]
+
+# Column names in the output CSVs
+OUTPUT_COLUMNS = [
+    'iso3',
+    'admin_level_0',
+    'admin_level_1',
+    'admin_level_2',
+    'admin_level_3',
+    'year',
+    'month',
+    'day',
+    'week',
+    'metric',
+    'value',
+    'unit',
+    'resolution',
+    'creation_date'
+]
