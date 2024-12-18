@@ -30,7 +30,7 @@ def worldpop_pop_density_data(iso3: str) -> URLCollection:
 `collate_api.py`
 
 ```
-def download_era5_reanalysis_data(path: Path):
+✅ def download_era5_reanalysis_data(dataset: str, partial_date: str):
 ```
 
 `process.py`
