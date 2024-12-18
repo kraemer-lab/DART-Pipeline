@@ -995,46 +995,50 @@ def process_era5reanalysis(dataset, partial_date, plots=False):
     logging.info('partial_date:%s', pdate)
     logging.info('plots:%s', plots)
 
-    filename = f'{dataset}_{str(pdate)}.nc'
-    path = BASE_DIR / DEFAULT_SOURCES_ROOT / sub_pipeline / filename
-    logging.info('importing:%s', path)
-    ds = nc.Dataset(path, 'r')  # type: ignore
+    # Find the data
+    filepaths = []
+    folder = BASE_DIR / DEFAULT_SOURCES_ROOT / sub_pipeline
+    for path in folder.iterdir():
+        if path.name == f'{dataset}_{str(pdate)}.nc':
+            # The data file has been found
+            filepaths.append(path)
+            break
+        if path.name == f'{dataset}_{str(pdate)}':
+            # The data folder has been found
+            filepaths = path.iterdir()
 
-    # Import variables as arrays
-    longitude = ds.variables['longitude'][:]
-    latitude = ds.variables['latitude'][:]
-    level = ds.variables['level'][:]
-    time = ds.variables['time'][:]
-    temp = ds.variables['t'][:]
-    # Convert Kelvin to Celsius
-    temp = temp - 273.15
+    # Initialise the output data frame
+    df = pd.DataFrame(columns=OUTPUT_COLUMNS)
 
-    longitudes = []
-    latitudes = []
-    levels = []
-    times = []
-    temperatures = []
-    for i, lon in enumerate(longitude):
-        for j, lat in enumerate(latitude):
-            for k, lev in enumerate(level):
-                for m, t in enumerate(time):
-                    longitudes.append(lon)
-                    latitudes.append(lat)
-                    levels.append(lev)
-                    times.append(t)
-                    temperatures.append(temp[m, k, j, i])
+    # Process the data
+    for i, path in enumerate(sorted(filepaths)):
+        logging.info('importing:%s', path)
+        ds = nc.Dataset(path, 'r')  # type: ignore
 
-    dct = {
-        "longitude": longitudes,
-        "latitude": latitudes,
-        "level": levels,
-        "time": times,
-        "temperature": temperatures,
-    }
-    df = pd.DataFrame(dct)
-    file.close()
+        # Typically the data variable will be at the front
+        variable = list(ds.variables)[0]
+        data = ds.variables[variable][:]
+        mean_value = np.mean(data[~np.isnan(data)])
 
-    return df, "ERA5-ml-temperature-subarea.csv"
+        # Add to output data frame
+        df.loc[i, 'iso3'] = ''
+        df.loc[i, 'admin_level_0'] = ''
+        df.loc[i, 'admin_level_1'] = ''
+        df.loc[i, 'admin_level_2'] = ''
+        df.loc[i, 'admin_level_3'] = ''
+        df.loc[i, 'year'] = pdate.year
+        df.loc[i, 'month'] = pdate.month
+        df.loc[i, 'day'] = pdate.day
+        df.loc[i, 'week'] = ''
+        df.loc[i, 'metric'] = ds.variables[variable].long_name
+        df.loc[i, 'value'] = mean_value
+        df.loc[i, 'unit'] = ds.variables[variable].units
+        df.loc[i, 'resolution'] = 'global'
+        df.loc[i, 'creation_date'] = date.today()
+
+        ds.close()
+
+    return df.fillna(''), 'era5-reanalysis.csv'
 
 
 def process_terraclimate(

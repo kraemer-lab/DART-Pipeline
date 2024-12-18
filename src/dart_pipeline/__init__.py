@@ -9,6 +9,7 @@ import textwrap
 
 from .types import DataFile, URLCollection
 from .constants import (
+    BASE_DIR,
     DEFAULT_SOURCES_ROOT,
     DEFAULT_OUTPUT_ROOT,
     MSG_PROCESS,
@@ -23,7 +24,6 @@ from .util import (
     download_files,
     get_credentials,
     only_one_from_collection,
-    output_path,
     unpack_file,
     update_or_create_output
 )
@@ -155,7 +155,7 @@ def process_cli(source: str, **kwargs):
     if missing_params := non_default_params - set(kwargs):
         abort(source, f"missing required parameters {missing_params}")
     result = processor(**kwargs)
-    base_path = output_path(source)
+    base_path = BASE_DIR / DEFAULT_OUTPUT_ROOT / source
     result = result if isinstance(result, list) else [result]
     for df, filename in result:
         out = base_path / filename
