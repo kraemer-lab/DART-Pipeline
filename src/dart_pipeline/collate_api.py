@@ -7,8 +7,9 @@ import logging
 
 import cdsapi
 
+from .constants import BASE_DIR, DEFAULT_SOURCES_ROOT
 from .types import PartialDate
-from .util import source_path
+from .util import unpack_file
 
 
 def download_era5_reanalysis_data(dataset: str, partial_date: str):
@@ -31,50 +32,10 @@ def download_era5_reanalysis_data(dataset: str, partial_date: str):
     - `'reanalysis-era5-single-levels'`: ERA5 hourly data on single levels from
       1940 to present
     """
-    source = 'meteorological/era5-reanalysis'
+    sub_pipeline = 'meteorological/era5-reanalysis'
     logging.info('dataset:%s', dataset)
     pdate = PartialDate.from_string(partial_date)
     logging.info('pdate:%s', pdate)
-
-    # Sea ice thickness monthly gridded data for the Arctic from 2002 to
-    # present derived from satellite observations
-    # https://cds.climate.copernicus.eu/datasets/satellite-sea-ice-thickness
-    if dataset == 'satellite-sea-ice-thickness':
-        if pdate.year in [2021, 2022, 2023]:
-            satellite = ['cryosat_2']
-            cdr_type = ['icdr']
-        elif pdate.year in [2020]:
-            satellite = ['cryosat_2']
-            cdr_type = ['cdr', 'icdr']
-        elif pdate.year in [
-            2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019
-        ]:
-            satellite = ['cryosat_2']
-            cdr_type = ['cdr']
-        elif pdate.year in [2010]:
-            satellite = ['envisat', 'cryosat_2']
-            cdr_type = ['cdr']
-        elif pdate.year in [2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009]:
-            satellite = ['envisat']
-            cdr_type = ['cdr']
-        else:
-            satellite = ['envisat', 'cryosat_2']
-            cdr_type = ['cdr', 'icdr']
-        request = {
-            'satellite': satellite,
-            'cdr_type': cdr_type,
-            'variable': 'all',
-            'year': [str(pdate.year)],
-            'month': [
-                '01', '02', '03',
-                '04', '10', '11',
-                '12'
-            ],
-            'version': '3_0'
-        }
-        path = source_path(source, f'{dataset}_{pdate.year}.nc')
-        logging.info('creating:%s', path.parent)
-        path.parent.mkdir(parents=True, exist_ok=True)
 
     # ERA5-Land post-processed daily statistics from 1950 to present
     # https://cds.climate.copernicus.eu/datasets/derived-era5-land-daily-statistics
@@ -119,12 +80,13 @@ def download_era5_reanalysis_data(dataset: str, partial_date: str):
             ],
             'year': pdate.year,
             'month': pdate.month,
-            'day': pdate.day,
+            'day': [pdate.day],
             'daily_statistic': 'daily_mean',
             'time_zone': 'utc+00:00',
-            'frequency': '6_hourly'
+            'frequency': '6_hourly',
         }
-        path = source_path(source, f'{dataset}_{str(pdate)}.nc')
+        path = BASE_DIR / DEFAULT_SOURCES_ROOT / sub_pipeline / \
+            f'{dataset}_{str(pdate)}.zip'
         logging.info('creating:%s', path.parent)
         path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -149,7 +111,8 @@ def download_era5_reanalysis_data(dataset: str, partial_date: str):
             'grid': '1.0/1.0',
             'format': 'netcdf',
         }
-        path = source_path(source, f'{dataset}_{str(pdate)}.nc')
+        path = BASE_DIR / DEFAULT_SOURCES_ROOT / sub_pipeline / \
+            f'{dataset}_{str(pdate)}.nc'
         logging.info('creating:%s', path.parent)
         path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -441,12 +404,59 @@ def download_era5_reanalysis_data(dataset: str, partial_date: str):
             'data_format': 'netcdf',
             'download_format': 'unarchived'
         }
-        path = source_path(source, f'{dataset}_{str(pdate)}.nc')
+        path = BASE_DIR / DEFAULT_SOURCES_ROOT / sub_pipeline / \
+            f'{dataset}_{str(pdate)}.zip'
+        logging.info('creating:%s', path.parent)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Sea ice thickness monthly gridded data for the Arctic from 2002 to
+    # present derived from satellite observations
+    # https://cds.climate.copernicus.eu/datasets/satellite-sea-ice-thickness
+    if dataset == 'satellite-sea-ice-thickness':
+        if pdate.year in [2021, 2022, 2023]:
+            satellite = ['cryosat_2']
+            cdr_type = ['icdr']
+        elif pdate.year in [2020]:
+            satellite = ['cryosat_2']
+            cdr_type = ['cdr', 'icdr']
+        elif pdate.year in [
+            2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019
+        ]:
+            satellite = ['cryosat_2']
+            cdr_type = ['cdr']
+        elif pdate.year in [2010]:
+            satellite = ['envisat', 'cryosat_2']
+            cdr_type = ['cdr']
+        elif pdate.year in [2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009]:
+            satellite = ['envisat']
+            cdr_type = ['cdr']
+        else:
+            satellite = ['envisat', 'cryosat_2']
+            cdr_type = ['cdr', 'icdr']
+        request = {
+            'satellite': satellite,
+            'cdr_type': cdr_type,
+            'variable': 'all',
+            'year': [str(pdate.year)],
+            'month': [
+                '01', '02', '03',
+                '04', '10', '11',
+                '12'
+            ],
+            'version': '3_0',
+            'format': 'netcdf'
+        }
+        path = BASE_DIR / DEFAULT_SOURCES_ROOT / sub_pipeline / \
+            f'{dataset}_{pdate.year}.zip'
         logging.info('creating:%s', path.parent)
         path.parent.mkdir(parents=True, exist_ok=True)
 
     client = cdsapi.Client()
     logging.info('exporting:%s', path)
     client.retrieve(dataset, request, path)
+
+    # If the downloaded file is an archive file, unpack it
+    if path.suffix == '.zip':
+        unpack_file(path)
 
     return None

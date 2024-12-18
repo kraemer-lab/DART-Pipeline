@@ -40,7 +40,8 @@ from .util import \
     abort, source_path, days_in_year, output_path, get_country_name, \
     get_shapefile
 from .types import ProcessResult, PartialDate, AdminLevel
-from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS
+from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS, BASE_DIR, \
+    DEFAULT_SOURCES_ROOT, DEFAULT_OUTPUT_ROOT
 
 pandarallel.initialize(verbose=0)
 
@@ -986,18 +987,25 @@ def process_chirps_rainfall(partial_date: str, plots=False) -> ProcessResult:
     return output, 'chirps-rainfall.csv'
 
 
-def process_era5_reanalysis_data() -> ProcessResult:
+def process_era5reanalysis(dataset, partial_date, plots=False):
     """Process ERA5 atmospheric reanalysis data."""
-    source = "meteorological/era5-atmospheric-reanalysis"
-    path = source_path(source, "ERA5-ml-temperature-subarea.nc")
-    file = nc.Dataset(path, "r")  # type: ignore
+    sub_pipeline = 'meteorological/era5-reanalysis'
+    pdate = PartialDate.from_string(partial_date)
+    logging.info('dataset:%s', dataset)
+    logging.info('partial_date:%s', pdate)
+    logging.info('plots:%s', plots)
+
+    filename = f'{dataset}_{str(pdate)}.nc'
+    path = BASE_DIR / DEFAULT_SOURCES_ROOT / sub_pipeline / filename
+    logging.info('importing:%s', path)
+    ds = nc.Dataset(path, 'r')  # type: ignore
 
     # Import variables as arrays
-    longitude = file.variables["longitude"][:]
-    latitude = file.variables["latitude"][:]
-    level = file.variables["level"][:]
-    time = file.variables["time"][:]
-    temp = file.variables["t"][:]
+    longitude = ds.variables['longitude'][:]
+    latitude = ds.variables['latitude'][:]
+    level = ds.variables['level'][:]
+    time = ds.variables['time'][:]
+    temp = ds.variables['t'][:]
     # Convert Kelvin to Celsius
     temp = temp - 273.15
 
@@ -1394,18 +1402,18 @@ def get_admin_region(lat: float, lon: float, polygons) -> str:
 
 
 PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
-    "economic/relative-wealth-index": process_rwi,
-    "epidemiological/dengue/peru": process_dengueperu,
-    "geospatial/chirps-rainfall": process_gadm_chirps_rainfall,
-    "geospatial/gadm": process_gadm_admin_map_data,
-    "geospatial/worldpop-count": process_gadm_worldpopcount,
-    "meteorological/aphrodite-daily-mean-temp": process_aphrodite_temperature_data,
-    "meteorological/aphrodite-daily-precip": process_aphrodite_precipitation_data,
-    "meteorological/chirps-rainfall": process_chirps_rainfall,
-    "meteorological/era5-reanalysis": process_era5_reanalysis_data,
-    "meteorological/terraclimate": process_terraclimate,
-    "sociodemographic/worldpop-count": process_worldpop_pop_count_data,
-    "sociodemographic/worldpop-density": process_worldpop_pop_density_data,
+    'economic/relative-wealth-index': process_rwi,
+    'epidemiological/dengue/peru': process_dengueperu,
     'geospatial/aphrodite-daily-mean-temp': process_gadm_aphroditetemperature,
     'geospatial/aphrodite-daily-precip': process_gadm_aphroditeprecipitation,
+    'geospatial/chirps-rainfall': process_gadm_chirps_rainfall,
+    'geospatial/gadm': process_gadm_admin_map_data,
+    'geospatial/worldpop-count': process_gadm_worldpopcount,
+    'meteorological/aphrodite-daily-mean-temp': process_aphrodite_temperature_data,
+    'meteorological/aphrodite-daily-precip': process_aphrodite_precipitation_data,
+    'meteorological/chirps-rainfall': process_chirps_rainfall,
+    'meteorological/era5-reanalysis': process_era5reanalysis,
+    'meteorological/terraclimate': process_terraclimate,
+    'sociodemographic/worldpop-count': process_worldpop_pop_count_data,
+    'sociodemographic/worldpop-density': process_worldpop_pop_density_data,
 }
