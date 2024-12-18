@@ -96,6 +96,7 @@ def get(
     }
     if missing_params := non_default_params - set(kwargs):
         abort(source, f"missing required parameters {missing_params}")
+    unpack = 'unpack' in kwargs
 
     if not (path := DATA_PATH / source).exists():
         path.mkdir(parents=True, exist_ok=True)
@@ -116,7 +117,7 @@ def get(
             print(f"✅ SKIP {source_fmt} {coll}")
             # If the file(s) have already been downloaded, they might not have
             # been unpacked
-            if 'unpack' in kwargs:
+            if unpack:
                 for file in coll.files:
                     url = coll.base_url + '/' + file
                     to_unpack = path / Path(file).name
@@ -126,7 +127,7 @@ def get(
             continue
         msg = f"GET {source_fmt} {coll}"
         print(f" •  {msg}", end="\r")
-        success = download_files(coll, path, auth=auth)
+        success = download_files(coll, path, auth=auth, unpack=unpack)
         n_ok = sum(success)
         if n_ok == len(success):
             print(f"✅ {msg}")

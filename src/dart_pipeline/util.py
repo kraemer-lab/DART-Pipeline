@@ -168,7 +168,8 @@ def download_file(
 
 
 def download_files(
-    links: URLCollection, out_dir: Path, auth: Credentials | None = None
+    links: URLCollection, out_dir: Path, auth: Credentials | None = None,
+    unpack: bool = True
 ) -> list[bool]:
     """Download multiple files in a list."""
     out_dir = out_dir / links.relative_path
@@ -267,6 +268,8 @@ def bold_brackets(s: str) -> str:
 def unpack_file(path: Path | str, same_folder: bool = False):
     """Unpack a zipped file."""
     path = Path(path)
+    logging.info('unpacking:%s', path)
+    logging.info('same_folder:%s', same_folder)
     if str(path).endswith('.gz'):
         with gzip.open(path, 'rb') as f_in:
             if same_folder:
@@ -276,15 +279,21 @@ def unpack_file(path: Path | str, same_folder: bool = False):
                 file = str(path.name).replace('.gz', '')
                 extract_path = path.parent / Path(folder) / Path(file)
                 extract_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(extract_path, 'wb') as f_out:
-                shutil.copyfileobj(f_in, f_out)
+            logging.info('extract_path:%s', extract_path)
+            try:
+                with open(extract_path, 'wb') as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+            except gzip.BadGzipFile:
+                print(f'BadGzipFile: Not a gzipped file ({path.name})')
         return
     match path.suffix:
-        case ".7z":
+        case '.7z':
             with py7zr.SevenZipFile(path, mode="r") as archive:
                 archive.extractall(
                     path.parent if same_folder else path.parent / path.stem
                 )
+        case '.f90':
+            pass
         case _:
             extract_dir = path.parent if same_folder else path.parent / path.stem
             shutil.unpack_archive(path, str(extract_dir))
@@ -336,7 +345,7 @@ def update_or_create_output(
         df = new_df
 
     # Export
-    logging.info(f'Exporting:{out}')
+    logging.info(f'exporting:{out}')
     df.to_csv(out, index=False)
 
     # When testing we want to be able to inspect the data frame
