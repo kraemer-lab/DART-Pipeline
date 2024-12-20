@@ -37,6 +37,7 @@ INDEX
 ✅ def test_process_aphrodite_temperature_data(
 ✅ def test_process_aphrodite_precipitation_data(
 ✅ def test_process_chirps_rainfall(
+✅ def process_era5reanalysis():
 ✅ def test_process_terraclimate(
 ✅ def test_process_worldpop_pop_count_data(
 ```

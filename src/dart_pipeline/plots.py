@@ -136,7 +136,7 @@ def plot_gadm_scatter(lon, lat, data, title, colourbar_label, path, gdf):
     """Plot a scatter plot."""
     fig, ax = plt.subplots()
     scatter = ax.scatter(lon, lat, c=data, cmap='coolwarm', marker='o', s=10)
-    cbar = fig.colorbar(scatter, ax=ax, label=colourbar_label)
+    fig.colorbar(scatter, ax=ax, label=colourbar_label)
     gdf.boundary.plot(ax=ax, color='black', linewidth=.5)
     ax.set_title(title)
     ax.set_xlabel('Longitude')

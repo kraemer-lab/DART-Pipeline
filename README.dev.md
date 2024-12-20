@@ -116,16 +116,6 @@ uv run dart-pipeline process meteorological/chirps-rainfall d=2023-05 l=INFO
 uv run dart-pipeline process meteorological/chirps-rainfall d=2023-05-11 l=INFO
 ```
 
-### TerraClimate
-
-```
-uv run dart-pipeline get meteorological/terraclimate year=2023
-uv run dart-pipeline process meteorological/terraclimate d=2023-01 3=PER a=0 l=INFO
-uv run dart-pipeline process meteorological/terraclimate d=2023-01 3=PER a=1 l=INFO
-uv run dart-pipeline process meteorological/terraclimate d=2023-01 3=VNM a=0 l=INFO plots
-uv run dart-pipeline process meteorological/terraclimate d=2023-01 3=VNM a=1 l=INFO plots
-```
-
 ### ERA5 atmospheric reanalysis
 
 ```
@@ -134,7 +124,17 @@ uv run dart-pipeline get meteorological/era5-reanalysis dataset=reanalysis-era5-
 uv run dart-pipeline get meteorological/era5-reanalysis dataset=reanalysis-era5-single-levels d=2024-10-01 l=INFO
 uv run dart-pipeline get meteorological/era5-reanalysis dataset=satellite-sea-ice-thickness d=2023 l=INFO
 
-uv run dart-pipeline process meteorological/era5-reanalysis dataset=derived-era5-land-daily-statistics d=2024-10-01 l=INFO
+uv run dart-pipeline process meteorological/era5-reanalysis dataset=derived-era5-land-daily-statistics d=2024-10-01 l=INFO plots
+```
+
+### TerraClimate
+
+```
+uv run dart-pipeline get meteorological/terraclimate year=2023
+uv run dart-pipeline process meteorological/terraclimate d=2023-01 3=PER a=0 l=INFO
+uv run dart-pipeline process meteorological/terraclimate d=2023-01 3=PER a=1 l=INFO
+uv run dart-pipeline process meteorological/terraclimate d=2023-01 3=VNM a=0 l=INFO plots
+uv run dart-pipeline process meteorological/terraclimate d=2023-01 3=VNM a=1 l=INFO plots
 ```
 
 Socio-Demographic

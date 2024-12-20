@@ -1019,6 +1019,16 @@ def process_era5reanalysis(dataset, partial_date, plots=False):
         variable = list(ds.variables)[0]
         data = ds.variables[variable][:]
         mean_value = np.mean(data[~np.isnan(data)])
+        metric = ds.variables[variable].long_name
+        unit = ds.variables[variable].units
+
+        if plots:
+            title = f'{metric}\n{partial_date}'
+            colourbar_label = f'{metric} [{unit}]'
+            path = BASE_DIR / DEFAULT_OUTPUT_ROOT / sub_pipeline / \
+                str(pdate).replace('-', '/') / \
+                (title.replace('\n', ' - ') + '.png')
+            plot_heatmap(data[0, :, :], title, colourbar_label, path)
 
         # Add to output data frame
         df.loc[i, 'iso3'] = ''
@@ -1030,9 +1040,9 @@ def process_era5reanalysis(dataset, partial_date, plots=False):
         df.loc[i, 'month'] = pdate.month
         df.loc[i, 'day'] = pdate.day
         df.loc[i, 'week'] = ''
-        df.loc[i, 'metric'] = ds.variables[variable].long_name
+        df.loc[i, 'metric'] = metric
         df.loc[i, 'value'] = mean_value
-        df.loc[i, 'unit'] = ds.variables[variable].units
+        df.loc[i, 'unit'] = unit
         df.loc[i, 'resolution'] = 'global'
         df.loc[i, 'creation_date'] = date.today()
 
@@ -1054,6 +1064,7 @@ def process_terraclimate(
     source = 'meteorological/terraclimate'
     pdate = PartialDate.from_string(partial_date)
     logging.info('partial_date:%s', pdate)
+    iso3 = iso3.upper()
     logging.info('iso3:%s', iso3)
     logging.info('admin_level:%s', admin_level)
     logging.info('plots:%s', plots)
@@ -1066,7 +1077,8 @@ def process_terraclimate(
     output = pd.DataFrame(columns=columns)
 
     # Import a shapefile
-    path = get_shapefile(iso3, admin_level)
+    path = BASE_DIR / DEFAULT_SOURCES_ROOT / 'geospatial' / 'gadm' / iso3 / \
+        f'gadm41_{iso3}_{admin_level}.shp'
     logging.info('importing:%s', path)
     gdf = gpd.read_file(path)
 
@@ -1075,8 +1087,10 @@ def process_terraclimate(
         # Import the raw data
         if (pdate.year == 2023) and (metric == 'pdsi'):
             # In 2023 the capitalization of pdsi changed
-            metric = 'PDSI'
-        path = source_path(source, f'TerraClimate_{metric}_{pdate.year}.nc')
+            filename = f'TerraClimate_PDSI_{pdate.year}.nc'
+        else:
+            filename = f'TerraClimate_{metric}_{pdate.year}.nc'
+        path = BASE_DIR / DEFAULT_SOURCES_ROOT / source / filename
         logging.info('importing:%s', path)
         ds = nc.Dataset(path)
 
@@ -1123,10 +1137,10 @@ def process_terraclimate(
                 month_str = month.strftime('%B %Y')
                 title = f'{raw.description}\n{iso3} - {month_str}'
                 colourbar_label = f'{raw.description} [{raw.units}]'
-                path = Path(
-                    output_path(source), str(pdate).replace('-', '/'),
-                    f'admin_level_{admin_level}', title + '.png'
-                )
+                path = BASE_DIR / DEFAULT_OUTPUT_ROOT / source / \
+                    str(pdate).replace('-', '/') / \
+                    f'admin_level_{admin_level}' / \
+                    (title.replace('\n', ' - ') + '.png')
                 plot_gadm_macro_heatmap(
                     this_month, origin, extent, limits, gdf, zorder, title,
                     colourbar_label, path
