@@ -6,21 +6,19 @@ from pathlib import Path
 
 import pytest
 
+from dart_pipeline.constants import BASE_DIR
 from dart_pipeline.collate_api import download_era5_reanalysis_data
 
 
-@patch('dart_pipeline.util.source_path')
+@patch('dart_pipeline.collate_api.unpack_file')
 @patch('cdsapi.Client')
-def test_download_era5_reanalysis_data(mock_cds_client, mock_source_path):
-    # Set up mocks
-    expected_path = Path(
-        'data/sources/meteorological/era5-reanalysis/' +
-        'satellite-sea-ice-thickness_2021.nc'
-    )
-    mock_source_path.return_value = expected_path
+def test_download_era5_reanalysis_data(mock_cds_client, mock_unpack_file):
+    # Mock the unpack_file behavior
+    mock_unpack_file.return_value = None
 
     # Mock mkdir method for the parent directory
     mock_mkdir = MagicMock()
+
     with patch.object(Path, 'mkdir', mock_mkdir):
         mock_cds_instance = mock_cds_client.return_value
         mock_cds_instance.retrieve = MagicMock()
@@ -36,7 +34,8 @@ def test_download_era5_reanalysis_data(mock_cds_client, mock_source_path):
                     'variable': 'all',
                     'year': ['2021'],
                     'month': ['01', '02', '03', '04', '10', '11', '12'],
-                    'version': '3_0'
+                    'version': '3_0',
+                    'format': 'netcdf',
                 },
                 'should_raise': None
             },
@@ -63,11 +62,19 @@ def test_download_era5_reanalysis_data(mock_cds_client, mock_source_path):
                 download_era5_reanalysis_data(dataset, partial_date)
 
                 # Assertions
+                expected_path = Path(
+                    BASE_DIR, 'data/sources/meteorological/era5-reanalysis/' +
+                    'satellite-sea-ice-thickness_2021.zip'
+                )
                 mock_cds_instance.retrieve.assert_called_with(
                     dataset, case['expected_params'], expected_path
                 )
                 mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
 
+                # Ensure unpack_file was called
+                mock_unpack_file.assert_called_once()
+
                 # Reset mocks for the next iteration
                 mock_cds_instance.retrieve.reset_mock()
                 mock_mkdir.reset_mock()
+                mock_unpack_file.reset_mock()
