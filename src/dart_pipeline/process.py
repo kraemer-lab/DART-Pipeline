@@ -511,6 +511,255 @@ def process_gadm_aphroditeprecipitation(
     return output, 'aphrodite-daily-precip.csv'
 
 
+def process_gadm_chirps_rainfall(
+    iso3: str, admin_level: Literal['0', '1'], partial_date: str, plots=False
+):
+    """
+    Process GADM administrative map and CHIRPS rainfall data.
+
+    "CHIRPS" stands for Climate Hazards Group InfraRed Precipitation with
+    Station.
+    """
+    pdate = PartialDate.from_string(partial_date)
+    logging.info('iso3:%s', iso3)
+    logging.info('admin_level:%s', admin_level)
+    logging.info('partial_date:%s', pdate)
+    logging.info('scope:%s', pdate.scope)
+    logging.info('plots:%s', plots)
+
+    # Import the GeoTIFF file
+    file = get_chirps_rainfall_data_path(pdate)
+    logging.info('importing:%s', file)
+    src = rasterio.open(file)
+
+    # Create a bounding box from raster bounds
+    bounds = src.bounds
+    raster_bbox = shapely.geometry.box(
+        bounds.left, bounds.bottom, bounds.right, bounds.top
+    )
+
+    # Import shape file
+    path = get_shapefile(iso3, admin_level)
+    logging.info('importing:%s', path)
+    gdf = gpd.read_file(path)
+    # Transform the shape file to match the GeoTIFF's coordinate system
+    gdf = gdf.to_crs(src.crs)
+    # EPSG:4326 - WGS 84: latitude/longitude coordinate system based on the
+    # Earth's center of mass
+
+    # Initialise the data frame that will store the output data for each region
+    columns = [
+        'admin_level_0', 'admin_level_1', 'admin_level_2', 'admin_level_3',
+        'year', 'month', 'day', 'rainfall'
+    ]
+    output = pd.DataFrame(columns=columns)
+
+    # Iterate over each region in the shape file
+    for i, region in gdf.iterrows():
+        # Add the region name to the output data frame
+        output.loc[i, 'admin_level_0'] = region['COUNTRY']
+        # Initialise the graph title
+        title = region['COUNTRY']
+        # Add more region names and update the graph title if the admin level
+        # is high enough to warrant it
+        if int(admin_level) >= 1:
+            output.loc[i, 'admin_level_1'] = region['NAME_1']
+            title = region['NAME_1']
+        if int(admin_level) >= 2:
+            output.loc[i, 'admin_level_2'] = region['NAME_2']
+            title = region['NAME_2']
+        if int(admin_level) >= 3:
+            output.loc[i, 'admin_level_3'] = region['NAME_3']
+            title = region['NAME_3']
+
+        # Add date information to the output data frame
+        output.loc[i, 'year'] = pdate.year
+        if pdate.month:
+            output.loc[i, 'month'] = pdate.month
+        if pdate.day:
+            output.loc[i, 'day'] = pdate.day
+
+        # Check if the rainfall data intersects this region
+        geometry = region.geometry
+        if raster_bbox.intersects(geometry):
+            # There is rainfall data for this region
+            # Clip the data using the polygon of the current region
+            region_data, _ = rasterio.mask.mask(src, [geometry], crop=True)
+            # Replace negative values (if any exist)
+            region_data = np.where(region_data < 0, np.nan, region_data)
+            # Sum the pixel values to get the total for the region
+            region_total = np.nansum(region_data)
+        else:
+            # No rainfall data for this region
+            region_total = 0
+        logging.info('region:%s', title)
+        logging.info('region_total:%s', region_total)
+        # Add the result to the output data frame
+        output.loc[i, 'rainfall'] = region_total
+
+        if plots:
+            # Get the bounds of the region
+            min_lon, min_lat, max_lon, max_lat = geometry.bounds
+            # Plot
+            _, ax = plt.subplots()
+            ar = region_data[0]
+            ar[ar == 0] = np.nan
+            im = ax.imshow(
+                ar, cmap='coolwarm', origin='upper',
+                extent=[min_lon, max_lon, min_lat, max_lat]
+            )
+            # Add the geographical borders
+            gdf.plot(ax=ax, color='none', edgecolor='gray')
+            gpd.GeoDataFrame([region]).plot(ax=ax, color='none', edgecolor='k')
+            plt.colorbar(im, ax=ax, label='Rainfall [mm]')
+            ax.set_title(f'Rainfall\n{title} - {pdate}')
+            ax.set_xlim(min_lon, max_lon)
+            ax.set_ylim(min_lat, max_lat)
+            ax.set_ylabel('Latitude')
+            ax.set_xlabel('Longitude')
+            # Make the plot title file-system safe
+            title = re.sub(r'[<>:"/\\|?*]', '_', title)
+            title = title.strip()
+            # Export
+            path = Path(
+                output_path('geospatial/chirps-rainfall'),
+                str(pdate).replace('-', '/'), title + '.png'
+            )
+            path.parent.mkdir(parents=True, exist_ok=True)
+            logging.info('exporting:%s', path)
+            plt.savefig(path)
+            plt.close()
+
+    # Export
+    return output, f'{iso3}.csv'
+
+
+def process_gadm_era5reanalysis(
+    dataset, iso3: str, admin_level: Literal['0', '1', '2', '3'],
+    partial_date: str, plots=False
+
+):
+    """Process GADM and ERA5 atmospheric reanalysis data."""
+    sub_pipeline = 'geospatial/era5-reanalysis'
+    logging.info('dataset:%s', dataset)
+    logging.info('iso3:%s', iso3)
+    logging.info('admin_level:%s', admin_level)
+    pdate = PartialDate.from_string(partial_date)
+    logging.info('partial_date:%s', pdate)
+    logging.info('plots:%s', plots)
+
+    # Initialise the output data frame
+    df = pd.DataFrame(columns=OUTPUT_COLUMNS)
+
+    # Import shape file
+    path = get_shapefile(iso3, admin_level)
+    logging.info('importing:%s', path)
+    gdf = gpd.read_file(path)
+
+    # Find the meteorological data
+    filepaths = []
+    folder = Path(
+        BASE_DIR, DEFAULT_SOURCES_ROOT, 'meteorological', 'era5-reanalysis'
+    )
+    for path in folder.iterdir():
+        if path.name == f'{dataset}_{str(pdate)}.nc':
+            # The data file has been found
+            filepaths.append(path)
+            break
+        if path.name == f'{dataset}_{str(pdate)}':
+            # The data folder has been found
+            filepaths = path.iterdir()
+
+    # Process the data
+    idx = 0
+    for i, path in enumerate(sorted(filepaths)):
+        logging.info('importing:%s', path)
+        ds = nc.Dataset(path, 'r')  # type: ignore
+
+        # Extract the variables
+        lat = ds.variables['latitude'][:]
+        lon = ds.variables['longitude'][:]
+        # Typically the data variable will be at the front
+        variable = list(ds.variables)[0]
+        raw = ds.variables[variable]
+        # Extract the 2D array that holds the data
+        data = raw[0, :, :]
+        metric = ds.variables[variable].long_name
+        unit = ds.variables[variable].units
+
+        # Iterate over the regions in the shape file
+        for j, region in gdf.iterrows():
+            geometry = region.geometry
+
+            # Populate a row for the output data frame
+            df.loc[idx, 'admin_level_0'] = region['COUNTRY']
+            region_name = region['COUNTRY']
+            # Update the new row and the region name if the admin level is high
+            # enough
+            if int(admin_level) >= 1:
+                df.loc[idx, 'admin_level_1'] = region['NAME_1']
+                region_name = region['NAME_1']
+            else:
+                df.loc[idx, 'admin_level_1'] = None
+            if int(admin_level) >= 2:
+                df.loc[idx, 'admin_level_2'] = region['NAME_2']
+                region_name = region['NAME_2']
+            else:
+                df.loc[idx, 'admin_level_2'] = None
+            if int(admin_level) >= 3:
+                df.loc[idx, 'admin_level_3'] = region['NAME_3']
+                region_name = region['NAME_3']
+            else:
+                df.loc[idx, 'admin_level_3'] = None
+            # Populate the year and month
+            df.loc[idx, 'year'] = pdate.year
+            df.loc[idx, 'month'] = pdate.month
+            df.loc[idx, 'day'] = pdate.day
+
+            # Define transform for geometry_mask based on grid resolution
+            transform = rasterio.transform.from_origin(
+                lon.min(), lat.max(), abs(lon[1] - lon[0]),
+                abs(lat[1] - lat[0])
+            )
+
+            # Create a mask that is True for points outside the geometries
+            mask = rasterio.features.geometry_mask(
+                [geometry], transform=transform, out_shape=data.shape
+            )
+            masked_data = np.ma.masked_array(data, mask=mask)
+
+            # Plot
+            if plots and (admin_level == '0'):
+                title = f'{metric}\n{region_name} - {partial_date}'
+                colourbar_label = f'{metric} [{unit}]'
+                extent = [lon.min(), lon.max(), lat.min(), lat.max()]
+                path = Path(
+                    output_path(sub_pipeline),
+                    str(pdate).replace('-', '/'),
+                    f'{region_name} - {metric}.png'
+                )
+                plot_gadm_micro_heatmap(
+                    masked_data, gdf, pdate, title, colourbar_label, region,
+                    extent, path
+                )
+
+            # Add to output data frame
+            df.loc[idx, 'iso3'] = iso3
+            df.loc[idx, 'metric'] = metric
+            df.loc[idx, 'value'] = np.nansum(masked_data)
+            df.loc[idx, 'unit'] = unit
+            df.loc[idx, 'resolution'] = f'Admin Level {admin_level}'
+            df.loc[idx, 'creation_date'] = date.today()
+
+            # Increment the row
+            idx += 1
+
+        # Close the NetCDF file after use
+        ds.close()
+
+    return df.fillna(''), 'era5-reanalysis.csv'
+
+
 def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
     """Process GADM administrative map data."""
     gdf = gpd.read_file(get_shapefile(iso3, admin_level))
@@ -1128,24 +1377,6 @@ def process_terraclimate(
             # Extract the data for the chosen month
             this_month = data[i, :, :]
 
-            # Plot
-            if plots:
-                origin = 'upper'
-                extent = [lon.min(), lon.max(), lat.min(), lat.max()]
-                limits = gdf.total_bounds
-                zorder = 1
-                month_str = month.strftime('%B %Y')
-                title = f'{raw.description}\n{iso3} - {month_str}'
-                colourbar_label = f'{raw.description} [{raw.units}]'
-                path = BASE_DIR / DEFAULT_OUTPUT_ROOT / source / \
-                    str(pdate).replace('-', '/') / \
-                    f'admin_level_{admin_level}' / \
-                    (title.replace('\n', ' - ') + '.png')
-                plot_gadm_macro_heatmap(
-                    this_month, origin, extent, limits, gdf, zorder, title,
-                    colourbar_label, path
-                )
-
             # Iterate over the regions in the shape file
             for j, region in gdf.iterrows():
                 geometry = region.geometry
@@ -1159,18 +1390,18 @@ def process_terraclimate(
                 output.loc[idx, 'year'] = month.year
                 output.loc[idx, 'month'] = month.month
                 # Initialise the graph title
-                title = region['COUNTRY']
+                region_name = region['COUNTRY']
                 # Update the new row and the title if the admin level is high
                 # enough
                 if int(admin_level) >= 1:
                     output.loc[idx, 'admin_level_1'] = region['NAME_1']
-                    title = region['NAME_1']
+                    region_name = region['NAME_1']
                 if int(admin_level) >= 2:
                     output.loc[idx, 'admin_level_2'] = region['NAME_2']
-                    title = region['NAME_2']
+                    region_name = region['NAME_2']
                 if int(admin_level) >= 3:
                     output.loc[idx, 'admin_level_3'] = region['NAME_3']
-                    title = region['NAME_3']
+                    region_name = region['NAME_3']
 
                 # Define transform for geometry_mask based on grid resolution
                 transform = rasterio.transform.from_origin(
@@ -1187,12 +1418,17 @@ def process_terraclimate(
                 # Plot
                 if plots and (admin_level == 0):
                     month_str = month.strftime('%B %Y')
-                    title = f'{raw.description}\n{title} - {month_str}'
+                    title = f'{raw.description}\n{region_name} - {month_str}'
                     colourbar_label = f'{raw.description} [{raw.units}]'
                     extent = [lon.min(), lon.max(), lat.min(), lat.max()]
+                    path = Path(
+                        output_path(source),
+                        str(pdate).replace('-', '/'),
+                        f'{region_name} - {metric}.png'
+                    )
                     plot_gadm_micro_heatmap(
-                        source, masked_data, gdf, pdate, title,
-                        colourbar_label, region, extent
+                        masked_data, gdf, pdate, title, colourbar_label,
+                        region, extent, path
                     )
 
                 # Add to output data frame
@@ -1201,12 +1437,7 @@ def process_terraclimate(
         # Close the NetCDF file after use
         ds.close()
 
-    # # Export
-    # path = Path(output_path(source), year, iso3 + '.csv')
-    # print('Exporting', path)
-    # output.to_csv(path, index=False)
-
-    return output, f'{iso3}.csv'
+    return output, 'terraclimate.csv'
 
 
 def process_worldpop_pop_count_data(
@@ -1281,129 +1512,6 @@ def process_worldpop_pop_density_data(iso3: str, year: int) -> ProcessResult:
     return df, f"{iso3}/{filename.with_suffix('.csv')}"
 
 
-def process_gadm_chirps_rainfall(
-    iso3: str, admin_level: Literal['0', '1'], partial_date: str, plots=False
-):
-    """
-    Process GADM administrative map and CHIRPS rainfall data.
-
-    "CHIRPS" stands for Climate Hazards Group InfraRed Precipitation with
-    Station.
-    """
-    pdate = PartialDate.from_string(partial_date)
-    logging.info('iso3:%s', iso3)
-    logging.info('admin_level:%s', admin_level)
-    logging.info('partial_date:%s', pdate)
-    logging.info('scope:%s', pdate.scope)
-    logging.info('plots:%s', plots)
-
-    # Import the GeoTIFF file
-    file = get_chirps_rainfall_data_path(pdate)
-    logging.info('importing:%s', file)
-    src = rasterio.open(file)
-
-    # Create a bounding box from raster bounds
-    bounds = src.bounds
-    raster_bbox = shapely.geometry.box(
-        bounds.left, bounds.bottom, bounds.right, bounds.top
-    )
-
-    # Import shape file
-    path = get_shapefile(iso3, admin_level)
-    logging.info('importing:%s', path)
-    gdf = gpd.read_file(path)
-    # Transform the shape file to match the GeoTIFF's coordinate system
-    gdf = gdf.to_crs(src.crs)
-    # EPSG:4326 - WGS 84: latitude/longitude coordinate system based on the
-    # Earth's center of mass
-
-    # Initialise the data frame that will store the output data for each region
-    columns = [
-        'admin_level_0', 'admin_level_1', 'admin_level_2', 'admin_level_3',
-        'year', 'month', 'day', 'rainfall'
-    ]
-    output = pd.DataFrame(columns=columns)
-
-    # Iterate over each region in the shape file
-    for i, region in gdf.iterrows():
-        # Add the region name to the output data frame
-        output.loc[i, 'admin_level_0'] = region['COUNTRY']
-        # Initialise the graph title
-        title = region['COUNTRY']
-        # Add more region names and update the graph title if the admin level
-        # is high enough to warrant it
-        if int(admin_level) >= 1:
-            output.loc[i, 'admin_level_1'] = region['NAME_1']
-            title = region['NAME_1']
-        if int(admin_level) >= 2:
-            output.loc[i, 'admin_level_2'] = region['NAME_2']
-            title = region['NAME_2']
-        if int(admin_level) >= 3:
-            output.loc[i, 'admin_level_3'] = region['NAME_3']
-            title = region['NAME_3']
-
-        # Add date information to the output data frame
-        output.loc[i, 'year'] = pdate.year
-        if pdate.month:
-            output.loc[i, 'month'] = pdate.month
-        if pdate.day:
-            output.loc[i, 'day'] = pdate.day
-
-        # Check if the rainfall data intersects this region
-        geometry = region.geometry
-        if raster_bbox.intersects(geometry):
-            # There is rainfall data for this region
-            # Clip the data using the polygon of the current region
-            region_data, _ = rasterio.mask.mask(src, [geometry], crop=True)
-            # Replace negative values (if any exist)
-            region_data = np.where(region_data < 0, np.nan, region_data)
-            # Sum the pixel values to get the total for the region
-            region_total = np.nansum(region_data)
-        else:
-            # No rainfall data for this region
-            region_total = 0
-        logging.info('region:%s', title)
-        logging.info('region_total:%s', region_total)
-        # Add the result to the output data frame
-        output.loc[i, 'rainfall'] = region_total
-
-        if plots:
-            # Get the bounds of the region
-            min_lon, min_lat, max_lon, max_lat = geometry.bounds
-            # Plot
-            _, ax = plt.subplots()
-            ar = region_data[0]
-            ar[ar == 0] = np.nan
-            im = ax.imshow(
-                ar, cmap='coolwarm', origin='upper',
-                extent=[min_lon, max_lon, min_lat, max_lat]
-            )
-            # Add the geographical borders
-            gdf.plot(ax=ax, color='none', edgecolor='gray')
-            gpd.GeoDataFrame([region]).plot(ax=ax, color='none', edgecolor='k')
-            plt.colorbar(im, ax=ax, label='Rainfall [mm]')
-            ax.set_title(f'Rainfall\n{title} - {pdate}')
-            ax.set_xlim(min_lon, max_lon)
-            ax.set_ylim(min_lat, max_lat)
-            ax.set_ylabel('Latitude')
-            ax.set_xlabel('Longitude')
-            # Make the plot title file-system safe
-            title = re.sub(r'[<>:"/\\|?*]', '_', title)
-            title = title.strip()
-            # Export
-            path = Path(
-                output_path('geospatial/chirps-rainfall'),
-                str(pdate).replace('-', '/'), title + '.png'
-            )
-            path.parent.mkdir(parents=True, exist_ok=True)
-            logging.info('exporting:%s', path)
-            plt.savefig(path)
-            plt.close()
-
-    # Export
-    return output, f'{iso3}.csv'
-
-
 def get_admin_region(lat: float, lon: float, polygons) -> str:
     """
     Find the admin region in which a grid cell lies.
@@ -1425,6 +1533,7 @@ PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
     'geospatial/aphrodite-daily-mean-temp': process_gadm_aphroditetemperature,
     'geospatial/aphrodite-daily-precip': process_gadm_aphroditeprecipitation,
     'geospatial/chirps-rainfall': process_gadm_chirps_rainfall,
+    'geospatial/era5-reanalysis': process_gadm_era5reanalysis,
     'geospatial/gadm': process_gadm_admin_map_data,
     'geospatial/worldpop-count': process_gadm_worldpopcount,
     'meteorological/aphrodite-daily-mean-temp': process_aphrodite_temperature_data,

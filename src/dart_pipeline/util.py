@@ -357,7 +357,7 @@ def update_or_create_output(
         return df
 
 
-def get_shapefile(iso3: str, admin_level: Literal["0", "1", "2"]) -> Path:
+def get_shapefile(iso3: str, admin_level: Literal["0", "1", "2", "3"]) -> Path:
     """Get a shape file."""
     return source_path(
         "geospatial/gadm",
