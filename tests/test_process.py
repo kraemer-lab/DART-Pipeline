@@ -3,7 +3,6 @@ from datetime import date
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch, MagicMock, mock_open
-import tempfile
 
 from shapely.geometry import Polygon
 import geopandas as gpd
@@ -728,7 +727,7 @@ def test_process_terraclimate(
             description='Temperature',
             units='C'
         ),
-        'pdsi': MagicMock(
+        'PDSI': MagicMock(
             __getitem__=MagicMock(
                 return_value=np.array([[[0.5, 0.6], [0.7, 0.8]]])
             ),

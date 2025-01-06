@@ -1337,6 +1337,7 @@ def process_terraclimate(
         if (pdate.year == 2023) and (metric == 'pdsi'):
             # In 2023 the capitalization of pdsi changed
             filename = f'TerraClimate_PDSI_{pdate.year}.nc'
+            metric = 'PDSI'
         else:
             filename = f'TerraClimate_{metric}_{pdate.year}.nc'
         path = BASE_DIR / DEFAULT_SOURCES_ROOT / source / filename
@@ -1416,7 +1417,7 @@ def process_terraclimate(
                 masked_data = np.ma.masked_array(this_month, mask=mask)
 
                 # Plot
-                if plots and (admin_level == 0):
+                if plots and (admin_level == '0'):
                     month_str = month.strftime('%B %Y')
                     title = f'{raw.description}\n{region_name} - {month_str}'
                     colourbar_label = f'{raw.description} [{raw.units}]'
