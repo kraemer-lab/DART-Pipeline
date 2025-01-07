@@ -51,8 +51,8 @@ def get_chirps_rainfall_data_path(date: PartialDate) -> Path:
 def process_chirps_rainfall(partial_date: str, plots=False) -> ProcessResult:
 ✅ def process_era5reanalysis(dataset, partial_date, plots=False):
 def process_terraclimate(
-def process_worldpop_pop_count_data(
-def process_worldpop_pop_density_data(iso3: str, year: int) -> ProcessResult:
+✅ def process_worldpopcount(
+✅ def process_worldpopdensity(
 def process_gadm_chirps_rainfall(
 def get_admin_region(lat: float, lon: float, polygons) -> str:
 ```

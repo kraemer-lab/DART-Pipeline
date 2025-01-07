@@ -1441,7 +1441,7 @@ def process_terraclimate(
     return output, 'terraclimate.csv'
 
 
-def process_worldpop_pop_count_data(
+def process_worldpopcount(
     iso3: str, year: int = 2020, rt: str = 'ppp'
 ) -> ProcessResult:
     """
@@ -1494,23 +1494,83 @@ def process_worldpop_pop_count_data(
     return df.fillna(''), 'worldpop-count.csv'
 
 
-def process_worldpop_pop_density_data(iso3: str, year: int) -> ProcessResult:
+def process_worldpopdensity(
+    iso3: str, partial_date: str, plots=False
+) -> ProcessResult:
     """
     Process WorldPop population density.
     """
-    source = "sociodemographic/worldpop-density"
-    print(f"Source:      {source}")
-    print(f"Year:        {year}")
-    print(f"Country:     {iso3}")
+    sub_pipeline = 'sociodemographic/worldpop-density'
+    logging.info('iso3:%s', iso3)
+    country_name = get_country_name(iso3)
+    logging.info('country_name:%s', country_name)
+    pdate = PartialDate.from_string(partial_date)
+    logging.info('partial_date:%s', pdate)
+    logging.info('plots:%s', plots)
+
+    # Validate inputs
+    assert pdate.month is None
+    assert pdate.day is None
 
     # Import the population density data
     iso3_lower = iso3.lower()
-    filename = Path(f"{iso3_lower}_pd_{year}_1km_UNadj_ASCII_XYZ")
-    base_path = source_path(
-        source, f"population-density/Global_2000_2020_1km_UNadj/{year}/{iso3}"
+    path = Path(
+        BASE_DIR, DEFAULT_SOURCES_ROOT, 'sociodemographic', 'worldpop-density',
+        iso3, f'{iso3_lower}_pd_{pdate.year}_1km_UNadj.tif'
     )
-    df = pd.read_csv(base_path / filename.with_suffix(".zip"))
-    return df, f"{iso3}/{filename.with_suffix('.csv')}"
+    logging.info('importing:%s', path)
+    src = rasterio.open(path)
+    # Get the affine transformation coefficients
+    transform = src.transform
+    # Read data from band 1
+    if src.count != 1:
+        raise ValueError(f'Unexpected number of bands: {src.count}')
+    source_data = src.read(1)
+
+    # Replace placeholder numbers with 0
+    # (-3.4e+38 is the smallest single-precision floating-point number)
+    df = pd.DataFrame(source_data)
+    data = df[df != MIN_FLOAT]
+    data = data[data != -99999.0]
+    value = data.mean().mean()
+    logging.info('value:%s', value)
+
+    # Create a plot
+    if plots:
+        data[data == 0] = np.nan
+        # Take the log of the data
+        log_data = np.log(data)
+        title = f'Population Density\n{country_name} - {pdate.year}'
+        colourbar_label = 'Population Density (Log Scale)'
+        path = Path(
+            BASE_DIR, DEFAULT_OUTPUT_ROOT, 'sociodemographic',
+            'worldpop-density',
+            f'{country_name} - {pdate.year}.png'
+        )
+        plot_heatmap(
+            log_data, title, colourbar_label, path, extent=None, log_plot=True
+        )
+
+    # Initialise an output data frame
+    df = pd.DataFrame(columns=OUTPUT_COLUMNS)
+
+    # Populate output data frame
+    df.loc[0, 'iso3'] = iso3
+    df.loc[0, 'admin_level_0'] = country_name
+    df.loc[0, 'admin_level_1'] = None
+    df.loc[0, 'admin_level_2'] = None
+    df.loc[0, 'admin_level_3'] = None
+    df.loc[0, 'year'] = pdate.year
+    df.loc[0, 'month'] = None
+    df.loc[0, 'day'] = None
+    df.loc[0, 'week'] = None
+    df.loc[0, 'metric'] = 'Population Density'
+    df.loc[0, 'value'] = value
+    df.loc[0, 'unit'] = 'people per pixel'
+    df.loc[0, 'resolution'] = 'Admin Level 0'
+    df.loc[0, 'creation_date'] = date.today()
+
+    return df.fillna(''), 'worldpop-density.csv'
 
 
 def get_admin_region(lat: float, lon: float, polygons) -> str:
@@ -1542,6 +1602,6 @@ PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
     'meteorological/chirps-rainfall': process_chirps_rainfall,
     'meteorological/era5-reanalysis': process_era5reanalysis,
     'meteorological/terraclimate': process_terraclimate,
-    'sociodemographic/worldpop-count': process_worldpop_pop_count_data,
-    'sociodemographic/worldpop-density': process_worldpop_pop_density_data,
+    'sociodemographic/worldpop-count': process_worldpopcount,
+    'sociodemographic/worldpop-density': process_worldpopdensity,
 }

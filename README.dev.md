@@ -164,5 +164,8 @@ uv run dart-pipeline process sociodemographic/worldpop-count 3=VNM l=INFO
 
 ```
 uv run dart-pipeline get sociodemographic/worldpop-density 3=VNM
-uv run dart-pipeline process sociodemographic/worldpop-density iso3=VNM year=2023
+uv run dart-pipeline get sociodemographic/worldpop-density 3=PER
+
+uv run dart-pipeline process sociodemographic/worldpop-density 3=VNM d=2020 l=INFO plots
+uv run dart-pipeline process sociodemographic/worldpop-density 3=PER d=2020 l=INFO plots
 ```
