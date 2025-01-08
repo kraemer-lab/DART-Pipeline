@@ -3,7 +3,6 @@ from datetime import date
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch, MagicMock, mock_open
-import tempfile
 
 from shapely.geometry import Polygon
 import geopandas as gpd
@@ -19,8 +18,8 @@ from dart_pipeline.process import \
     process_gadm_aphroditeprecipitation, \
     process_gadm_chirps_rainfall, \
     process_gadm_worldpopcount, \
-    process_aphrodite_temperature_data, \
-    process_aphrodite_precipitation_data, \
+    process_aphroditetemperature, \
+    process_aphroditeprecipitation, \
     process_chirps_rainfall, \
     process_era5reanalysis, \
     process_terraclimate, \
@@ -208,7 +207,7 @@ def test_process_gadm_aphroditetemperature():
         mock_output_path.return_value = MagicMock()
 
         # Mock np.fromfile() to return a fake array
-        nx, ny, nday = 360, 280, 365
+        nx, ny = 360, 280
         recl = nx * ny
 
         # Create a fake array with the correct number of values
@@ -276,7 +275,7 @@ def test_process_gadm_aphroditeprecipitation():
         mock_output_path.return_value = MagicMock()
 
         # Mock np.fromfile() to return a fake array
-        nx, ny, nday = 360, 280, 365
+        nx, ny = 360, 280
         recl = nx * ny
 
         # Create a fake array with the correct number of values
@@ -425,7 +424,7 @@ def test_process_gadm_worldpopcount(
     assert isinstance(output, pd.DataFrame), msg
 
 
-def test_process_aphrodite_temperature_data():
+def test_process_aphroditetemperature():
     # Minimal mocking for `np.fromfile` and file operations
     nx, ny, _ = 360, 280, 365
     # Mock temperature data
@@ -447,7 +446,7 @@ def test_process_aphrodite_temperature_data():
             patch('numpy.fromfile', mock_fromfile):
         # Call the function
         year = 2023
-        output, csv_name = process_aphrodite_temperature_data(
+        output, csv_name = process_aphroditetemperature(
             year=year, plots=False
         )
 
@@ -464,7 +463,7 @@ def test_process_aphrodite_temperature_data():
         assert csv_name == 'aphrodite-daily-mean-temp.csv'
 
 
-def test_process_aphrodite_precipitation_data():
+def test_process_aphroditeprecipitation():
     # Minimal mocking for `np.fromfile` and file operations
     nx, ny, _ = 360, 280, 365
     # Mock precipitation data
@@ -486,7 +485,7 @@ def test_process_aphrodite_precipitation_data():
             patch('numpy.fromfile', mock_fromfile):
         # Call the function
         year = 2023
-        output, csv_name = process_aphrodite_precipitation_data(
+        output, csv_name = process_aphroditeprecipitation(
             year=year, resolution=['025deg'], plots=False
         )
 
