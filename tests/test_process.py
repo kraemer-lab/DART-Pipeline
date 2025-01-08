@@ -203,7 +203,7 @@ def test_process_gadm_aphroditetemperature():
         mock_output_path.return_value = MagicMock()
 
         # Mock np.fromfile() to return a fake array
-        nx, ny, nday = 360, 280, 365
+        nx, ny = 360, 280
         recl = nx * ny
 
         # Create a fake array with the correct number of values
@@ -255,7 +255,7 @@ def test_process_gadm_aphroditeprecipitation():
 
         # Create a mock GeoDataFrame row with a geometry attribute
         mock_row = MagicMock()
-        mock_row.geometry = Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])  # Mock Polygon
+        mock_row.geometry = Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])
         mock_row.COUNTRY = 'Vietnam'
         mock_row.NAME_1 = 'Mock Province'
         mock_row.NAME_2 = 'Mock District'
@@ -263,7 +263,7 @@ def test_process_gadm_aphroditeprecipitation():
 
         # Mock geopandas dataframe and its iterrows method
         mock_gdf = MagicMock()
-        mock_gdf.iterrows.return_value = iter([(0, mock_row)])  # Return the mock row
+        mock_gdf.iterrows.return_value = iter([(0, mock_row)])
         mock_read_file.return_value = mock_gdf
 
         # Mock source_path and output_path
@@ -271,7 +271,7 @@ def test_process_gadm_aphroditeprecipitation():
         mock_output_path.return_value = MagicMock()
 
         # Mock np.fromfile() to return a fake array
-        nx, ny, nday = 360, 280, 365
+        nx, ny = 360, 280
         recl = nx * ny
 
         # Create a fake array with the correct number of values
@@ -450,7 +450,6 @@ def test_process_aphrodite_temperature_data(
     try:
         # Mock file path to return the temporary file path
         mock_source_path.return_value = temp_file_path.parent
-        mock_path = temp_file_path
 
         # Call the function
         output, filename = process_aphrodite_temperature_data(
@@ -507,7 +506,6 @@ def test_process_aphrodite_precipitation_data(
     try:
         # Mock file path to return the temporary file path
         mock_source_path.return_value = temp_file_path.parent
-        mock_path = temp_file_path
 
         # Call the function
         output, filename = process_aphrodite_precipitation_data(
