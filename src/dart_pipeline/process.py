@@ -1200,8 +1200,6 @@ def process_worldpop_pop_count_data(
     path = source_path(sub_pipeline, iso3) / filename
     logging.info('importing:%s', path)
     src = rasterio.open(path)
-    # Get the affine transformation coefficients
-    transform = src.transform
     # Read data from band 1
     if src.count != 1:
         raise ValueError(f'Unexpected number of bands: {src.count}')
