@@ -328,8 +328,6 @@ def process_gadm_aphroditetemperature(
                 )
 
                 # Filter data for this sub-region
-                valid_lon_region = valid_lon[region_mask]
-                valid_lat_region = valid_lat[region_mask]
                 valid_temp_region = valid_prcp[region_mask]
 
                 output_row = {

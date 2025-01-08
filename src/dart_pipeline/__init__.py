@@ -119,7 +119,6 @@ def get(
             # been unpacked
             if unpack:
                 for file in coll.files:
-                    url = coll.base_url + '/' + file
                     to_unpack = path / Path(file).name
                     print(f'• UNPACKING {to_unpack}', end='\r')
                     unpack_file(to_unpack, same_folder=True)
