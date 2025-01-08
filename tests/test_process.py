@@ -1,7 +1,5 @@
 """Tests for process functions in process.py."""
-from datetime import date
 from io import BytesIO
-from pathlib import Path
 from unittest.mock import patch, mock_open, MagicMock
 
 from shapely.geometry import Polygon
@@ -201,7 +199,7 @@ def test_process_gadm_aphroditetemperature():
         mock_output_path.return_value = MagicMock()
 
         # Mock np.fromfile() to return a fake array
-        nx, ny, nday = 360, 280, 365
+        nx, ny = 360, 280
         recl = nx * ny
 
         # Create a fake array with the correct number of values
@@ -269,7 +267,7 @@ def test_process_gadm_aphroditeprecipitation():
         mock_output_path.return_value = MagicMock()
 
         # Mock np.fromfile() to return a fake array
-        nx, ny, nday = 360, 280, 365
+        nx, ny = 360, 280
         recl = nx * ny
 
         # Create a fake array with the correct number of values
