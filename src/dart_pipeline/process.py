@@ -583,7 +583,9 @@ def process_gadm_chirps_rainfall(
         geometry = region.geometry
         if raster_bbox.intersects(geometry):
             # There is rainfall data for this region
-            # Clip the data using the polygon of the current region
+            # Clip the data using the polygon of the current region. By
+            # default, a pixel is included only if its center is within one of
+            # the shapes
             region_data, _ = rasterio.mask.mask(src, [geometry], crop=True)
             # Replace negative values (if any exist)
             region_data = np.where(region_data < 0, np.nan, region_data)
@@ -901,7 +903,9 @@ def process_gadm_worldpopcount(
         geometry = region.geometry
         if raster_bbox.intersects(geometry):
             # There is population data for this region
-            # Clip the data using the polygon of the current region
+            # Clip the data using the polygon of the current region. By
+            # default, a pixel is included only if its center is within one of
+            # the shapes
             region_data, _ = rasterio.mask.mask(src, [geometry], crop=True)
             # Replace negative values (if any exist)
             region_data = np.where(region_data < 0, np.nan, region_data)
