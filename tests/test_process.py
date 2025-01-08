@@ -24,7 +24,7 @@ from dart_pipeline.process import \
     process_chirps_rainfall, \
     process_era5reanalysis, \
     process_terraclimate, \
-    process_worldpop_pop_count_data
+    process_worldpopcount
 
 # Smallest single-precision floating-point number
 MIN_FLOAT = -3.4028234663852886e38
@@ -911,7 +911,7 @@ def test_process_terraclimate(
 @patch('rasterio.open')
 @patch('dart_pipeline.process.source_path')
 @patch('dart_pipeline.process.get_country_name')
-def test_process_worldpop_pop_count_data(
+def test_process_worldpopcount(
     mock_get_country_name, mock_source_path, mock_rasterio_open
 ):
     # Set up mock return values
@@ -928,7 +928,7 @@ def test_process_worldpop_pop_count_data(
     iso3 = 'VNM'
     year = 2020
     rt = 'ppp'
-    result, filename = process_worldpop_pop_count_data(iso3, year, rt)
+    result, filename = process_worldpopcount(iso3, year, rt)
 
     # Assertions
     assert filename == 'worldpop-count.csv'
