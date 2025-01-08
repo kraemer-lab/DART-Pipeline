@@ -2,7 +2,6 @@
 from datetime import date
 from pathlib import Path
 from unittest.mock import patch, MagicMock
-import re
 import tempfile
 
 from matplotlib import pyplot as plt
