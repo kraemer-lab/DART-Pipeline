@@ -37,8 +37,7 @@ from .plots import \
     plot_heatmap, plot_gadm_micro_heatmap, plot_gadm_macro_heatmap, \
     plot_timeseries, plot_scatter, plot_gadm_scatter
 from .util import \
-    abort, source_path, days_in_year, output_path, get_country_name, \
-    get_shapefile
+    source_path, days_in_year, output_path, get_country_name, get_shapefile
 from .types import ProcessResult, PartialDate, AdminLevel
 from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS
 
@@ -465,8 +464,8 @@ def process_gadm_aphroditeprecipitation(
                 )
 
                 # Filter data for this sub-region
-                valid_lon_region = valid_lon[region_mask]
-                valid_lat_region = valid_lat[region_mask]
+                _ = valid_lon[region_mask]
+                _ = valid_lat[region_mask]
                 valid_prcp_region = valid_prcp[region_mask]
 
                 output_row = {
