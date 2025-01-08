@@ -1,14 +1,11 @@
 """Plot data."""
 from datetime import date
-from pathlib import Path
 import logging
 import re
 
 from matplotlib import pyplot as plt
 import geopandas as gpd
 import numpy as np
-
-from .util import output_path
 
 
 def plot_heatmap(data, title, colourbar_label, path, extent=None):
