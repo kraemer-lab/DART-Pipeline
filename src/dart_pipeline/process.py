@@ -37,8 +37,7 @@ from .plots import \
     plot_heatmap, plot_gadm_micro_heatmap, plot_gadm_macro_heatmap, \
     plot_timeseries, plot_scatter, plot_gadm_scatter
 from .util import \
-    abort, source_path, days_in_year, output_path, get_country_name, \
-    get_shapefile
+    source_path, days_in_year, output_path, get_country_name, get_shapefile
 from .types import ProcessResult, PartialDate, AdminLevel
 from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS, BASE_DIR, \
     DEFAULT_SOURCES_ROOT, DEFAULT_OUTPUT_ROOT
@@ -329,8 +328,6 @@ def process_gadm_aphroditetemperature(
                 )
 
                 # Filter data for this sub-region
-                valid_lon_region = valid_lon[region_mask]
-                valid_lat_region = valid_lat[region_mask]
                 valid_temp_region = valid_prcp[region_mask]
 
                 output_row = {
@@ -468,8 +465,8 @@ def process_gadm_aphroditeprecipitation(
                 )
 
                 # Filter data for this sub-region
-                valid_lon_region = valid_lon[region_mask]
-                valid_lat_region = valid_lat[region_mask]
+                _ = valid_lon[region_mask]
+                _ = valid_lat[region_mask]
                 valid_prcp_region = valid_prcp[region_mask]
 
                 output_row = {
@@ -951,7 +948,7 @@ def process_gadm_worldpopcount(
     return output.fillna(''), 'worldpop-count.csv'
 
 
-def process_aphrodite_temperature_data(year=None, plots=False) -> \
+def process_aphroditetemperature(year=None, plots=False) -> \
         list[ProcessResult]:
     """Process APHRODITE Daily mean temperature product (V1808) data."""
     sub_pipeline = 'meteorological/aphrodite-daily-mean-temp'
@@ -1060,7 +1057,7 @@ def process_aphrodite_temperature_data(year=None, plots=False) -> \
     return output, 'aphrodite-daily-mean-temp.csv'
 
 
-def process_aphrodite_precipitation_data(
+def process_aphroditeprecipitation(
     year=None, resolution=['025deg', '050deg'], plots=False
 ) -> list[ProcessResult]:
     """Process APHRODITE Daily accumulated precipitation (V1901) data."""
@@ -1461,8 +1458,6 @@ def process_worldpop_pop_count_data(
     path = source_path(sub_pipeline, iso3) / filename
     logging.info('importing:%s', path)
     src = rasterio.open(path)
-    # Get the affine transformation coefficients
-    transform = src.transform
     # Read data from band 1
     if src.count != 1:
         raise ValueError(f'Unexpected number of bands: {src.count}')
@@ -1537,8 +1532,8 @@ PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
     'geospatial/era5-reanalysis': process_gadm_era5reanalysis,
     'geospatial/gadm': process_gadm_admin_map_data,
     'geospatial/worldpop-count': process_gadm_worldpopcount,
-    'meteorological/aphrodite-daily-mean-temp': process_aphrodite_temperature_data,
-    'meteorological/aphrodite-daily-precip': process_aphrodite_precipitation_data,
+    'meteorological/aphrodite-daily-mean-temp': process_aphroditetemperature,
+    'meteorological/aphrodite-daily-precip': process_aphroditeprecipitation,
     'meteorological/chirps-rainfall': process_chirps_rainfall,
     'meteorological/era5-reanalysis': process_era5reanalysis,
     'meteorological/terraclimate': process_terraclimate,
