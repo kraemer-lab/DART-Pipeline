@@ -695,6 +695,115 @@ def process_gadm_worldpopcount(
     return output, f'{iso3}.csv'
 
 
+def process_aphrodite_temperature_data(year=None, plots=False) -> \
+        list[ProcessResult]:
+    """Process APHRODITE Daily mean temperature product (V1808) data."""
+    sub_pipeline = 'meteorological/aphrodite-daily-mean-temp'
+    version = 'V1808'
+
+    if not year:
+        # Regex pattern to match the resolution, version and year in filenames
+        pattern = r'APHRO_MA_TAVE_(\d+deg)_V(\d+)\.(\d+)'
+        # Find the latest year for which there is data
+        years = []
+        path = source_path(sub_pipeline, '')
+        for filename in Path(path).iterdir():
+            match = re.match(pattern, str(filename.name))
+            if match:
+                _, _, year = match.groups()
+                years.append(int(year))
+        # Get the latest year
+        year = str(max(years))
+
+    # Initialise output data frame
+    output = pd.DataFrame(columns=OUTPUT_COLUMNS)
+
+    params = {
+        '025deg': ('TAVE', '025deg', '', 360, 280),
+        '025deg_nc': ('TAVE', '025deg', '.nc', 360, 280),
+        '050deg_nc': ('TAVE', '050deg', '.nc', 180, 140),
+        '005deg_nc': ('TAVE_CLM', '005deg', '.nc', 1800, 1400),
+    }
+    for data_type in ['025deg']:
+        product, res, ext, nx, ny = params[data_type]
+        nday = days_in_year(int(year))
+        # Record length
+        recl = nx * ny
+        # Longitude and latitude bounds
+        x_start, y_start = 60.125, -14.875
+        xlon = x_start + np.arange(nx) * 0.25
+        ylat = y_start + np.arange(ny) * 0.25
+
+        # Open the file
+        path = source_path(sub_pipeline, '')
+        path = path / f'APHRO_MA_{product}_{res}_{version}.{year}{ext}'
+        # Read binary data
+        logging.info('opening:%s', path)
+        with open(path, 'rb') as f:
+            # Initialise arrays
+            temp_data = np.zeros((nday, ny, nx))
+            rstn_data = np.zeros((nday, ny, nx))
+
+            for iday in range(nday):
+                # Read `temp` record
+                temp_raw = np.fromfile(f, dtype='float32', count=recl)
+                temp_raw = temp_raw.reshape((ny, nx))
+                # Read `rstn` record
+                rstn_raw = np.fromfile(f, dtype='float32', count=recl)
+                rstn_raw = rstn_raw.reshape((ny, nx))
+                # Store in arrays
+                temp_data[iday, :, :] = temp_raw
+                rstn_data[iday, :, :] = rstn_raw
+
+        temp_data = temp_data.astype('float32')
+        rstn_data = rstn_data.astype('float32')
+        valid_xlon, valid_ylat = np.meshgrid(xlon, ylat, indexing='xy')
+
+        # Iterate through days
+        for iday in range(nday):
+            valid_mask = (rstn_data[iday, :, :] != 0.0) & \
+                (temp_data[iday, :, :] != -99.90)
+            valid_temp = temp_data[iday][valid_mask]
+            valid_lon = valid_xlon[valid_mask]
+            valid_lat = valid_ylat[valid_mask]
+
+            this_date = datetime(int(year), 1, 1) + timedelta(days=iday)
+            this_date = this_date.date()
+
+            # Scatter plot
+            if plots:
+                title = f'Temperature\n{this_date}'
+                colourbar_label = 'Temperature [°C]'
+                folder = res.replace('0', '0_')
+                path = output_path(sub_pipeline) / folder / f'{this_date}.png'
+                plot_scatter(
+                    valid_lon, valid_lat, valid_temp, title, colourbar_label,
+                    path
+                )
+
+            i = len(output)
+            output.loc[i, 'year'] = year
+            output.loc[i, 'month'] = this_date.month
+            output.loc[i, 'day'] = this_date.day
+            output.loc[i, 'value'] = valid_temp.mean()
+            if res == '025deg':
+                output.loc[i, 'resolution'] = '0.25°'
+            elif res == '050deg':
+                output.loc[i, 'resolution'] = '0.5°'
+
+    output['iso3'] = ''
+    output['admin_level_0'] = ''
+    output['admin_level_1'] = ''
+    output['admin_level_2'] = ''
+    output['admin_level_3'] = ''
+    output['week'] = ''
+    output['metric'] = 'temperature'
+    output['unit'] = '°C'
+    output['creation_date'] = date.today()
+
+    return output, 'aphrodite-daily-mean-temp.csv'
+
+
 def process_aphrodite_precipitation_data(
     year=None, resolution=['025deg', '050deg'], plots=False
 ) -> list[ProcessResult]:
@@ -1293,15 +1402,16 @@ def get_admin_region(lat: float, lon: float, polygons) -> str:
 PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
     "economic/relative-wealth-index": process_rwi,
     "epidemiological/dengue/peru": process_dengueperu,
+    'geospatial/aphrodite-daily-mean-temp': process_gadm_aphroditetemperature,
+    'geospatial/aphrodite-daily-precip': process_gadm_aphroditeprecipitation,
     "geospatial/chirps-rainfall": process_gadm_chirps_rainfall,
     "geospatial/gadm": process_gadm_admin_map_data,
     "geospatial/worldpop-count": process_gadm_worldpopcount,
+    "meteorological/aphrodite-daily-mean-temp": process_aphrodite_temperature_data,
     "meteorological/aphrodite-daily-precip": process_aphrodite_precipitation_data,
     "meteorological/chirps-rainfall": process_chirps_rainfall,
     "meteorological/era5-reanalysis": process_era5_reanalysis_data,
     "meteorological/terraclimate": process_terraclimate,
     "sociodemographic/worldpop-count": process_worldpop_pop_count_data,
     "sociodemographic/worldpop-density": process_worldpop_pop_density_data,
-    'geospatial/aphrodite-daily-mean-temp': process_gadm_aphroditetemperature,
-    'geospatial/aphrodite-daily-precip': process_gadm_aphroditeprecipitation,
 }

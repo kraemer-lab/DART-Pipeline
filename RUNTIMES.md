@@ -49,6 +49,17 @@ time uv run dart-pipeline process epidemiological/dengue/peru a=1 l=INFO plots
 Geospatial
 ----------
 
+### APHRODITE Daily Mean Temperature
+
+```
+time uv run dart-pipeline process geospatial/aphrodite-daily-mean-temp 3=VNM a=0 d=2015-05-11 l=INFO plots
+5.835s
+time uv run dart-pipeline process geospatial/aphrodite-daily-mean-temp 3=VNM a=1 d=2015-05-11 l=INFO plots
+3.446s
+time uv run dart-pipeline process geospatial/aphrodite-daily-mean-temp 3=VNM a=3 d=2015-05-11 l=INFO plots
+5m35.019s
+```
+
 ### CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations
 
 ```
@@ -79,6 +90,15 @@ time uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=3 d=2023 l=I
 
 Meteorological
 --------------
+
+### APHRODITE Daily Mean Temperature
+
+```
+time uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp
+16m6.556s
+time uv run dart-pipeline process meteorological/aphrodite-daily-mean-temp
+0.691s
+```
 
 ### APHRODITE Precipitation
 

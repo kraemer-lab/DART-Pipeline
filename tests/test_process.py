@@ -16,6 +16,7 @@ from dart_pipeline.process import \
     process_gadm_aphroditeprecipitation, \
     process_gadm_chirps_rainfall, \
     process_gadm_worldpopcount, \
+    process_aphrodite_temperature_data, \
     process_aphrodite_precipitation_data, \
     process_chirps_rainfall, \
     process_terraclimate
@@ -199,7 +200,7 @@ def test_process_gadm_aphroditetemperature():
         mock_output_path.return_value = MagicMock()
 
         # Mock np.fromfile() to return a fake array
-        nx, ny = 360, 280
+        nx, ny, nday = 360, 280, 365
         recl = nx * ny
 
         # Create a fake array with the correct number of values
@@ -267,7 +268,7 @@ def test_process_gadm_aphroditeprecipitation():
         mock_output_path.return_value = MagicMock()
 
         # Mock np.fromfile() to return a fake array
-        nx, ny = 360, 280
+        nx, ny, nday = 360, 280, 365
         recl = nx * ny
 
         # Create a fake array with the correct number of values
@@ -414,6 +415,45 @@ def test_process_gadm_worldpopcount(
     # Check that fallback file was used and output generated
     msg = 'Output should be a DataFrame even with fallback file'
     assert isinstance(output, pd.DataFrame), msg
+
+
+def test_process_aphrodite_temperature_data():
+    # Minimal mocking for `np.fromfile` and file operations
+    nx, ny, _ = 360, 280, 365
+    # Mock temperature data
+    mock_temp = np.full((ny, nx), 25.0, dtype='float32')
+    # Mock station count data
+    mock_rstn = np.ones((ny, nx), dtype='float32')
+
+    def mock_fromfile(file, dtype, count):
+        if dtype == 'float32' and count == nx * ny:
+            return mock_temp.flatten() \
+                if 'temp' in file.name else mock_rstn.flatten()
+        raise ValueError(
+            f'Unexpected call to np.fromfile with {file}, {dtype}, {count}'
+        )
+
+    # Mock file opening
+    mocked_open = mock_open()
+    with patch('builtins.open', mocked_open), \
+            patch('numpy.fromfile', mock_fromfile):
+        # Call the function
+        year = 2023
+        output, csv_name = process_aphrodite_temperature_data(
+            year=year, plots=False
+        )
+
+        # Assert the output is a DataFrame
+        assert isinstance(output, pd.DataFrame)
+        assert len(output) > 0  # Ensure some data is processed
+        assert 'year' in output.columns
+        assert 'value' in output.columns
+
+        # Check key output values
+        assert (output['year'] == year).all()
+        assert (output['metric'] == 'temperature').all()
+        assert (output['unit'] == '°C').all()
+        assert csv_name == 'aphrodite-daily-mean-temp.csv'
 
 
 def test_process_aphrodite_precipitation_data():

@@ -18,6 +18,7 @@ def main():
 def gadm_data(iso3: str) -> URLCollection:
 def relative_wealth_index(iso3: str) -> URLCollection:
 ✅ def ministerio_de_salud_peru_data() -> list[DataFile]:
+✅ def aphrodite_temperature_data(unpack) -> list[URLCollection]:
 ✅ def aphrodite_precipitation_data() -> list[URLCollection]:
 ✅ def chirps_rainfall_data(partial_date: str) -> list[URLCollection]:
 def terraclimate_data(year: int) -> URLCollection:
@@ -42,6 +43,7 @@ def get_admin(x):
 def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
 def process_gadm_worldpopcount(
 ✅ def process_aphrodite_temperature_data(year=None, plots=False) -> \
+✅ def process_aphrodite_precipitation_data(
 def get_chirps_rainfall_data_path(date: PartialDate) -> Path:
 def process_chirps_rainfall(partial_date: str, plots=False) -> ProcessResult:
 def process_era5_reanalysis_data() -> ProcessResult:

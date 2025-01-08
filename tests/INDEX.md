@@ -7,6 +7,7 @@ INDEX
 ✅ def test_gadm_data():
 ✅ def test_relative_wealth_index():
 ✅ def test_ministerio_de_salud_peru_data():
+✅ def test_aphrodite_temperature_data():
 ✅ def test_aphrodite_precipitation_data():
 ✅ def test_chirps_rainfall_data():
 ✅ def test_meta_pop_density_data():
@@ -33,7 +34,8 @@ INDEX
 ✅ def test_process_gadm_aphroditeprecipitation(
 ✅ def test_process_gadm_chirps_rainfall(
 ✅ def test_process_gadm_worldpopcount(
-✅ def test_process_aphrodite_precipitation_data(
+✅ def test_process_aphrodite_temperature_data():
+✅ def test_process_aphrodite_precipitation_data():
 ✅ def test_process_chirps_rainfall(
 ✅ def test_process_terraclimate(
 ```
