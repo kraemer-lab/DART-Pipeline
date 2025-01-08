@@ -1,9 +1,7 @@
 """Tests for process functions in process.py."""
-from datetime import date
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch, MagicMock, mock_open
-import tempfile
 
 from shapely.geometry import Polygon
 import geopandas as gpd
@@ -24,7 +22,6 @@ from dart_pipeline.process import \
     process_chirps_rainfall, \
     process_terraclimate, \
     process_worldpop_pop_count_data
-from dart_pipeline.constants import OUTPUT_COLUMNS
 
 # Smallest single-precision floating-point number
 MIN_FLOAT = -3.4028234663852886e38
@@ -208,7 +205,7 @@ def test_process_gadm_aphroditetemperature():
         mock_output_path.return_value = MagicMock()
 
         # Mock np.fromfile() to return a fake array
-        nx, ny, nday = 360, 280, 365
+        nx, ny = 360, 280
         recl = nx * ny
 
         # Create a fake array with the correct number of values
@@ -276,7 +273,7 @@ def test_process_gadm_aphroditeprecipitation():
         mock_output_path.return_value = MagicMock()
 
         # Mock np.fromfile() to return a fake array
-        nx, ny, nday = 360, 280, 365
+        nx, ny = 360, 280
         recl = nx * ny
 
         # Create a fake array with the correct number of values

@@ -38,4 +38,7 @@ maxdepth: 2
 ---
 
 overview
+schema
+geospatial
+metrics
 ```

@@ -1,15 +1,9 @@
 """
-Script to collate raw data by downloading it from online sources.
+Collate functions for DART pipeline that fetch data for the metrics.
 
-See `DART dataset summarisation.xls` for information about the data fields
-to be collated.
-
-This script has been tested on Python 3.12 and more versions will be tested in
-the future. See README.md for installation instructions.
-
-Password management is done by creating a file called `credentials.json` in the
-top-level of the `DART-Pipeline` directory and adding login credentials into it
-in the following format:
+Password management for metrics requiring authentication is done by creating a
+file called `credentials.json` in the top-level of the `DART-Pipeline`
+directory and adding login credentials into it in the following format:
 
 .. code-block::
 
@@ -34,9 +28,9 @@ testing purposes only):
 .. code-block::
 
     # To download only one file
-    $ uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp --only-one
+    uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp --only-one
     # To download all files
-    $ uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp
+    uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp
 
 This will create a `data/sources/meteorological/aphrodite-daily-mean-temp` folder
 into which data will be downloaded.
@@ -57,8 +51,10 @@ from .types import URLCollection, DataFile, PartialDate
 from .util import daterange, use_range, get_country_name
 
 
-def gadm_data(iso3: str, unpack: bool = False) -> URLCollection:
-    "Download and unpack GADM (Database of Global Administrative Areas) data"
+def gadm_data(iso3: str) -> URLCollection:
+    """Download and unpack GADM (Database of Global Administrative Areas) data.
+
+    See :doc:`geospatial` for more information."""
     return URLCollection(
         "https://geodata.ucdavis.edu/gadm/gadm4.1",
         [
@@ -74,7 +70,17 @@ def gadm_data(iso3: str, unpack: bool = False) -> URLCollection:
 
 
 def relative_wealth_index(iso3: str) -> URLCollection:
-    "Relative Wealth Index"
+    """This dataset contains the relative wealth index, which is the relative
+    standard of living, obtained from connectivity data, satellite imagery and
+    other sources. Cite the following if using this dataset:
+
+        Microestimates of wealth for all low- and middle-income countries.
+        Guanghua Chi, Han Fang, Sourav Chatterjee, Joshua E. Blumenstock
+        Proceedings of the National Academy of Sciences
+        Jan 2022, 119 (3) e2113658119; DOI: 10.1073/pnas.2113658119
+
+    Upstream URL: https://data.humdata.org/dataset/relative-wealth-index
+    """
     if not iso3:
         raise ValueError("No ISO3 code has been provided")
     url = "https://data.humdata.org/dataset/relative-wealth-index"
@@ -143,44 +149,6 @@ def ministerio_de_salud_peru_data() -> list[DataFile]:
     return data
 
 
-def aphrodite_precipitation_data(unpack) -> list[URLCollection]:
-    "APHRODITE Daily accumulated precipitation (V1901) [requires account]"
-    base_url = "http://aphrodite.st.hirosaki-u.ac.jp"
-    return [
-        # 0.05 degree
-        URLCollection(
-            f"{base_url}/product/APHRO_V1901/APHRO_MA/005deg",
-            ["APHRO_MA_PREC_CLM_005deg_V1901.ctl.gz"],
-        ),
-        # 0.25 degree
-        URLCollection(
-            f"{base_url}/product/APHRO_V1901/APHRO_MA/025deg",
-            [
-                "APHRO_MA_025deg_V1901.2015.gz",
-                "APHRO_MA_025deg_V1901.ctl.gz",
-            ],
-        ),
-        # 0.25 degree nc
-        URLCollection(
-            f"{base_url}/product/APHRO_V1901/APHRO_MA/025deg_nc",
-            ["APHRO_MA_025deg_V1901.2015.nc.gz"],
-        ),
-        # 0.50 degree
-        URLCollection(
-            f"{base_url}/product/APHRO_V1901/APHRO_MA/050deg",
-            [
-                "APHRO_MA_050deg_V1901.2015.gz",
-                "APHRO_MA_050deg_V1901.ctl.gz",
-            ],
-        ),
-        # 0.50 degree nc
-        URLCollection(
-            f"{base_url}/product/APHRO_V1901/APHRO_MA/050deg_nc",
-            ["APHRO_MA_050deg_V1901.2015.nc.gz"],
-        ),
-    ]
-
-
 def aphrodite_temperature_data(unpack) -> list[URLCollection]:
     "APHRODITE Daily mean temperature product (V1808) [requires account]"
 
@@ -225,6 +193,44 @@ def aphrodite_temperature_data(unpack) -> list[URLCollection]:
                 "APHRO_MA_TAVE_CLM_005deg_V1808.grd.gz",  # 1.4 GB
                 "read_aphro_clm_v1808.f90",  # 2.1 KB
             ],
+        ),
+    ]
+
+
+def aphrodite_precipitation_data(unpack) -> list[URLCollection]:
+    "APHRODITE Daily accumulated precipitation (V1901) [requires account]"
+    base_url = "http://aphrodite.st.hirosaki-u.ac.jp"
+    return [
+        # 0.05 degree
+        URLCollection(
+            f"{base_url}/product/APHRO_V1901/APHRO_MA/005deg",
+            ["APHRO_MA_PREC_CLM_005deg_V1901.ctl.gz"],
+        ),
+        # 0.25 degree
+        URLCollection(
+            f"{base_url}/product/APHRO_V1901/APHRO_MA/025deg",
+            [
+                "APHRO_MA_025deg_V1901.2015.gz",
+                "APHRO_MA_025deg_V1901.ctl.gz",
+            ],
+        ),
+        # 0.25 degree nc
+        URLCollection(
+            f"{base_url}/product/APHRO_V1901/APHRO_MA/025deg_nc",
+            ["APHRO_MA_025deg_V1901.2015.nc.gz"],
+        ),
+        # 0.50 degree
+        URLCollection(
+            f"{base_url}/product/APHRO_V1901/APHRO_MA/050deg",
+            [
+                "APHRO_MA_050deg_V1901.2015.gz",
+                "APHRO_MA_050deg_V1901.ctl.gz",
+            ],
+        ),
+        # 0.50 degree nc
+        URLCollection(
+            f"{base_url}/product/APHRO_V1901/APHRO_MA/050deg_nc",
+            ["APHRO_MA_050deg_V1901.2015.nc.gz"],
         ),
     ]
 
@@ -291,7 +297,14 @@ def chirps_rainfall_data(partial_date: str) -> list[URLCollection]:
 
 
 def terraclimate_data(year: int) -> URLCollection:
-    "TerraClimate gridded temperature, precipitation, etc."
+    """TerraClimate gridded temperature, precipitation data.
+
+    TerraClimate is a dataset of monthly climate and climatic water balance for
+    terrestrial surfaces from 1958--2023. Data have a monthly temporal
+    resolution and 4 km (1/24th degree) spatial resolution.
+
+    Upstream URL: https://www.climatologylab.org/terraclimate.html
+    """
     use_range(year, 1958, 2023, "Terraclimate year range")
     return URLCollection(
         "https://climate.northwestknowledge.net/TERRACLIMATE-DATA",

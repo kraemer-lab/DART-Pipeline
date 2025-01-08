@@ -1,5 +1,5 @@
 """
-Script to process raw data that has already been collated.
+Functions to process raw data that has already been collated.
 
 To process GADM administrative map geospatial data, run one or more of the
 following commands
@@ -37,8 +37,7 @@ from .plots import \
     plot_heatmap, plot_gadm_micro_heatmap, plot_gadm_macro_heatmap, \
     plot_timeseries, plot_scatter, plot_gadm_scatter
 from .util import \
-    abort, source_path, days_in_year, output_path, get_country_name, \
-    get_shapefile
+    source_path, days_in_year, output_path, get_country_name, get_shapefile
 from .types import ProcessResult, PartialDate, AdminLevel
 from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS
 
@@ -168,10 +167,13 @@ def process_dengueperu(
         df = pd.read_excel(filepath)
 
         # Rename the headings
-        df = df.rename(columns={'ano': 'year'})
-        df = df.rename(columns={'semana': 'week'})
-        df = df.rename(columns={'tipo_dx': 'metric'})
-        df = df.rename(columns={'n': 'value'})
+        columns = {
+            'ano': 'year',
+            'semana': 'week',
+            'tipo_dx': 'metric',
+            'n': 'value'
+        }
+        df = df.rename(columns=columns)
 
         # Define two metrics
         df.loc[df['metric'] == 'C', 'metric'] = 'Confirmed Dengue Cases'
@@ -217,7 +219,7 @@ def process_dengueperu(
     master['month'] = ''
     master['day'] = ''
     master['unit'] = 'cases'
-    master['resolution'] = ''
+    master['resolution'] = f'admin{admin_level}'
     master['creation_date'] = date.today()
 
     return master, 'dengue_peru.csv'
@@ -325,8 +327,6 @@ def process_gadm_aphroditetemperature(
                 )
 
                 # Filter data for this sub-region
-                valid_lon_region = valid_lon[region_mask]
-                valid_lat_region = valid_lat[region_mask]
                 valid_temp_region = valid_prcp[region_mask]
 
                 output_row = {
@@ -464,8 +464,8 @@ def process_gadm_aphroditeprecipitation(
                 )
 
                 # Filter data for this sub-region
-                valid_lon_region = valid_lon[region_mask]
-                valid_lat_region = valid_lat[region_mask]
+                _ = valid_lon[region_mask]
+                _ = valid_lat[region_mask]
                 valid_prcp_region = valid_prcp[region_mask]
 
                 output_row = {
@@ -1393,6 +1393,8 @@ def get_admin_region(lat: float, lon: float, polygons) -> str:
 PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
     "economic/relative-wealth-index": process_rwi,
     "epidemiological/dengue/peru": process_dengueperu,
+    'geospatial/aphrodite-daily-mean-temp': process_gadm_aphroditetemperature,
+    'geospatial/aphrodite-daily-precip': process_gadm_aphroditeprecipitation,
     "geospatial/chirps-rainfall": process_gadm_chirps_rainfall,
     "geospatial/gadm": process_gadm_admin_map_data,
     "geospatial/worldpop-count": process_gadm_worldpopcount,
@@ -1403,6 +1405,4 @@ PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
     "meteorological/terraclimate": process_terraclimate,
     "sociodemographic/worldpop-count": process_worldpop_pop_count_data,
     "sociodemographic/worldpop-density": process_worldpop_pop_density_data,
-    'geospatial/aphrodite-daily-mean-temp': process_gadm_aphroditetemperature,
-    'geospatial/aphrodite-daily-precip': process_gadm_aphroditeprecipitation,
 }
