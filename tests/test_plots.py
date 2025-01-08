@@ -118,7 +118,6 @@ def test_plot_gadm_micro_heatmap(
             assert mock_gdf_plot.call_count == 2, msg
 
             # Check the path generation and file save
-            sanitized_title = re.sub(r'[<>:"/\\|?*]', '_', title)
             expected_path = Path('mock/path')
             mock_savefig.assert_called_once_with(expected_path)
 
