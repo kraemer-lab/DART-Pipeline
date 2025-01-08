@@ -2,7 +2,6 @@
 from datetime import date
 from pathlib import Path
 from unittest.mock import patch, MagicMock
-import re
 import tempfile
 
 from matplotlib import pyplot as plt
@@ -74,13 +73,13 @@ def test_plot_gadm_micro_heatmap(
         mock_subplots.return_value = (mock_fig, mock_ax)
 
         # Define input parameters
-        source = 'example/source'
         # Including a 0 value to be converted to NaN
         data = np.array([[1, 2], [0.0, 4]])
         pdate = '2023-10-15'
         title = 'Test GADM Heatmap'
         colourbar_label = 'Test Colourbar'
         extent = [100, 105, 20, 25]
+        path = Path('mock/path')
 
         # Create a mock GeoDataFrame and region with geometry bounds
         polygon = Polygon([(100, 20), (105, 20), (105, 25), (100, 25)])
@@ -89,11 +88,10 @@ def test_plot_gadm_micro_heatmap(
 
         # Patch the output_path function within this test's scope
         with patch(
-            'dart_pipeline.plots.output_path', side_effect=mock_output_path
+            'dart_pipeline.util.output_path', side_effect=mock_output_path
         ):
             plot_gadm_micro_heatmap(
-                source, data, gdf, pdate, title, colourbar_label, region,
-                extent
+                data, gdf, pdate, title, colourbar_label, region, extent, path
             )
 
             # Check that subplots were created
@@ -119,9 +117,7 @@ def test_plot_gadm_micro_heatmap(
             assert mock_gdf_plot.call_count == 2, msg
 
             # Check the path generation and file save
-            sanitized_title = re.sub(r'[<>:"/\\|?*]', '_', title)
-            expected_path = Path(temp_dir) / 'output/2023/10/15' / \
-                (sanitized_title + '.png')
+            expected_path = Path('mock/path')
             mock_savefig.assert_called_once_with(expected_path)
 
             # Ensure directories are created

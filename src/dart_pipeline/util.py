@@ -178,7 +178,7 @@ def download_files(
     for file in links.files:
         url = links.base_url + "/" + file
         out_filepath = out_dir / Path(file).name
-        successes.append(download_file(url, out_filepath, auth, unpack))
+        successes.append(download_file(url, out_filepath, auth, unpack=unpack))
 
     return successes
 
