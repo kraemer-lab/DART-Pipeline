@@ -1,5 +1,5 @@
 """
-Script to process raw data that has already been collated.
+Functions to process raw data that has already been collated.
 
 To process GADM administrative map geospatial data, run one or more of the
 following commands
