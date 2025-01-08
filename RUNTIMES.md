@@ -80,15 +80,6 @@ time uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=3 d=2023 l=I
 Meteorological
 --------------
 
-### APHRODITE Daily Mean Temperature
-
-```
-time uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp
-16m6.556s
-time uv run dart-pipeline process meteorological/aphrodite-daily-mean-temp
-0.691s
-```
-
 ### APHRODITE Precipitation
 
 ```

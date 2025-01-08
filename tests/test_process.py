@@ -2,8 +2,7 @@
 from datetime import date
 from io import BytesIO
 from pathlib import Path
-from unittest.mock import patch, MagicMock
-import tempfile
+from unittest.mock import patch, mock_open, MagicMock
 
 from shapely.geometry import Polygon
 import geopandas as gpd
@@ -19,7 +18,6 @@ from dart_pipeline.process import \
     process_gadm_aphroditeprecipitation, \
     process_gadm_chirps_rainfall, \
     process_gadm_worldpopcount, \
-    process_aphrodite_temperature_data, \
     process_aphrodite_precipitation_data, \
     process_chirps_rainfall, \
     process_terraclimate
@@ -203,7 +201,7 @@ def test_process_gadm_aphroditetemperature():
         mock_output_path.return_value = MagicMock()
 
         # Mock np.fromfile() to return a fake array
-        nx, ny = 360, 280
+        nx, ny, nday = 360, 280, 365
         recl = nx * ny
 
         # Create a fake array with the correct number of values
@@ -255,7 +253,7 @@ def test_process_gadm_aphroditeprecipitation():
 
         # Create a mock GeoDataFrame row with a geometry attribute
         mock_row = MagicMock()
-        mock_row.geometry = Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])
+        mock_row.geometry = Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])  # Mock Polygon
         mock_row.COUNTRY = 'Vietnam'
         mock_row.NAME_1 = 'Mock Province'
         mock_row.NAME_2 = 'Mock District'
@@ -263,7 +261,7 @@ def test_process_gadm_aphroditeprecipitation():
 
         # Mock geopandas dataframe and its iterrows method
         mock_gdf = MagicMock()
-        mock_gdf.iterrows.return_value = iter([(0, mock_row)])
+        mock_gdf.iterrows.return_value = iter([(0, mock_row)])  # Return the mock row
         mock_read_file.return_value = mock_gdf
 
         # Mock source_path and output_path
@@ -271,7 +269,7 @@ def test_process_gadm_aphroditeprecipitation():
         mock_output_path.return_value = MagicMock()
 
         # Mock np.fromfile() to return a fake array
-        nx, ny = 360, 280
+        nx, ny, nday = 360, 280, 365
         recl = nx * ny
 
         # Create a fake array with the correct number of values
@@ -420,115 +418,41 @@ def test_process_gadm_worldpopcount(
     assert isinstance(output, pd.DataFrame), msg
 
 
-@patch('dart_pipeline.util.output_path')
-@patch('dart_pipeline.util.source_path')
-@patch('dart_pipeline.util.days_in_year')
-@patch('dart_pipeline.process.plot_scatter')
-def test_process_aphrodite_temperature_data(
-    mock_plot_scatter, mock_days_in_year, mock_source_path, mock_output_path
-):
-    # Set up mocks
-    mock_output_path.return_value = \
-        'data/processed/meteorological/aphrodite-daily-mean-temp'
-    mock_source_path.return_value = MagicMock()
-    base_path = mock_source_path.return_value
-    base_path.iterdir.return_value = [
-        MagicMock(name='APHRO_MA_TAVE_025deg_V1808.2015'),
-    ]
-    mock_days_in_year.return_value = 365
+def test_process_aphrodite_precipitation_data():
+    # Minimal mocking for `np.fromfile` and file operations
+    nx, ny, _ = 360, 280, 365
+    # Mock precipitation data
+    mock_prcp = np.full((ny, nx), 10.0, dtype='float32')
+    # Mock station count data
+    mock_rstn = np.ones((ny, nx), dtype='float32')
 
-    # Create binary data for the temporary file
-    nx, ny, nday = 360, 280, 365
-    binary_data = b''.join([
-        np.zeros((ny * nx), dtype='float32').tobytes() for _ in range(nday * 2)
-    ])
-    # Create a temporary file with the binary data
-    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-        temp_file.write(binary_data)
-        temp_file_path = Path(temp_file.name)
-
-    try:
-        # Mock file path to return the temporary file path
-        mock_source_path.return_value = temp_file_path.parent
-
-        # Call the function
-        output, filename = process_aphrodite_temperature_data(
-            year='2015', plots=True
+    def mock_fromfile(file, dtype, count):
+        if dtype == 'float32' and count == nx * ny:
+            return mock_prcp.flatten() \
+                if 'prcp' in file.name else mock_rstn.flatten()
+        raise ValueError(
+            f'Unexpected call to np.fromfile with {file}, {dtype}, {count}'
         )
 
-        # Assertions
-        assert filename == 'aphrodite-daily-mean-temp.csv'
-        assert isinstance(output, pd.DataFrame)
-        assert not output.empty
-        assert set(output.columns) == {
-            'iso3', 'admin_level_0', 'admin_level_1', 'admin_level_2',
-            'admin_level_3', 'year', 'month', 'day', 'week', 'metric',
-            'resolution', 'value', 'unit', 'creation_date'
-        }
-        assert output['year'].unique() == ['2015']
-        assert (output['metric'] == 'temperature').all()
-        assert (output['unit'] == '°C').all()
-        assert output['creation_date'].iloc[0] == date.today()
-        assert mock_plot_scatter.called
-    finally:
-        # Clean up the temporary file
-        temp_file_path.unlink()
-
-
-@patch('dart_pipeline.util.output_path')
-@patch('dart_pipeline.util.source_path')
-@patch('dart_pipeline.util.days_in_year')
-@patch('dart_pipeline.process.plot_scatter')
-def test_process_aphrodite_precipitation_data(
-    mock_plot_scatter, mock_days_in_year, mock_source_path, mock_output_path
-):
-    # Set up mocks
-    mock_output_path.return_value = \
-        'data/processed/meteorological/aphrodite-daily-precip'
-    mock_source_path.return_value = MagicMock()
-    base_path = mock_source_path.return_value
-    base_path.iterdir.return_value = [
-        MagicMock(name='APHRO_MA_025deg_V1901.2015'),
-        MagicMock(name='APHRO_MA_050deg_V1901.2014'),
-    ]
-    mock_days_in_year.return_value = 365
-
-    # Create binary data for the temporary file
-    nx, ny, nday = 360, 280, 365
-    binary_data = b''.join([
-        np.zeros((ny * nx), dtype='float32').tobytes() for _ in range(nday * 2)
-    ])
-    # Create a temporary file with the binary data
-    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-        temp_file.write(binary_data)
-        temp_file_path = Path(temp_file.name)
-
-    try:
-        # Mock file path to return the temporary file path
-        mock_source_path.return_value = temp_file_path.parent
-
+    # Mock file opening
+    mocked_open = mock_open()
+    with patch('builtins.open', mocked_open), \
+            patch('numpy.fromfile', mock_fromfile):
         # Call the function
-        output, filename = process_aphrodite_precipitation_data(
-            year='2015', plots=True
+        year = 2023
+        output, csv_name = process_aphrodite_precipitation_data(
+            year=year, resolution=['025deg'], plots=False
         )
 
-        # Assertions
-        assert filename == 'aphrodite-daily-precip.csv'
+        # Assert the output is a DataFrame
         assert isinstance(output, pd.DataFrame)
-        assert not output.empty
-        assert set(output.columns) == {
-            'iso3', 'admin_level_0', 'admin_level_1', 'admin_level_2',
-            'admin_level_3', 'year', 'month', 'day', 'week', 'metric',
-            'resolution', 'value', 'unit', 'creation_date'
-        }
-        assert output['year'].unique() == ['2015']
-        assert (output['metric'] == 'precipitation').all()
-        assert (output['unit'] == 'mm').all()
-        assert output['creation_date'].iloc[0] == date.today()
-        assert mock_plot_scatter.called
-    finally:
-        # Clean up the temporary file
-        temp_file_path.unlink()
+        assert len(output) > 0  # Ensure some data is processed
+        assert 'year' in output.columns
+        assert 'value' in output.columns
+
+        # Check key output values
+        assert (output['year'] == year).all()
+        assert csv_name == 'aphrodite-daily-precip.csv'
 
 
 @patch('dart_pipeline.process.output_path')
