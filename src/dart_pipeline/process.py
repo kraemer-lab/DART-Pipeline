@@ -1296,7 +1296,6 @@ PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
     "geospatial/chirps-rainfall": process_gadm_chirps_rainfall,
     "geospatial/gadm": process_gadm_admin_map_data,
     "geospatial/worldpop-count": process_gadm_worldpopcount,
-    "meteorological/aphrodite-daily-mean-temp": process_aphrodite_temperature_data,
     "meteorological/aphrodite-daily-precip": process_aphrodite_precipitation_data,
     "meteorological/chirps-rainfall": process_chirps_rainfall,
     "meteorological/era5-reanalysis": process_era5_reanalysis_data,
