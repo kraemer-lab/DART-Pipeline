@@ -148,45 +148,7 @@ def ministerio_de_salud_peru_data() -> list[DataFile]:
     return data
 
 
-def aphrodite_precipitation_data() -> list[URLCollection]:
-    "APHRODITE Daily accumulated precipitation (V1901) [requires account]"
-    base_url = "http://aphrodite.st.hirosaki-u.ac.jp"
-    return [
-        # 0.05 degree
-        URLCollection(
-            f"{base_url}/product/APHRO_V1901/APHRO_MA/005deg",
-            ["APHRO_MA_PREC_CLM_005deg_V1901.ctl.gz"],
-        ),
-        # 0.25 degree
-        URLCollection(
-            f"{base_url}/product/APHRO_V1901/APHRO_MA/025deg",
-            [
-                "APHRO_MA_025deg_V1901.2015.gz",
-                "APHRO_MA_025deg_V1901.ctl.gz",
-            ],
-        ),
-        # 0.25 degree nc
-        URLCollection(
-            f"{base_url}/product/APHRO_V1901/APHRO_MA/025deg_nc",
-            ["APHRO_MA_025deg_V1901.2015.nc.gz"],
-        ),
-        # 0.50 degree
-        URLCollection(
-            f"{base_url}/product/APHRO_V1901/APHRO_MA/050deg",
-            [
-                "APHRO_MA_050deg_V1901.2015.gz",
-                "APHRO_MA_050deg_V1901.ctl.gz",
-            ],
-        ),
-        # 0.50 degree nc
-        URLCollection(
-            f"{base_url}/product/APHRO_V1901/APHRO_MA/050deg_nc",
-            ["APHRO_MA_050deg_V1901.2015.nc.gz"],
-        ),
-    ]
-
-
-def aphrodite_temperature_data() -> list[URLCollection]:
+def aphrodite_temperature_data(unpack) -> list[URLCollection]:
     "APHRODITE Daily mean temperature product (V1808) [requires account]"
 
     base_url = "http://aphrodite.st.hirosaki-u.ac.jp"
@@ -230,6 +192,44 @@ def aphrodite_temperature_data() -> list[URLCollection]:
                 "APHRO_MA_TAVE_CLM_005deg_V1808.grd.gz",  # 1.4 GB
                 "read_aphro_clm_v1808.f90",  # 2.1 KB
             ],
+        ),
+    ]
+
+
+def aphrodite_precipitation_data(unpack) -> list[URLCollection]:
+    "APHRODITE Daily accumulated precipitation (V1901) [requires account]"
+    base_url = "http://aphrodite.st.hirosaki-u.ac.jp"
+    return [
+        # 0.05 degree
+        URLCollection(
+            f"{base_url}/product/APHRO_V1901/APHRO_MA/005deg",
+            ["APHRO_MA_PREC_CLM_005deg_V1901.ctl.gz"],
+        ),
+        # 0.25 degree
+        URLCollection(
+            f"{base_url}/product/APHRO_V1901/APHRO_MA/025deg",
+            [
+                "APHRO_MA_025deg_V1901.2015.gz",
+                "APHRO_MA_025deg_V1901.ctl.gz",
+            ],
+        ),
+        # 0.25 degree nc
+        URLCollection(
+            f"{base_url}/product/APHRO_V1901/APHRO_MA/025deg_nc",
+            ["APHRO_MA_025deg_V1901.2015.nc.gz"],
+        ),
+        # 0.50 degree
+        URLCollection(
+            f"{base_url}/product/APHRO_V1901/APHRO_MA/050deg",
+            [
+                "APHRO_MA_050deg_V1901.2015.gz",
+                "APHRO_MA_050deg_V1901.ctl.gz",
+            ],
+        ),
+        # 0.50 degree nc
+        URLCollection(
+            f"{base_url}/product/APHRO_V1901/APHRO_MA/050deg_nc",
+            ["APHRO_MA_050deg_V1901.2015.nc.gz"],
         ),
     ]
 
