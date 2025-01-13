@@ -234,34 +234,26 @@ def test_process_gadm_aphroditeprecipitation():
     resolution = ['025deg']
     plots = False
 
-    with patch('dart_pipeline.process.PartialDate') as mock_partial_date, \
-         patch('dart_pipeline.util.get_shapefile') as mock_get_shapefile, \
+    with patch('dart_pipeline.util.get_shapefile') as mock_get_shapefile, \
          patch('geopandas.read_file') as mock_read_file, \
          patch('dart_pipeline.util.source_path') as mock_source_path, \
          patch('dart_pipeline.util.output_path') as mock_output_path, \
          patch('builtins.open') as mock_open, \
          patch('numpy.fromfile') as mock_fromfile:
 
-        # Mock PartialDate to return a specific year when accessed
-        mock_partial_date.from_string.return_value = MagicMock(
-            year=2023, month=7, day=None, scope='year'
-        )
-
         # Mock shapefile loading
         mock_get_shapefile.return_value = 'mock_shapefile_path'
 
-        # Create a mock GeoDataFrame row with a geometry attribute
-        mock_row = MagicMock()
-        mock_row.geometry = Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])  # Mock Polygon
-        mock_row.COUNTRY = 'Vietnam'
-        mock_row.NAME_1 = 'Mock Province'
-        mock_row.NAME_2 = 'Mock District'
-        mock_row.NAME_3 = 'Mock Sub-district'
-
-        # Mock geopandas dataframe and its iterrows method
-        mock_gdf = MagicMock()
-        mock_gdf.iterrows.return_value = iter([(0, mock_row)])  # Return the mock row
-        mock_read_file.return_value = mock_gdf
+        # Create geopandas dataframe
+        data = {
+            'COUNTRY': 'Vietnam',
+            'NAME_1': [10, 20, 30],
+            'NAME_2': 'Mock District',
+            'NAME_3': 'Mock Sub-district',
+            'geometry': Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])
+        }
+        gdf = gpd.GeoDataFrame(data, crs='EPSG:4326')
+        mock_read_file.return_value = gdf
 
         # Mock source_path and output_path
         mock_source_path.return_value = MagicMock()
@@ -291,7 +283,7 @@ def test_process_gadm_aphroditeprecipitation():
         assert 'iso3' in output.columns
         assert 'value' in output.columns
         assert output['iso3'].iloc[0] == iso3
-        assert output['value'].sum() >= 0  # Ensure non-negative precipitation values
+        assert output['value'].sum() == 0
         assert csv_path == 'aphrodite-daily-precip.csv'
 
 
@@ -484,10 +476,10 @@ def test_process_aphrodite_precipitation_data():
 
         # Assert the output is a DataFrame
         assert isinstance(output, pd.DataFrame)
-        assert len(output) > 0  # Ensure some data is processed
+        # Ensure some data is processed
+        assert len(output) > 0
         assert 'year' in output.columns
         assert 'value' in output.columns
-
         # Check key output values
         assert (output['year'] == year).all()
         assert csv_name == 'aphrodite-daily-precip.csv'

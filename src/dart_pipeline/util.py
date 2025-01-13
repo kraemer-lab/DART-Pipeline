@@ -270,22 +270,6 @@ def unpack_file(path: Path | str, same_folder: bool = False):
     path = Path(path)
     logging.info('unpacking:%s', path)
     logging.info('same_folder:%s', same_folder)
-    if str(path).endswith('.gz'):
-        with gzip.open(path, 'rb') as f_in:
-            if same_folder:
-                extract_path = path.with_suffix('')
-            else:
-                folder = str(path.name).replace('.gz', '')
-                file = str(path.name).replace('.gz', '')
-                extract_path = path.parent / Path(folder) / Path(file)
-                extract_path.parent.mkdir(parents=True, exist_ok=True)
-            logging.info('extract_path:%s', extract_path)
-            try:
-                with open(extract_path, 'wb') as f_out:
-                    shutil.copyfileobj(f_in, f_out)
-            except gzip.BadGzipFile:
-                print(f'BadGzipFile: Not a gzipped file ({path.name})')
-        return
     match path.suffix:
         case '.7z':
             with py7zr.SevenZipFile(path, mode="r") as archive:
@@ -294,8 +278,25 @@ def unpack_file(path: Path | str, same_folder: bool = False):
                 )
         case '.f90':
             pass
+        case '.gz':
+            with gzip.open(path, 'rb') as f_in:
+                if same_folder:
+                    extract_path = path.with_suffix('')
+                else:
+                    folder = str(path.name).replace('.gz', '')
+                    file = str(path.name).replace('.gz', '')
+                    extract_path = path.parent / Path(folder) / Path(file)
+                    extract_path.parent.mkdir(parents=True, exist_ok=True)
+                logging.info('extract_path:%s', extract_path)
+                try:
+                    with open(extract_path, 'wb') as f_out:
+                        shutil.copyfileobj(f_in, f_out)
+                except gzip.BadGzipFile:
+                    print(f'BadGzipFile: Not a gzipped file ({path.name})')
+            return
         case _:
-            extract_dir = path.parent if same_folder else path.parent / path.stem
+            extract_dir = path.parent if same_folder else \
+                path.parent / path.stem
             shutil.unpack_archive(path, str(extract_dir))
 
 

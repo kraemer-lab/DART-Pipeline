@@ -90,7 +90,6 @@ uv run dart-pipeline process meteorological/aphrodite-daily-mean-temp l=INFO plo
 
 ```
 uv run dart-pipeline get meteorological/aphrodite-daily-precip unpack
-uv run dart-pipeline process meteorological/aphrodite-daily-precip
 uv run dart-pipeline process meteorological/aphrodite-daily-precip plots
 ```
 
