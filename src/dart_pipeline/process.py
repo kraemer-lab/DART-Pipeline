@@ -46,6 +46,9 @@ pandarallel.initialize(verbose=0)
 TEST_MODE = os.getenv("DART_PIPELINE_TEST")
 # Smallest single-precision floating-point number
 MIN_FLOAT = -3.4028234663852886e38
+# No data in APHRODITE data
+# See APHRO_MA_025deg_V1901.ctl and others
+NO_DATA = -99.90
 
 
 def process_rwi(iso3: str, admin_level: str, plots=False):
@@ -306,7 +309,7 @@ def process_gadm_aphroditetemperature(
                 continue
 
             valid_mask = (rstn_data[iday, :, :] != 0.0) & \
-                (temp_data[iday, :, :] != -99.90)
+                (temp_data[iday, :, :] != NO_DATA)
             valid_prcp = temp_data[iday][valid_mask]
             valid_lon = valid_xlon[valid_mask]
             valid_lat = valid_ylat[valid_mask]
@@ -397,16 +400,31 @@ def process_gadm_aphroditeprecipitation(
 
     version = 'V1901'
     year = pdate.year
-    n_deg = {'025deg': (360, 280), '050deg': (180, 140)}
+    params = {
+        # Parameters from APHRO_MA_025deg_V1901.ctl
+        '025deg': {
+            'n_deg': (360, 280),
+            'start_coords': (60.125, -14.875),
+            'scale_factor': 0.25
+        },
+        # Parameters from APHRO_MA_050deg_V1901.ctl
+        '050deg': {
+            'n_deg': (180, 140),
+            'start_coords': (60.25, -14.75),
+            'scale_factor': 0.5
+        }
+    }
+
     for res in resolution:
-        nx, ny = n_deg[res]
         nday = days_in_year(int(year))
         # Record length
+        nx, ny = params[res]['n_deg']
         recl = nx * ny
         # Longitude and latitude bounds
-        x_start, y_start = 60.125, -14.875
-        xlon = x_start + np.arange(nx) * 0.25
-        ylat = y_start + np.arange(ny) * 0.25
+        x_start, y_start = params[res]['start_coords']
+        scale_factor = params[res]['scale_factor']
+        xlon = x_start + np.arange(nx) * scale_factor
+        ylat = y_start + np.arange(ny) * scale_factor
 
         # Open the file
         path = source_path('meteorological/aphrodite-daily-precip', '')
@@ -418,10 +436,10 @@ def process_gadm_aphroditeprecipitation(
             rstn_data = np.zeros((nday, ny, nx))
 
             for iday in range(nday):
-                # Read `prcp` record
+                # Read next batch of prcp values of size nx * ny
                 prcp_raw = np.fromfile(f, dtype='float32', count=recl)
                 prcp_raw = prcp_raw.reshape((ny, nx))
-                # Read `rstn` record
+                # Read next batch of rstn values of size nx * ny
                 rstn_raw = np.fromfile(f, dtype='float32', count=recl)
                 rstn_raw = rstn_raw.reshape((ny, nx))
                 # Store in arrays
@@ -443,14 +461,14 @@ def process_gadm_aphroditeprecipitation(
                 continue
 
             valid_mask = (rstn_data[iday, :, :] != 0.0) & \
-                (prcp_data[iday, :, :] != -99.90)
+                (prcp_data[iday, :, :] != NO_DATA)
             valid_prcp = prcp_data[iday][valid_mask]
             valid_lon = valid_xlon[valid_mask]
             valid_lat = valid_ylat[valid_mask]
 
             # Create rows in output for each sub-region
             to_append = []
-            for idx, row in gdf.iterrows():
+            for _, row in gdf.iterrows():
                 # Extract the geometry of the current sub-region (polygon)
                 region_geom = row.geometry
 
@@ -480,7 +498,7 @@ def process_gadm_aphroditeprecipitation(
                     'week': '',
                     'value': valid_prcp_region.sum(),
                     'resolution': '0.25°' if res == '025deg' else '0.5°',
-                    'metric': 'precipitation',
+                    'metric': 'aphrodite-daily-precip',
                     'unit': 'mm',
                     'creation_date': date.today()
                 }
@@ -718,16 +736,30 @@ def process_aphrodite_precipitation_data(
     # Initialise output data frame
     output = pd.DataFrame(columns=OUTPUT_COLUMNS)
 
-    n_deg = {'025deg': (360, 280), '050deg': (180, 140)}
+    params = {
+        # Parameters from APHRO_MA_025deg_V1901.ctl
+        '025deg': {
+            'n_deg': (360, 280),
+            'start_coords': (60.125, -14.875),
+            'scale_factor': 0.25
+        },
+        # Parameters from APHRO_MA_050deg_V1901.ctl
+        '050deg': {
+            'n_deg': (180, 140),
+            'start_coords': (60.25, -14.75),
+            'scale_factor': 0.5
+        }
+    }
     for res in resolution:
-        nx, ny = n_deg[res]
         nday = days_in_year(int(year))
         # Record length
+        nx, ny = params[res]['n_deg']
         recl = nx * ny
         # Longitude and latitude bounds
-        x_start, y_start = 60.125, -14.875
-        xlon = x_start + np.arange(nx) * 0.25
-        ylat = y_start + np.arange(ny) * 0.25
+        x_start, y_start = params[res]['start_coords']
+        scale_factor = params[res]['scale_factor']
+        xlon = x_start + np.arange(nx) * scale_factor
+        ylat = y_start + np.arange(ny) * scale_factor
 
         # Open the file
         file_path = Path(base_path) / Path(f'APHRO_MA_{res}_{version}.{year}')
@@ -738,10 +770,10 @@ def process_aphrodite_precipitation_data(
             rstn_data = np.zeros((nday, ny, nx))
 
             for iday in range(nday):
-                # Read `prcp` record
+                # Read next batch of prcp values of size nx * ny
                 prcp_raw = np.fromfile(f, dtype='float32', count=recl)
                 prcp_raw = prcp_raw.reshape((ny, nx))
-                # Read `rstn` record
+                # Read next batch of rstn values of size nx * ny
                 rstn_raw = np.fromfile(f, dtype='float32', count=recl)
                 rstn_raw = rstn_raw.reshape((ny, nx))
                 # Store in arrays
@@ -754,14 +786,14 @@ def process_aphrodite_precipitation_data(
 
         # Iterate through days
         for iday in range(nday):
+            this_date = datetime(int(year), 1, 1) + timedelta(days=iday)
+            this_date = this_date.date()
+
             valid_mask = (rstn_data[iday, :, :] != 0.0) & \
-                (prcp_data[iday, :, :] != -99.90)
+                (prcp_data[iday, :, :] != NO_DATA)
             valid_prcp = prcp_data[iday][valid_mask]
             valid_lon = valid_xlon[valid_mask]
             valid_lat = valid_ylat[valid_mask]
-
-            this_date = datetime(int(year), 1, 1) + timedelta(days=iday)
-            this_date = this_date.date()
 
             # Scatter plot
             if plots:
@@ -784,7 +816,7 @@ def process_aphrodite_precipitation_data(
             elif res == '050deg':
                 output.loc[i, 'resolution'] = '0.5°'
 
-    output['metric'] = 'precipitation'
+    output['metric'] = 'aphrodite-daily-precip'
     output['unit'] = 'mm'
     output['creation_date'] = date.today()
 
