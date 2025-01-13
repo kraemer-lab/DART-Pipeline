@@ -251,29 +251,55 @@ def process_gadm_aphroditetemperature(
     logging.info('importing:%s', path)
     gdf = gpd.read_file(path)
 
-    version = 'V1808'
-    year = pdate.year
-
     # Initialise output data frame
     output = pd.DataFrame(columns=OUTPUT_COLUMNS)
 
+    version = 'V1808'
+    year = pdate.year
     params = {
-        '025deg': ('TAVE', '025deg', '', 360, 280),
-        '025deg_nc': ('TAVE', '025deg', '.nc', 360, 280),
-        '050deg_nc': ('TAVE', '050deg', '.nc', 180, 140),
-        '005deg_nc': ('TAVE_CLM', '005deg', '.nc', 1800, 1400),
+        # Parameters APHRO_MA_TAVE_025deg_V1808.ctl
+        '025deg': {
+            'product': 'TAVE',
+            'resolution': '025deg',
+            'extension': '',
+            'n_deg': (360, 280),
+            'start_coords': (60.125, -14.875),
+            'scale_factor': 0.25
+        },
+        # Parameters APHRO_MA_TAVE_050deg_V1808.nc.ctl
+        '050deg_nc': {
+            'product': 'TAVE',
+            'resolution': '050deg',
+            'extension': '.nc',
+            'n_deg': (180, 140),
+            'start_coords': (60.25, -14.75),
+            'scale_factor': 0.5
+        },
+        # Parameters APHRO_MA_TAVE_CLM_005deg_V1808.ctl
+        '005deg_nc': {
+            'product': 'TAVE_CLM',
+            'resolution': '005deg',
+            'extension': '.nc',
+            'n_deg': (1800, 1400),
+            'start_coords': (60.025, -14.975),
+            'scale_factor': 0.05
+        },
     }
     for data_type in resolution:
-        product, res, ext, nx, ny = params[data_type]
         nday = days_in_year(int(year))
         # Record length
+        nx, ny = params[data_type]['n_deg']
         recl = nx * ny
         # Longitude and latitude bounds
-        x_start, y_start = 60.125, -14.875
-        xlon = x_start + np.arange(nx) * 0.25
-        ylat = y_start + np.arange(ny) * 0.25
+        x_start, y_start = params[data_type]['start_coords']
+        scale_factor = params[data_type]['scale_factor']
+        xlon = x_start + np.arange(nx) * scale_factor
+        ylat = y_start + np.arange(ny) * scale_factor
 
         # Open the file
+        product = params[data_type]['product']
+        res = params[data_type]['resolution']
+        ext = params[data_type]['extension']
         path = source_path('meteorological/aphrodite-daily-mean-temp', '')
         path = path / f'APHRO_MA_{product}_{res}_{version}.{year}{ext}'
         # Read binary data
@@ -284,10 +310,10 @@ def process_gadm_aphroditetemperature(
             rstn_data = np.zeros((nday, ny, nx))
 
             for iday in range(nday):
-                # Read `temp` record
+                # Read next batch of temp values of size nx * ny
                 temp_raw = np.fromfile(f, dtype='float32', count=recl)
                 temp_raw = temp_raw.reshape((ny, nx))
-                # Read `rstn` record
+                # Read next batch of rstn values of size nx * ny
                 rstn_raw = np.fromfile(f, dtype='float32', count=recl)
                 rstn_raw = rstn_raw.reshape((ny, nx))
                 # Store in arrays
@@ -316,7 +342,7 @@ def process_gadm_aphroditetemperature(
 
             # Create rows in output for each sub-region
             to_append = []
-            for idx, row in gdf.iterrows():
+            for _, row in gdf.iterrows():
                 # Extract the geometry of the current sub-region (polygon)
                 region_geom = row.geometry
 
@@ -345,7 +371,7 @@ def process_gadm_aphroditetemperature(
                     'value': valid_temp_region.mean() if
                     len(valid_temp_region) > 0 else '',
                     'resolution': '0.25°' if res == '025deg' else '0.5°',
-                    'metric': 'temperature',
+                    'metric': 'aphrodite-daily-mean-temp',
                     'unit': '°C',
                     'creation_date': date.today()
                 }
@@ -482,8 +508,6 @@ def process_gadm_aphroditeprecipitation(
                 )
 
                 # Filter data for this sub-region
-                _ = valid_lon[region_mask]
-                _ = valid_lat[region_mask]
                 valid_prcp_region = valid_prcp[region_mask]
 
                 output_row = {
@@ -718,7 +742,6 @@ def process_aphrodite_temperature_data(year=None, plots=False) -> \
     """Process APHRODITE Daily mean temperature product (V1808) data."""
     sub_pipeline = 'meteorological/aphrodite-daily-mean-temp'
     version = 'V1808'
-
     if not year:
         # Regex pattern to match the resolution, version and year in filenames
         pattern = r'APHRO_MA_TAVE_(\d+deg)_V(\d+)\.(\d+)'
@@ -737,22 +760,49 @@ def process_aphrodite_temperature_data(year=None, plots=False) -> \
     output = pd.DataFrame(columns=OUTPUT_COLUMNS)
 
     params = {
-        '025deg': ('TAVE', '025deg', '', 360, 280),
-        '025deg_nc': ('TAVE', '025deg', '.nc', 360, 280),
-        '050deg_nc': ('TAVE', '050deg', '.nc', 180, 140),
-        '005deg_nc': ('TAVE_CLM', '005deg', '.nc', 1800, 1400),
+        # Parameters APHRO_MA_TAVE_025deg_V1808.ctl
+        '025deg': {
+            'product': 'TAVE',
+            'resolution': '025deg',
+            'extension': '',
+            'n_deg': (360, 280),
+            'start_coords': (60.125, -14.875),
+            'scale_factor': 0.25
+        },
+        # Parameters APHRO_MA_TAVE_050deg_V1808.nc.ctl
+        '050deg_nc': {
+            'product': 'TAVE',
+            'resolution': '050deg',
+            'extension': '.nc',
+            'n_deg': (180, 140),
+            'start_coords': (60.25, -14.75),
+            'scale_factor': 0.5
+        },
+        # Parameters APHRO_MA_TAVE_CLM_005deg_V1808.ctl
+        '005deg_nc': {
+            'product': 'TAVE_CLM',
+            'resolution': '005deg',
+            'extension': '.nc',
+            'n_deg': (1800, 1400),
+            'start_coords': (60.025, -14.975),
+            'scale_factor': 0.05
+        },
     }
     for data_type in ['025deg']:
-        product, res, ext, nx, ny = params[data_type]
         nday = days_in_year(int(year))
         # Record length
+        nx, ny = params[data_type]['n_deg']
         recl = nx * ny
         # Longitude and latitude bounds
-        x_start, y_start = 60.125, -14.875
-        xlon = x_start + np.arange(nx) * 0.25
-        ylat = y_start + np.arange(ny) * 0.25
+        x_start, y_start = params[data_type]['start_coords']
+        scale_factor = params[data_type]['scale_factor']
+        xlon = x_start + np.arange(nx) * scale_factor
+        ylat = y_start + np.arange(ny) * scale_factor
 
         # Open the file
+        product = params[data_type]['product']
+        res = params[data_type]['resolution']
+        ext = params[data_type]['extension']
         path = source_path(sub_pipeline, '')
         path = path / f'APHRO_MA_{product}_{res}_{version}.{year}{ext}'
         # Read binary data
@@ -763,10 +813,10 @@ def process_aphrodite_temperature_data(year=None, plots=False) -> \
             rstn_data = np.zeros((nday, ny, nx))
 
             for iday in range(nday):
-                # Read `temp` record
+                # Read next batch of temp values of size nx * ny
                 temp_raw = np.fromfile(f, dtype='float32', count=recl)
                 temp_raw = temp_raw.reshape((ny, nx))
-                # Read `rstn` record
+                # Read next batch of rstn values of size nx * ny
                 rstn_raw = np.fromfile(f, dtype='float32', count=recl)
                 rstn_raw = rstn_raw.reshape((ny, nx))
                 # Store in arrays
@@ -779,14 +829,13 @@ def process_aphrodite_temperature_data(year=None, plots=False) -> \
 
         # Iterate through days
         for iday in range(nday):
+            this_date = datetime(int(year), 1, 1) + timedelta(days=iday)
+            this_date = this_date.date()
             valid_mask = (rstn_data[iday, :, :] != 0.0) & \
-                (temp_data[iday, :, :] != -99.90)
+                (temp_data[iday, :, :] != NO_DATA)
             valid_temp = temp_data[iday][valid_mask]
             valid_lon = valid_xlon[valid_mask]
             valid_lat = valid_ylat[valid_mask]
-
-            this_date = datetime(int(year), 1, 1) + timedelta(days=iday)
-            this_date = this_date.date()
 
             # Scatter plot
             if plots:
@@ -815,7 +864,7 @@ def process_aphrodite_temperature_data(year=None, plots=False) -> \
     output['admin_level_2'] = ''
     output['admin_level_3'] = ''
     output['week'] = ''
-    output['metric'] = 'temperature'
+    output['metric'] = 'aphrodite-daily-mean-temp'
     output['unit'] = '°C'
     output['creation_date'] = date.today()
 
