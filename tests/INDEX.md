@@ -41,12 +41,14 @@ INDEX
 ✅ def test_process_gadm_chirps_rainfall(
 ✅ def test_process_gadm_era5reanalysis(
 ✅ def test_process_gadm_worldpopcount(
+✅ def test_process_gadm_worldpopdensity
 ✅ def test_process_aphrodite_temperature_data():
 ✅ def test_process_aphrodite_precipitation_data():
 ✅ def test_process_chirps_rainfall(
 ✅ def process_era5reanalysis():
 ✅ def test_process_terraclimate(
 ✅ def test_process_worldpop_pop_count_data(
+✅ def test_process_worldpopdensity(
 ```
 
 `pytest tests/test_util.py`

@@ -93,6 +93,14 @@ uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=2 d=2020 l=INFO p
 uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=3 d=2020 l=INFO plots
 ```
 
+### WorldPop Population Density
+
+```
+uv run dart-pipeline get sociodemographic/worldpop-density 3=PER
+uv run dart-pipeline get geospatial/gadm 3=VNM
+uv run dart-pipeline process geospatial/worldpop-density 3=VNM a=0 d=2020 l=INFO plots
+```
+
 Meteorological
 --------------
 

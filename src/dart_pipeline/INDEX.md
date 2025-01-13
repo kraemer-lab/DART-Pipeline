@@ -24,7 +24,7 @@ def relative_wealth_index(iso3: str) -> URLCollection:
 def terraclimate_data(year: int) -> URLCollection:
 def meta_pop_density_data(iso3: str) -> URLCollection:
 def worldpop_pop_count_data(iso3: str) -> URLCollection:
-def worldpop_pop_density_data(iso3: str) -> URLCollection:
+✅ def worldpop_pop_density_data(iso3: str) -> URLCollection:
 ```
 
 `collate_api.py`
@@ -45,6 +45,7 @@ def get_admin(x):
 ✅ def process_gadm_era5reanalysis(
 def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
 def process_gadm_worldpopcount(
+✅ def process_gadm_worldpopdensity(
 ✅ def process_aphrodite_temperature_data(year=None, plots=False) -> \
 ✅ def process_aphrodite_precipitation_data(
 def get_chirps_rainfall_data_path(date: PartialDate) -> Path:
