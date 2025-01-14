@@ -83,6 +83,7 @@ def get(
     only_one: bool = True,
     update: bool = False,
     process: bool = False,
+    unpack: bool = True,
     **kwargs,
 ):
     """Get files for a source."""
@@ -96,7 +97,6 @@ def get(
     }
     if missing_params := non_default_params - set(kwargs):
         abort(source, f"missing required parameters {missing_params}")
-    unpack = 'unpack' in kwargs
 
     if not (path := DATA_PATH / source).exists():
         path.mkdir(parents=True, exist_ok=True)
@@ -240,6 +240,12 @@ def main():
         help="If the source can be directly processed, process immediately",
         action="store_true",
     )
+    get_parser.add_argument(
+        '-u',
+        '--unpack',
+        help='If the raw files are zipped, unpack them.',
+        action="store_true",
+    )
 
     process_parser = subparsers.add_parser(
         "process",
@@ -282,7 +288,8 @@ def main():
             print("\n".join(list_all()))
         case "get":
             get(
-                args.source, args.only_one, args.update, args.process, **kwargs
+                args.source, args.only_one, args.update, args.process,
+                args.unpack, **kwargs
             )
         case "check":
             check(args.source, args.only_one)

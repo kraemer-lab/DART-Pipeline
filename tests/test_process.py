@@ -2,7 +2,9 @@
 from io import BytesIO
 from unittest.mock import patch, mock_open, MagicMock
 
+from freezegun import freeze_time
 from shapely.geometry import Polygon
+from syrupy import SnapshotAssertion
 import geopandas as gpd
 import numpy as np
 import pandas as pd
@@ -408,9 +410,9 @@ def test_process_gadm_worldpopcount(
     assert isinstance(output, pd.DataFrame), msg
 
 
-def test_process_aphrodite_precipitation_data():
+def test_process_aphrodite_precipitation_data(snapshot: SnapshotAssertion):
     # Minimal mocking for `np.fromfile` and file operations
-    nx, ny, _ = 360, 280, 365
+    nx, ny = 360, 280
     # Mock precipitation data
     mock_prcp = np.full((ny, nx), 10.0, dtype='float32')
     # Mock station count data
@@ -426,23 +428,19 @@ def test_process_aphrodite_precipitation_data():
 
     # Mock file opening
     mocked_open = mock_open()
-    with patch('builtins.open', mocked_open), \
+    with freeze_time('2025-01-01'), \
+            patch('builtins.open', mocked_open), \
             patch('numpy.fromfile', mock_fromfile):
         # Call the function
         year = 2023
         output, csv_name = process_aphrodite_precipitation_data(
             year=year, resolution=['025deg'], plots=False
         )
+        print(output.to_dict())
 
-        # Assert the output is a DataFrame
-        assert isinstance(output, pd.DataFrame)
-        # Ensure some data is processed
-        assert len(output) > 0
-        assert 'year' in output.columns
-        assert 'value' in output.columns
-        # Check key output values
-        assert (output['year'] == year).all()
-        assert csv_name == 'aphrodite-daily-precip.csv'
+        # Assert the output matches the snapshot
+        assert output.to_dict() == snapshot
+        assert csv_name == snapshot
 
 
 @patch('dart_pipeline.process.output_path')
