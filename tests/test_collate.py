@@ -13,6 +13,7 @@ from dart_pipeline.collate import (
     gadm_data,
     relative_wealth_index,
     ministerio_de_salud_peru_data,
+    aphrodite_precipitation_data,
     chirps_rainfall_data,
     meta_pop_density_data,
     worldpop_pop_count_data,
@@ -117,6 +118,44 @@ def test_ministerio_de_salud_peru_data(
             assert data_files[1][0] == 'file2.xlsx'
             assert data_files[1][1] == '.'
             assert data_files[1][2] == b"Hello, world!'"
+
+
+def test_aphrodite_precipitation_data():
+    """Test the collation of links for APHRODITE precipitation data."""
+    result = aphrodite_precipitation_data(unpack=True)
+    # Base URL
+    base_url = 'http://aphrodite.st.hirosaki-u.ac.jp'
+    # Expected output
+    expected = [
+        URLCollection(
+            f'{base_url}/product/APHRO_V1901/APHRO_MA/005deg',
+            ['APHRO_MA_PREC_CLM_005deg_V1901.ctl.gz'],
+        ),
+        URLCollection(
+            f'{base_url}/product/APHRO_V1901/APHRO_MA/025deg',
+            [
+                'APHRO_MA_025deg_V1901.2015.gz',
+                'APHRO_MA_025deg_V1901.ctl.gz',
+            ],
+        ),
+        URLCollection(
+            f'{base_url}/product/APHRO_V1901/APHRO_MA/025deg_nc',
+            ['APHRO_MA_025deg_V1901.2015.nc.gz'],
+        ),
+        URLCollection(
+            f'{base_url}/product/APHRO_V1901/APHRO_MA/050deg',
+            [
+                'APHRO_MA_050deg_V1901.2015.gz',
+                'APHRO_MA_050deg_V1901.ctl.gz',
+            ],
+        ),
+        URLCollection(
+            f'{base_url}/product/APHRO_V1901/APHRO_MA/050deg_nc',
+            ['APHRO_MA_050deg_V1901.2015.nc.gz'],
+        ),
+    ]
+
+    assert result == expected
 
 
 def test_chirps_rainfall_data():
