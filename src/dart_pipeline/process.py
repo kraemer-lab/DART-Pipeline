@@ -482,8 +482,6 @@ def process_gadm_aphroditeprecipitation(
                 )
 
                 # Filter data for this sub-region
-                _ = valid_lon[region_mask]
-                _ = valid_lat[region_mask]
                 valid_prcp_region = valid_prcp[region_mask]
 
                 output_row = {

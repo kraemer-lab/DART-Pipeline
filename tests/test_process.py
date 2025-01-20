@@ -413,18 +413,32 @@ def test_process_gadm_worldpopcount(
 def test_process_aphrodite_precipitation_data(snapshot: SnapshotAssertion):
     # Minimal mocking for `np.fromfile` and file operations
     nx, ny = 360, 280
-    # Mock precipitation data
-    mock_prcp = np.full((ny, nx), 10.0, dtype='float32')
+    nday = 365
+    # Mock precipitation data (10 mm daily)
+    mock_prcp = np.full((nday, ny, nx), 10.0, dtype='float32')
     # Mock station count data
-    mock_rstn = np.ones((ny, nx), dtype='float32')
+    mock_rstn = np.ones((nday, ny, nx), dtype='float32')
 
     def mock_fromfile(file, dtype, count):
         if dtype == 'float32' and count == nx * ny:
-            return mock_prcp.flatten() \
-                if 'prcp' in file.name else mock_rstn.flatten()
+            # Toggle between prcp and rstn data based on the read order
+            if mock_fromfile.toggle:
+                data = mock_prcp[mock_fromfile.day]
+            else:
+                data = mock_rstn[mock_fromfile.day]
+                # Increment day only after reading rstn
+                mock_fromfile.day += 1
+            # Flip the toggle
+            mock_fromfile.toggle = not mock_fromfile.toggle
+            return data.flatten()
         raise ValueError(
             f'Unexpected call to np.fromfile with {file}, {dtype}, {count}'
         )
+
+    # Initialise day counter
+    mock_fromfile.day = 0
+    # Initialise toggle
+    mock_fromfile.toggle = True
 
     # Mock file opening
     mocked_open = mock_open()
@@ -436,7 +450,6 @@ def test_process_aphrodite_precipitation_data(snapshot: SnapshotAssertion):
         output, csv_name = process_aphrodite_precipitation_data(
             year=year, resolution=['025deg'], plots=False
         )
-        print(output.to_dict())
 
         # Assert the output matches the snapshot
         assert output.to_dict() == snapshot
