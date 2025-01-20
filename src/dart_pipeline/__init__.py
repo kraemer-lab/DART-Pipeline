@@ -24,6 +24,7 @@ from .util import (
     get_credentials,
     only_one_from_collection,
     output_path,
+    unpack_file,
     update_or_create_output
 )
 
@@ -82,6 +83,7 @@ def get(
     only_one: bool = True,
     update: bool = False,
     process: bool = False,
+    unpack: bool = True,
     **kwargs,
 ):
     """Get files for a source."""
@@ -113,10 +115,18 @@ def get(
     for coll in links:
         if not coll.missing_files(DATA_PATH / source) and not update:
             print(f"✅ SKIP {source_fmt} {coll}")
+            # If the file(s) have already been downloaded, they might not have
+            # been unpacked
+            if unpack:
+                for file in coll.files:
+                    to_unpack = path / Path(file).name
+                    print(f'• UNPACKING {to_unpack}', end='\r')
+                    unpack_file(to_unpack, same_folder=True)
+                    print(f'✅ UNPACKED {to_unpack}')
             continue
         msg = f"GET {source_fmt} {coll}"
         print(f" •  {msg}", end="\r")
-        success = download_files(coll, path, auth=auth)
+        success = download_files(coll, path, auth=auth, unpack=unpack)
         n_ok = sum(success)
         if n_ok == len(success):
             print(f"✅ {msg}")
@@ -230,6 +240,12 @@ def main():
         help="If the source can be directly processed, process immediately",
         action="store_true",
     )
+    get_parser.add_argument(
+        '-u',
+        '--unpack',
+        help='If the raw files are zipped, unpack them.',
+        action="store_true",
+    )
 
     process_parser = subparsers.add_parser(
         "process",
@@ -272,7 +288,8 @@ def main():
             print("\n".join(list_all()))
         case "get":
             get(
-                args.source, args.only_one, args.update, args.process, **kwargs
+                args.source, args.only_one, args.update, args.process,
+                args.unpack, **kwargs
             )
         case "check":
             check(args.source, args.only_one)

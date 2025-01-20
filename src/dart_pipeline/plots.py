@@ -115,3 +115,37 @@ def plot_timeseries(df, title, path):
     logging.info('exporting:%s', path)
     plt.savefig(path)
     plt.close()
+
+
+def plot_scatter(x, y, z, title, colourbar_label, path):
+    """Plot a scatter plot."""
+    plt.figure()
+    scatter = plt.scatter(x, y, c=z, cmap='coolwarm', s=10)
+    plt.colorbar(scatter, label=colourbar_label)
+    plt.title(title)
+    plt.xlabel('Longitude')
+    plt.ylabel('Latitude')
+    plt.grid(True)
+    # Export
+    path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(path)
+    plt.close()
+
+
+def plot_gadm_scatter(lon, lat, data, title, colourbar_label, path, gdf):
+    """Plot a scatter plot."""
+    fig, ax = plt.subplots()
+    scatter = ax.scatter(lon, lat, c=data, cmap='coolwarm', marker='o', s=10)
+    _ = fig.colorbar(scatter, ax=ax, label=colourbar_label)
+    gdf.boundary.plot(ax=ax, color='black', linewidth=.5)
+    ax.set_title(title)
+    ax.set_xlabel('Longitude')
+    ax.set_ylabel('Latitude')
+    # Set the axis limits to the bounding box of the shapefile (not the data)
+    minx, miny, maxx, maxy = gdf.total_bounds
+    ax.set_xlim(minx, maxx)
+    ax.set_ylim(miny, maxy)
+    # Export
+    path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(path)
+    plt.close()
