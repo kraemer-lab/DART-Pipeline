@@ -555,6 +555,7 @@ def process_gadm_worldpopcount(
 ):
     """Process GADM administrative map and WorldPop population count data."""
     sub_pipeline = 'geospatial/worldpop-count'
+    iso3 = iso3.upper()
     logging.info('iso3:%s', iso3)
     logging.info('partial_date:%s', partial_date)
     logging.info('admin_level:%s', admin_level)
@@ -694,8 +695,11 @@ def process_gadm_worldpopcount(
         output['resolution'] = 'people per hectare'
     output['creation_date'] = date.today()
 
-    # Export
-    return output.fillna(''), 'worldpop-count.csv'
+    # Return
+    df = output.fillna('')
+    sub_pipeline = sub_pipeline.replace('/', '_')
+    filename = f'{iso3}_{sub_pipeline}_{date.today()}_{pdate}.csv'
+    return df, filename
 
 
 def process_aphrodite_temperature_data(year=None, plots=False) -> \
