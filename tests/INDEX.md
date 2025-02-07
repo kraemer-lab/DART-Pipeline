@@ -1,6 +1,20 @@
 INDEX
 =====
 
+`geospatial`
+
+```
+test_worldpop_count.py
+✅ def test_process_gadm_worldpopcount(
+```
+
+`sociodemographic`
+
+```
+test_worldpop_count.py
+✅ def test_process_worldpopcountdata(
+```
+
 `pytest tests/test_collate.py`
 
 ```
