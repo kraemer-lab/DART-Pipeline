@@ -4,7 +4,6 @@ import logging
 import netCDF4 as nc
 import numpy as np
 import pandas as pd
-import rasterio.mask
 
 from dart_pipeline.types import PartialDate
 from dart_pipeline.plots import plot_heatmap
