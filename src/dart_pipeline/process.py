@@ -40,13 +40,12 @@ from .util import \
     source_path, days_in_year, output_path, get_country_name, get_shapefile
 from .types import ProcessResult, PartialDate, AdminLevel
 from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS, BASE_DIR, \
-    DEFAULT_SOURCES_ROOT, DEFAULT_OUTPUT_ROOT
+    DEFAULT_SOURCES_ROOT, DEFAULT_OUTPUT_ROOT, MIN_FLOAT
+from dart_pipeline.meteorological.era5reanalysis import process_era5reanalysis
 
 pandarallel.initialize(verbose=0)
 
 TEST_MODE = os.getenv("DART_PIPELINE_TEST")
-# Smallest single-precision floating-point number
-MIN_FLOAT = -3.4028234663852886e38
 
 
 def process_rwi(iso3: str, admin_level: str, plots=False):
@@ -982,70 +981,6 @@ def process_chirps_rainfall(partial_date: str, plots=False) -> ProcessResult:
 
     # Export
     return output, 'chirps-rainfall.csv'
-
-
-def process_era5reanalysis(dataset, partial_date, plots=False):
-    """Process ERA5 atmospheric reanalysis data."""
-    sub_pipeline = 'meteorological/era5-reanalysis'
-    pdate = PartialDate.from_string(partial_date)
-    logging.info('dataset:%s', dataset)
-    logging.info('partial_date:%s', pdate)
-    logging.info('plots:%s', plots)
-
-    # Find the data
-    filepaths = []
-    folder = BASE_DIR / DEFAULT_SOURCES_ROOT / sub_pipeline
-    for path in folder.iterdir():
-        if path.name == f'{dataset}_{str(pdate)}.nc':
-            # The data file has been found
-            filepaths.append(path)
-            break
-        if path.name == f'{dataset}_{str(pdate)}':
-            # The data folder has been found
-            filepaths = path.iterdir()
-
-    # Initialise the output data frame
-    df = pd.DataFrame(columns=OUTPUT_COLUMNS)
-
-    # Process the data
-    for i, path in enumerate(sorted(filepaths)):
-        logging.info('importing:%s', path)
-        ds = nc.Dataset(path, 'r')  # type: ignore
-
-        # Typically the data variable will be at the front
-        variable = list(ds.variables)[0]
-        data = ds.variables[variable][:]
-        mean_value = np.mean(data[~np.isnan(data)])
-        metric = ds.variables[variable].long_name
-        unit = ds.variables[variable].units
-
-        if plots:
-            title = f'{metric}\n{partial_date}'
-            colourbar_label = f'{metric} [{unit}]'
-            path = BASE_DIR / DEFAULT_OUTPUT_ROOT / sub_pipeline / \
-                str(pdate).replace('-', '/') / \
-                (title.replace('\n', ' - ') + '.png')
-            plot_heatmap(data[0, :, :], title, colourbar_label, path)
-
-        # Add to output data frame
-        df.loc[i, 'iso3'] = ''
-        df.loc[i, 'admin_level_0'] = ''
-        df.loc[i, 'admin_level_1'] = ''
-        df.loc[i, 'admin_level_2'] = ''
-        df.loc[i, 'admin_level_3'] = ''
-        df.loc[i, 'year'] = pdate.year
-        df.loc[i, 'month'] = pdate.month
-        df.loc[i, 'day'] = pdate.day
-        df.loc[i, 'week'] = ''
-        df.loc[i, 'metric'] = metric
-        df.loc[i, 'value'] = mean_value
-        df.loc[i, 'unit'] = unit
-        df.loc[i, 'resolution'] = 'global'
-        df.loc[i, 'creation_date'] = date.today()
-
-        ds.close()
-
-    return df.fillna(''), 'era5-reanalysis.csv'
 
 
 def process_terraclimate(
