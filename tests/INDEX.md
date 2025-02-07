@@ -1,20 +1,6 @@
 INDEX
 =====
 
-`geospatial`
-
-```
-test_worldpop_count.py
-✅ def test_process_gadm_worldpopcount(
-```
-
-`sociodemographic`
-
-```
-test_worldpop_count.py
-✅ def test_process_worldpopcountdata(
-```
-
 `pytest tests/test_collate.py`
 
 ```
@@ -27,6 +13,11 @@ test_worldpop_count.py
 ✅ def test_meta_pop_density_data():
 ✅ def test_worldpop_pop_count_data():
 ✅ def test_worldpop_pop_density_data():
+```
+
+```
+test_geospatial_worldpop_count
+✅ def test_process_gadm_worldpopcount(
 ```
 
 `pytest tests/test_plots.py`
@@ -53,6 +44,11 @@ test_worldpop_count.py
 ✅ def test_process_chirps_rainfall(
 ✅ def test_process_terraclimate(
 ✅ def test_process_worldpop_pop_count_data(
+```
+
+```
+test_sociodemographic_worldpop_count.py
+✅ def test_process_worldpopcountdata(
 ```
 
 `pytest tests/test_util.py`

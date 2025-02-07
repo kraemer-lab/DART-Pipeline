@@ -1,4 +1,4 @@
-"""Tests for process functions in geospatial/worldpop_count.py."""
+"""Tests for process functions in sociodemographic/worldpop_count.py."""
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -12,7 +12,6 @@ from dart_pipeline.constants import MIN_FLOAT
 @freeze_time('2025-02-06')
 @patch('rasterio.open')
 @patch('dart_pipeline.process.source_path')
-# @patch('dart_pipeline.process.get_country_name')
 def test_process_worldpopcountdata(
     mock_source_path, mock_rasterio_open
 ):
