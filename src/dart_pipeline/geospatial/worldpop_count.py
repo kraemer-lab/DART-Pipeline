@@ -15,7 +15,7 @@ from dart_pipeline.util import (
 )
 from dart_pipeline.plots import plot_gadm_macro_heatmap
 from dart_pipeline.constants import OUTPUT_COLUMNS, MIN_FLOAT
-from dart_pipeline.types import ProcessResult, PartialDate, AdminLevel
+from dart_pipeline.types import PartialDate, AdminLevel
 
 
 def process_gadm_worldpopcount(

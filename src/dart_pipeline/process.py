@@ -39,7 +39,7 @@ from .plots import \
 from .util import \
     source_path, days_in_year, output_path, get_country_name, get_shapefile
 from .types import ProcessResult, PartialDate, AdminLevel
-from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS
+from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS, MIN_FLOAT
 from .geospatial.worldpop_count import process_gadm_worldpopcount
 from .sociodemographic.worldpop_count import process_worldpopcount
 
