@@ -38,7 +38,7 @@ from .geospatial.worldpop_count import process_gadm_worldpopcount
 from .meteorological.era5reanalysis import process_era5reanalysis
 from .sociodemographic.worldpop_count import process_worldpopcount
 from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS, BASE_DIR, \
-    DEFAULT_SOURCES_ROOT, DEFAULT_OUTPUT_ROOT, MIN_FLOAT
+    DEFAULT_SOURCES_ROOT, MIN_FLOAT
 from .plots import \
     plot_heatmap, plot_gadm_micro_heatmap, plot_gadm_macro_heatmap, \
     plot_timeseries, plot_scatter, plot_gadm_scatter
@@ -48,7 +48,7 @@ from .util import \
 
 pandarallel.initialize(verbose=0)
 
-TEST_MODE = os.getenv("DART_PIPELINE_TEST")
+TEST_MODE = os.getenv('DART_PIPELINE_TEST')
 
 
 def process_rwi(iso3: str, admin_level: str, plots=False):
