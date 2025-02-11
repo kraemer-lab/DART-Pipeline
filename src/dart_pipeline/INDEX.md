@@ -13,6 +13,8 @@ worldpop_count.py
 ```
 worldpop_count.py
 ✅ def process_gadm_worldpopcount(
+worldpop_density.py
+✅ def process_worldpopdensity(
 ```
 
 `__init__.py`

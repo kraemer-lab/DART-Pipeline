@@ -61,8 +61,13 @@ pytest tests/test_geospatial_worldpop_count.py
 ```
 
 ```
-test_sociodemographic_worldpop_count.py
+pytest tests/test_sociodemographic_worldpop_count.py
 ✅ def test_process_worldpopcountdata(
+```
+
+```
+pytest tests/test_sociodemographic_worldpop_density.py
+✅ def test_process_worldpopdensity(
 ```
 
 `pytest tests/test_util.py`
