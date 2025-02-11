@@ -1,13 +1,15 @@
 """Tests for process functions in geospatial/worldpop_count.py."""
 from unittest.mock import patch, MagicMock
 
+from freezegun import freeze_time
 import pandas as pd
-import rasterio
 import pytest
+import rasterio
 
 from dart_pipeline.process import process_gadm_worldpopcount
 
 
+@freeze_time('2025-02-06')
 @patch('os.listdir')
 @patch('geopandas.gpd.read_file')
 @patch('dart_pipeline.process.get_shapefile')
@@ -30,7 +32,7 @@ def test_process_gadm_worldpopcount(
     assert 'admin_level_0' in output.columns, msg
     assert 'metric' in output.columns, 'Expected column missing in output'
     msg = 'CSV filename does not match expected value'
-    expected = 'VNM_geospatial_worldpop-count_2020_2025-02-07.csv'
+    expected = 'VNM_geospatial_worldpop-count_2020_2025-02-06.csv'
     assert csv_filename == expected, msg
 
     # Test case 2: Invalid date with day included

@@ -16,7 +16,7 @@ INDEX
 ```
 
 ```
-test_geospatial_worldpop_count
+pytest tests/test_geospatial_worldpop_count.py
 ✅ def test_process_gadm_worldpopcount(
 ```
 
