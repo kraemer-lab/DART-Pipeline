@@ -15,10 +15,14 @@ INDEX
 ✅ def test_worldpop_pop_density_data():
 ```
 
-`pytest tests/test_collate_api.py`
+```
+pytest tests/test_collate_api.py
+✅ def test_download_era5_reanalysis_data(mock_cds_client, mock_source_path):
+```
 
 ```
-✅ def test_download_era5_reanalysis_data(mock_cds_client, mock_source_path):
+pytest tests/test_geospatial_worldpop_count.py
+✅ def test_process_gadm_worldpopcount(
 ```
 
 `pytest tests/test_plots.py`
