@@ -99,8 +99,9 @@ data/**/*.html
 venv
 __pycache__
 
-# Test result files
-*.xml 
+# Testing
+*.xml
+*.ambr
 
 # LaTeX
 *.aux

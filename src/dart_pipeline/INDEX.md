@@ -1,6 +1,20 @@
 INDEX
 =====
 
+`geospatial`
+
+```
+worldpop_count.py
+✅ def process_gadm_worldpopcount(
+```
+
+`sociodemographic`
+
+```
+worldpop_count.py
+✅ def process_gadm_worldpopcount(
+```
+
 `__init__.py`
 
 ```
@@ -42,19 +56,14 @@ def get_admin(x):
 ✅ def process_gadm_aphroditetemperature(
 ✅ def process_gadm_aphroditeprecipitation(
 ✅ def process_gadm_chirps_rainfall(
-✅ def process_gadm_era5reanalysis(
 def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
-def process_gadm_worldpopcount(
 ✅ def process_gadm_worldpopdensity(
-✅ def process_aphrodite_temperature_data(year=None, plots=False) -> \
-✅ def process_aphrodite_precipitation_data(
+✅ def process_aphroditetemperature(year=None, plots=False) -> \
+✅ def process_aphroditeprecipitation(
 def get_chirps_rainfall_data_path(date: PartialDate) -> Path:
 def process_chirps_rainfall(partial_date: str, plots=False) -> ProcessResult:
-✅ def process_era5reanalysis(dataset, partial_date, plots=False):
 def process_terraclimate(
-✅ def process_worldpopcount(
 ✅ def process_worldpopdensity(
-def process_gadm_chirps_rainfall(
 def get_admin_region(lat: float, lon: float, polygons) -> str:
 ```
 

@@ -374,6 +374,7 @@ source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "cdsapi" },
+    { name = "freezegun" },
     { name = "geopandas" },
     { name = "lxml" },
     { name = "matplotlib" },
@@ -402,6 +403,7 @@ dev = [
 requires-dist = [
     { name = "beautifulsoup4", specifier = "==4.*" },
     { name = "cdsapi", specifier = "==0.7.5" },
+    { name = "freezegun", specifier = "==0.3.4" },
     { name = "geopandas", specifier = "==0.14.4" },
     { name = "lxml", specifier = "==4.9.*" },
     { name = "matplotlib", specifier = ">=3.9.2" },
@@ -514,6 +516,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/b8/95/316f20092b389b927dba1d1dccd3f541853f96e707e210f1b9f4e7bacdd5/fonttools-4.55.0-cp313-cp313-win32.whl", hash = "sha256:abe62987c37630dca69a104266277216de1023cf570c1643bb3a19a9509e7a1b", size = 2155841 },
     { url = "https://files.pythonhosted.org/packages/35/ca/b4638aa3e446184892e2f9cc8ef44bb506f47fea04580df7fb84f5a4363d/fonttools-4.55.0-cp313-cp313-win_amd64.whl", hash = "sha256:2863555ba90b573e4201feaf87a7e71ca3b97c05aa4d63548a4b69ea16c9e998", size = 2200587 },
     { url = "https://files.pythonhosted.org/packages/b4/4a/786589606d4989cb34d8bc766cd687d955aaf3039c367fe7104bcf82dc98/fonttools-4.55.0-py3-none-any.whl", hash = "sha256:12db5888cd4dd3fcc9f0ee60c6edd3c7e1fd44b7dd0f31381ea03df68f8a153f", size = 1100249 },
+]
+
+[[package]]
+name = "freezegun"
+version = "0.3.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "python-dateutil" },
+    { name = "six" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f8/3a/b05189bd13b2bdf724d8e486ff245e1cbec21d54d6d0da54db59feeff0f9/freezegun-0.3.4.tar.gz", hash = "sha256:8d5eb5656c324125cce80e2e9ae572af6da997b7065b3bb6599c20f1b28dcf46", size = 42043 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ed/ac/64b9d6b80a2c425428971b8333c05667b1f43126ea84e679676c14e1e160/freezegun-0.3.4-py2.py3-none-any.whl", hash = "sha256:d15d5daa22260891955d436899f94c8b80525daa895aec74c0afa5a25ac0230e", size = 5315 },
 ]
 
 [[package]]

@@ -33,20 +33,22 @@ import rasterio.mask
 import rasterio.transform
 import shapely.geometry
 
+from .geospatial.era5reanalysis import process_gadm_era5reanalysis
+from .geospatial.worldpop_count import process_gadm_worldpopcount
+from .meteorological.era5reanalysis import process_era5reanalysis
+from .sociodemographic.worldpop_count import process_worldpopcount
+from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS, BASE_DIR, \
+    DEFAULT_SOURCES_ROOT, DEFAULT_OUTPUT_ROOT, MIN_FLOAT
 from .plots import \
     plot_heatmap, plot_gadm_micro_heatmap, plot_gadm_macro_heatmap, \
     plot_timeseries, plot_scatter, plot_gadm_scatter
+from .types import ProcessResult, PartialDate, AdminLevel
 from .util import \
     source_path, days_in_year, output_path, get_country_name, get_shapefile
-from .types import ProcessResult, PartialDate, AdminLevel
-from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS, BASE_DIR, \
-    DEFAULT_SOURCES_ROOT, DEFAULT_OUTPUT_ROOT
 
 pandarallel.initialize(verbose=0)
 
 TEST_MODE = os.getenv("DART_PIPELINE_TEST")
-# Smallest single-precision floating-point number
-MIN_FLOAT = -3.4028234663852886e38
 
 
 def process_rwi(iso3: str, admin_level: str, plots=False):
@@ -633,132 +635,6 @@ def process_gadm_chirps_rainfall(
     return output, f'{iso3}.csv'
 
 
-def process_gadm_era5reanalysis(
-    dataset, iso3: str, admin_level: Literal['0', '1', '2', '3'],
-    partial_date: str, plots=False
-
-):
-    """Process GADM and ERA5 atmospheric reanalysis data."""
-    sub_pipeline = 'geospatial/era5-reanalysis'
-    logging.info('dataset:%s', dataset)
-    logging.info('iso3:%s', iso3)
-    logging.info('admin_level:%s', admin_level)
-    pdate = PartialDate.from_string(partial_date)
-    logging.info('partial_date:%s', pdate)
-    logging.info('plots:%s', plots)
-
-    # Initialise the output data frame
-    df = pd.DataFrame(columns=OUTPUT_COLUMNS)
-
-    # Import shape file
-    path = get_shapefile(iso3, admin_level)
-    logging.info('importing:%s', path)
-    gdf = gpd.read_file(path)
-
-    # Find the meteorological data
-    filepaths = []
-    folder = Path(
-        BASE_DIR, DEFAULT_SOURCES_ROOT, 'meteorological', 'era5-reanalysis'
-    )
-    for path in folder.iterdir():
-        if path.name == f'{dataset}_{str(pdate)}.nc':
-            # The data file has been found
-            filepaths.append(path)
-            break
-        if path.name == f'{dataset}_{str(pdate)}':
-            # The data folder has been found
-            filepaths = path.iterdir()
-
-    # Process the data
-    idx = 0
-    for i, path in enumerate(sorted(filepaths)):
-        logging.info('importing:%s', path)
-        ds = nc.Dataset(path, 'r')  # type: ignore
-
-        # Extract the variables
-        lat = ds.variables['latitude'][:]
-        lon = ds.variables['longitude'][:]
-        # Typically the data variable will be at the front
-        variable = list(ds.variables)[0]
-        raw = ds.variables[variable]
-        # Extract the 2D array that holds the data
-        data = raw[0, :, :]
-        metric = ds.variables[variable].long_name
-        unit = ds.variables[variable].units
-
-        # Iterate over the regions in the shape file
-        for j, region in gdf.iterrows():
-            geometry = region.geometry
-
-            # Populate a row for the output data frame
-            df.loc[idx, 'admin_level_0'] = region['COUNTRY']
-            region_name = region['COUNTRY']
-            # Update the new row and the region name if the admin level is high
-            # enough
-            if int(admin_level) >= 1:
-                df.loc[idx, 'admin_level_1'] = region['NAME_1']
-                region_name = region['NAME_1']
-            else:
-                df.loc[idx, 'admin_level_1'] = None
-            if int(admin_level) >= 2:
-                df.loc[idx, 'admin_level_2'] = region['NAME_2']
-                region_name = region['NAME_2']
-            else:
-                df.loc[idx, 'admin_level_2'] = None
-            if int(admin_level) >= 3:
-                df.loc[idx, 'admin_level_3'] = region['NAME_3']
-                region_name = region['NAME_3']
-            else:
-                df.loc[idx, 'admin_level_3'] = None
-            # Populate the year and month
-            df.loc[idx, 'year'] = pdate.year
-            df.loc[idx, 'month'] = pdate.month
-            df.loc[idx, 'day'] = pdate.day
-
-            # Define transform for geometry_mask based on grid resolution
-            transform = rasterio.transform.from_origin(
-                lon.min(), lat.max(), abs(lon[1] - lon[0]),
-                abs(lat[1] - lat[0])
-            )
-
-            # Create a mask that is True for points outside the geometries
-            mask = rasterio.features.geometry_mask(
-                [geometry], transform=transform, out_shape=data.shape
-            )
-            masked_data = np.ma.masked_array(data, mask=mask)
-
-            # Plot
-            if plots and (admin_level == '0'):
-                title = f'{metric}\n{region_name} - {partial_date}'
-                colourbar_label = f'{metric} [{unit}]'
-                extent = [lon.min(), lon.max(), lat.min(), lat.max()]
-                path = Path(
-                    output_path(sub_pipeline),
-                    str(pdate).replace('-', '/'),
-                    f'{region_name} - {metric}.png'
-                )
-                plot_gadm_micro_heatmap(
-                    masked_data, gdf, pdate, title, colourbar_label, region,
-                    extent, path
-                )
-
-            # Add to output data frame
-            df.loc[idx, 'iso3'] = iso3
-            df.loc[idx, 'metric'] = metric
-            df.loc[idx, 'value'] = np.nansum(masked_data)
-            df.loc[idx, 'unit'] = unit
-            df.loc[idx, 'resolution'] = f'Admin Level {admin_level}'
-            df.loc[idx, 'creation_date'] = date.today()
-
-            # Increment the row
-            idx += 1
-
-        # Close the NetCDF file after use
-        ds.close()
-
-    return df.fillna(''), 'era5-reanalysis.csv'
-
-
 def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
     """Process GADM administrative map data."""
     gdf = gpd.read_file(get_shapefile(iso3, admin_level))
@@ -799,157 +675,6 @@ def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
         output = pd.concat([output, new_row_df], ignore_index=True)
 
     return output, f"{iso3}/admin{admin_level}_area.csv"
-
-
-def process_gadm_worldpopcount(
-    iso3, partial_date: str, admin_level: AdminLevel = '0', rt: str = 'ppp',
-    plots=False
-):
-    """Process GADM administrative map and WorldPop population count data."""
-    sub_pipeline = 'geospatial/worldpop-count'
-    logging.info('iso3:%s', iso3)
-    logging.info('partial_date:%s', partial_date)
-    logging.info('admin_level:%s', admin_level)
-    logging.info('rt:%s', rt)
-    logging.info('plots:%s', plots)
-
-    pdate = PartialDate.from_string(partial_date)
-    if pdate.day:
-        msg = f'The date {partial_date} includes a day. Provide only a ' + \
-            'year in YYYY format.'
-        raise ValueError(msg)
-    if pdate.month:
-        msg = f'The date {partial_date} includes a month. Provide only a ' + \
-            'year in YYYY format.'
-        raise ValueError(msg)
-
-    # Import the GeoTIFF file
-    source = 'sociodemographic/worldpop-count'
-    path = Path(iso3, f'{iso3}_{rt}_v2b_{pdate.year}_UNadj.tif')
-    path = source_path(source, path)
-    logging.info('importing:%s', path)
-    try:
-        src = rasterio.open(path)
-    except rasterio.errors.RasterioIOError:
-        # Could not find the file
-        file_found = False
-        for year in range(datetime.today().year, 1990, -1):
-            filename = f'{iso3}_{rt}_v2b_{year}_UNadj.tif'
-            if filename in os.listdir(path.parent):
-                new_path = source_path(source, Path(iso3, filename))
-                logging.info('importing:%s', new_path)
-                print(f'File {path} not found.')
-                print(f'Importing {new_path} instead')
-                src = rasterio.open(new_path)
-                file_found = True
-                break
-        if not file_found:
-            msg = f'{path}: No such file or directory. Either it has not ' + \
-                'been downloaded or data does not exist for this year or ' + \
-                'any year since 1990.'
-            raise rasterio.errors.RasterioIOError(msg)
-
-    # Rasterio stores image layers in 'bands'
-    # Get the data in the first band as an array
-    data = src.read(1)
-    # Replace placeholder numbers with 0
-    data[data == MIN_FLOAT] = 0
-    # Hide nulls
-    data[data == -9999] = 0
-
-    # Create a bounding box from raster bounds
-    bounds = src.bounds
-    raster_bbox = shapely.geometry.box(
-        bounds.left, bounds.bottom, bounds.right, bounds.top
-    )
-
-    # Import shape file
-    path = get_shapefile(iso3, admin_level)
-    logging.info('importing:%s', path)
-    gdf = gpd.read_file(path)
-    # Transform the shape file to match the GeoTIFF's coordinate system
-    gdf = gdf.to_crs(src.crs)
-    # EPSG:4326 - WGS 84: latitude/longitude coordinate system based on the
-    # Earth's center of mass
-
-    # Initialise an output data frame
-    output = pd.DataFrame(columns=OUTPUT_COLUMNS)
-
-    # Iterate over each region in the shape file
-    for i, region in gdf.iterrows():
-        # Add the region name to the output data frame
-        output.loc[i, 'admin_level_0'] = region['COUNTRY']
-        # Initialise the graph title
-        title = region['COUNTRY']
-        # Add more region names and update the graph title if the admin level
-        # is high enough to warrant it
-        if int(admin_level) >= 1:
-            output.loc[i, 'admin_level_1'] = region['NAME_1']
-            title = region['NAME_1']
-        if int(admin_level) >= 2:
-            output.loc[i, 'admin_level_2'] = region['NAME_2']
-            title = region['NAME_2']
-        if int(admin_level) >= 3:
-            output.loc[i, 'admin_level_3'] = region['NAME_3']
-            title = region['NAME_3']
-
-        # Add date information to the output data frame
-        output.loc[i, 'year'] = pdate.year
-
-        # Check if the population data intersects this region
-        geometry = region.geometry
-        if raster_bbox.intersects(geometry):
-            # There is population data for this region
-            # Clip the data using the polygon of the current region. By
-            # default, a pixel is included only if its center is within one of
-            # the shapes
-            region_data, _ = rasterio.mask.mask(src, [geometry], crop=True)
-            # Replace negative values (if any exist)
-            region_data = np.where(region_data < 0, np.nan, region_data)
-            # Sum the pixel values to get the total for the region
-            region_total = np.nansum(region_data)
-        else:
-            # There is no population data for this region
-            region_total = 0
-        logging.info('region:%s', title)
-        logging.info('region_total:%s', region_total)
-        # Add the result to the output data frame
-        metric = 'population'
-        output.loc[i, 'metric'] = metric
-        output.loc[i, 'value'] = region_total
-        unit = 'people'
-        output.loc[i, 'unit'] = unit
-
-    # Create a plot
-    if plots:
-        data[data == 0] = np.nan
-        data = np.log(data)
-        origin = 'upper'
-        min_lon, min_lat, max_lon, max_lat = gdf.total_bounds
-        extent = [min_lon, max_lon, min_lat, max_lat]
-        limits = [min_lon, min_lat, max_lon, max_lat]
-        if admin_level in ['2', '3']:
-            zorder = 0
-        else:
-            zorder = 1
-        name = get_country_name(iso3, common_name=True)
-        title = f'{metric}\n{name} - {pdate.year}'
-        colourbar_label = f'Average {metric} per pixel [{unit}]'
-        path = output_path(sub_pipeline, f'{iso3}/admin_level_{admin_level}')
-        plot_gadm_macro_heatmap(
-            data, origin, extent, limits, gdf, zorder, title, colourbar_label,
-            path, log_plot=True
-        )
-
-    output['iso3'] = iso3
-    if rt == 'ppp':
-        output['resolution'] = 'people per pixel'
-    elif rt == 'pph':
-        output['resolution'] = 'people per hectare'
-    output['creation_date'] = date.today()
-
-    # Export
-    return output.fillna(''), 'worldpop-count.csv'
 
 
 def process_gadm_worldpopdensity(
@@ -1389,70 +1114,6 @@ def process_chirps_rainfall(partial_date: str, plots=False) -> ProcessResult:
     return output, 'chirps-rainfall.csv'
 
 
-def process_era5reanalysis(dataset, partial_date, plots=False):
-    """Process ERA5 atmospheric reanalysis data."""
-    sub_pipeline = 'meteorological/era5-reanalysis'
-    pdate = PartialDate.from_string(partial_date)
-    logging.info('dataset:%s', dataset)
-    logging.info('partial_date:%s', pdate)
-    logging.info('plots:%s', plots)
-
-    # Find the data
-    filepaths = []
-    folder = BASE_DIR / DEFAULT_SOURCES_ROOT / sub_pipeline
-    for path in folder.iterdir():
-        if path.name == f'{dataset}_{str(pdate)}.nc':
-            # The data file has been found
-            filepaths.append(path)
-            break
-        if path.name == f'{dataset}_{str(pdate)}':
-            # The data folder has been found
-            filepaths = path.iterdir()
-
-    # Initialise the output data frame
-    df = pd.DataFrame(columns=OUTPUT_COLUMNS)
-
-    # Process the data
-    for i, path in enumerate(sorted(filepaths)):
-        logging.info('importing:%s', path)
-        ds = nc.Dataset(path, 'r')  # type: ignore
-
-        # Typically the data variable will be at the front
-        variable = list(ds.variables)[0]
-        data = ds.variables[variable][:]
-        mean_value = np.mean(data[~np.isnan(data)])
-        metric = ds.variables[variable].long_name
-        unit = ds.variables[variable].units
-
-        if plots:
-            title = f'{metric}\n{partial_date}'
-            colourbar_label = f'{metric} [{unit}]'
-            path = BASE_DIR / DEFAULT_OUTPUT_ROOT / sub_pipeline / \
-                str(pdate).replace('-', '/') / \
-                (title.replace('\n', ' - ') + '.png')
-            plot_heatmap(data[0, :, :], title, colourbar_label, path)
-
-        # Add to output data frame
-        df.loc[i, 'iso3'] = ''
-        df.loc[i, 'admin_level_0'] = ''
-        df.loc[i, 'admin_level_1'] = ''
-        df.loc[i, 'admin_level_2'] = ''
-        df.loc[i, 'admin_level_3'] = ''
-        df.loc[i, 'year'] = pdate.year
-        df.loc[i, 'month'] = pdate.month
-        df.loc[i, 'day'] = pdate.day
-        df.loc[i, 'week'] = ''
-        df.loc[i, 'metric'] = metric
-        df.loc[i, 'value'] = mean_value
-        df.loc[i, 'unit'] = unit
-        df.loc[i, 'resolution'] = 'global'
-        df.loc[i, 'creation_date'] = date.today()
-
-        ds.close()
-
-    return df.fillna(''), 'era5-reanalysis.csv'
-
-
 def process_terraclimate(
     partial_date: str, iso3: str, admin_level: str, plots=False
 ):
@@ -1592,57 +1253,6 @@ def process_terraclimate(
         ds.close()
 
     return output, 'terraclimate.csv'
-
-
-def process_worldpopcount(
-    iso3: str, year: int = 2020, rt: str = 'ppp'
-) -> ProcessResult:
-    """
-    Process WorldPop population count.
-
-    - EPSG:9217: https://epsg.io/9217
-    - EPSG:4326: https://epsg.io/4326
-    - EPSG = European Petroleum Survey Group
-    """
-    sub_pipeline = 'sociodemographic/worldpop-count'
-    country = get_country_name(iso3)
-    logging.info('year:%s', year)
-    logging.info('iso3:%s', iso3)
-    logging.info('resolution_type:%s', rt)
-
-    filename = Path(f'{iso3}_{rt}_v2b_{year}_UNadj.tif')
-    path = source_path(sub_pipeline, iso3) / filename
-    logging.info('importing:%s', path)
-    src = rasterio.open(path)
-    # Read data from band 1
-    if src.count != 1:
-        raise ValueError(f'Unexpected number of bands: {src.count}')
-    source_data = src.read(1)
-
-    # Replace placeholder numbers with 0
-    # (-3.4e+38 is the smallest single-precision floating-point number)
-    df = pd.DataFrame(source_data)
-    population_data = df[df != MIN_FLOAT]
-    population = population_data.sum().sum()
-    logging.info('population:%s', population)
-
-    # Initialise an output data frame
-    df = pd.DataFrame(columns=OUTPUT_COLUMNS)
-
-    # Populate output data frame
-    df.loc[0, 'iso3'] = iso3
-    df.loc[0, 'admin_level_0'] = country
-    df.loc[0, 'year'] = year
-    df.loc[0, 'metric'] = 'population'
-    df.loc[0, 'unit'] = 'people'
-    df.loc[0, 'value'] = population
-    if rt == 'ppp':
-        df.loc[0, 'resolution'] = 'people per pixel'
-    elif rt == 'pph':
-        df.loc[0, 'resolution'] = 'people per hectare'
-    df.loc[0, 'creation_date'] = date.today()
-
-    return df.fillna(''), 'worldpop-count.csv'
 
 
 def process_worldpopdensity(
