@@ -21,6 +21,11 @@ pytest tests/test_collate_api.py
 ```
 
 ```
+pytest tests/test_geospatial_era5reanalysis.py
+✅ def test_process_gadm_era5reanalysis(
+```
+
+```
 pytest tests/test_geospatial_worldpop_count.py
 ✅ def test_process_gadm_worldpopcount(
 ```
