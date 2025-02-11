@@ -1,6 +1,4 @@
-from io import BytesIO
-
-from unittest.mock import patch, MagicMock, mock_open
+from unittest.mock import patch, MagicMock
 
 from shapely.geometry import Polygon
 import geopandas as gpd
