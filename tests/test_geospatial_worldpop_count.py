@@ -12,12 +12,9 @@ from dart_pipeline.process import process_gadm_worldpopcount
 @freeze_time('2025-02-06')
 @patch('os.listdir')
 @patch('geopandas.gpd.read_file')
-@patch('dart_pipeline.process.get_shapefile')
-@patch('dart_pipeline.util.source_path')
 @patch('rasterio.open')
 def test_process_gadm_worldpopcount(
-    mock_rasterio_open, mock_source_path, mock_get_shapefile, mock_read_file,
-    mock_listdir
+    mock_rasterio_open, mock_read_file, mock_listdir
 ):
     # Test case 1: Process valid data
     mock_read_file.return_value = MagicMock()
