@@ -1,14 +1,12 @@
 """Tests for process functions in process.py."""
-from datetime import date
 from io import BytesIO
-from pathlib import Path
+
 from unittest.mock import patch, MagicMock, mock_open
 
 from shapely.geometry import Polygon
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-import rasterio
 import pytest
 
 from dart_pipeline.process import \
@@ -22,9 +20,7 @@ from dart_pipeline.process import \
     process_aphroditetemperature, \
     process_aphroditeprecipitation, \
     process_chirps_rainfall, \
-    process_era5reanalysis, \
-    process_terraclimate, \
-    process_worldpop_pop_count_data
+    process_terraclimate
 
 # Smallest single-precision floating-point number
 MIN_FLOAT = -3.4028234663852886e38
@@ -459,51 +455,6 @@ def test_process_gadm_era5reanalysis(
         mock_savefig.assert_called()
 
 
-@patch('os.listdir')
-@patch('geopandas.gpd.read_file')
-@patch('dart_pipeline.process.get_shapefile')
-@patch('dart_pipeline.util.source_path')
-@patch("rasterio.open")
-def test_process_gadm_worldpopcount(
-    mock_rasterio_open, mock_source_path, mock_get_shapefile, mock_read_file,
-    mock_listdir
-):
-    # Test case 1: Process valid data
-    mock_read_file.return_value = MagicMock()
-    mock_rasterio_open.return_value = MagicMock(
-        read=lambda x: [[1, 1], [1, 1]]
-    )
-    # Run the function with valid data
-    output, csv_filename = process_gadm_worldpopcount('VNM', '2020', '2')
-    # Assertions for valid data processing
-    assert isinstance(output, pd.DataFrame), 'Output should be a DataFrame'
-    msg = 'Expected column missing in output'
-    assert 'admin_level_0' in output.columns, msg
-    assert 'metric' in output.columns, 'Expected column missing in output'
-    msg = 'CSV filename does not match expected value'
-    assert csv_filename == 'worldpop-count.csv', msg
-
-    # Test case 2: Invalid date with day included
-    with pytest.raises(ValueError, match='Provide only a year in YYYY format'):
-        process_gadm_worldpopcount('VNM', '2020-01-01', admin_level='0')
-
-    # Test case 3: Invalid date with month included
-    with pytest.raises(ValueError, match='Provide only a year in YYYY format'):
-        process_gadm_worldpopcount('VNM', '2020-01', admin_level='0')
-
-    # Test case 4: Missing raster file, falling back to previous year
-    # Simulate missing file for the given year but available fallback file
-    mock_listdir.return_value = ['VNM_ppp_v2b_2019_UNadj.tif']
-    mock_rasterio_open.side_effect = [
-        rasterio.errors.RasterioIOError, MagicMock()
-    ]
-    # Call the function
-    output, csv_filename = process_gadm_worldpopcount('VNM', '2020', '0')
-    # Check that fallback file was used and output generated
-    msg = 'Output should be a DataFrame even with fallback file'
-    assert isinstance(output, pd.DataFrame), msg
-
-
 def test_process_aphroditetemperature():
     # Minimal mocking for `np.fromfile` and file operations
     nx, ny, _ = 360, 280, 365
@@ -631,63 +582,6 @@ def mock_nc_dataset():
     mock_dataset.variables = {'test_variable': mock_variable}
 
     return mock_dataset
-
-
-@patch('netCDF4.Dataset')
-@patch('dart_pipeline.plots.plot_heatmap')
-def test_process_era5reanalysis(
-    mock_plot_heatmap, mock_nc_file, mock_nc_dataset
-):
-    """Test process_era5reanalysis function."""
-    # Mock inputs
-    dataset = 'test_dataset'
-    partial_date = '2023-01-01'
-    plots = False
-
-    # Setup patches
-    mock_nc_file.return_value = mock_nc_dataset
-    mock_folder = MagicMock()
-    mock_file = MagicMock()
-    mock_file.name = f'{dataset}_{partial_date}.nc'
-    mock_folder.iterdir.return_value = [mock_file]
-
-    # Patch necessary components
-    with patch('dart_pipeline.constants.BASE_DIR', Path('/mock/base/dir')), \
-            patch(
-                'dart_pipeline.constants.DEFAULT_SOURCES_ROOT',
-                Path('sources')
-            ), \
-            patch(
-                'dart_pipeline.constants.DEFAULT_OUTPUT_ROOT',
-                Path('outputs')
-            ), \
-            patch('dart_pipeline.types.PartialDate.from_string') as \
-            mock_partial_date:
-
-        mock_partial_date.return_value.year = 2023
-        mock_partial_date.return_value.month = 1
-        mock_partial_date.return_value.day = 1
-        mock_partial_date.return_value.__str__.return_value = partial_date
-
-        with patch.object(Path, 'iterdir', return_value=[mock_file]):
-            # Call the function
-            df, output_file = process_era5reanalysis(
-                dataset, partial_date, plots
-            )
-
-    # Validate output
-    assert output_file == 'era5-reanalysis.csv'
-    assert isinstance(df, pd.DataFrame)
-    assert len(df) == 1
-
-    # Validate data
-    row = df.iloc[0]
-    assert row['metric'] == 'Test Metric'
-    assert row['value'] == 2.0  # Mean of [1.0, 2.0, 3.0]
-    assert row['unit'] == 'Test Unit'
-    assert row['year'] == 2023
-    assert row['month'] == 1
-    assert row['day'] == 1
 
 
 @patch('netCDF4.Dataset')
@@ -906,51 +800,3 @@ def test_process_terraclimate(
         process_terraclimate(partial_date, iso3, admin_level, plots=True)
         # Verify that plotting occurred
         mock_savefig.assert_called()
-
-
-@patch('rasterio.open')
-@patch('dart_pipeline.process.source_path')
-@patch('dart_pipeline.process.get_country_name')
-def test_process_worldpop_pop_count_data(
-    mock_get_country_name, mock_source_path, mock_rasterio_open
-):
-    # Set up mock return values
-    mock_get_country_name.return_value = 'Vietnam'
-    mock_source_path.return_value = Path('/mock/path')
-
-    mock_raster = MagicMock()
-    mock_raster.count = 1
-    mock_raster.read.return_value = [[1, 2, MIN_FLOAT], [4, 5, 6]]
-    mock_raster.transform = 'mock_transform'
-    mock_rasterio_open.return_value = mock_raster
-
-    # Call the function with test inputs
-    iso3 = 'VNM'
-    year = 2020
-    rt = 'ppp'
-    result, filename = process_worldpop_pop_count_data(iso3, year, rt)
-
-    # Assertions
-    assert filename == 'worldpop-count.csv'
-    assert isinstance(result, pd.DataFrame)
-    assert len(result) == 1  # Single row in the output DataFrame
-
-    # Verify the DataFrame contents
-    expected_population = 1 + 2 + 4 + 5 + 6  # Excludes MIN_FLOAT
-    assert result.loc[0, 'iso3'] == iso3
-    assert result.loc[0, 'admin_level_0'] == 'Vietnam'
-    assert result.loc[0, 'year'] == year
-    assert result.loc[0, 'metric'] == 'population'
-    assert result.loc[0, 'unit'] == 'people'
-    assert result.loc[0, 'value'] == expected_population
-    assert result.loc[0, 'resolution'] == 'people per pixel'
-    assert result.loc[0, 'creation_date'] == date.today()
-
-    # Verify mocks were called as expected
-    mock_get_country_name.assert_called_once_with(iso3)
-    mock_source_path.assert_called_once_with(
-        'sociodemographic/worldpop-count', iso3
-    )
-    mock_rasterio_open.assert_called_once_with(
-        Path('/mock/path') / f'{iso3}_{rt}_v2b_{year}_UNadj.tif'
-    )

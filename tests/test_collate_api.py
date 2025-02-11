@@ -6,15 +6,19 @@ from pathlib import Path
 
 import pytest
 
-from dart_pipeline.constants import BASE_DIR
 from dart_pipeline.collate_api import download_era5_reanalysis_data
+from dart_pipeline.constants import BASE_DIR
 
 
 @patch('dart_pipeline.collate_api.unpack_file')
 @patch('cdsapi.Client')
-def test_download_era5_reanalysis_data(mock_cds_client, mock_unpack_file):
-    # Mock the unpack_file behavior
-    mock_unpack_file.return_value = None
+def test_download_era5_reanalysis_data(mock_cds_client, mock_source_path):
+    # Set up mocks
+    expected_path = BASE_DIR / Path(
+        'data/sources/meteorological/era5-reanalysis/' +
+        'satellite-sea-ice-thickness_2021.nc'
+    )
+    mock_source_path.return_value = expected_path
 
     # Mock mkdir method for the parent directory
     mock_mkdir = MagicMock()
