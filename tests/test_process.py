@@ -15,7 +15,6 @@ from dart_pipeline.process import \
     process_gadm_aphroditetemperature, \
     process_gadm_aphroditeprecipitation, \
     process_gadm_chirps_rainfall, \
-    process_gadm_worldpopcount, \
     process_aphroditetemperature, \
     process_aphroditeprecipitation, \
     process_chirps_rainfall, \
