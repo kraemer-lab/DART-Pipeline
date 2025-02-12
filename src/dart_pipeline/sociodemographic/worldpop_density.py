@@ -1,3 +1,4 @@
+"""Module for processing WorldPop population density."""
 from datetime import date
 from pathlib import Path
 import logging
@@ -13,12 +14,11 @@ from dart_pipeline.plots import plot_heatmap
 from dart_pipeline.types import ProcessResult, PartialDate
 from dart_pipeline.util import get_country_name
 
+
 def process_worldpopdensity(
     iso3: str, partial_date: str, plots=False
 ) -> ProcessResult:
-    """
-    Process WorldPop population density.
-    """
+    """Process WorldPop population density."""
     sub_pipeline = 'sociodemographic/worldpop-density'
     logging.info('iso3:%s', iso3)
     country_name = get_country_name(iso3)
@@ -39,8 +39,6 @@ def process_worldpopdensity(
     )
     logging.info('importing:%s', path)
     src = rasterio.open(path)
-    # Get the affine transformation coefficients
-    transform = src.transform
     # Read data from band 1
     if src.count != 1:
         raise ValueError(f'Unexpected number of bands: {src.count}')

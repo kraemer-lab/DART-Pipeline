@@ -16,7 +16,7 @@ meteorological/era5reanalysis.py
 ```
 sociodemographic/worldpop_count.py
 ✅ def process_gadm_worldpopcount(
-worldpop_density.py
+sociodemographic/worldpop_density.py
 ✅ def process_worldpopdensity(
 ```
 
