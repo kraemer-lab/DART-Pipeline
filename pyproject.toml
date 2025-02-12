@@ -7,7 +7,6 @@ requires-python = ">=3.12"
 dependencies = [
     "beautifulsoup4==4.*",
     "cdsapi==0.7.5",
-    "freezegun==0.3.4",
     "geopandas==0.14.4",
     "lxml==4.9.*",
     "matplotlib>=3.9.2",
@@ -22,6 +21,11 @@ dependencies = [
     "shapely>2.0.5",
 ]
 scripts = { dart-pipeline = "dart_pipeline:main" }
+
+[project.optional-dependencies]
+test = [
+    "freezegun==0.3.4",
+]
 
 [build-system]
 requires = ["hatchling"]

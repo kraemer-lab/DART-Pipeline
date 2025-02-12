@@ -24,7 +24,12 @@ def download_era5_reanalysis_data(dataset: str, partial_date: str):
     Downloadable datasets:
 
     - `'satellite-sea-ice-thickness'`: Sea ice thickness monthly gridded data
-      for the Arctic from 2002 to present
+      for the Arctic from 2002 to present, see
+      [here](https://cds.climate.copernicus.eu/datasets/satellite-sea-ice-thickness).
+      Data is collected via satellite - either Envisat (using a pulse-limited
+      RA-2 radar altimeter) or CryoSat-2 (using a synthetic aperture SIRAL
+      radar altimeter) - and stored either in a Climate Data Record (CDR) or
+      its Interim Climate Data Record (ICDR) extension.
     - `'derived-era5-land-daily-statistics'`: ERA5-Land post-processed daily
       statistics from 1950 to present
     - `'reanalysis-era5-complete'`: Complete ERA5 global atmospheric reanalysis
@@ -38,8 +43,18 @@ def download_era5_reanalysis_data(dataset: str, partial_date: str):
 
     # Sea ice thickness monthly gridded data for the Arctic from 2002 to
     # present derived from satellite observations
+    # See here for overview and documentation:
     # https://cds.climate.copernicus.eu/datasets/satellite-sea-ice-thickness
     if dataset == 'satellite-sea-ice-thickness':
+        # `satellite` has two options:
+        # - 'cryosat_2': Uses CryoSat-2, which is equipped with a synthetic
+        #   aperture SIRAL radar altimeter.
+        # - 'envisat': Uses Envisat, which is equipped with a pulse-limited
+        #   RA-2 radar altimeter.
+        # `cdr_type` has two options:
+        # - 'cdr': Indicates data stored in a Climate Data Record (CDR).
+        # - 'icdr': Indicates data stored in an Interim Climate Data Record
+        #   (ICDR) extension.
         if pdate.year in [2021, 2022, 2023]:
             satellite = ['cryosat_2']
             cdr_type = ['icdr']
@@ -77,6 +92,7 @@ def download_era5_reanalysis_data(dataset: str, partial_date: str):
         path.parent.mkdir(parents=True, exist_ok=True)
 
     # ERA5-Land post-processed daily statistics from 1950 to present
+    # See here for overview and documentation:
     # https://cds.climate.copernicus.eu/datasets/derived-era5-land-daily-statistics
     if dataset == 'derived-era5-land-daily-statistics':
         if pdate.month is None:
@@ -129,6 +145,7 @@ def download_era5_reanalysis_data(dataset: str, partial_date: str):
         path.parent.mkdir(parents=True, exist_ok=True)
 
     # Complete ERA5 global atmospheric reanalysis
+    # See here for overview and documentation:
     # https://cds.climate.copernicus.eu/datasets/reanalysis-era5-complete
     # https://apps.ecmwf.int/codes/grib/param-db/
     if dataset == 'reanalysis-era5-complete':
@@ -154,6 +171,7 @@ def download_era5_reanalysis_data(dataset: str, partial_date: str):
         path.parent.mkdir(parents=True, exist_ok=True)
 
     # ERA5 hourly data on single levels from 1940 to present
+    # See here for overview and documentation:
     # https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels
     if dataset == 'reanalysis-era5-single-levels':
         if pdate.month is None:
