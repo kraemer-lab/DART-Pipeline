@@ -42,7 +42,7 @@ def test_process_worldpopcountdata(
     assert result.loc[0, 'admin_level_0'] == 'Vietnam'
     assert result.loc[0, 'year'] == year
     assert result.loc[0, 'metric'] == 'population'
-    assert result.loc[0, 'unit'] == 'people'
+    assert result.loc[0, 'unit'] == 'unitless'
     assert result.loc[0, 'value'] == expected_population
     assert result.loc[0, 'resolution'] == 'people per pixel'
     assert str(result.loc[0, 'creation_date']) == '2025-02-06'
