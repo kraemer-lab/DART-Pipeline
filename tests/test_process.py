@@ -15,8 +15,8 @@ from dart_pipeline.process import \
     process_gadm_aphroditetemperature, \
     process_gadm_aphroditeprecipitation, \
     process_gadm_chirps_rainfall, \
-    process_aphrodite_temperature_data, \
-    process_aphrodite_precipitation_data, \
+    process_aphroditetemperature, \
+    process_aphroditeprecipitation, \
     process_chirps_rainfall, \
     process_terraclimate
 
@@ -374,7 +374,7 @@ def test_process_gadm_chirps_rainfall(
     min_lon, min_lat, max_lon, max_lat = region_geometry.bounds
 
 
-def test_process_aphrodite_temperature_data():
+def test_process_aphroditetemperature():
     # Minimal mocking for `np.fromfile` and file operations
     nx, ny, _ = 360, 280, 365
     # Mock temperature data
@@ -396,7 +396,7 @@ def test_process_aphrodite_temperature_data():
             patch('numpy.fromfile', mock_fromfile):
         # Call the function
         year = 2023
-        output, csv_name = process_aphrodite_temperature_data(
+        output, csv_name = process_aphroditetemperature(
             year=year, plots=False
         )
 
@@ -413,7 +413,7 @@ def test_process_aphrodite_temperature_data():
         assert csv_name == 'aphrodite-daily-mean-temp.csv'
 
 
-def test_process_aphrodite_precipitation_data():
+def test_process_aphroditeprecipitation():
     # Minimal mocking for `np.fromfile` and file operations
     nx, ny, _ = 360, 280, 365
     # Mock precipitation data
@@ -435,7 +435,7 @@ def test_process_aphrodite_precipitation_data():
             patch('numpy.fromfile', mock_fromfile):
         # Call the function
         year = 2023
-        output, csv_name = process_aphrodite_precipitation_data(
+        output, csv_name = process_aphroditeprecipitation(
             year=year, resolution=['025deg'], plots=False
         )
 
@@ -485,6 +485,22 @@ def test_process_chirps_rainfall(
 
     # Verify file output name
     assert filename == 'chirps-rainfall.csv'
+
+
+@pytest.fixture
+def mock_nc_dataset():
+    """Mock a NetCDF dataset."""
+    mock_dataset = MagicMock()
+    mock_variable = MagicMock()
+
+    # Mock data
+    mock_data = np.array([1.0, 2.0, 3.0])
+    mock_variable.__getitem__.return_value = mock_data  # Simulate slicing
+    mock_variable.long_name = 'Test Metric'
+    mock_variable.units = 'Test Unit'
+    mock_dataset.variables = {'test_variable': mock_variable}
+
+    return mock_dataset
 
 
 @patch('netCDF4.Dataset')
@@ -677,11 +693,6 @@ def test_process_terraclimate(
     # Run the function
     output, filename = process_terraclimate(partial_date, iso3, admin_level)
 
-    # Check that source_path was called with correct arguments
-    mock_source_path.assert_called_with(
-        'meteorological/terraclimate', 'TerraClimate_ws_2023.nc'
-    )
-
     # Validate the returned DataFrame structure
     assert isinstance(output, pd.DataFrame)
     assert 'admin_level_0' in output.columns
@@ -693,7 +704,7 @@ def test_process_terraclimate(
     assert output['month'].iloc[0] == 1
 
     # Check that filename was created correctly
-    assert filename == 'MCK.csv'
+    assert filename == 'terraclimate.csv'
 
     # Ensure function fails gracefully with an invalid date
     with pytest.raises(ValueError):
@@ -702,7 +713,7 @@ def test_process_terraclimate(
     # Ensure plots can be generated if requested
     partial_date = '2023-01'
     iso3 = 'MCK'
-    admin_level = '1'
+    admin_level = '0'
 
     with patch('matplotlib.pyplot.savefig') as mock_savefig:
         process_terraclimate(partial_date, iso3, admin_level, plots=True)

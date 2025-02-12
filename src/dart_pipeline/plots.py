@@ -1,6 +1,5 @@
 """Plot data."""
 from datetime import date
-from pathlib import Path
 import logging
 import re
 
@@ -8,10 +7,8 @@ from matplotlib import pyplot as plt
 import geopandas as gpd
 import numpy as np
 
-from .util import output_path
 
-
-def plot_heatmap(data, title, colourbar_label, path):
+def plot_heatmap(data, title, colourbar_label, path, extent=None):
     """Create a heat map."""
     data[data == 0] = np.nan
     plt.imshow(data, cmap='coolwarm', origin='upper')
@@ -28,7 +25,7 @@ def plot_heatmap(data, title, colourbar_label, path):
 
 
 def plot_gadm_micro_heatmap(
-    source, data, gdf, pdate, title, colourbar_label, region, extent
+    data, gdf, pdate, title, colourbar_label, region, extent, path
 ):
     """Create a heat map with GADM region overlaid."""
     geometry = region.geometry
@@ -50,9 +47,6 @@ def plot_gadm_micro_heatmap(
     title = re.sub(r'[<>:"/\\|?*]', '_', title)
     title = title.strip()
     # Export
-    path = Path(
-        output_path(source), str(pdate).replace('-', '/'), title + '.png'
-    )
     path.parent.mkdir(parents=True, exist_ok=True)
     logging.info('exporting:%s', path)
     plt.savefig(path)
