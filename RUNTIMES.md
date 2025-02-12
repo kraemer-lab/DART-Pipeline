@@ -75,9 +75,9 @@ time uv run dart-pipeline process geospatial/chirps-rainfall 3=VNM d=2023-05-11 
 
 ```
 time uv run dart-pipeline process geospatial/era5-reanalysis dataset=derived-era5-land-daily-statistics 3=VNM a=0 d=2024-10-01 l=INFO plots
-32.363s
+10.791s
 time uv run dart-pipeline process geospatial/era5-reanalysis dataset=derived-era5-land-daily-statistics 3=VNM a=1 d=2024-10-01 l=INFO plots
-2m9.424s
+47.208s
 ```
 
 ### Global Administrative Areas (GADM)

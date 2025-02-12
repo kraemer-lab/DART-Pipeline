@@ -4,6 +4,8 @@ INDEX
 ```
 geospatial/worldpop_count.py
 ✅ def process_gadm_worldpopcount(
+geospatial/era5reanalysis.py
+✅ def process_gadm_era5reanalysis(
 ```
 
 ```
@@ -57,7 +59,6 @@ def get_admin(x):
 ✅ def process_gadm_aphroditetemperature(
 ✅ def process_gadm_aphroditeprecipitation(
 ✅ def process_gadm_chirps_rainfall(
-✅ def process_gadm_era5reanalysis(
 def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
 ✅ def process_aphrodite_temperature_data(year=None, plots=False) -> \
 ✅ def process_aphrodite_precipitation_data(
