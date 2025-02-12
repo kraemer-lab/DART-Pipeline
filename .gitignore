@@ -25,14 +25,17 @@ data/**/*.html
 *.webp
 
 # Data files
+*.2015
 *.7z
 *.cpg
 *.csv
+*.ctl
 *.dbf
 *.f90
 *.geojson
 *.gpg
 *.gpkg
+*.grd
 *.json
 *.kmz
 *.nc
@@ -96,8 +99,9 @@ data/**/*.html
 venv
 __pycache__
 
-# Test result files
-*.xml 
+# Testing
+*.xml
+*.ambr
 
 # LaTeX
 *.aux
