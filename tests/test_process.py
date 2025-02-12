@@ -8,6 +8,7 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import pytest
+import rasterio
 
 from dart_pipeline.process import \
     process_rwi, \

@@ -35,9 +35,8 @@ pytest tests/test_meteorological_era5reanalysis.py
 ✅ def test_process_era5reanalysis(
 ```
 
-`pytest tests/test_plots.py`
-
 ```
+pytest tests/test_plots.py
 ✅ def test_plot_heatmap(
 ✅ def test_plot_gadm_micro_heatmap(
 ✅ def test_plot_gadm_macro_heatmap(

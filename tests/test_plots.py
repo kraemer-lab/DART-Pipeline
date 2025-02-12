@@ -21,16 +21,22 @@ from dart_pipeline.plots import \
 
 @patch('matplotlib.pyplot.savefig')
 @patch('matplotlib.pyplot.colorbar')
-@patch('matplotlib.pyplot.title')
-@patch('matplotlib.pyplot.imshow')
+@patch('matplotlib.pyplot.subplots')
 def test_plot_heatmap(
-    mock_imshow, mock_title, mock_colorbar, mock_savefig
+    mock_subplots, mock_colorbar, mock_savefig
 ):
     # Including a 0 value to be converted to NaN
     data = np.array([[1, 2], [0.0, 4]])
     title = 'Test Heatmap'
     colourbar_label = 'Test Colourbar'
     path = Path('test/path/file.png')
+
+    # Mock plt.subplots to return a mock figure and mock Axes
+    mock_fig = MagicMock()
+    mock_ax = MagicMock()
+    mock_subplots.return_value = (mock_fig, mock_ax)
+    mock_ax.imshow = MagicMock()
+    mock_ax.set_title = MagicMock()
 
     plot_heatmap(data, title, colourbar_label, path)
 
@@ -39,11 +45,16 @@ def test_plot_heatmap(
     assert np.isnan(data[1, 0]), msg
 
     # Verify plt.imshow called with modified data and colourmap
-    mock_imshow.assert_called_once_with(data, cmap='coolwarm', origin='upper')
+    mock_ax.imshow.assert_called_once_with(
+        data, cmap='coolwarm', origin='upper', extent=None
+    )
 
     # Verify colourbar and title set up correctly
-    mock_title.assert_called_once_with(title)
-    mock_colorbar.assert_called_once_with(label=colourbar_label)
+    mock_ax.set_title.assert_called_once_with(title)
+    mock_mappable = mock_ax.imshow.return_value
+    mock_colorbar.assert_called_once_with(
+        mock_mappable, ax=mock_ax, label=colourbar_label
+    )
 
     # Check the path generation
     expected_path = Path('test/path/file.png')
