@@ -54,7 +54,7 @@ def process_worldpopcount(
     df.loc[0, 'admin_level_0'] = country
     df.loc[0, 'year'] = year
     df.loc[0, 'metric'] = 'population'
-    df.loc[0, 'unit'] = 'people'
+    df.loc[0, 'unit'] = 'unitless'
     df.loc[0, 'value'] = population
     if rt == 'ppp':
         df.loc[0, 'resolution'] = 'people per pixel'
