@@ -374,7 +374,6 @@ source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "cdsapi" },
-    { name = "freezegun" },
     { name = "geopandas" },
     { name = "lxml" },
     { name = "matplotlib" },
@@ -387,6 +386,11 @@ dependencies = [
     { name = "rasterio" },
     { name = "requests" },
     { name = "shapely" },
+]
+
+[package.optional-dependencies]
+test = [
+    { name = "freezegun" },
 ]
 
 [package.dev-dependencies]
@@ -403,7 +407,7 @@ dev = [
 requires-dist = [
     { name = "beautifulsoup4", specifier = "==4.*" },
     { name = "cdsapi", specifier = "==0.7.5" },
-    { name = "freezegun", specifier = "==0.3.4" },
+    { name = "freezegun", marker = "extra == 'test'", specifier = "==0.3.4" },
     { name = "geopandas", specifier = "==0.14.4" },
     { name = "lxml", specifier = "==4.9.*" },
     { name = "matplotlib", specifier = ">=3.9.2" },

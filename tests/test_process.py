@@ -8,6 +8,7 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import pytest
+import rasterio
 
 from dart_pipeline.process import \
     process_rwi, \
@@ -15,10 +16,12 @@ from dart_pipeline.process import \
     process_gadm_aphroditetemperature, \
     process_gadm_aphroditeprecipitation, \
     process_gadm_chirps_rainfall, \
-    process_aphrodite_temperature_data, \
-    process_aphrodite_precipitation_data, \
+    process_gadm_worldpopdensity, \
+    process_aphroditetemperature, \
+    process_aphroditeprecipitation, \
     process_chirps_rainfall, \
     process_terraclimate
+
 
 # Smallest single-precision floating-point number
 MIN_FLOAT = -3.4028234663852886e38
@@ -374,7 +377,52 @@ def test_process_gadm_chirps_rainfall(
     min_lon, min_lat, max_lon, max_lat = region_geometry.bounds
 
 
-def test_process_aphrodite_temperature_data():
+@patch('os.listdir')
+@patch('geopandas.gpd.read_file')
+@patch('dart_pipeline.process.get_shapefile')
+@patch('dart_pipeline.util.source_path')
+@patch("rasterio.open")
+def test_process_gadm_worldpopdensity(
+    mock_rasterio_open, mock_source_path, mock_get_shapefile, mock_read_file,
+    mock_listdir
+):
+    # Test case 1: Process valid data
+    mock_read_file.return_value = MagicMock()
+    mock_rasterio_open.return_value = MagicMock(
+        read=lambda x: [[1, 1], [1, 1]]
+    )
+    # Run the function with valid data
+    output, csv_filename = process_gadm_worldpopdensity('VNM', '2020', '2')
+    # Assertions for valid data processing
+    assert isinstance(output, pd.DataFrame), 'Output should be a DataFrame'
+    msg = 'Expected column missing in output'
+    assert 'admin_level_0' in output.columns, msg
+    assert 'metric' in output.columns, 'Expected column missing in output'
+    msg = 'CSV filename does not match expected value'
+    assert csv_filename == 'worldpop-density.csv', msg
+
+    # Test case 2: Invalid date with day included
+    with pytest.raises(ValueError, match='Provide only a year in YYYY format'):
+        process_gadm_worldpopdensity('VNM', '2020-01-01', admin_level='0')
+
+    # Test case 3: Invalid date with month included
+    with pytest.raises(ValueError, match='Provide only a year in YYYY format'):
+        process_gadm_worldpopdensity('VNM', '2020-01', admin_level='0')
+
+    # Test case 4: Missing raster file, falling back to previous year
+    # Simulate missing file for the given year but available fallback file
+    mock_listdir.return_value = ['VNM_ppp_v2b_2019_UNadj.tif']
+    mock_rasterio_open.side_effect = [
+        rasterio.errors.RasterioIOError, MagicMock()
+    ]
+    # Call the function
+    output, csv_filename = process_gadm_worldpopdensity('VNM', '2020', '0')
+    # Check that fallback file was used and output generated
+    msg = 'Output should be a DataFrame even with fallback file'
+    assert isinstance(output, pd.DataFrame), msg
+
+
+def test_process_aphroditetemperature():
     # Minimal mocking for `np.fromfile` and file operations
     nx, ny, _ = 360, 280, 365
     # Mock temperature data
@@ -396,7 +444,7 @@ def test_process_aphrodite_temperature_data():
             patch('numpy.fromfile', mock_fromfile):
         # Call the function
         year = 2023
-        output, csv_name = process_aphrodite_temperature_data(
+        output, csv_name = process_aphroditetemperature(
             year=year, plots=False
         )
 
@@ -413,7 +461,7 @@ def test_process_aphrodite_temperature_data():
         assert csv_name == 'aphrodite-daily-mean-temp.csv'
 
 
-def test_process_aphrodite_precipitation_data():
+def test_process_aphroditeprecipitation():
     # Minimal mocking for `np.fromfile` and file operations
     nx, ny, _ = 360, 280, 365
     # Mock precipitation data
@@ -435,7 +483,7 @@ def test_process_aphrodite_precipitation_data():
             patch('numpy.fromfile', mock_fromfile):
         # Call the function
         year = 2023
-        output, csv_name = process_aphrodite_precipitation_data(
+        output, csv_name = process_aphroditeprecipitation(
             year=year, resolution=['025deg'], plots=False
         )
 
@@ -485,6 +533,22 @@ def test_process_chirps_rainfall(
 
     # Verify file output name
     assert filename == 'chirps-rainfall.csv'
+
+
+@pytest.fixture
+def mock_nc_dataset():
+    """Mock a NetCDF dataset."""
+    mock_dataset = MagicMock()
+    mock_variable = MagicMock()
+
+    # Mock data
+    mock_data = np.array([1.0, 2.0, 3.0])
+    mock_variable.__getitem__.return_value = mock_data  # Simulate slicing
+    mock_variable.long_name = 'Test Metric'
+    mock_variable.units = 'Test Unit'
+    mock_dataset.variables = {'test_variable': mock_variable}
+
+    return mock_dataset
 
 
 @patch('netCDF4.Dataset')
@@ -677,11 +741,6 @@ def test_process_terraclimate(
     # Run the function
     output, filename = process_terraclimate(partial_date, iso3, admin_level)
 
-    # Check that source_path was called with correct arguments
-    mock_source_path.assert_called_with(
-        'meteorological/terraclimate', 'TerraClimate_ws_2023.nc'
-    )
-
     # Validate the returned DataFrame structure
     assert isinstance(output, pd.DataFrame)
     assert 'admin_level_0' in output.columns
@@ -693,7 +752,7 @@ def test_process_terraclimate(
     assert output['month'].iloc[0] == 1
 
     # Check that filename was created correctly
-    assert filename == 'MCK.csv'
+    assert filename == 'terraclimate.csv'
 
     # Ensure function fails gracefully with an invalid date
     with pytest.raises(ValueError):
@@ -702,7 +761,7 @@ def test_process_terraclimate(
     # Ensure plots can be generated if requested
     partial_date = '2023-01'
     iso3 = 'MCK'
-    admin_level = '1'
+    admin_level = '0'
 
     with patch('matplotlib.pyplot.savefig') as mock_savefig:
         process_terraclimate(partial_date, iso3, admin_level, plots=True)

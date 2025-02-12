@@ -1,6 +1,5 @@
 """Plot data."""
 from datetime import date
-from pathlib import Path
 import logging
 import re
 
@@ -8,15 +7,25 @@ from matplotlib import pyplot as plt
 import geopandas as gpd
 import numpy as np
 
-from .util import output_path
 
-
-def plot_heatmap(data, title, colourbar_label, path):
+def plot_heatmap(
+    data, title, colourbar_label, path, extent=None, log_plot=False
+):
     """Create a heat map."""
     data[data == 0] = np.nan
-    plt.imshow(data, cmap='coolwarm', origin='upper')
-    plt.colorbar(label=colourbar_label)
-    plt.title(title)
+    _, ax = plt.subplots()
+    im = ax.imshow(data, cmap='coolwarm', origin='upper', extent=extent)
+    # Add colour bar
+    cbar = plt.colorbar(im, ax=ax, label=colourbar_label)
+    # Raise the ticklabels to the power of e
+    if log_plot:
+        min_val, max_val = np.nanmin(data), np.nanmax(data)
+        ticks = cbar.get_ticks()
+        ticks = [t for t in ticks if (t > min_val) and (t < max_val)]
+        cbar.set_ticks(ticks)
+        cbar.set_ticklabels([f'{np.exp(tick):.0f}' for tick in ticks])
+    # Titles and axes
+    ax.set_title(title)
     # Make the plot title file-system safe
     title = re.sub(r'[<>:"/\\|?*]', '_', title)
     title = title.strip()
@@ -28,7 +37,7 @@ def plot_heatmap(data, title, colourbar_label, path):
 
 
 def plot_gadm_micro_heatmap(
-    source, data, gdf, pdate, title, colourbar_label, region, extent
+    data, gdf, pdate, title, colourbar_label, region, extent, path
 ):
     """Create a heat map with GADM region overlaid."""
     geometry = region.geometry
@@ -50,9 +59,6 @@ def plot_gadm_micro_heatmap(
     title = re.sub(r'[<>:"/\\|?*]', '_', title)
     title = title.strip()
     # Export
-    path = Path(
-        output_path(source), str(pdate).replace('-', '/'), title + '.png'
-    )
     path.parent.mkdir(parents=True, exist_ok=True)
     logging.info('exporting:%s', path)
     plt.savefig(path)
