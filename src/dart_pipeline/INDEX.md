@@ -1,17 +1,18 @@
 INDEX
 =====
 
-`geospatial`
-
 ```
-worldpop_count.py
+geospatial/worldpop_count.py
 ✅ def process_gadm_worldpopcount(
 ```
 
-`sociodemographic`
+```
+meteorological/era5reanalysis.py
+✅ def process_era5reanalysis(dataset, partial_date, plots=False):
+```
 
 ```
-worldpop_count.py
+sociodemographic/worldpop_count.py
 ✅ def process_gadm_worldpopcount(
 ```
 
@@ -62,7 +63,6 @@ def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
 ✅ def process_aphrodite_precipitation_data(
 def get_chirps_rainfall_data_path(date: PartialDate) -> Path:
 def process_chirps_rainfall(partial_date: str, plots=False) -> ProcessResult:
-✅ def process_era5reanalysis(dataset, partial_date, plots=False):
 def process_terraclimate(
 def process_worldpop_pop_density_data(iso3: str, year: int) -> ProcessResult:
 def process_gadm_chirps_rainfall(
