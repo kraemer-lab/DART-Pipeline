@@ -39,16 +39,13 @@ from .plots import \
 from .util import \
     source_path, days_in_year, output_path, get_country_name, get_shapefile
 from .types import ProcessResult, PartialDate, AdminLevel
-from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS
+from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS, MIN_FLOAT
+from .geospatial.worldpop_count import process_gadm_worldpopcount
+from .sociodemographic.worldpop_count import process_worldpopcount
 
 pandarallel.initialize(verbose=0)
 
 TEST_MODE = os.getenv("DART_PIPELINE_TEST")
-# Smallest single-precision floating-point number
-MIN_FLOAT = -3.4028234663852886e38
-# No data in APHRODITE data
-# See APHRO_MA_025deg_V1901.ctl and others
-NO_DATA = -99.90
 
 
 def process_rwi(iso3: str, admin_level: str, plots=False):
@@ -309,7 +306,7 @@ def process_gadm_aphroditetemperature(
                 continue
 
             valid_mask = (rstn_data[iday, :, :] != 0.0) & \
-                (temp_data[iday, :, :] != NO_DATA)
+                (temp_data[iday, :, :] != -99.90)
             valid_prcp = temp_data[iday][valid_mask]
             valid_lon = valid_xlon[valid_mask]
             valid_lat = valid_ylat[valid_mask]
@@ -400,31 +397,16 @@ def process_gadm_aphroditeprecipitation(
 
     version = 'V1901'
     year = pdate.year
-    params = {
-        # Parameters from APHRO_MA_025deg_V1901.ctl
-        '025deg': {
-            'n_deg': (360, 280),
-            'start_coords': (60.125, -14.875),
-            'scale_factor': 0.25
-        },
-        # Parameters from APHRO_MA_050deg_V1901.ctl
-        '050deg': {
-            'n_deg': (180, 140),
-            'start_coords': (60.25, -14.75),
-            'scale_factor': 0.5
-        }
-    }
-
+    n_deg = {'025deg': (360, 280), '050deg': (180, 140)}
     for res in resolution:
+        nx, ny = n_deg[res]
         nday = days_in_year(int(year))
         # Record length
-        nx, ny = params[res]['n_deg']
         recl = nx * ny
         # Longitude and latitude bounds
-        x_start, y_start = params[res]['start_coords']
-        scale_factor = params[res]['scale_factor']
-        xlon = x_start + np.arange(nx) * scale_factor
-        ylat = y_start + np.arange(ny) * scale_factor
+        x_start, y_start = 60.125, -14.875
+        xlon = x_start + np.arange(nx) * 0.25
+        ylat = y_start + np.arange(ny) * 0.25
 
         # Open the file
         path = source_path('meteorological/aphrodite-daily-precip', '')
@@ -436,10 +418,10 @@ def process_gadm_aphroditeprecipitation(
             rstn_data = np.zeros((nday, ny, nx))
 
             for iday in range(nday):
-                # Read next batch of prcp values of size nx * ny
+                # Read `prcp` record
                 prcp_raw = np.fromfile(f, dtype='float32', count=recl)
                 prcp_raw = prcp_raw.reshape((ny, nx))
-                # Read next batch of rstn values of size nx * ny
+                # Read `rstn` record
                 rstn_raw = np.fromfile(f, dtype='float32', count=recl)
                 rstn_raw = rstn_raw.reshape((ny, nx))
                 # Store in arrays
@@ -461,14 +443,14 @@ def process_gadm_aphroditeprecipitation(
                 continue
 
             valid_mask = (rstn_data[iday, :, :] != 0.0) & \
-                (prcp_data[iday, :, :] != NO_DATA)
+                (prcp_data[iday, :, :] != -99.90)
             valid_prcp = prcp_data[iday][valid_mask]
             valid_lon = valid_xlon[valid_mask]
             valid_lat = valid_ylat[valid_mask]
 
             # Create rows in output for each sub-region
             to_append = []
-            for _, row in gdf.iterrows():
+            for idx, row in gdf.iterrows():
                 # Extract the geometry of the current sub-region (polygon)
                 region_geom = row.geometry
 
@@ -482,6 +464,8 @@ def process_gadm_aphroditeprecipitation(
                 )
 
                 # Filter data for this sub-region
+                _ = valid_lon[region_mask]
+                _ = valid_lat[region_mask]
                 valid_prcp_region = valid_prcp[region_mask]
 
                 output_row = {
@@ -496,7 +480,7 @@ def process_gadm_aphroditeprecipitation(
                     'week': '',
                     'value': valid_prcp_region.sum(),
                     'resolution': '0.25°' if res == '025deg' else '0.5°',
-                    'metric': 'aphrodite-daily-precip',
+                    'metric': 'precipitation',
                     'unit': 'mm',
                     'creation_date': date.today()
                 }
@@ -565,150 +549,113 @@ def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
     return output, f"{iso3}/admin{admin_level}_area.csv"
 
 
-def process_gadm_worldpopcount(
-    iso3, partial_date: str, admin_level: AdminLevel = '0', rt: str = 'ppp',
-    plots=False
-):
-    """Process GADM administrative map and WorldPop population count data."""
-    sub_pipeline = 'geospatial/worldpop-count'
-    logging.info('iso3:%s', iso3)
-    logging.info('partial_date:%s', partial_date)
-    logging.info('admin_level:%s', admin_level)
-    logging.info('rt:%s', rt)
-    logging.info('plots:%s', plots)
+def process_aphrodite_temperature_data(year=None, plots=False) -> \
+        list[ProcessResult]:
+    """Process APHRODITE Daily mean temperature product (V1808) data."""
+    sub_pipeline = 'meteorological/aphrodite-daily-mean-temp'
+    version = 'V1808'
 
-    pdate = PartialDate.from_string(partial_date)
-    if pdate.day:
-        msg = f'The date {partial_date} includes a day. Provide only a ' + \
-            'year in YYYY format.'
-        raise ValueError(msg)
-    if pdate.month:
-        msg = f'The date {partial_date} includes a month. Provide only a ' + \
-            'year in YYYY format.'
-        raise ValueError(msg)
+    if not year:
+        # Regex pattern to match the resolution, version and year in filenames
+        pattern = r'APHRO_MA_TAVE_(\d+deg)_V(\d+)\.(\d+)'
+        # Find the latest year for which there is data
+        years = []
+        path = source_path(sub_pipeline, '')
+        for filename in Path(path).iterdir():
+            match = re.match(pattern, str(filename.name))
+            if match:
+                _, _, year = match.groups()
+                years.append(int(year))
+        # Get the latest year
+        year = str(max(years))
 
-    # Import the GeoTIFF file
-    source = 'sociodemographic/worldpop-count'
-    path = Path(iso3, f'{iso3}_{rt}_v2b_{pdate.year}_UNadj.tif')
-    path = source_path(source, path)
-    logging.info('importing:%s', path)
-    try:
-        src = rasterio.open(path)
-    except rasterio.errors.RasterioIOError:
-        # Could not find the file
-        file_found = False
-        for year in range(datetime.today().year, 1990, -1):
-            filename = f'{iso3}_{rt}_v2b_{year}_UNadj.tif'
-            if filename in os.listdir(path.parent):
-                new_path = source_path(source, Path(iso3, filename))
-                logging.info('importing:%s', new_path)
-                print(f'File {path} not found.')
-                print(f'Importing {new_path} instead')
-                src = rasterio.open(new_path)
-                file_found = True
-                break
-        if not file_found:
-            msg = f'{path}: No such file or directory. Either it has not ' + \
-                'been downloaded or data does not exist for this year or ' + \
-                'any year since 1990.'
-            raise rasterio.errors.RasterioIOError(msg)
+    # Initialise output data frame
+    output = pd.DataFrame(columns=OUTPUT_COLUMNS)
 
-    # Rasterio stores image layers in 'bands'
-    # Get the data in the first band as an array
-    data = src.read(1)
-    # Replace placeholder numbers with 0
-    data[data == MIN_FLOAT] = 0
-    # Hide nulls
-    data[data == -9999] = 0
+    params = {
+        '025deg': ('TAVE', '025deg', '', 360, 280),
+        '025deg_nc': ('TAVE', '025deg', '.nc', 360, 280),
+        '050deg_nc': ('TAVE', '050deg', '.nc', 180, 140),
+        '005deg_nc': ('TAVE_CLM', '005deg', '.nc', 1800, 1400),
+    }
+    for data_type in ['025deg']:
+        product, res, ext, nx, ny = params[data_type]
+        nday = days_in_year(int(year))
+        # Record length
+        recl = nx * ny
+        # Longitude and latitude bounds
+        x_start, y_start = 60.125, -14.875
+        xlon = x_start + np.arange(nx) * 0.25
+        ylat = y_start + np.arange(ny) * 0.25
 
-    # Create a bounding box from raster bounds
-    bounds = src.bounds
-    raster_bbox = shapely.geometry.box(
-        bounds.left, bounds.bottom, bounds.right, bounds.top
-    )
+        # Open the file
+        path = source_path(sub_pipeline, '')
+        path = path / f'APHRO_MA_{product}_{res}_{version}.{year}{ext}'
+        # Read binary data
+        logging.info('opening:%s', path)
+        with open(path, 'rb') as f:
+            # Initialise arrays
+            temp_data = np.zeros((nday, ny, nx))
+            rstn_data = np.zeros((nday, ny, nx))
 
-    # Import shape file
-    path = get_shapefile(iso3, admin_level)
-    logging.info('importing:%s', path)
-    gdf = gpd.read_file(path)
-    # Transform the shape file to match the GeoTIFF's coordinate system
-    gdf = gdf.to_crs(src.crs)
-    # EPSG:4326 - WGS 84: latitude/longitude coordinate system based on the
-    # Earth's center of mass
+            for iday in range(nday):
+                # Read `temp` record
+                temp_raw = np.fromfile(f, dtype='float32', count=recl)
+                temp_raw = temp_raw.reshape((ny, nx))
+                # Read `rstn` record
+                rstn_raw = np.fromfile(f, dtype='float32', count=recl)
+                rstn_raw = rstn_raw.reshape((ny, nx))
+                # Store in arrays
+                temp_data[iday, :, :] = temp_raw
+                rstn_data[iday, :, :] = rstn_raw
 
-    # Initialise the data frame that will store the output data for each region
-    columns = [
-        'admin_level_0', 'admin_level_1', 'admin_level_2', 'admin_level_3',
-        'year', 'metric', 'value', 'unit'
-    ]
-    output = pd.DataFrame(columns=columns)
+        temp_data = temp_data.astype('float32')
+        rstn_data = rstn_data.astype('float32')
+        valid_xlon, valid_ylat = np.meshgrid(xlon, ylat, indexing='xy')
 
-    # Iterate over each region in the shape file
-    for i, region in gdf.iterrows():
-        # Add the region name to the output data frame
-        output.loc[i, 'admin_level_0'] = region['COUNTRY']
-        # Initialise the graph title
-        title = region['COUNTRY']
-        # Add more region names and update the graph title if the admin level
-        # is high enough to warrant it
-        if int(admin_level) >= 1:
-            output.loc[i, 'admin_level_1'] = region['NAME_1']
-            title = region['NAME_1']
-        if int(admin_level) >= 2:
-            output.loc[i, 'admin_level_2'] = region['NAME_2']
-            title = region['NAME_2']
-        if int(admin_level) >= 3:
-            output.loc[i, 'admin_level_3'] = region['NAME_3']
-            title = region['NAME_3']
+        # Iterate through days
+        for iday in range(nday):
+            valid_mask = (rstn_data[iday, :, :] != 0.0) & \
+                (temp_data[iday, :, :] != -99.90)
+            valid_temp = temp_data[iday][valid_mask]
+            valid_lon = valid_xlon[valid_mask]
+            valid_lat = valid_ylat[valid_mask]
 
-        # Add date information to the output data frame
-        output.loc[i, 'year'] = pdate.year
+            this_date = datetime(int(year), 1, 1) + timedelta(days=iday)
+            this_date = this_date.date()
 
-        # Check if the population data intersects this region
-        geometry = region.geometry
-        if raster_bbox.intersects(geometry):
-            # There is population data for this region
-            # Clip the data using the polygon of the current region
-            region_data, _ = rasterio.mask.mask(src, [geometry], crop=True)
-            # Replace negative values (if any exist)
-            region_data = np.where(region_data < 0, np.nan, region_data)
-            # Sum the pixel values to get the total for the region
-            region_total = np.nansum(region_data)
-        else:
-            # There is no population data for this region
-            region_total = 0
-        logging.info('region:%s', title)
-        logging.info('region_total:%s', region_total)
-        # Add the result to the output data frame
-        metric = 'Population Count'
-        output.loc[i, 'metric'] = metric
-        output.loc[i, 'value'] = region_total
-        unit = 'people'
-        output.loc[i, 'unit'] = unit
+            # Scatter plot
+            if plots:
+                title = f'Temperature\n{this_date}'
+                colourbar_label = 'Temperature [°C]'
+                folder = res.replace('0', '0_')
+                path = output_path(sub_pipeline) / folder / f'{this_date}.png'
+                plot_scatter(
+                    valid_lon, valid_lat, valid_temp, title, colourbar_label,
+                    path
+                )
 
-    # Create a plot
-    if plots:
-        data[data == 0] = np.nan
-        data = np.log(data)
-        origin = 'upper'
-        min_lon, min_lat, max_lon, max_lat = gdf.total_bounds
-        extent = [min_lon, max_lon, min_lat, max_lat]
-        limits = [min_lon, min_lat, max_lon, max_lat]
-        if admin_level in ['2', '3']:
-            zorder = 0
-        else:
-            zorder = 1
-        name = get_country_name(iso3, common_name=True)
-        title = f'{metric}\n{name} - {pdate.year}'
-        colourbar_label = f'Average {metric} per pixel [{unit}]'
-        path = output_path(sub_pipeline, f'{iso3}/admin_level_{admin_level}')
-        plot_gadm_macro_heatmap(
-            data, origin, extent, limits, gdf, zorder, title, colourbar_label,
-            path, log_plot=True
-        )
+            i = len(output)
+            output.loc[i, 'year'] = year
+            output.loc[i, 'month'] = this_date.month
+            output.loc[i, 'day'] = this_date.day
+            output.loc[i, 'value'] = valid_temp.mean()
+            if res == '025deg':
+                output.loc[i, 'resolution'] = '0.25°'
+            elif res == '050deg':
+                output.loc[i, 'resolution'] = '0.5°'
 
-    # Export
-    return output, f'{iso3}.csv'
+    output['iso3'] = ''
+    output['admin_level_0'] = ''
+    output['admin_level_1'] = ''
+    output['admin_level_2'] = ''
+    output['admin_level_3'] = ''
+    output['week'] = ''
+    output['metric'] = 'temperature'
+    output['unit'] = '°C'
+    output['creation_date'] = date.today()
+
+    return output, 'aphrodite-daily-mean-temp.csv'
 
 
 def process_aphrodite_precipitation_data(
@@ -734,30 +681,16 @@ def process_aphrodite_precipitation_data(
     # Initialise output data frame
     output = pd.DataFrame(columns=OUTPUT_COLUMNS)
 
-    params = {
-        # Parameters from APHRO_MA_025deg_V1901.ctl
-        '025deg': {
-            'n_deg': (360, 280),
-            'start_coords': (60.125, -14.875),
-            'scale_factor': 0.25
-        },
-        # Parameters from APHRO_MA_050deg_V1901.ctl
-        '050deg': {
-            'n_deg': (180, 140),
-            'start_coords': (60.25, -14.75),
-            'scale_factor': 0.5
-        }
-    }
+    n_deg = {'025deg': (360, 280), '050deg': (180, 140)}
     for res in resolution:
+        nx, ny = n_deg[res]
         nday = days_in_year(int(year))
         # Record length
-        nx, ny = params[res]['n_deg']
         recl = nx * ny
         # Longitude and latitude bounds
-        x_start, y_start = params[res]['start_coords']
-        scale_factor = params[res]['scale_factor']
-        xlon = x_start + np.arange(nx) * scale_factor
-        ylat = y_start + np.arange(ny) * scale_factor
+        x_start, y_start = 60.125, -14.875
+        xlon = x_start + np.arange(nx) * 0.25
+        ylat = y_start + np.arange(ny) * 0.25
 
         # Open the file
         file_path = Path(base_path) / Path(f'APHRO_MA_{res}_{version}.{year}')
@@ -768,10 +701,10 @@ def process_aphrodite_precipitation_data(
             rstn_data = np.zeros((nday, ny, nx))
 
             for iday in range(nday):
-                # Read next batch of prcp values of size nx * ny
+                # Read `prcp` record
                 prcp_raw = np.fromfile(f, dtype='float32', count=recl)
                 prcp_raw = prcp_raw.reshape((ny, nx))
-                # Read next batch of rstn values of size nx * ny
+                # Read `rstn` record
                 rstn_raw = np.fromfile(f, dtype='float32', count=recl)
                 rstn_raw = rstn_raw.reshape((ny, nx))
                 # Store in arrays
@@ -784,14 +717,14 @@ def process_aphrodite_precipitation_data(
 
         # Iterate through days
         for iday in range(nday):
-            this_date = datetime(int(year), 1, 1) + timedelta(days=iday)
-            this_date = this_date.date()
-
             valid_mask = (rstn_data[iday, :, :] != 0.0) & \
-                (prcp_data[iday, :, :] != NO_DATA)
+                (prcp_data[iday, :, :] != -99.90)
             valid_prcp = prcp_data[iday][valid_mask]
             valid_lon = valid_xlon[valid_mask]
             valid_lat = valid_ylat[valid_mask]
+
+            this_date = datetime(int(year), 1, 1) + timedelta(days=iday)
+            this_date = this_date.date()
 
             # Scatter plot
             if plots:
@@ -814,7 +747,7 @@ def process_aphrodite_precipitation_data(
             elif res == '050deg':
                 output.loc[i, 'resolution'] = '0.5°'
 
-    output['metric'] = 'aphrodite-daily-precip'
+    output['metric'] = 'precipitation'
     output['unit'] = 'mm'
     output['creation_date'] = date.today()
 
@@ -1098,71 +1031,6 @@ def process_terraclimate(
     return output, f'{iso3}.csv'
 
 
-def process_worldpop_pop_count_data(
-    iso3: str, year: int = 2020, rt: str = "pop"
-) -> ProcessResult:
-    """
-    Process WorldPop population count.
-
-    - EPSG:9217: https://epsg.io/9217
-    - EPSG:4326: https://epsg.io/4326
-    - EPSG = European Petroleum Survey Group
-    """
-    source = "sociodemographic/worldpop-count"
-    country = get_country_name(iso3)
-    print("Year:       ", year)
-    print("Country:    ", iso3)
-    print("Resolution: ", rt)
-    print("")
-
-    base_path = source_path(
-        source,
-        f'GIS/population/by-country/{iso3}/{country.replace(' ', '_')}_100m_Population',
-    )
-    filename = Path(f"{iso3}_{rt}_v2b_{year}_UNadj.tif")
-    print(f'Processing "{filename}"')
-    src = rasterio.open(base_path / filename)
-    # Get the affine transformation coefficients
-    transform = src.transform
-    # Read data from band 1
-    if src.count != 1:
-        raise ValueError(f"Unexpected number of bands: {src.count}")
-    source_data = src.read(1)
-
-    # Replace placeholder numbers with 0
-    # (-3.4e+38 is the smallest single-precision floating-point number)
-    df = pd.DataFrame(source_data)
-    population_data = df[df != MIN_FLOAT]
-    """
-    Sanity check: calculate the total population
-    Google says that Vietnam's population was 96.65 million (2020)
-
-    VNM_pph_v2b_2020.tif
-    90,049,150 (2020)
-
-    VNM_pph_v2b_2020_UNadj.tif
-    96,355,010 (2020)
-
-    VNM_ppp_v2b_2020.tif
-    90,008,170 (2020)
-
-    VNM_ppp_v2b_2020_UNadj.tif
-    96,355,000 (2020)
-    """
-    print(f"Population as per {filename}: {population_data.sum().sum()}")
-
-    # Convert pixel coordinates to latitude and longitude
-    cols = np.arange(source_data.shape[1])
-    lon, _ = rasterio.transform.xy(transform, (1,), cols)
-    rows = np.arange(source_data.shape[0])
-    _, lat = rasterio.transform.xy(transform, rows, (1,))
-    # Replace placeholder numbers with 0
-    source_data[source_data == MIN_FLOAT] = 0
-    # Create a DataFrame with latitude, longitude, and pixel values
-    df = pd.DataFrame(source_data, index=lat, columns=lon)
-    return df, "{iso3}/{filename.stem}.csv"
-
-
 def process_worldpop_pop_density_data(iso3: str, year: int) -> ProcessResult:
     """
     Process WorldPop population density.
@@ -1321,17 +1189,18 @@ def get_admin_region(lat: float, lon: float, polygons) -> str:
 
 
 PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
-    "economic/relative-wealth-index": process_rwi,
-    "epidemiological/dengue/peru": process_dengueperu,
-    "geospatial/chirps-rainfall": process_gadm_chirps_rainfall,
-    "geospatial/gadm": process_gadm_admin_map_data,
-    "geospatial/worldpop-count": process_gadm_worldpopcount,
-    "meteorological/aphrodite-daily-precip": process_aphrodite_precipitation_data,
-    "meteorological/chirps-rainfall": process_chirps_rainfall,
-    "meteorological/era5-reanalysis": process_era5_reanalysis_data,
-    "meteorological/terraclimate": process_terraclimate,
-    "sociodemographic/worldpop-count": process_worldpop_pop_count_data,
-    "sociodemographic/worldpop-density": process_worldpop_pop_density_data,
+    'economic/relative-wealth-index': process_rwi,
+    'epidemiological/dengue/peru': process_dengueperu,
     'geospatial/aphrodite-daily-mean-temp': process_gadm_aphroditetemperature,
     'geospatial/aphrodite-daily-precip': process_gadm_aphroditeprecipitation,
+    'geospatial/chirps-rainfall': process_gadm_chirps_rainfall,
+    'geospatial/gadm': process_gadm_admin_map_data,
+    'geospatial/worldpop-count': process_gadm_worldpopcount,
+    'meteorological/aphrodite-daily-mean-temp': process_aphrodite_temperature_data,
+    'meteorological/aphrodite-daily-precip': process_aphrodite_precipitation_data,
+    'meteorological/chirps-rainfall': process_chirps_rainfall,
+    'meteorological/era5-reanalysis': process_era5_reanalysis_data,
+    'meteorological/terraclimate': process_terraclimate,
+    'sociodemographic/worldpop-count': process_worldpopcount,
+    'sociodemographic/worldpop-density': process_worldpop_pop_density_data,
 }

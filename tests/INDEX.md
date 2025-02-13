@@ -7,11 +7,22 @@ INDEX
 ✅ def test_gadm_data():
 ✅ def test_relative_wealth_index():
 ✅ def test_ministerio_de_salud_peru_data():
+✅ def test_aphrodite_temperature_data():
 ✅ def test_aphrodite_precipitation_data():
 ✅ def test_chirps_rainfall_data():
 ✅ def test_meta_pop_density_data():
 ✅ def test_worldpop_pop_count_data():
 ✅ def test_worldpop_pop_density_data():
+```
+
+```
+pytest tests/test_collate_api.py
+✅ def test_download_era5_reanalysis_data(mock_cds_client, mock_source_path):
+```
+
+```
+pytest tests/test_geospatial_worldpop_count.py
+✅ def test_process_gadm_worldpopcount(
 ```
 
 `pytest tests/test_plots.py`
@@ -33,9 +44,16 @@ INDEX
 ✅ def test_process_gadm_aphroditeprecipitation(
 ✅ def test_process_gadm_chirps_rainfall(
 ✅ def test_process_gadm_worldpopcount(
-✅ def test_process_aphrodite_precipitation_data(
+✅ def test_process_aphrodite_temperature_data():
+✅ def test_process_aphrodite_precipitation_data():
 ✅ def test_process_chirps_rainfall(
 ✅ def test_process_terraclimate(
+✅ def test_process_worldpop_pop_count_data(
+```
+
+```
+test_sociodemographic_worldpop_count.py
+✅ def test_process_worldpopcountdata(
 ```
 
 `pytest tests/test_util.py`

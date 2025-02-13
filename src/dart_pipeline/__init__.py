@@ -83,7 +83,6 @@ def get(
     only_one: bool = True,
     update: bool = False,
     process: bool = False,
-    unpack: bool = True,
     **kwargs,
 ):
     """Get files for a source."""
@@ -97,6 +96,7 @@ def get(
     }
     if missing_params := non_default_params - set(kwargs):
         abort(source, f"missing required parameters {missing_params}")
+    unpack = 'unpack' in kwargs
 
     if not (path := DATA_PATH / source).exists():
         path.mkdir(parents=True, exist_ok=True)
@@ -105,6 +105,9 @@ def get(
     links = links if isinstance(links, list) else [links]
     if isinstance(links[0], DataFile):
         print(f"-- {source_fmt} fetches data directly, nothing to do")
+        return
+    if not links[0]:
+        print(f"-- {source_fmt} downloads data directly, nothing to do")
         return
     links = cast(list[URLCollection], links)
     auth = get_credentials(source) if source in REQUIRES_AUTH else None
@@ -119,7 +122,7 @@ def get(
             # been unpacked
             if unpack:
                 for file in coll.files:
-                    to_unpack = path / Path(file).name
+                    to_unpack = path / coll.relative_path / Path(file).name
                     print(f'• UNPACKING {to_unpack}', end='\r')
                     unpack_file(to_unpack, same_folder=True)
                     print(f'✅ UNPACKED {to_unpack}')
@@ -228,22 +231,28 @@ def main():
     )
     check_parser.add_argument("source", help="Source to check files for")
 
-    get_parser = subparsers.add_parser("get", help="Get files for a source")
-    get_parser.add_argument("source", help="Source to get files for")
-    get_parser.add_argument("--update", help="Update cached files")
+    get_parser = subparsers.add_parser(
+        "get",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        help="Get files for a source",
+        epilog=textwrap.dedent("""
+        keyword arguments:
+          3=, iso3=        an ISO 3166-1 alpha-3 country code
+
+        Boolean flags:
+          unpack           the downloaded files will be unpacked if they are
+                           zipped
+        """)
+    )
+    get_parser.add_argument("source", help="source to get files for")
+    get_parser.add_argument("--update", help="update cached files")
     get_parser.add_argument(
-        "-1", "--only-one", help="Get only one file", action="store_true"
+        "-1", "--only-one", help="get only one file", action="store_true"
     )
     get_parser.add_argument(
         "-p",
         "--process",
-        help="If the source can be directly processed, process immediately",
-        action="store_true",
-    )
-    get_parser.add_argument(
-        '-u',
-        '--unpack',
-        help='If the raw files are zipped, unpack them.',
+        help="if the source can be directly processed, process immediately",
         action="store_true",
     )
 
@@ -288,8 +297,7 @@ def main():
             print("\n".join(list_all()))
         case "get":
             get(
-                args.source, args.only_one, args.update, args.process,
-                args.unpack, **kwargs
+                args.source, args.only_one, args.update, args.process, **kwargs
             )
         case "check":
             check(args.source, args.only_one)
