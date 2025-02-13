@@ -45,7 +45,6 @@ pytest tests/test_plots.py
 ✅ def test_plot_gadm_scatter(mock_mkdir, mock_savefig, mock_close):
 ```
 
-
 ```
 pytest tests/test_process.py
 ✅ def test_process_rwi(
