@@ -408,7 +408,7 @@ def test_process_aphrodite_temperature_data():
 
         # Check key output values
         assert (output['year'] == year).all()
-        assert (output['metric'] == 'temperature').all()
+        assert (output['metric'] == 'aphrodite-daily-mean-temp').all()
         assert (output['unit'] == '°C').all()
         assert csv_name == 'aphrodite-daily-mean-temp.csv'
 
