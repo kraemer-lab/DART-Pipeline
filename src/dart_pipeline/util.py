@@ -278,6 +278,10 @@ def unpack_file(path: Path | str, same_folder: bool = False):
                 )
         case '.f90':
             pass
+        case '.gpkg':
+            pass
+        case '.json':
+            pass
         case '.gz':
             with gzip.open(path, 'rb') as f_in:
                 if same_folder:
