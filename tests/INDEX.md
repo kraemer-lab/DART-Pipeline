@@ -20,8 +20,15 @@ pytest tests/test_collate_api.py
 ```
 
 ```
+pytest tests/test_geospatial_aphroditetemperature.py
+✅ def test_process_gadm_aphroditetemperature():
 pytest tests/test_geospatial_worldpop_count.py
 ✅ def test_process_gadm_worldpopcount(
+```
+
+```
+pytest tests/test_meteorological_aphroditetemperature.py
+✅ def test_process_aphroditetemperature():
 ```
 
 ```
@@ -41,7 +48,6 @@ pytest tests/test_process.py
 ✅ def test_process_gadm_aphroditeprecipitation(
 ✅ def test_process_gadm_chirps_rainfall(
 ✅ def test_process_gadm_worldpopcount(
-✅ def test_process_aphrodite_temperature_data():
 ✅ def test_process_aphrodite_precipitation_data():
 ✅ def test_process_chirps_rainfall(
 ✅ def test_process_terraclimate(
