@@ -2,7 +2,6 @@
 from io import BytesIO
 from unittest.mock import patch, MagicMock, mock_open
 
-from freezegun import freeze_time
 from shapely.geometry import Polygon
 import geopandas as gpd
 import numpy as np
@@ -13,12 +12,16 @@ from dart_pipeline.process import \
     process_rwi, \
     process_dengueperu, \
     process_gadm_aphroditetemperature, \
-    process_gadm_aphroditeprecipitation, \
     process_gadm_chirps_rainfall, \
     process_aphrodite_temperature_data, \
-    process_aphrodite_precipitation_data, \
     process_chirps_rainfall, \
     process_terraclimate
+
+
+class MockFile(BytesIO):
+    """A mock file object that adds a fileno method."""
+    def fileno(self):
+        return 1
 
 
 @patch('pandas.DataFrame.parallel_apply')
@@ -152,12 +155,6 @@ def test_process_dengueperu(
         mock_read_excel.assert_called()
 
 
-class MockFile(BytesIO):
-    """A mock file object that adds a fileno method."""
-    def fileno(self):
-        return 1
-
-
 def test_process_gadm_aphroditetemperature():
     iso3 = 'VNM'
     admin_level = '0'
@@ -224,66 +221,6 @@ def test_process_gadm_aphroditetemperature():
         assert output['iso3'].iloc[0] == iso3
         assert output['value'].iloc[0] == ''
         assert csv_path == 'aphrodite-daily-mean-temp.csv'
-
-
-def test_process_gadm_aphroditeprecipitation():
-    iso3 = 'VNM'
-    admin_level = '0'
-    partial_date = '2023-07'
-    resolution = ['025deg']
-    plots = False
-
-    with patch('dart_pipeline.util.get_shapefile') as mock_get_shapefile, \
-         patch('geopandas.read_file') as mock_read_file, \
-         patch('dart_pipeline.util.source_path') as mock_source_path, \
-         patch('dart_pipeline.util.output_path') as mock_output_path, \
-         patch('builtins.open') as mock_open, \
-         patch('numpy.fromfile') as mock_fromfile:
-
-        # Mock shapefile loading
-        mock_get_shapefile.return_value = 'mock_shapefile_path'
-
-        # Create geopandas dataframe
-        data = {
-            'COUNTRY': 'Vietnam',
-            'NAME_1': [10, 20, 30],
-            'NAME_2': 'Mock District',
-            'NAME_3': 'Mock Sub-district',
-            'geometry': Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])
-        }
-        gdf = gpd.GeoDataFrame(data, crs='EPSG:4326')
-        mock_read_file.return_value = gdf
-
-        # Mock source_path and output_path
-        mock_source_path.return_value = MagicMock()
-        mock_output_path.return_value = MagicMock()
-
-        # Mock np.fromfile() to return a fake array
-        nx, ny = 360, 280
-        recl = nx * ny
-
-        # Create a fake array with the correct number of values
-        fake_array = np.ones(recl, dtype='float32')
-
-        # Mock np.fromfile() to return the fake array when called
-        mock_fromfile.return_value = fake_array
-
-        # Create a mock file object
-        mock_file = MockFile()
-        mock_open.return_value.__enter__.return_value = mock_file
-
-        # Call the function
-        output, csv_path = process_gadm_aphroditeprecipitation(
-            iso3, admin_level, partial_date, resolution, plots
-        )
-
-        # Assertions
-        assert isinstance(output, pd.DataFrame)
-        assert 'iso3' in output.columns
-        assert 'value' in output.columns
-        assert output['iso3'].iloc[0] == iso3
-        assert output['value'].sum() == 0
-        assert csv_path == 'aphrodite-daily-precip.csv'
 
 
 @patch('geopandas.read_file')
@@ -400,69 +337,6 @@ def test_process_aphrodite_temperature_data():
         assert (output['metric'] == 'temperature').all()
         assert (output['unit'] == '°C').all()
         assert csv_name == 'aphrodite-daily-mean-temp.csv'
-
-
-def test_process_aphrodite_precipitation_data():
-    # Minimal mocking for `np.fromfile` and file operations
-    nx, ny = 360, 280
-    nday = 365
-    # Mock precipitation data (10 mm daily)
-    mock_prcp = np.full((nday, ny, nx), 10.0, dtype='float32')
-    # Mock station count data
-    mock_rstn = np.ones((nday, ny, nx), dtype='float32')
-
-    def mock_fromfile(file, dtype, count):
-        if dtype == 'float32' and count == nx * ny:
-            # Toggle between prcp and rstn data based on the read order
-            if mock_fromfile.toggle:
-                data = mock_prcp[mock_fromfile.day]
-            else:
-                data = mock_rstn[mock_fromfile.day]
-                # Increment day only after reading rstn
-                mock_fromfile.day += 1
-            # Flip the toggle
-            mock_fromfile.toggle = not mock_fromfile.toggle
-            return data.flatten()
-        raise ValueError(
-            f'Unexpected call to np.fromfile with {file}, {dtype}, {count}'
-        )
-
-    # Initialise day counter
-    mock_fromfile.day = 0
-    # Initialise toggle
-    mock_fromfile.toggle = True
-
-    # Mock file opening
-    mocked_open = mock_open()
-    with freeze_time('2025-01-01'), \
-            patch('builtins.open', mocked_open), \
-            patch('numpy.fromfile', mock_fromfile):
-        # Call the function
-        year = 2023
-        output, csv_name = process_aphrodite_precipitation_data(
-            year=year, resolution=['025deg'], plots=False
-        )
-
-        # Expected CSV file name
-        expected_csv_name = 'aphrodite-daily-precip.csv'
-        assert csv_name == expected_csv_name
-
-        # Expected output structure
-        assert not output.empty
-        assert 'year' in output.columns
-        assert 'month' in output.columns
-        assert 'day' in output.columns
-        assert 'value' in output.columns
-        assert 'resolution' in output.columns
-        assert 'metric' in output.columns
-        assert 'unit' in output.columns
-        assert 'creation_date' in output.columns
-
-        # Check if precipitation values sum to the expected amount
-        expected_total_precipitation = 10 * nx * ny * nday
-        assert np.isclose(
-            output['value'].sum(), expected_total_precipitation, atol=1e-5
-        )
 
 
 @patch('dart_pipeline.process.output_path')

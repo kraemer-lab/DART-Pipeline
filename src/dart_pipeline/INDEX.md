@@ -4,8 +4,17 @@ INDEX
 `geospatial`
 
 ```
+aphroditeprecipitation.py
+✅ def process_gadm_aphroditeprecipitation(
 worldpop_count.py
 ✅ def process_gadm_worldpopcount(
+```
+
+`meteorological`
+
+```
+aphroditeprecipitation.py
+✅ def process_aphroditeprecipitation(
 ```
 
 `sociodemographic`
