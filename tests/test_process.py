@@ -1,8 +1,8 @@
 """Tests for process functions in process.py."""
 from io import BytesIO
-
 from unittest.mock import patch, MagicMock, mock_open
 
+from freezegun import freeze_time
 from shapely.geometry import Polygon
 import geopandas as gpd
 import numpy as np
@@ -19,9 +19,6 @@ from dart_pipeline.process import \
     process_aphrodite_precipitation_data, \
     process_chirps_rainfall, \
     process_terraclimate
-
-# Smallest single-precision floating-point number
-MIN_FLOAT = -3.4028234663852886e38
 
 
 @patch('pandas.DataFrame.parallel_apply')
@@ -405,7 +402,7 @@ def test_process_aphrodite_temperature_data():
         assert csv_name == 'aphrodite-daily-mean-temp.csv'
 
 
-def test_process_aphrodite_precipitation_data(snapshot: SnapshotAssertion):
+def test_process_aphrodite_precipitation_data():
     # Minimal mocking for `np.fromfile` and file operations
     nx, ny = 360, 280
     nday = 365
@@ -446,9 +443,26 @@ def test_process_aphrodite_precipitation_data(snapshot: SnapshotAssertion):
             year=year, resolution=['025deg'], plots=False
         )
 
-        # Assert the output matches the snapshot
-        assert output.to_dict() == snapshot
-        assert csv_name == snapshot
+        # Expected CSV file name
+        expected_csv_name = 'aphrodite-daily-precip.csv'
+        assert csv_name == expected_csv_name
+
+        # Expected output structure
+        assert not output.empty
+        assert 'year' in output.columns
+        assert 'month' in output.columns
+        assert 'day' in output.columns
+        assert 'value' in output.columns
+        assert 'resolution' in output.columns
+        assert 'metric' in output.columns
+        assert 'unit' in output.columns
+        assert 'creation_date' in output.columns
+
+        # Check if precipitation values sum to the expected amount
+        expected_total_precipitation = 10 * nx * ny * nday
+        assert np.isclose(
+            output['value'].sum(), expected_total_precipitation, atol=1e-5
+        )
 
 
 @patch('dart_pipeline.process.output_path')

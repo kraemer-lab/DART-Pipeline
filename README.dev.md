@@ -48,7 +48,7 @@ uv run dart-pipeline process geospatial/aphrodite-daily-mean-temp 3=VNM a=3 d=20
 ### APHRODITE Precipitation
 
 ```
-uv run dart-pipeline get meteorological/aphrodite-daily-precip unpack
+uv run dart-pipeline get meteorological/aphrodite-daily-precip -u
 uv run dart-pipeline get geospatial/gadm 3=VNM
 uv run dart-pipeline process geospatial/aphrodite-daily-precip 3=VNM a=0 d=2015-05-11 l=INFO plots
 uv run dart-pipeline process geospatial/aphrodite-daily-precip 3=VNM a=1 d=2015-05-11 l=INFO plots
@@ -100,7 +100,7 @@ uv run dart-pipeline process meteorological/aphrodite-daily-mean-temp l=INFO plo
 ### APHRODITE Precipitation
 
 ```
-uv run dart-pipeline get meteorological/aphrodite-daily-precip unpack
+uv run dart-pipeline get meteorological/aphrodite-daily-precip -u
 uv run dart-pipeline process meteorological/aphrodite-daily-precip
 uv run dart-pipeline process meteorological/aphrodite-daily-precip plots
 ```

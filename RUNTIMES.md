@@ -60,6 +60,21 @@ time uv run dart-pipeline process geospatial/aphrodite-daily-mean-temp 3=VNM a=3
 5m35.019s
 ```
 
+### APHRODITE Precipitation
+
+```
+time uv run dart-pipeline get meteorological/aphrodite-daily-precip -u
+2.136s
+time uv run dart-pipeline get geospatial/gadm 3=VNM
+0.734s
+time uv run dart-pipeline process geospatial/aphrodite-daily-precip 3=VNM a=0 d=2015-05-11 l=INFO plots
+4.934s
+time uv run dart-pipeline process geospatial/aphrodite-daily-precip 3=VNM a=1 d=2015-05-11 l=INFO plots
+3.806s
+time uv run dart-pipeline process geospatial/aphrodite-daily-precip 3=VNM a=3 d=2015-05-11 l=INFO plots
+6m52.38s
+```
+
 ### CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations
 
 ```
@@ -121,6 +136,12 @@ time uv run dart-pipeline process meteorological/aphrodite-daily-mean-temp
 ```
 time uv run dart-pipeline get meteorological/aphrodite-daily-precip
 1m23.727s
+time uv run dart-pipeline get meteorological/aphrodite-daily-precip -u
+
+time uv run dart-pipeline process meteorological/aphrodite-daily-precip
+1.228s
+time uv run dart-pipeline process meteorological/aphrodite-daily-precip plots
+55.961s
 ```
 
 ### CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations

@@ -46,6 +46,9 @@ from .sociodemographic.worldpop_count import process_worldpopcount
 pandarallel.initialize(verbose=0)
 
 TEST_MODE = os.getenv("DART_PIPELINE_TEST")
+# No data in APHRODITE data
+# See APHRO_MA_025deg_V1901.ctl and others
+NO_DATA = -99.90
 
 
 def process_rwi(iso3: str, admin_level: str, plots=False):

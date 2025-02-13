@@ -47,6 +47,17 @@ def worldpop_pop_density_data(iso3: str) -> URLCollection:
 ✅ def download_era5_reanalysis_data(dataset: str, partial_date: str):
 ```
 
+`plots.py`
+
+```
+✅ def plot_heatmap(data, title, colourbar_label, path):
+✅ def plot_gadm_micro_heatmap(
+✅ def plot_gadm_macro_heatmap(
+✅ def plot_timeseries(df, title, path):
+✅ def plot_scatter(x, y, z, title, colourbar_label, path):
+✅ def plot_gadm_scatter(lon, lat, data, title, colourbar_label, path, gdf):
+```
+
 `process.py`
 
 ```
@@ -54,6 +65,7 @@ def process_rwi(iso3: str, admin_level: str, plots=False):
 def get_admin(x):
 ✅ def process_dengueperu(
 ✅ def process_gadm_aphroditetemperature(
+✅ def process_gadm_aphroditeprecipitation(
 def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
 ✅ def process_aphrodite_temperature_data(year=None, plots=False) -> \
 ✅ def process_aphrodite_precipitation_data(

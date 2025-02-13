@@ -83,6 +83,7 @@ def get(
     only_one: bool = True,
     update: bool = False,
     process: bool = False,
+    unpack: bool = True,
     **kwargs,
 ):
     """Get files for a source."""
@@ -96,7 +97,6 @@ def get(
     }
     if missing_params := non_default_params - set(kwargs):
         abort(source, f"missing required parameters {missing_params}")
-    unpack = 'unpack' in kwargs
 
     if not (path := DATA_PATH / source).exists():
         path.mkdir(parents=True, exist_ok=True)
@@ -238,10 +238,6 @@ def main():
         epilog=textwrap.dedent("""
         keyword arguments:
           3=, iso3=        an ISO 3166-1 alpha-3 country code
-
-        Boolean flags:
-          unpack           the downloaded files will be unpacked if they are
-                           zipped
         """)
     )
     get_parser.add_argument("source", help="source to get files for")
@@ -252,7 +248,13 @@ def main():
     get_parser.add_argument(
         "-p",
         "--process",
-        help="if the source can be directly processed, process immediately",
+        help="If the source can be directly processed, process immediately",
+        action="store_true",
+    )
+    get_parser.add_argument(
+        '-u',
+        '--unpack',
+        help='The downloaded files will be unpacked if they are zipped.',
         action="store_true",
     )
 
@@ -297,7 +299,8 @@ def main():
             print("\n".join(list_all()))
         case "get":
             get(
-                args.source, args.only_one, args.update, args.process, **kwargs
+                args.source, args.only_one, args.update, args.process,
+                args.unpack, **kwargs
             )
         case "check":
             check(args.source, args.only_one)
