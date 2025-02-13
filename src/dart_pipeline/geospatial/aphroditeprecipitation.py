@@ -10,7 +10,8 @@ import shapely.geometry
 
 from dart_pipeline.plots import plot_gadm_scatter
 from dart_pipeline.types import PartialDate
-from dart_pipeline.util import source_path, days_in_year, get_shapefile
+from dart_pipeline.util import source_path, output_path, days_in_year, \
+    get_shapefile
 from dart_pipeline.constants import OUTPUT_COLUMNS
 
 # No data in APHRODITE data
