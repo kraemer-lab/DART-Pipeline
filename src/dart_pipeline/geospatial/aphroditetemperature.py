@@ -1,29 +1,18 @@
 """Module for processing APHRODITE temperature (V1808) data."""
 from datetime import date, datetime, timedelta
-from pathlib import Path
-from typing import Literal, Callable
+from typing import Literal
 import logging
-import os
-import re
 
-from matplotlib import pyplot as plt
-from pandarallel import pandarallel
 import geopandas as gpd
-import netCDF4 as nc
 import numpy as np
 import pandas as pd
-import rasterio
-import rasterio.features
-import rasterio.mask
-import rasterio.transform
 import shapely.geometry
 
 from dart_pipeline.plots import plot_gadm_scatter
 from dart_pipeline.util import \
-    source_path, days_in_year, output_path, get_country_name, get_shapefile
-from dart_pipeline.types import ProcessResult, PartialDate, AdminLevel
-from dart_pipeline.constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS, \
-    MIN_FLOAT
+    source_path, days_in_year, output_path, get_shapefile
+from dart_pipeline.types import PartialDate
+from dart_pipeline.constants import OUTPUT_COLUMNS
 
 # No data in APHRODITE data
 # See APHRO_MA_025deg_V1901.ctl and others
