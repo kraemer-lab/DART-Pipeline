@@ -1,6 +1,20 @@
 INDEX
 =====
 
+`geospatial`
+
+```
+worldpop_count.py
+✅ def process_gadm_worldpopcount(
+```
+
+`sociodemographic`
+
+```
+worldpop_count.py
+✅ def process_gadm_worldpopcount(
+```
+
 `__init__.py`
 
 ```
@@ -30,7 +44,7 @@ def worldpop_pop_density_data(iso3: str) -> URLCollection:
 `collate_api.py`
 
 ```
-def download_era5_reanalysis_data(path: Path):
+✅ def download_era5_reanalysis_data(dataset: str, partial_date: str):
 ```
 
 `process.py`
@@ -48,7 +62,6 @@ def get_chirps_rainfall_data_path(date: PartialDate) -> Path:
 def process_chirps_rainfall(partial_date: str, plots=False) -> ProcessResult:
 def process_era5_reanalysis_data() -> ProcessResult:
 def process_terraclimate(
-def process_worldpop_pop_count_data(
 def process_worldpop_pop_density_data(iso3: str, year: int) -> ProcessResult:
 def process_gadm_chirps_rainfall(
 def get_admin_region(lat: float, lon: float, polygons) -> str:

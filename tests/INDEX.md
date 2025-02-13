@@ -1,9 +1,8 @@
 INDEX
 =====
 
-`pytest tests/test_collate.py`
-
 ```
+pytest tests/test_collate.py
 ✅ def test_gadm_data():
 ✅ def test_relative_wealth_index():
 ✅ def test_ministerio_de_salud_peru_data():
@@ -15,9 +14,18 @@ INDEX
 ✅ def test_worldpop_pop_density_data():
 ```
 
-`pytest tests/test_plots.py`
+```
+pytest tests/test_collate_api.py
+✅ def test_download_era5_reanalysis_data(mock_cds_client, mock_source_path):
+```
 
 ```
+pytest tests/test_geospatial_worldpop_count.py
+✅ def test_process_gadm_worldpopcount(
+```
+
+```
+pytest tests/test_plots.py
 ✅ def test_plot_heatmap(
 ✅ def test_plot_gadm_micro_heatmap(
 ✅ def test_plot_gadm_macro_heatmap(
@@ -26,9 +34,8 @@ INDEX
 ✅ def test_plot_gadm_scatter(mock_mkdir, mock_savefig, mock_close):
 ```
 
-`pytest tests/test_process.py`
-
 ```
+pytest tests/test_process.py
 ✅ def test_process_rwi(
 ✅ def test_process_dengueperu(
 ✅ def test_process_gadm_aphroditeprecipitation(
@@ -38,11 +45,16 @@ INDEX
 ✅ def test_process_aphrodite_precipitation_data():
 ✅ def test_process_chirps_rainfall(
 ✅ def test_process_terraclimate(
+✅ def test_process_worldpop_pop_count_data(
 ```
 
-`pytest tests/test_util.py`
+```
+pytest tests/test_sociodemographic_worldpop_count.py
+✅ def test_process_worldpopcountdata(
+```
 
 ```
+pytest tests/test_util.py
 ✅ def test_download_file():
 ✅ def test_download_file_unzip():
 ✅ def test_download_file_without_unzip():
