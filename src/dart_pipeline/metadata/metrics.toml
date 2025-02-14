@@ -17,10 +17,18 @@ as it is lawful, whereas use may include, but is not limited to: reproduction;
 distribution; communication to the public; adaptation, modification and
 combination with other data and information; or any combination of the
 foregoing."""
-license_url = "https://cds.climate.copernicus.eu/datasets/derived-era5-single-levels-daily-statistics?tab=documentation"
+url = [
+  "https://cds.climate.copernicus.eu/datasets/derived-era5-single-levels-daily-statistics",
+  "https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels?tab=overview"
+]
 auth = true
 auth_url = "https://cds.climate.copernicus.eu/how-to-api"
 attribution = ""
+resolution = "0.25 degree"
+
+[sources.meta]
+description = "Meta Data for Good"
+url = "https://dataforgood.facebook.com/"
 
 [sources.gadm]
 description = "GADM administrative areas"
@@ -35,7 +43,6 @@ redistribution_allowed = false
 description = "ECMWF forecast data"
 license_text = "..."
 license_url = "..."
-auth = true
 redistribution_allowed = false
 
 [sources.worldpop]
@@ -43,87 +50,89 @@ description = "WorldPop population data"
 license = "CC-BY-4.0"
 url = "https://worldpop.org"
 attribution = ""
+resolution = "1 km"
 
 [chirps.rainfall]
 description = "CHIRPS rainfall estimates from rain gauge, satellite observations"
 units = "??"
-daily_statistics = ["sum"]
+statistics = ["daily_sum"]
 
 [era5.2m_temperature]
 description = "Air temperature"
 units = "degree_Celsius"
 resampling = "remapbil"
-daily_statistics = ["mean", "max", "min"]
+statistics = ["daily_mean", "daily_max", "daily_min"]
 
 [era5.surface_solar_radiation_downwards]
 description = "Accumulated solar radiation downwards"
 units = "J/m^2"
-daily_statistics = ["sum"]
+statistics = ["daily_sum"]
 resampling = "remapbil"
 
 [era5.total_precipitation]
 description = "Total precipitation"
 units = "m"
-daily_statistics = ["sum"]
+statistics = ["daily_sum"]
 
 [era5.wind_speed]
 description = "Wind speed"
 depends = ["10m_u_component_of_wind", "10m_v_component_of_wind"]
 units = "m/s"
-daily_statistics = ["mean"]
+statistics = ["daily_mean"]
 
 [era5.relative_humidity]
 description = "Relative humidity"
 depends = ["2m_temperature", "2m_dewpoint_temperature", "surface_pressure"]
 units = "unitless"
-daily_statistics = ["mean", "max", "min"]
+statistics = ["daily_mean", "daily_max", "daily_min"]
 
 [era5.specific_humidity]
 description = "Specific humidity"
 depends = ["2m_temperature", "2m_dewpoint_temperature", "surface_pressure"]
 units = "unitless"
-daily_statistics = ["mean", "max", "min"]
+statistics = ["daily_mean", "daily_max", "daily_min"]
 
 [era5.hydrological_balance]
 description = "Hydrological balance"
+units = "m" 
 depends = ["evaporation", "total_precipitation"]
-daily_statistics = ["sum"]
+statistics = ["daily_sum"]
 
 [era5.spi]
 description = "Standardised precipitation index"
 depends = ["total_precipitation"]
 units = "m"
-daily_statistics = ["sum"]
+statistics = ["daily_sum"]
 
 [era5.spie]
 description = "Standardised precipitation-evaporation index"
 depends = ["total_precipitation", "evaporation"]
 units = "m"
-daily_statistics = ["sum"]
+statistics = ["daily_sum"]
 
 [era5.bc_total_precipitation]
 description = "Bias-corrected total precipitation"
 depends = ["total_precipitation"]
 units = "m"
-daily_statistics = ["sum"]
+statistics = ["daily_sum"]
 
 [era5.bc_spi]
 description = "Bias-corrected standardised precipitation index"
 depends = ["total_precipitation"]
 units = "m"
-daily_statistics = ["sum"]
+statistics = ["daily_sum"]
 
 [era5.bc_spie]
 description = "Bias-corrected standardised precipitation-evaporation index"
 depends = ["total_precipitation", "evaporation"]
 units = "m"
-daily_statistics = ["sum"]
+statistics = ["daily_sum"]
 
 [era5.bc_hydrological_balance]
 description = "Bias-corrected hydrological balance"
 depends = ["evaporation", "total_precipitation"]
 units = "m"
-daily_statistics = ["sum"]
+statistics = ["daily_sum"]
 
 [meta.relative_wealth_index]
 description = "Relative wealth index"
