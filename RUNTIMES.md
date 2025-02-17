@@ -145,8 +145,14 @@ Meteorological
 ```
 time uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp
 16m6.556s
+time uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp unpack
+
 time uv run dart-pipeline process meteorological/aphrodite-daily-mean-temp
 0.691s
+time uv run dart-pipeline process meteorological/aphrodite-daily-mean-temp l=INFO
+1.127s
+time uv run dart-pipeline process meteorological/aphrodite-daily-mean-temp l=INFO plots
+29.441s
 ```
 
 ### APHRODITE Precipitation

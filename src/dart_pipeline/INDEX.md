@@ -4,6 +4,8 @@ INDEX
 ```
 geospatial/aphroditeprecipitation.py
 ✅ def process_gadm_aphroditeprecipitation(
+geospatial/aphroditetemperature.py
+✅ def process_gadm_aphroditetemperature(
 geospatial/era5reanalysis.py
 ✅ def process_gadm_era5reanalysis(
 geospatial/worldpop_count.py
@@ -15,6 +17,8 @@ geospatial/worldpop_density.py
 ```
 meteorological/aphroditeprecipitation.py
 ✅ def process_aphroditeprecipitation(
+meteorological/aphroditetemperature.py
+✅ def process_aphroditetemperature(year=None, plots=False) -> \
 meteorological/era5reanalysis.py
 ✅ def process_era5reanalysis(dataset, partial_date, plots=False):
 ```
@@ -74,10 +78,8 @@ def worldpop_pop_count_data(iso3: str) -> URLCollection:
 ```
 def process_rwi(iso3: str, admin_level: str, plots=False):
 ✅ def process_dengueperu(
-✅ def process_gadm_aphroditetemperature(
 ✅ def process_gadm_chirps_rainfall(
 def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
-✅ def process_aphroditetemperature(year=None, plots=False) -> \
 def get_chirps_rainfall_data_path(date: PartialDate) -> Path:
 def process_chirps_rainfall(partial_date: str, plots=False) -> ProcessResult:
 def process_terraclimate(
