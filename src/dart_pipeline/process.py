@@ -33,15 +33,17 @@ import rasterio.mask
 import rasterio.transform
 import shapely.geometry
 
+from .geospatial.worldpop_count import process_gadm_worldpopcount
+from .meteorological.era5reanalysis import process_era5reanalysis
+from .sociodemographic.worldpop_count import process_worldpopcount
+from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS, BASE_DIR, \
+    DEFAULT_SOURCES_ROOT, DEFAULT_OUTPUT_ROOT, MIN_FLOAT
 from .plots import \
     plot_heatmap, plot_gadm_micro_heatmap, plot_gadm_macro_heatmap, \
     plot_timeseries, plot_scatter, plot_gadm_scatter
+from .types import ProcessResult, PartialDate, AdminLevel
 from .util import \
     source_path, days_in_year, output_path, get_country_name, get_shapefile
-from .types import ProcessResult, PartialDate, AdminLevel
-from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS, MIN_FLOAT
-from .geospatial.worldpop_count import process_gadm_worldpopcount
-from .sociodemographic.worldpop_count import process_worldpopcount
 
 pandarallel.initialize(verbose=0)
 
@@ -549,7 +551,7 @@ def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
     return output, f"{iso3}/admin{admin_level}_area.csv"
 
 
-def process_aphrodite_temperature_data(year=None, plots=False) -> \
+def process_aphroditetemperature(year=None, plots=False) -> \
         list[ProcessResult]:
     """Process APHRODITE Daily mean temperature product (V1808) data."""
     sub_pipeline = 'meteorological/aphrodite-daily-mean-temp'
@@ -658,7 +660,7 @@ def process_aphrodite_temperature_data(year=None, plots=False) -> \
     return output, 'aphrodite-daily-mean-temp.csv'
 
 
-def process_aphrodite_precipitation_data(
+def process_aphroditeprecipitation(
     year=None, resolution=['025deg', '050deg'], plots=False
 ) -> list[ProcessResult]:
     """Process APHRODITE Daily accumulated precipitation (V1901) data."""
@@ -834,49 +836,6 @@ def process_chirps_rainfall(partial_date: str, plots=False) -> ProcessResult:
     return output, 'chirps-rainfall.csv'
 
 
-def process_era5_reanalysis_data() -> ProcessResult:
-    """Process ERA5 atmospheric reanalysis data."""
-    source = "meteorological/era5-atmospheric-reanalysis"
-    path = source_path(source, "ERA5-ml-temperature-subarea.nc")
-    file = nc.Dataset(path, "r")  # type: ignore
-
-    # Import variables as arrays
-    longitude = file.variables["longitude"][:]
-    latitude = file.variables["latitude"][:]
-    level = file.variables["level"][:]
-    time = file.variables["time"][:]
-    temp = file.variables["t"][:]
-    # Convert Kelvin to Celsius
-    temp = temp - 273.15
-
-    longitudes = []
-    latitudes = []
-    levels = []
-    times = []
-    temperatures = []
-    for i, lon in enumerate(longitude):
-        for j, lat in enumerate(latitude):
-            for k, lev in enumerate(level):
-                for m, t in enumerate(time):
-                    longitudes.append(lon)
-                    latitudes.append(lat)
-                    levels.append(lev)
-                    times.append(t)
-                    temperatures.append(temp[m, k, j, i])
-
-    dct = {
-        "longitude": longitudes,
-        "latitude": latitudes,
-        "level": levels,
-        "time": times,
-        "temperature": temperatures,
-    }
-    df = pd.DataFrame(dct)
-    file.close()
-
-    return df, "ERA5-ml-temperature-subarea.csv"
-
-
 def process_terraclimate(
     partial_date: str, iso3: str, admin_level: str, plots=False
 ):
@@ -890,6 +849,7 @@ def process_terraclimate(
     source = 'meteorological/terraclimate'
     pdate = PartialDate.from_string(partial_date)
     logging.info('partial_date:%s', pdate)
+    iso3 = iso3.upper()
     logging.info('iso3:%s', iso3)
     logging.info('admin_level:%s', admin_level)
     logging.info('plots:%s', plots)
@@ -902,7 +862,8 @@ def process_terraclimate(
     output = pd.DataFrame(columns=columns)
 
     # Import a shapefile
-    path = get_shapefile(iso3, admin_level)
+    path = BASE_DIR / DEFAULT_SOURCES_ROOT / 'geospatial' / 'gadm' / iso3 / \
+        f'gadm41_{iso3}_{admin_level}.shp'
     logging.info('importing:%s', path)
     gdf = gpd.read_file(path)
 
@@ -911,8 +872,10 @@ def process_terraclimate(
         # Import the raw data
         if (pdate.year == 2023) and (metric == 'pdsi'):
             # In 2023 the capitalization of pdsi changed
-            metric = 'PDSI'
-        path = source_path(source, f'TerraClimate_{metric}_{pdate.year}.nc')
+            filename = f'TerraClimate_PDSI_{pdate.year}.nc'
+        else:
+            filename = f'TerraClimate_{metric}_{pdate.year}.nc'
+        path = BASE_DIR / DEFAULT_SOURCES_ROOT / source / filename
         logging.info('importing:%s', path)
         ds = nc.Dataset(path)
 
@@ -959,10 +922,10 @@ def process_terraclimate(
                 month_str = month.strftime('%B %Y')
                 title = f'{raw.description}\n{iso3} - {month_str}'
                 colourbar_label = f'{raw.description} [{raw.units}]'
-                path = Path(
-                    output_path(source), str(pdate).replace('-', '/'),
-                    f'admin_level_{admin_level}', title + '.png'
-                )
+                path = BASE_DIR / DEFAULT_OUTPUT_ROOT / source / \
+                    str(pdate).replace('-', '/') / \
+                    f'admin_level_{admin_level}' / \
+                    (title.replace('\n', ' - ') + '.png')
                 plot_gadm_macro_heatmap(
                     this_month, origin, extent, limits, gdf, zorder, title,
                     colourbar_label, path
@@ -1196,10 +1159,10 @@ PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
     'geospatial/chirps-rainfall': process_gadm_chirps_rainfall,
     'geospatial/gadm': process_gadm_admin_map_data,
     'geospatial/worldpop-count': process_gadm_worldpopcount,
-    'meteorological/aphrodite-daily-mean-temp': process_aphrodite_temperature_data,
-    'meteorological/aphrodite-daily-precip': process_aphrodite_precipitation_data,
+    'meteorological/aphrodite-daily-mean-temp': process_aphroditetemperature,
+    'meteorological/aphrodite-daily-precip': process_aphroditeprecipitation,
     'meteorological/chirps-rainfall': process_chirps_rainfall,
-    'meteorological/era5-reanalysis': process_era5_reanalysis_data,
+    'meteorological/era5-reanalysis': process_era5reanalysis,
     'meteorological/terraclimate': process_terraclimate,
     'sociodemographic/worldpop-count': process_worldpopcount,
     'sociodemographic/worldpop-density': process_worldpop_pop_density_data,

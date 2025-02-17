@@ -1,9 +1,9 @@
 INDEX
 =====
 
-`pytest tests/test_collate.py`
 
 ```
+pytest tests/test_collate.py
 ✅ def test_gadm_data():
 ✅ def test_relative_wealth_index():
 ✅ def test_ministerio_de_salud_peru_data():
@@ -23,6 +23,11 @@ pytest tests/test_collate_api.py
 ```
 pytest tests/test_geospatial_worldpop_count.py
 ✅ def test_process_gadm_worldpopcount(
+```
+
+```
+pytest tests/test_meteorological_era5reanalysis.py
+✅ def test_process_era5reanalysis(
 ```
 
 `pytest tests/test_plots.py`
@@ -47,6 +52,7 @@ pytest tests/test_geospatial_worldpop_count.py
 ✅ def test_process_aphrodite_temperature_data():
 ✅ def test_process_aphrodite_precipitation_data():
 ✅ def test_process_chirps_rainfall(
+✅ def process_era5reanalysis():
 ✅ def test_process_terraclimate(
 ✅ def test_process_worldpop_pop_count_data(
 ```

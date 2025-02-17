@@ -165,6 +165,9 @@ time uv run dart-pipeline get meteorological/era5-reanalysis d=2024-10-01 datase
 13.051s
 time uv run dart-pipeline get meteorological/era5-reanalysis d=2024-10-01 dataset=reanalysis-era5-single-levels
 3m53.526s
+
+time uv run dart-pipeline process meteorological/era5-reanalysis dataset=derived-era5-land-daily-statistics d=2024-10-01 l=INFO plots
+16.422s
 ```
 
 Socio-Demographic
