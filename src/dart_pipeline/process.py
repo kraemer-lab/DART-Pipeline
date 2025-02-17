@@ -51,7 +51,7 @@ from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS, BASE_DIR, \
 from .plots import \
     plot_heatmap, plot_gadm_micro_heatmap, plot_gadm_macro_heatmap, \
     plot_timeseries
-from .types import ProcessResult, PartialDate, AdminLevel
+from .types import ProcessResult, PartialDate
 from .util import \
     source_path, output_path, get_country_name, get_shapefile
 

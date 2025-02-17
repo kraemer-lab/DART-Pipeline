@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 import geopandas as gpd
 import pandas as pd
 
-from dart_pipeline.constants import BASE_DIR, OUTPUT_COLUMNS
+from dart_pipeline.constants import OUTPUT_COLUMNS
 from dart_pipeline.util import get_shapefile, get_country_name, output_path
 from dart_pipeline.types import AdminLevel
 
@@ -44,22 +44,18 @@ def process_gadm(iso3: str, admin_level: AdminLevel, plots=False):
 
         # Populate a row for the output data frame
         df.loc[i, 'admin_level_0'] = region['COUNTRY']
-        region_name = region['COUNTRY']
         # Update the new row and the region name if the admin level is high
         # enough
         if int(admin_level) >= 1:
             df.loc[i, 'admin_level_1'] = region['NAME_1']
-            region_name = region['NAME_1']
         else:
             df.loc[i, 'admin_level_1'] = None
         if int(admin_level) >= 2:
             df.loc[i, 'admin_level_2'] = region['NAME_2']
-            region_name = region['NAME_2']
         else:
             df.loc[i, 'admin_level_2'] = None
         if int(admin_level) >= 3:
             df.loc[i, 'admin_level_3'] = region['NAME_3']
-            region_name = region['NAME_3']
         else:
             df.loc[i, 'admin_level_3'] = None
 
