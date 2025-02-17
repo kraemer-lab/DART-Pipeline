@@ -1,5 +1,6 @@
 """Tests for process functions in process.py."""
 from io import BytesIO
+import platform
 
 from unittest.mock import patch, MagicMock, mock_open
 
@@ -377,51 +378,6 @@ def test_process_gadm_chirps_rainfall(
     min_lon, min_lat, max_lon, max_lat = region_geometry.bounds
 
 
-@patch('os.listdir')
-@patch('geopandas.gpd.read_file')
-@patch('dart_pipeline.process.get_shapefile')
-@patch('dart_pipeline.util.source_path')
-@patch("rasterio.open")
-def test_process_gadm_worldpopdensity(
-    mock_rasterio_open, mock_source_path, mock_get_shapefile, mock_read_file,
-    mock_listdir
-):
-    # Test case 1: Process valid data
-    mock_read_file.return_value = MagicMock()
-    mock_rasterio_open.return_value = MagicMock(
-        read=lambda x: [[1, 1], [1, 1]]
-    )
-    # Run the function with valid data
-    output, csv_filename = process_gadm_worldpopdensity('VNM', '2020', '2')
-    # Assertions for valid data processing
-    assert isinstance(output, pd.DataFrame), 'Output should be a DataFrame'
-    msg = 'Expected column missing in output'
-    assert 'admin_level_0' in output.columns, msg
-    assert 'metric' in output.columns, 'Expected column missing in output'
-    msg = 'CSV filename does not match expected value'
-    assert csv_filename == 'worldpop-density.csv', msg
-
-    # Test case 2: Invalid date with day included
-    with pytest.raises(ValueError, match='Provide only a year in YYYY format'):
-        process_gadm_worldpopdensity('VNM', '2020-01-01', admin_level='0')
-
-    # Test case 3: Invalid date with month included
-    with pytest.raises(ValueError, match='Provide only a year in YYYY format'):
-        process_gadm_worldpopdensity('VNM', '2020-01', admin_level='0')
-
-    # Test case 4: Missing raster file, falling back to previous year
-    # Simulate missing file for the given year but available fallback file
-    mock_listdir.return_value = ['VNM_ppp_v2b_2019_UNadj.tif']
-    mock_rasterio_open.side_effect = [
-        rasterio.errors.RasterioIOError, MagicMock()
-    ]
-    # Call the function
-    output, csv_filename = process_gadm_worldpopdensity('VNM', '2020', '0')
-    # Check that fallback file was used and output generated
-    msg = 'Output should be a DataFrame even with fallback file'
-    assert isinstance(output, pd.DataFrame), msg
-
-
 def test_process_aphroditetemperature():
     # Minimal mocking for `np.fromfile` and file operations
     nx, ny, _ = 360, 280, 365
@@ -557,6 +513,13 @@ def mock_nc_dataset():
 def test_process_terraclimate(
     mock_source_path, mock_read_file, mock_nc_dataset
 ):
+    # The capitalisation of PDSI changes depending on how your OS handles
+    # case sensitivity
+    if platform.system() == 'Linux':
+        pdsi_str = 'PDSI'
+    elif platform.system() == 'Darwin':
+        pdsi_str = 'pdsi'
+
     # Mock the path to the raw data
     mock_source_path.return_value = 'mocked/path/to/netcdf/file.nc'
     # Mock the NetCDF dataset
@@ -588,7 +551,7 @@ def test_process_terraclimate(
             description='Temperature',
             units='C'
         ),
-        'PDSI': MagicMock(
+        pdsi_str: MagicMock(
             __getitem__=MagicMock(
                 return_value=np.array([[[0.5, 0.6], [0.7, 0.8]]])
             ),

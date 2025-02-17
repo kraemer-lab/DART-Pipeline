@@ -68,7 +68,7 @@ class URLCollection:
         False  # do not create folders by default when unpacking
     )
 
-    def show(self, show_links: bool = False) -> str:
+    def show(self, show_links: bool = True) -> str:
         "Pretty printer for URLCollection"
         file_list_str = (
             self.files[0] if len(self.files) == 1 else f" [{len(self.files)} links]"
