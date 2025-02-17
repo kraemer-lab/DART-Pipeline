@@ -175,7 +175,7 @@ def test_aphrodite_temperature_data():
 
 def test_aphrodite_precipitation_data():
     """Test the collation of links for APHRODITE precipitation data."""
-    result = aphrodite_precipitation_data(unpack=True)
+    result = aphrodite_precipitation_data()
     # Base URL
     base_url = 'http://aphrodite.st.hirosaki-u.ac.jp'
     # Expected output

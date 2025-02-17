@@ -199,7 +199,7 @@ def aphrodite_temperature_data(unpack) -> list[URLCollection]:
     ]
 
 
-def aphrodite_precipitation_data(unpack) -> list[URLCollection]:
+def aphrodite_precipitation_data() -> list[URLCollection]:
     "APHRODITE Daily accumulated precipitation (V1901) [requires account]"
     base_url = "http://aphrodite.st.hirosaki-u.ac.jp"
     return [

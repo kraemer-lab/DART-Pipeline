@@ -98,6 +98,8 @@ data/**/*.html
 *.pyc
 venv
 __pycache__
+# syrupy
+*.ambr
 
 # Testing
 *.xml
