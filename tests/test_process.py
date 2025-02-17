@@ -1,5 +1,6 @@
 """Tests for process functions in process.py."""
 from io import BytesIO
+import platform
 
 from unittest.mock import patch, MagicMock, mock_open
 
@@ -509,6 +510,13 @@ def mock_nc_dataset():
 def test_process_terraclimate(
     mock_source_path, mock_read_file, mock_nc_dataset
 ):
+    # The capitalisation of PDSI changes depending on how your OS handles
+    # case sensitivity
+    if platform.system() == 'Linux':
+        pdsi_str = 'PDSI'
+    elif platform.system() == 'Darwin':
+        pdsi_str = 'pdsi'
+
     # Mock the path to the raw data
     mock_source_path.return_value = 'mocked/path/to/netcdf/file.nc'
     # Mock the NetCDF dataset
@@ -540,7 +548,7 @@ def test_process_terraclimate(
             description='Temperature',
             units='C'
         ),
-        'pdsi': MagicMock(
+        pdsi_str: MagicMock(
             __getitem__=MagicMock(
                 return_value=np.array([[[0.5, 0.6], [0.7, 0.8]]])
             ),
