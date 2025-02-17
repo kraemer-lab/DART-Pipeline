@@ -40,6 +40,7 @@ Geospatial
 ```
 uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp l=INFO unpack
 uv run dart-pipeline get geospatial/gadm 3=VNM
+uv run dart-pipeline process geospatial/aphrodite-daily-mean-temp 3=VNM a=0 d=2015-05-11 l=INFO
 uv run dart-pipeline process geospatial/aphrodite-daily-mean-temp 3=VNM a=0 d=2015-05-11 l=INFO plots
 uv run dart-pipeline process geospatial/aphrodite-daily-mean-temp 3=VNM a=1 d=2015-05-11 l=INFO plots
 uv run dart-pipeline process geospatial/aphrodite-daily-mean-temp 3=VNM a=3 d=2015-05-11 l=INFO plots
@@ -48,8 +49,9 @@ uv run dart-pipeline process geospatial/aphrodite-daily-mean-temp 3=VNM a=3 d=20
 ### APHRODITE Precipitation
 
 ```
-uv run dart-pipeline get meteorological/aphrodite-daily-precip unpack
+uv run dart-pipeline get meteorological/aphrodite-daily-precip -u
 uv run dart-pipeline get geospatial/gadm 3=VNM
+uv run dart-pipeline process geospatial/aphrodite-daily-precip 3=VNM a=0 d=2015-05-11 l=INFO
 uv run dart-pipeline process geospatial/aphrodite-daily-precip 3=VNM a=0 d=2015-05-11 l=INFO plots
 uv run dart-pipeline process geospatial/aphrodite-daily-precip 3=VNM a=1 d=2015-05-11 l=INFO plots
 uv run dart-pipeline process geospatial/aphrodite-daily-precip 3=VNM a=3 d=2015-05-11 l=INFO plots
@@ -61,6 +63,13 @@ uv run dart-pipeline process geospatial/aphrodite-daily-precip 3=VNM a=3 d=2015-
 uv run dart-pipeline process geospatial/chirps-rainfall 3=VNM d=2023 a=0 l=INFO plots
 uv run dart-pipeline process geospatial/chirps-rainfall 3=VNM d=2023-05 a=0 l=INFO plots
 uv run dart-pipeline process geospatial/chirps-rainfall 3=VNM d=2023-05-11 a=0 l=INFO plots
+```
+
+### ERA5 atmospheric reanalysis
+
+```
+uv run dart-pipeline process geospatial/era5-reanalysis dataset=derived-era5-land-daily-statistics 3=VNM a=0 d=2024-10-01 l=INFO plots
+uv run dart-pipeline process geospatial/era5-reanalysis dataset=derived-era5-land-daily-statistics 3=VNM a=1 d=2024-10-01 l=INFO plots
 ```
 
 ### Global Administrative Areas (GADM)
@@ -86,6 +95,14 @@ uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=2 d=2020 l=INFO p
 uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=3 d=2020 l=INFO plots
 ```
 
+### WorldPop Population Density
+
+```
+uv run dart-pipeline get sociodemographic/worldpop-density 3=PER
+uv run dart-pipeline get geospatial/gadm 3=VNM
+uv run dart-pipeline process geospatial/worldpop-density 3=VNM a=0 d=2020 l=INFO plots
+```
+
 Meteorological
 --------------
 
@@ -100,7 +117,7 @@ uv run dart-pipeline process meteorological/aphrodite-daily-mean-temp l=INFO plo
 ### APHRODITE Precipitation
 
 ```
-uv run dart-pipeline get meteorological/aphrodite-daily-precip unpack
+uv run dart-pipeline get meteorological/aphrodite-daily-precip -u
 uv run dart-pipeline process meteorological/aphrodite-daily-precip
 uv run dart-pipeline process meteorological/aphrodite-daily-precip plots
 ```
@@ -114,6 +131,17 @@ uv run dart-pipeline process meteorological/chirps-rainfall d=2023 l=INFO
 uv run dart-pipeline process meteorological/chirps-rainfall d=2023 l=INFO plots
 uv run dart-pipeline process meteorological/chirps-rainfall d=2023-05 l=INFO
 uv run dart-pipeline process meteorological/chirps-rainfall d=2023-05-11 l=INFO
+```
+
+### ERA5 atmospheric reanalysis
+
+```
+uv run dart-pipeline get meteorological/era5-reanalysis dataset=derived-era5-land-daily-statistics d=2024-10-01 l=INFO
+uv run dart-pipeline get meteorological/era5-reanalysis dataset=reanalysis-era5-complete d=2024-10-01 l=INFO
+uv run dart-pipeline get meteorological/era5-reanalysis dataset=reanalysis-era5-single-levels d=2024-10-01 l=INFO
+uv run dart-pipeline get meteorological/era5-reanalysis dataset=satellite-sea-ice-thickness d=2023 l=INFO
+
+uv run dart-pipeline process meteorological/era5-reanalysis dataset=derived-era5-land-daily-statistics d=2024-10-01 l=INFO plots
 ```
 
 ### TerraClimate
@@ -155,5 +183,8 @@ uv run dart-pipeline process sociodemographic/worldpop-count 3=VNM l=INFO
 
 ```
 uv run dart-pipeline get sociodemographic/worldpop-density 3=VNM
-uv run dart-pipeline process sociodemographic/worldpop-density iso3=VNM year=2023
+uv run dart-pipeline get sociodemographic/worldpop-density 3=PER
+
+uv run dart-pipeline process sociodemographic/worldpop-density 3=VNM d=2020 l=INFO plots
+uv run dart-pipeline process sociodemographic/worldpop-density 3=PER d=2020 l=INFO plots
 ```

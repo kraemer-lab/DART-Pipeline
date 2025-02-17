@@ -22,6 +22,7 @@ import pycountry
 import requests
 
 from .constants import (
+    BASE_DIR,
     DEFAULT_SOURCES_ROOT,
     DEFAULT_OUTPUT_ROOT,
     DEFAULT_PLOTS_ROOT,
@@ -82,7 +83,9 @@ def daterange(
         yield start_date + timedelta(n)
 
 
-def get_credentials(source: str, credentials: str | Path | None = None) -> Credentials:
+def get_credentials(
+    source: str, credentials: str | Path | None = None
+) -> Credentials:
     """
     Get a username and password pair from a credentials.json file.
 
@@ -134,7 +137,8 @@ def get_credentials(source: str, credentials: str | Path | None = None) -> Crede
 
     # fallback to file if no environment variable set
     credentials_path = (
-        Path("credentials.json") if credentials is None else Path(credentials)
+        Path(BASE_DIR, "credentials.json") if credentials is None else
+        Path(credentials)
     )
     if not credentials_path.exists():
         raise FileNotFoundError(
@@ -358,7 +362,7 @@ def update_or_create_output(
         return df
 
 
-def get_shapefile(iso3: str, admin_level: Literal["0", "1", "2"]) -> Path:
+def get_shapefile(iso3: str, admin_level: Literal["0", "1", "2", "3"]) -> Path:
     """Get a shape file."""
     return source_path(
         "geospatial/gadm",

@@ -60,6 +60,21 @@ time uv run dart-pipeline process geospatial/aphrodite-daily-mean-temp 3=VNM a=3
 5m35.019s
 ```
 
+### APHRODITE Precipitation
+
+```
+time uv run dart-pipeline get meteorological/aphrodite-daily-precip -u
+2.136s
+time uv run dart-pipeline get geospatial/gadm 3=VNM
+0.734s
+time uv run dart-pipeline process geospatial/aphrodite-daily-precip 3=VNM a=0 d=2015-05-11 l=INFO plots
+4.934s
+time uv run dart-pipeline process geospatial/aphrodite-daily-precip 3=VNM a=1 d=2015-05-11 l=INFO plots
+3.806s
+time uv run dart-pipeline process geospatial/aphrodite-daily-precip 3=VNM a=3 d=2015-05-11 l=INFO plots
+6m52.38s
+```
+
 ### CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations
 
 ```
@@ -69,6 +84,15 @@ time uv run dart-pipeline process geospatial/chirps-rainfall 3=VNM d=2023-05 a=0
 1.500s
 time uv run dart-pipeline process geospatial/chirps-rainfall 3=VNM d=2023-05-11 a=0 l=INFO plots
 1.474s
+```
+
+### ERA5 atmospheric reanalysis
+
+```
+time uv run dart-pipeline process geospatial/era5-reanalysis dataset=derived-era5-land-daily-statistics 3=VNM a=0 d=2024-10-01 l=INFO plots
+10.791s
+time uv run dart-pipeline process geospatial/era5-reanalysis dataset=derived-era5-land-daily-statistics 3=VNM a=1 d=2024-10-01 l=INFO plots
+47.208s
 ```
 
 ### Global Administrative Areas (GADM)
@@ -104,6 +128,15 @@ time uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=3 d=2020 l=I
 54.425s
 ```
 
+### WorldPop Population Density
+
+```
+time uv run dart-pipeline get sociodemographic/worldpop-density 3=PER
+time uv run dart-pipeline get geospatial/gadm 3=VNM unpack
+time uv run dart-pipeline process geospatial/worldpop-density 3=VNM a=0 d=2020 l=INFO plots
+1.513s
+```
+
 Meteorological
 --------------
 
@@ -127,6 +160,12 @@ time uv run dart-pipeline process meteorological/aphrodite-daily-mean-temp l=INF
 ```
 time uv run dart-pipeline get meteorological/aphrodite-daily-precip
 1m23.727s
+time uv run dart-pipeline get meteorological/aphrodite-daily-precip -u
+
+time uv run dart-pipeline process meteorological/aphrodite-daily-precip
+1.228s
+time uv run dart-pipeline process meteorological/aphrodite-daily-precip plots
+55.961s
 ```
 
 ### CHIRPS: Rainfall Estimates from Rain Gauge and Satellite Observations
@@ -171,6 +210,9 @@ time uv run dart-pipeline get meteorological/era5-reanalysis d=2024-10-01 datase
 13.051s
 time uv run dart-pipeline get meteorological/era5-reanalysis d=2024-10-01 dataset=reanalysis-era5-single-levels
 3m53.526s
+
+time uv run dart-pipeline process meteorological/era5-reanalysis dataset=derived-era5-land-daily-statistics d=2024-10-01 l=INFO plots
+16.422s
 ```
 
 Socio-Demographic
@@ -196,5 +238,10 @@ time uv run dart-pipeline process sociodemographic/worldpop-count 3=VNM l=INFO
 
 ```
 time uv run dart-pipeline get sociodemographic/worldpop-density 3=VNM
-time uv run dart-pipeline process sociodemographic/worldpop-density iso3=VNM year=2023
+time uv run dart-pipeline get sociodemographic/worldpop-density 3=PER
+
+time uv run dart-pipeline process sociodemographic/worldpop-density 3=VNM d=2020 l=INFO plots
+0.933s
+time uv run dart-pipeline process sociodemographic/worldpop-density 3=PER d=2020 l=INFO plots
+0.900s
 ```

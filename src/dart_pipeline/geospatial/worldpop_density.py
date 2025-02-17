@@ -1,4 +1,4 @@
-"""Module for processing WorldPop population count data."""
+"""Module for processing WorldPop population density data."""
 from datetime import datetime, date
 from pathlib import Path
 import logging
@@ -11,21 +11,19 @@ import rasterio
 import rasterio.mask
 import shapely.geometry
 
+from dart_pipeline.constants import OUTPUT_COLUMNS, MIN_FLOAT
+from dart_pipeline.plots import plot_gadm_macro_heatmap
+from dart_pipeline.types import PartialDate, AdminLevel
 from dart_pipeline.util import (
     source_path, get_shapefile, get_country_name, output_path
 )
-from dart_pipeline.plots import plot_gadm_macro_heatmap
-from dart_pipeline.constants import OUTPUT_COLUMNS, MIN_FLOAT
-from dart_pipeline.types import PartialDate, AdminLevel
 
-
-def process_gadm_worldpopcount(
+def process_gadm_worldpopdensity(
     iso3, partial_date: str, admin_level: AdminLevel = '0', rt: str = 'ppp',
     plots=False
 ):
     """Process GADM administrative map and WorldPop population count data."""
-    sub_pipeline = 'geospatial/worldpop-count'
-    iso3 = iso3.upper()
+    sub_pipeline = 'geospatial/worldpop-density'
     logging.info('iso3:%s', iso3)
     logging.info('partial_date:%s', partial_date)
     logging.info('admin_level:%s', admin_level)
@@ -43,8 +41,9 @@ def process_gadm_worldpopcount(
         raise ValueError(msg)
 
     # Import the GeoTIFF file
-    source = 'sociodemographic/worldpop-count'
-    path = Path(iso3, f'{iso3}_{rt}_v2b_{pdate.year}_UNadj.tif')
+    source = 'sociodemographic/worldpop-density'
+    iso3_lower = iso3.lower()
+    path = Path(iso3, f'{iso3_lower}_pd_{pdate.year}_1km_UNadj.tif')
     path = source_path(source, path)
     logging.info('importing:%s', path)
     try:
@@ -119,7 +118,9 @@ def process_gadm_worldpopcount(
         geometry = region.geometry
         if raster_bbox.intersects(geometry):
             # There is population data for this region
-            # Clip the data using the polygon of the current region
+            # Clip the data using the polygon of the current region. By
+            # default, a pixel is included only if its center is within one of
+            # the shapes
             region_data, _ = rasterio.mask.mask(src, [geometry], crop=True)
             # Replace negative values (if any exist)
             region_data = np.where(region_data < 0, np.nan, region_data)
@@ -131,10 +132,10 @@ def process_gadm_worldpopcount(
         logging.info('region:%s', title)
         logging.info('region_total:%s', region_total)
         # Add the result to the output data frame
-        metric = 'population'
+        metric = 'Population Density'
         output.loc[i, 'metric'] = metric
         output.loc[i, 'value'] = region_total
-        unit = 'people'
+        unit = 'people per pixel'
         output.loc[i, 'unit'] = unit
 
     # Create a plot
@@ -165,8 +166,5 @@ def process_gadm_worldpopcount(
         output['resolution'] = 'people per hectare'
     output['creation_date'] = date.today()
 
-    sub_pipeline = sub_pipeline.replace('/', '_')
-    filename = f'{iso3}_{sub_pipeline}_{partial_date}_{date.today()}.csv'
-
     # Export
-    return output.fillna(''), filename
+    return output.fillna(''), 'worldpop-density.csv'

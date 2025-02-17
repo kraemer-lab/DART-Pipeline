@@ -1,7 +1,10 @@
 """Global constants."""
 from pathlib import Path
 
-COMPRESSED_FILE_EXTS = [".tif.gz", ".tar.gz", ".tar.bz2", ".zip", ".7z"]
+COMPRESSED_FILE_EXTS = [
+    ".tif.gz", ".tar.gz", ".tar.bz2", ".zip", ".7z", '.gz', '.nc.gz',
+    '.ctl.gz', '.grd.gz'
+]
 
 INTEGER_PARAMS = ["year"]
 
