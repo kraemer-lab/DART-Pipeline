@@ -22,13 +22,19 @@ pytest tests/test_collate_api.py
 ```
 pytest tests/test_geospatial_aphroditeprecipitation.py
 ✅ def test_process_gadm_aphroditeprecipitation():
+pytest tests/test_geospatial_era5reanalysis.py
+✅ def test_process_gadm_era5reanalysis(
 pytest tests/test_geospatial_worldpop_count.py
 ✅ def test_process_gadm_worldpopcount(
+pytest tests/test_geospatial_worldpop_density.py
+✅ def test_process_gadm_worldpopdensity(
 ```
 
 ```
 pytest tests/test_meteorological_aphroditeprecipitation.py
 ✅ def test_process_aphrodite_precipitation_data():
+pytest tests/test_meteorological_era5reanalysis.py
+✅ def test_process_era5reanalysis(
 ```
 
 ```
@@ -45,18 +51,18 @@ pytest tests/test_plots.py
 pytest tests/test_process.py
 ✅ def test_process_rwi(
 ✅ def test_process_dengueperu(
+✅ def test_process_gadm_aphroditetemperature():
 ✅ def test_process_gadm_chirps_rainfall(
-✅ def test_process_gadm_worldpopcount(
-✅ def test_process_aphrodite_temperature_data():
-✅ def test_process_aphrodite_precipitation_data():
+✅ def test_process_aphroditetemperature():
 ✅ def test_process_chirps_rainfall(
 ✅ def test_process_terraclimate(
-✅ def test_process_worldpop_pop_count_data(
 ```
 
 ```
 pytest tests/test_sociodemographic_worldpop_count.py
 ✅ def test_process_worldpopcountdata(
+pytest tests/test_sociodemographic_worldpop_density.py
+✅ def test_process_worldpopdensity(
 ```
 
 ```

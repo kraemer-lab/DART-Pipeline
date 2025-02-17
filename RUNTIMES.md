@@ -86,6 +86,15 @@ time uv run dart-pipeline process geospatial/chirps-rainfall 3=VNM d=2023-05-11 
 1.474s
 ```
 
+### ERA5 atmospheric reanalysis
+
+```
+time uv run dart-pipeline process geospatial/era5-reanalysis dataset=derived-era5-land-daily-statistics 3=VNM a=0 d=2024-10-01 l=INFO plots
+10.791s
+time uv run dart-pipeline process geospatial/era5-reanalysis dataset=derived-era5-land-daily-statistics 3=VNM a=1 d=2024-10-01 l=INFO plots
+47.208s
+```
+
 ### Global Administrative Areas (GADM)
 
 ```
@@ -117,6 +126,15 @@ time uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=2 d=2020 l=I
 12.913s
 time uv run dart-pipeline process geospatial/worldpop-count 3=VNM a=3 d=2020 l=INFO plots
 54.425s
+```
+
+### WorldPop Population Density
+
+```
+time uv run dart-pipeline get sociodemographic/worldpop-density 3=PER
+time uv run dart-pipeline get geospatial/gadm 3=VNM unpack
+time uv run dart-pipeline process geospatial/worldpop-density 3=VNM a=0 d=2020 l=INFO plots
+1.513s
 ```
 
 Meteorological
@@ -186,6 +204,9 @@ time uv run dart-pipeline get meteorological/era5-reanalysis d=2024-10-01 datase
 13.051s
 time uv run dart-pipeline get meteorological/era5-reanalysis d=2024-10-01 dataset=reanalysis-era5-single-levels
 3m53.526s
+
+time uv run dart-pipeline process meteorological/era5-reanalysis dataset=derived-era5-land-daily-statistics d=2024-10-01 l=INFO plots
+16.422s
 ```
 
 Socio-Demographic
@@ -211,5 +232,10 @@ time uv run dart-pipeline process sociodemographic/worldpop-count 3=VNM l=INFO
 
 ```
 time uv run dart-pipeline get sociodemographic/worldpop-density 3=VNM
-time uv run dart-pipeline process sociodemographic/worldpop-density iso3=VNM year=2023
+time uv run dart-pipeline get sociodemographic/worldpop-density 3=PER
+
+time uv run dart-pipeline process sociodemographic/worldpop-density 3=VNM d=2020 l=INFO plots
+0.933s
+time uv run dart-pipeline process sociodemographic/worldpop-density 3=PER d=2020 l=INFO plots
+0.900s
 ```

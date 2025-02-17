@@ -52,9 +52,11 @@ from .util import daterange, use_range, get_country_name
 
 
 def gadm_data(iso3: str) -> URLCollection:
-    """Download and unpack GADM (Database of Global Administrative Areas) data.
+    """
+    Get URLs for GADM (Database of Global Administrative Areas) data.
 
-    See :doc:`geospatial` for more information."""
+    See :doc:`geospatial` for more information.
+    """
     return URLCollection(
         "https://geodata.ucdavis.edu/gadm/gadm4.1",
         [
