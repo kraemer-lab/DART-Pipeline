@@ -49,10 +49,10 @@ from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS, BASE_DIR, \
     DEFAULT_SOURCES_ROOT, DEFAULT_OUTPUT_ROOT, MIN_FLOAT
 from .plots import \
     plot_heatmap, plot_gadm_micro_heatmap, plot_gadm_macro_heatmap, \
-    plot_timeseries, plot_scatter, plot_gadm_scatter
+    plot_timeseries
 from .types import ProcessResult, PartialDate, AdminLevel
 from .util import \
-    source_path, days_in_year, output_path, get_country_name, get_shapefile
+    source_path, output_path, get_country_name, get_shapefile
 
 pandarallel.initialize(verbose=0)
 
