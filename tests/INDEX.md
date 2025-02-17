@@ -21,6 +21,11 @@ pytest tests/test_collate_api.py
 ```
 
 ```
+pytest tests/test_geospatial_era5reanalysis.py
+✅ def test_process_gadm_era5reanalysis(
+```
+
+```
 pytest tests/test_geospatial_worldpop_count.py
 ✅ def test_process_gadm_worldpopcount(
 ```
@@ -48,6 +53,7 @@ pytest tests/test_meteorological_era5reanalysis.py
 ✅ def test_process_dengueperu(
 ✅ def test_process_gadm_aphroditeprecipitation(
 ✅ def test_process_gadm_chirps_rainfall(
+✅ def test_process_gadm_era5reanalysis(
 ✅ def test_process_gadm_worldpopcount(
 ✅ def test_process_aphrodite_temperature_data():
 ✅ def test_process_aphrodite_precipitation_data():
