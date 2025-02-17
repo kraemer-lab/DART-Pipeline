@@ -2,10 +2,12 @@ INDEX
 =====
 
 ```
-geospatial/worldpop_count.py
-✅ def process_gadm_worldpopcount(
 geospatial/era5reanalysis.py
 ✅ def process_gadm_era5reanalysis(
+geospatial/worldpop_count.py
+✅ def process_gadm_worldpopcount(
+geospatial/worldpop_density.py
+✅ def process_gadm_worldpopdensity(
 ```
 
 ```
@@ -16,6 +18,8 @@ meteorological/era5reanalysis.py
 ```
 sociodemographic/worldpop_count.py
 ✅ def process_gadm_worldpopcount(
+sociodemographic/worldpop_density.py
+✅ def process_worldpopdensity(
 ```
 
 `__init__.py`
@@ -41,7 +45,7 @@ def relative_wealth_index(iso3: str) -> URLCollection:
 def terraclimate_data(year: int) -> URLCollection:
 def meta_pop_density_data(iso3: str) -> URLCollection:
 def worldpop_pop_count_data(iso3: str) -> URLCollection:
-def worldpop_pop_density_data(iso3: str) -> URLCollection:
+✅ def worldpop_pop_density_data(iso3: str) -> URLCollection:
 ```
 
 `collate_api.py`
@@ -60,13 +64,13 @@ def get_admin(x):
 ✅ def process_gadm_aphroditeprecipitation(
 ✅ def process_gadm_chirps_rainfall(
 def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
-✅ def process_aphrodite_temperature_data(year=None, plots=False) -> \
-✅ def process_aphrodite_precipitation_data(
+✅ def process_gadm_worldpopdensity(
+✅ def process_aphroditetemperature(year=None, plots=False) -> \
+✅ def process_aphroditeprecipitation(
 def get_chirps_rainfall_data_path(date: PartialDate) -> Path:
 def process_chirps_rainfall(partial_date: str, plots=False) -> ProcessResult:
 def process_terraclimate(
-def process_worldpop_pop_density_data(iso3: str, year: int) -> ProcessResult:
-def process_gadm_chirps_rainfall(
+✅ def process_worldpopdensity(
 def get_admin_region(lat: float, lon: float, polygons) -> str:
 ```
 

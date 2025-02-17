@@ -21,6 +21,7 @@ from dart_pipeline.process import \
     process_chirps_rainfall, \
     process_terraclimate
 
+
 # Smallest single-precision floating-point number
 MIN_FLOAT = -3.4028234663852886e38
 

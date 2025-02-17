@@ -35,8 +35,10 @@ import shapely.geometry
 
 from .geospatial.era5reanalysis import process_gadm_era5reanalysis
 from .geospatial.worldpop_count import process_gadm_worldpopcount
+from .geospatial.worldpop_density import process_gadm_worldpopdensity
 from .meteorological.era5reanalysis import process_era5reanalysis
 from .sociodemographic.worldpop_count import process_worldpopcount
+from .sociodemographic.worldpop_density import process_worldpopdensity
 from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS, BASE_DIR, \
     DEFAULT_SOURCES_ROOT, DEFAULT_OUTPUT_ROOT, MIN_FLOAT
 from .plots import \
@@ -582,7 +584,9 @@ def process_gadm_chirps_rainfall(
         geometry = region.geometry
         if raster_bbox.intersects(geometry):
             # There is rainfall data for this region
-            # Clip the data using the polygon of the current region
+            # Clip the data using the polygon of the current region. By
+            # default, a pixel is included only if its center is within one of
+            # the shapes
             region_data, _ = rasterio.mask.mask(src, [geometry], crop=True)
             # Replace negative values (if any exist)
             region_data = np.where(region_data < 0, np.nan, region_data)
@@ -1119,25 +1123,6 @@ def process_terraclimate(
     return output, 'terraclimate.csv'
 
 
-def process_worldpop_pop_density_data(iso3: str, year: int) -> ProcessResult:
-    """
-    Process WorldPop population density.
-    """
-    source = "sociodemographic/worldpop-density"
-    print(f"Source:      {source}")
-    print(f"Year:        {year}")
-    print(f"Country:     {iso3}")
-
-    # Import the population density data
-    iso3_lower = iso3.lower()
-    filename = Path(f"{iso3_lower}_pd_{year}_1km_UNadj_ASCII_XYZ")
-    base_path = source_path(
-        source, f"population-density/Global_2000_2020_1km_UNadj/{year}/{iso3}"
-    )
-    df = pd.read_csv(base_path / filename.with_suffix(".zip"))
-    return df, f"{iso3}/{filename.with_suffix('.csv')}"
-
-
 def get_admin_region(lat: float, lon: float, polygons) -> str:
     """
     Find the admin region in which a grid cell lies.
@@ -1162,11 +1147,12 @@ PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
     'geospatial/era5-reanalysis': process_gadm_era5reanalysis,
     'geospatial/gadm': process_gadm_admin_map_data,
     'geospatial/worldpop-count': process_gadm_worldpopcount,
+    'geospatial/worldpop-density': process_gadm_worldpopdensity,
     'meteorological/aphrodite-daily-mean-temp': process_aphroditetemperature,
     'meteorological/aphrodite-daily-precip': process_aphroditeprecipitation,
     'meteorological/chirps-rainfall': process_chirps_rainfall,
     'meteorological/era5-reanalysis': process_era5reanalysis,
     'meteorological/terraclimate': process_terraclimate,
     'sociodemographic/worldpop-count': process_worldpopcount,
-    'sociodemographic/worldpop-density': process_worldpop_pop_density_data,
+    'sociodemographic/worldpop-density': process_worldpopdensity,
 }

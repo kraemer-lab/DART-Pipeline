@@ -1,7 +1,6 @@
 INDEX
 =====
 
-
 ```
 pytest tests/test_collate.py
 ✅ def test_gadm_data():
@@ -31,13 +30,17 @@ pytest tests/test_geospatial_worldpop_count.py
 ```
 
 ```
+pytest tests/test_geospatial_worldpop_density.py
+✅ def test_process_gadm_worldpopdensity(
+```
+
+```
 pytest tests/test_meteorological_era5reanalysis.py
 ✅ def test_process_era5reanalysis(
 ```
 
-`pytest tests/test_plots.py`
-
 ```
+pytest tests/test_plots.py
 ✅ def test_plot_heatmap(
 ✅ def test_plot_gadm_micro_heatmap(
 ✅ def test_plot_gadm_macro_heatmap(
@@ -46,26 +49,32 @@ pytest tests/test_meteorological_era5reanalysis.py
 ✅ def test_plot_gadm_scatter(mock_mkdir, mock_savefig, mock_close):
 ```
 
-`pytest tests/test_process.py`
-
 ```
+pytest tests/test_process.py
 ✅ def test_process_rwi(
 ✅ def test_process_dengueperu(
 ✅ def test_process_gadm_aphroditeprecipitation(
 ✅ def test_process_gadm_chirps_rainfall(
 ✅ def test_process_gadm_era5reanalysis(
 ✅ def test_process_gadm_worldpopcount(
+✅ def test_process_gadm_worldpopdensity
 ✅ def test_process_aphrodite_temperature_data():
 ✅ def test_process_aphrodite_precipitation_data():
 ✅ def test_process_chirps_rainfall(
 ✅ def process_era5reanalysis():
 ✅ def test_process_terraclimate(
 ✅ def test_process_worldpop_pop_count_data(
+✅ def test_process_worldpopdensity(
 ```
 
 ```
-test_sociodemographic_worldpop_count.py
+pytest tests/test_sociodemographic_worldpop_count.py
 ✅ def test_process_worldpopcountdata(
+```
+
+```
+pytest tests/test_sociodemographic_worldpop_density.py
+✅ def test_process_worldpopdensity(
 ```
 
 `pytest tests/test_util.py`
