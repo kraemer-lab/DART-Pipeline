@@ -26,6 +26,8 @@ pytest tests/test_geospatial_aphroditetemperature.py
 ✅ def test_process_gadm_aphroditetemperature():
 pytest tests/test_geospatial_era5reanalysis.py
 ✅ def test_process_gadm_era5reanalysis(
+pytest tests/test_geospatial_gadm.py
+✅ def test_process_gadm(
 pytest tests/test_geospatial_worldpop_count.py
 ✅ def test_process_gadm_worldpopcount(
 pytest tests/test_geospatial_worldpop_density.py

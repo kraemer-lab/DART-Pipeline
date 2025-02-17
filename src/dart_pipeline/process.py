@@ -37,6 +37,7 @@ from .geospatial.aphroditeprecipitation import \
     process_gadm_aphroditeprecipitation
 from .geospatial.aphroditetemperature import process_gadm_aphroditetemperature
 from .geospatial.era5reanalysis import process_gadm_era5reanalysis
+from .geospatial.gadm import process_gadm
 from .geospatial.worldpop_count import process_gadm_worldpopcount
 from .geospatial.worldpop_density import process_gadm_worldpopdensity
 from .meteorological.aphroditeprecipitation import \
@@ -364,48 +365,6 @@ def process_gadm_chirps_rainfall(
     return output, f'{iso3}.csv'
 
 
-def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
-    """Process GADM administrative map data."""
-    gdf = gpd.read_file(get_shapefile(iso3, admin_level))
-
-    # en.wikipedia.org/wiki/List_of_national_coordinate_reference_systems
-    national_crs = {
-        "GBR": "EPSG:27700",
-        "PER": "EPSG:24892",  # Peru central zone
-        "VNM": "EPSG:4756",
-    }
-    try:
-        gdf = gdf.to_crs(national_crs[iso3])
-    except KeyError:
-        pass
-
-    # Initialise output data frame
-    output = pd.DataFrame()
-    # Iterate over the regions in the shape file
-    for _, region in gdf.iterrows():
-        # Initialise a new row for the output data frame
-        new_row = {"Admin Level 0": region["COUNTRY"]}
-        # Initialise the title
-        # Update the new row and the title if the admin level is high enough
-        if int(admin_level) >= 1:
-            new_row["Admin Level 1"] = region["NAME_1"]
-        if int(admin_level) >= 2:
-            new_row["Admin Level 2"] = region["NAME_2"]
-        if int(admin_level) >= 3:
-            new_row["Admin Level 3"] = region["NAME_3"]
-
-        # Calculate area in square metres
-        area = region.geometry.area
-        # Convert to square kilometres
-        area_sq_km = area / 1e6
-        # Add to output data frame
-        new_row["Area [km²]"] = area_sq_km
-        new_row_df = pd.DataFrame(new_row, index=[0])
-        output = pd.concat([output, new_row_df], ignore_index=True)
-
-    return output, f"{iso3}/admin{admin_level}_area.csv"
-
-
 def get_chirps_rainfall_data_path(date: PartialDate) -> Path:
     """Get the path to a CHIRPS rainfall data file."""
     file = None
@@ -667,7 +626,7 @@ PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
     'geospatial/aphrodite-daily-precip': process_gadm_aphroditeprecipitation,
     'geospatial/chirps-rainfall': process_gadm_chirps_rainfall,
     'geospatial/era5-reanalysis': process_gadm_era5reanalysis,
-    'geospatial/gadm': process_gadm_admin_map_data,
+    'geospatial/gadm': process_gadm,
     'geospatial/worldpop-count': process_gadm_worldpopcount,
     'geospatial/worldpop-density': process_gadm_worldpopdensity,
     'meteorological/aphrodite-daily-mean-temp': process_aphroditetemperature,

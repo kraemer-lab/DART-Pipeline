@@ -323,6 +323,7 @@ def update_or_create_output(
         # Import the existing CSV with everything as a string
         old_df = pd.read_csv(out, dtype=str)
         old_df.fillna('', inplace=True)
+        old_df = old_df.astype(str)
         # Convert the new data frame to str
         new_df = new_df.astype(str)
         new_df.fillna('', inplace=True)

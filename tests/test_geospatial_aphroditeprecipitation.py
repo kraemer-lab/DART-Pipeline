@@ -20,7 +20,7 @@ class MockFile(BytesIO):
 def test_process_gadm_aphroditeprecipitation():
     iso3 = 'VNM'
     admin_level = '0'
-    partial_date = '2023-07'
+    partial_date = '2023-07-11'
     resolution = ['025deg']
     plots = False
 

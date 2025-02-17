@@ -8,6 +8,8 @@ geospatial/aphroditetemperature.py
 ✅ def process_gadm_aphroditetemperature(
 geospatial/era5reanalysis.py
 ✅ def process_gadm_era5reanalysis(
+geospatial/gadm.py
+✅ def process_gadm(iso3: str, admin_level: AdminLevel):
 geospatial/worldpop_count.py
 ✅ def process_gadm_worldpopcount(
 geospatial/worldpop_density.py
@@ -79,7 +81,6 @@ def worldpop_pop_count_data(iso3: str) -> URLCollection:
 def process_rwi(iso3: str, admin_level: str, plots=False):
 ✅ def process_dengueperu(
 ✅ def process_gadm_chirps_rainfall(
-def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
 def get_chirps_rainfall_data_path(date: PartialDate) -> Path:
 def process_chirps_rainfall(partial_date: str, plots=False) -> ProcessResult:
 def process_terraclimate(
