@@ -38,7 +38,7 @@ from .geospatial.worldpop_count import process_gadm_worldpopcount
 from .meteorological.era5reanalysis import process_era5reanalysis
 from .sociodemographic.worldpop_count import process_worldpopcount
 from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS, BASE_DIR, \
-    DEFAULT_SOURCES_ROOT, MIN_FLOAT
+    DEFAULT_SOURCES_ROOT, DEFAULT_OUTPUT_ROOT, MIN_FLOAT
 from .plots import \
     plot_heatmap, plot_gadm_micro_heatmap, plot_gadm_macro_heatmap, \
     plot_timeseries, plot_scatter, plot_gadm_scatter
@@ -1037,6 +1037,24 @@ def process_terraclimate(
 
             # Extract the data for the chosen month
             this_month = data[i, :, :]
+
+            # Plot
+            if plots:
+                origin = 'upper'
+                extent = [lon.min(), lon.max(), lat.min(), lat.max()]
+                limits = gdf.total_bounds
+                zorder = 1
+                month_str = month.strftime('%B %Y')
+                title = f'{raw.description}\n{iso3} - {month_str}'
+                colourbar_label = f'{raw.description} [{raw.units}]'
+                path = BASE_DIR / DEFAULT_OUTPUT_ROOT / source / \
+                    str(pdate).replace('-', '/') / \
+                    f'admin_level_{admin_level}' / \
+                    (title.replace('\n', ' - ') + '.png')
+                plot_gadm_macro_heatmap(
+                    this_month, origin, extent, limits, gdf, zorder, title,
+                    colourbar_label, path
+                )
 
             # Iterate over the regions in the shape file
             for j, region in gdf.iterrows():

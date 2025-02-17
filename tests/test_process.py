@@ -540,7 +540,7 @@ def test_process_terraclimate(
             description='Temperature',
             units='C'
         ),
-        'PDSI': MagicMock(
+        'pdsi': MagicMock(
             __getitem__=MagicMock(
                 return_value=np.array([[[0.5, 0.6], [0.7, 0.8]]])
             ),
