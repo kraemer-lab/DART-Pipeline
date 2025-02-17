@@ -51,7 +51,7 @@ from .types import URLCollection, DataFile, PartialDate
 from .util import daterange, use_range, get_country_name
 
 
-def gadm_data(iso3: str) -> URLCollection:
+def gadm(iso3: str) -> URLCollection:
     """
     Get URLs for GADM (Database of Global Administrative Areas) data.
 
@@ -403,7 +403,7 @@ SOURCES: dict[
 ] = {
     'economic/relative-wealth-index': relative_wealth_index,
     'epidemiological/dengue/peru': ministerio_de_salud_peru_data,
-    'geospatial/gadm': gadm_data,
+    'geospatial/gadm': gadm,
     'meteorological/aphrodite-daily-mean-temp': aphrodite_temperature_data,
     'meteorological/aphrodite-daily-precip': aphrodite_precipitation_data,
     'meteorological/chirps-rainfall': chirps_rainfall_data,
