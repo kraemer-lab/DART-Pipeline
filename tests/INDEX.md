@@ -1,7 +1,6 @@
 INDEX
 =====
 
-
 ```
 pytest tests/test_collate.py
 ✅ def test_gadm_data():
@@ -28,6 +27,11 @@ pytest tests/test_geospatial_era5reanalysis.py
 ```
 pytest tests/test_geospatial_worldpop_count.py
 ✅ def test_process_gadm_worldpopcount(
+```
+
+```
+pytest tests/test_geospatial_worldpop_density.py
+✅ def test_process_gadm_worldpopdensity(
 ```
 
 ```

@@ -2,10 +2,12 @@ INDEX
 =====
 
 ```
-geospatial/worldpop_count.py
-✅ def process_gadm_worldpopcount(
 geospatial/era5reanalysis.py
 ✅ def process_gadm_era5reanalysis(
+geospatial/worldpop_count.py
+✅ def process_gadm_worldpopcount(
+geospatial/worldpop_density.py
+✅ def process_gadm_worldpopdensity(
 ```
 
 ```

@@ -35,6 +35,7 @@ import shapely.geometry
 
 from .geospatial.era5reanalysis import process_gadm_era5reanalysis
 from .geospatial.worldpop_count import process_gadm_worldpopcount
+from .geospatial.worldpop_density import process_gadm_worldpopdensity
 from .meteorological.era5reanalysis import process_era5reanalysis
 from .sociodemographic.worldpop_count import process_worldpopcount
 from .sociodemographic.worldpop_density import process_worldpopdensity
