@@ -9,7 +9,6 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import pytest
-import rasterio
 
 from dart_pipeline.process import \
     process_rwi, \
@@ -17,7 +16,6 @@ from dart_pipeline.process import \
     process_gadm_aphroditetemperature, \
     process_gadm_aphroditeprecipitation, \
     process_gadm_chirps_rainfall, \
-    process_gadm_worldpopdensity, \
     process_aphroditetemperature, \
     process_aphroditeprecipitation, \
     process_chirps_rainfall, \
