@@ -16,6 +16,7 @@ dependencies = [
     "pandas>=2.2",
     "py7zr==0.20.6",
     "pycountry==24.6.1",
+    "pyquadkey2>0.3.0",
     "rasterio==1.*",
     "requests>=2",
     "shapely>2.0.5",

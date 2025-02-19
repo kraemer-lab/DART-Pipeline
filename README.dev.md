@@ -163,6 +163,19 @@ uv run dart-pipeline get meteorological/era5-reanalysis d=2024-10-01 dataset=rea
 uv run dart-pipeline get meteorological/era5-reanalysis d=2024-10-01 dataset=reanalysis-era5-single-levels l=INFO
 ```
 
+Population-Weighted
+-------------------
+
+### Relative Wealth Index
+
+```
+uv run dart-pipeline get economic/relative-wealth-index 3=VNM
+uv run dart-pipeline get geospatial/gadm 3=VNM
+uv run dart-pipeline get sociodemographic/worldpop-density 3=VNM
+
+uv run dart-pipeline process population-weighted/relative-wealth-index 3=VNM d=2020 l=INFO plots
+```
+
 Socio-Demographic
 -----------------
 
