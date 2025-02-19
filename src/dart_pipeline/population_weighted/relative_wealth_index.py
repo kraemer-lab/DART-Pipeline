@@ -41,6 +41,14 @@ def get_point_in_polygon(lat: float, lon: float, polygons: dict) -> str:
     return 'null'
 
 
+def process_row(row, polygons, zoom=15):
+    lat, lon = float(row['latitude']), float(row['longitude'])
+    geo_id = get_point_in_polygon(lat, lon, polygons)
+    qk = str(quadkey.from_geo((lat, lon), zoom))
+
+    return pd.Series([geo_id, qk])
+
+
 def process_gadm_popdensity_rwi(
     iso3: str, partial_date: str, admin_level: AdminLevel = '2', plots=False
 ) -> ProcessResult:
@@ -80,12 +88,7 @@ def process_gadm_popdensity_rwi(
     logging.info('importing:%s', path)
     rwi = pd.read_csv(path)
     # Assign each RWI value to an administrative region
-    rwi['geo_id'] = rwi.apply(
-        lambda x: get_point_in_polygon(
-            x['latitude'], x['longitude'], polygons
-        ),
-        axis=1
-    )
+    rwi[['geo_id', 'quadkey']] = rwi.apply(lambda x: process_row(x, polygons), axis=1)
     rwi = rwi[rwi['geo_id'] != 'null']
 
     # Import population density data
