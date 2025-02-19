@@ -215,6 +215,20 @@ time uv run dart-pipeline process meteorological/era5-reanalysis dataset=derived
 16.422s
 ```
 
+Population-Weighted
+-------------------
+
+### Relative Wealth Index
+
+```
+time uv run dart-pipeline get economic/relative-wealth-index 3=VNM
+time uv run dart-pipeline get geospatial/gadm 3=VNM
+time uv run dart-pipeline get sociodemographic/meta-pop-density 3=VNM --unpack
+11m43.312s
+
+time uv run dart-pipeline process population-weighted/relative-wealth-index 3=VNM d=2020 l=INFO plots
+```
+
 Socio-Demographic
 -----------------
 

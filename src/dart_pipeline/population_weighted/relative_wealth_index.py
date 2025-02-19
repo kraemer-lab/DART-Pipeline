@@ -5,12 +5,10 @@ See the tutorial here:
 https://dataforgood.facebook.com/dfg/docs/tutorial-calculating-population-weigh
 ted-relative-wealth-index
 """
-from datetime import date
-from pathlib import Path
 import logging
 
 from pyquadkey2 import quadkey
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Point
 import contextily
 import geopandas as gpd
 import matplotlib.pyplot as plt

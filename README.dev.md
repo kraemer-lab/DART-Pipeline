@@ -171,7 +171,7 @@ Population-Weighted
 ```
 uv run dart-pipeline get economic/relative-wealth-index 3=VNM
 uv run dart-pipeline get geospatial/gadm 3=VNM
-uv run dart-pipeline get sociodemographic/worldpop-density 3=VNM
+uv run dart-pipeline get sociodemographic/meta-pop-density 3=VNM --unpack
 
 uv run dart-pipeline process population-weighted/relative-wealth-index 3=VNM d=2020 l=INFO plots
 ```
