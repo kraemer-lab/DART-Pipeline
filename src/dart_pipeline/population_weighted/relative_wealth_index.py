@@ -44,7 +44,7 @@ def get_point_in_polygon(lat: float, lon: float, polygons: dict) -> str:
 def process_row(row, polygons, zoom=15):
     lat, lon = float(row['latitude']), float(row['longitude'])
     geo_id = get_point_in_polygon(lat, lon, polygons)
-    qk = str(quadkey.from_geo((lat, lon), zoom))
+    qk = quadkey.from_geo((lat, lon), zoom)
 
     return pd.Series([geo_id, qk])
 
@@ -88,7 +88,9 @@ def process_gadm_popdensity_rwi(
     logging.info('importing:%s', path)
     rwi = pd.read_csv(path)
     # Assign each RWI value to an administrative region
-    rwi[['geo_id', 'quadkey']] = rwi.apply(lambda x: process_row(x, polygons), axis=1)
+    rwi[['geo_id', 'quadkey']] = rwi.apply(
+        lambda x: process_row(x, polygons), axis=1
+    )
     rwi = rwi[rwi['geo_id'] != 'null']
 
     # Import population density data
@@ -109,7 +111,7 @@ def process_gadm_popdensity_rwi(
     bing_tile_z14 = population.groupby(
         'quadkey', as_index=False
     )[f'pop_{year}'].sum()
-    bing_tile_z14['quadkey'] = bing_tile_z14['quadkey'].astype(np.int64)
+    bing_tile_z14['quadkey'] = bing_tile_z14['quadkey'].astype(str)
 
     # Merge the RWI and population density data
     rwi_pop = rwi.merge(
@@ -124,6 +126,8 @@ def process_gadm_popdensity_rwi(
 
     # Merge the population-weight RWI data with the GADM shapefile
     rwi = shapefile.merge(geo_rwi, left_on=admin_geoid, right_on='geo_id')
+
+    print(rwi.head())
 
     # Plot
     if plots:
@@ -147,3 +151,8 @@ def process_gadm_popdensity_rwi(
         path.parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(path)
         plt.close()
+
+    # sub_pipeline = sub_pipeline.replace('/', '_')
+    # filename = f'{iso3}_{sub_pipeline}_{year}_{date.today()}.csv'
+
+    # return df.fillna(''), filename
