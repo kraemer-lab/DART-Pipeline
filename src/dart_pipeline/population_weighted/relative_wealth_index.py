@@ -1,10 +1,13 @@
 """
-Module for processing population-weighted Relative Wealth Index.
+Processing and aggregation of population-weighted Relative Wealth Index.
 
 See the tutorial here:
 https://dataforgood.facebook.com/dfg/docs/tutorial-calculating-population-weigh
 ted-relative-wealth-index
+
+Originally adapted by Prathyush Sambaturu.
 """
+from datetime import date
 import logging
 
 from pyquadkey2 import quadkey
@@ -12,15 +15,15 @@ from shapely.geometry import Point
 import contextily
 import geopandas as gpd
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 
+from dart_pipeline.constants import OUTPUT_COLUMNS
 from dart_pipeline.types import ProcessResult, PartialDate, AdminLevel
 from dart_pipeline.util import get_country_name, get_shapefile, source_path, \
     output_path
 
 
-def get_point_in_polygon(lat: float, lon: float, polygons: dict) -> str:
+def get_geo_id(lat: float, lon: float, polygons: dict) -> str:
     """
     Find the administrative region ID containing a given point.
 
@@ -34,19 +37,16 @@ def get_point_in_polygon(lat: float, lon: float, polygons: dict) -> str:
         str: The ID of the region containing the point, or 'null' if not found.
     """
     point = Point(lon, lat)
-    for geo_id, polygon in polygons.items():
+    for geo_id in polygons:
+        polygon = polygons[geo_id]
         if polygon.contains(point):
             return geo_id
-
     return 'null'
 
 
-def process_row(row, polygons, zoom=15):
-    lat, lon = float(row['latitude']), float(row['longitude'])
-    geo_id = get_point_in_polygon(lat, lon, polygons)
-    qk = quadkey.from_geo((lat, lon), zoom)
-
-    return pd.Series([geo_id, qk])
+def get_quadkey(x, zoom_level):
+    """Get the quadkey for a latitude and longitude at a zoom level."""
+    return str(quadkey.from_geo((x['latitude'], x['longitude']), zoom_level))
 
 
 def process_gadm_popdensity_rwi(
@@ -55,13 +55,13 @@ def process_gadm_popdensity_rwi(
     """
     Process population-weighted Relative Wealth Index data.
 
-    Original author: Prathyush Sambaturu
-
     Purpose: Preprocess and aggregate Relative Wealth Index scores for
     administrative regions (admin2 or admin3) of Vietnam. The code for
     aggregation is adapted from the following tutorial:
     https://dataforgood.facebook.com/dfg/docs/tutorial-calculating-population-
     weighted-relative-wealth-index
+
+    Originally adapted by Prathyush Sambaturu.
     """
     sub_pipeline = 'population-weighted/relative-wealth-index'
     logging.info('iso3:%s', iso3)
@@ -72,6 +72,9 @@ def process_gadm_popdensity_rwi(
     year = pdate.year
     logging.info('admin_level:%s', admin_level)
     logging.info('plots:%s', plots)
+
+    # Zoom level 14 is ~2.4km Bing tile
+    zoom_level = 14
 
     # Import the GADM shape file
     path = get_shapefile(iso3, admin_level)
@@ -88,10 +91,12 @@ def process_gadm_popdensity_rwi(
     logging.info('importing:%s', path)
     rwi = pd.read_csv(path)
     # Assign each RWI value to an administrative region
-    rwi[['geo_id', 'quadkey']] = rwi.apply(
-        lambda x: process_row(x, polygons), axis=1
+    rwi['geo_id'] = rwi.apply(
+        lambda x: get_geo_id(x['latitude'], x['longitude'], polygons),
+        axis=1
     )
     rwi = rwi[rwi['geo_id'] != 'null']
+    rwi['quadkey'] = rwi.apply(lambda x: get_quadkey(x, zoom_level), axis=1)
 
     # Import population density data
     source = 'sociodemographic/meta-pop-density'
@@ -105,18 +110,14 @@ def process_gadm_popdensity_rwi(
     )
     # Aggregates the data by Bing tiles at zoom level 14
     population['quadkey'] = population.apply(
-        lambda x: str(quadkey.from_geo((x['latitude'], x['longitude']), 14)),
-        axis=1
+        lambda x: get_quadkey(x, zoom_level), axis=1
     )
-    bing_tile_z14 = population.groupby(
+    population = population.groupby(
         'quadkey', as_index=False
     )[f'pop_{year}'].sum()
-    bing_tile_z14['quadkey'] = bing_tile_z14['quadkey'].astype(str)
 
     # Merge the RWI and population density data
-    rwi_pop = rwi.merge(
-        bing_tile_z14[['quadkey', f'pop_{year}']], on='quadkey', how='inner'
-    )
+    rwi_pop = rwi.merge(population, on='quadkey', how='inner')
     geo_pop = rwi_pop.groupby('geo_id', as_index=False)[f'pop_{year}'].sum()
     geo_pop = geo_pop.rename(columns={f'pop_{year}': f'geo_{year}'})
     rwi_pop = rwi_pop.merge(geo_pop, on='geo_id', how='inner')
@@ -126,8 +127,6 @@ def process_gadm_popdensity_rwi(
 
     # Merge the population-weight RWI data with the GADM shapefile
     rwi = shapefile.merge(geo_rwi, left_on=admin_geoid, right_on='geo_id')
-
-    print(rwi.head())
 
     # Plot
     if plots:
@@ -144,7 +143,7 @@ def process_gadm_popdensity_rwi(
             ax, crs={'init': 'epsg:4326'},
             source=contextily.providers.OpenStreetMap.Mapnik
         )
-        plt.title('Relative Wealth Index scores of regions in Vietnam')
+        plt.title('Population-Weighted Relative Wealth Index')
         plt.legend()
         # Export
         path = output_path(sub_pipeline, f'{iso3}/admin_level_{admin_level}')
@@ -152,7 +151,44 @@ def process_gadm_popdensity_rwi(
         plt.savefig(path)
         plt.close()
 
-    # sub_pipeline = sub_pipeline.replace('/', '_')
-    # filename = f'{iso3}_{sub_pipeline}_{year}_{date.today()}.csv'
+    print(rwi.head())
 
-    # return df.fillna(''), filename
+    # Format the output data frame
+    columns = {
+        'GID_0': 'iso3',
+        'COUNTRY': 'admin_level_0',
+        'NAME_1': 'admin_level_1',
+        'NAME_2': 'admin_level_2',
+        'NAME_3': 'admin_level_3',
+        'rwi_weight': 'value',
+    }
+    rwi = rwi.rename(columns=columns)
+    if admin_level == '0':
+        rwi['admin_level_1'] = None
+        rwi['admin_level_2'] = None
+        rwi['admin_level_3'] = None
+    elif admin_level == '1':
+        rwi['admin_level_2'] = None
+        rwi['admin_level_3'] = None
+    elif admin_level == '2':
+        rwi['admin_level_3'] = None
+    rwi['year'] = year
+    if pdate.month:
+        rwi['month'] = pdate.month
+    else:
+        rwi['month'] = None
+    if pdate.day:
+        rwi['day'] = pdate.day
+    else:
+        rwi['day'] = None
+    rwi['week'] = None
+    rwi['metric'] = 'Population-weighted relative wealth index'
+    rwi['unit'] = 'unitless'
+    rwi['resolution'] = '~2.4 km'
+    rwi['creation_date'] = date.today()
+    rwi = rwi[OUTPUT_COLUMNS]
+
+    sub_pipeline = sub_pipeline.replace('/', '_')
+    filename = f'{iso3}_{sub_pipeline}_{year}_{date.today()}.csv'
+
+    return rwi.fillna(''), filename
