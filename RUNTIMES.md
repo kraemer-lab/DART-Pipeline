@@ -222,11 +222,20 @@ Population-Weighted
 
 ```
 time uv run dart-pipeline get economic/relative-wealth-index 3=VNM
-time uv run dart-pipeline get geospatial/gadm 3=VNM
+8.243s
+time uv run dart-pipeline get geospatial/gadm 3=VNM --unpack
+15.217s
 time uv run dart-pipeline get sociodemographic/meta-pop-density 3=VNM --unpack
 11m43.312s
 
-time uv run dart-pipeline process population-weighted/relative-wealth-index 3=VNM d=2020 l=INFO plots
+time uv run dart-pipeline process population-weighted/relative-wealth-index 3=VNM a=0 l=INFO plots
+9m2.44s
+time uv run dart-pipeline process population-weighted/relative-wealth-index 3=VNM a=1 l=INFO plots
+2m33.13s
+time uv run dart-pipeline process population-weighted/relative-wealth-index 3=VNM a=2 l=INFO plots
+3m6.37s
+time uv run dart-pipeline process population-weighted/relative-wealth-index 3=VNM a=3 l=INFO plots
+13m41.98s
 ```
 
 Socio-Demographic

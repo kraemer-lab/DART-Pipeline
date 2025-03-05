@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Literal, Callable
 import logging
 import os
+import platform
 import re
 
 from matplotlib import pyplot as plt
@@ -524,8 +525,14 @@ def process_terraclimate(
         # Import the raw data
         if (pdate.year == 2023) and (metric == 'pdsi'):
             # In 2023 the capitalization of pdsi changed
-            filename = f'TerraClimate_PDSI_{pdate.year}.nc'
-            metric = 'PDSI'
+            # The capitalisation of PDSI changes depending on how your OS
+            # handles case sensitivity
+            if platform.system() == 'Linux':
+                filename = f'TerraClimate_PDSI_{pdate.year}.nc'
+                metric = 'PDSI'
+            elif platform.system() == 'Darwin':
+                filename = f'TerraClimate_pdsi_{pdate.year}.nc'
+                metric = 'pdsi'
         else:
             filename = f'TerraClimate_{metric}_{pdate.year}.nc'
         path = BASE_DIR / DEFAULT_SOURCES_ROOT / source / filename

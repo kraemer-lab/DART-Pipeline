@@ -50,7 +50,8 @@ def get_quadkey(x, zoom_level):
 
 
 def process_gadm_popdensity_rwi(
-    iso3: str, partial_date: str, admin_level: AdminLevel = '2', plots=False
+    iso3: str, partial_date: str = '2020', admin_level: AdminLevel = '2',
+    plots=False
 ) -> ProcessResult:
     """
     Process population-weighted Relative Wealth Index data.
@@ -147,6 +148,7 @@ def process_gadm_popdensity_rwi(
         # Export
         path = output_path(sub_pipeline, f'{iso3}/admin_level_{admin_level}')
         path.parent.mkdir(parents=True, exist_ok=True)
+        logging.info('exporting:%s', path)
         plt.savefig(path)
         plt.close()
 
