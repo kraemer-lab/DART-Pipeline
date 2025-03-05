@@ -130,28 +130,25 @@ def process_gadm_popdensity_rwi(
 
     # Plot
     if plots:
-        _, ax = plt.subplots(figsize=(15, 12))
+        _, ax = plt.subplots()
         rwi.plot(
             ax=ax,
             column='rwi_weight',
-            marker='o',
-            markersize=1,
             legend=True,
-            label='RWI score'
         )
         contextily.add_basemap(
-            ax, crs={'init': 'epsg:4326'},
+            ax, crs='EPSG:4326',
             source=contextily.providers.OpenStreetMap.Mapnik
         )
         plt.title('Population-Weighted Relative Wealth Index')
-        plt.legend()
+        plt.xlabel('Longitude')
+        plt.xticks(rotation=30)
+        plt.ylabel('Latitude')
         # Export
         path = output_path(sub_pipeline, f'{iso3}/admin_level_{admin_level}')
         path.parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(path)
         plt.close()
-
-    print(rwi.head())
 
     # Format the output data frame
     columns = {
