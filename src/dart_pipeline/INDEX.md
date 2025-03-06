@@ -24,6 +24,13 @@ meteorological/era5reanalysis.py
 ```
 
 ```
+population-weighted/relative-wealth-index
+✅ def get_geo_id(lat: float, lon: float, polygons: dict) -> str:
+✅ def get_quadkey(x, zoom_level):
+✅ def process_gadm_popdensity_rwi(
+```
+
+```
 sociodemographic/worldpop_count.py
 ✅ def process_gadm_worldpopcount(
 sociodemographic/worldpop_density.py

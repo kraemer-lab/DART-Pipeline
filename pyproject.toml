@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "beautifulsoup4==4.*",
     "cdsapi==0.7.5",
+    "contextily==1.6.0",
     "geopandas==0.14.4",
     "lxml==4.9.*",
     "matplotlib>=3.9.2",
@@ -16,6 +17,7 @@ dependencies = [
     "pandas>=2.2",
     "py7zr==0.20.6",
     "pycountry==24.6.1",
+    "pyquadkey2>0.3.0",
     "rasterio==1.*",
     "requests>=2",
     "shapely>2.0.5",

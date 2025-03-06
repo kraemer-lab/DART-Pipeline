@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Literal, Callable
 import logging
 import os
+import platform
 import re
 
 from matplotlib import pyplot as plt
@@ -43,6 +44,8 @@ from .meteorological.aphroditeprecipitation import \
     process_aphroditeprecipitation
 from .meteorological.aphroditetemperature import process_aphroditetemperature
 from .meteorological.era5reanalysis import process_era5reanalysis
+from .population_weighted.relative_wealth_index import \
+    process_gadm_popdensity_rwi
 from .sociodemographic.worldpop_count import process_worldpopcount
 from .sociodemographic.worldpop_density import process_worldpopdensity
 from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS, BASE_DIR, \
@@ -78,7 +81,7 @@ def process_rwi(iso3: str, admin_level: str, plots=False):
     admin_geoid = f'GID_{admin_level}'
     polygons = dict(zip(gdf[admin_geoid], gdf['geometry']))
 
-    # Import the relative wealth index data
+    # Import the Relative Wealth Index data
     path = source_path(source, f'{iso3.lower()}_relative_wealth_index.csv')
     logging.info('Importing:%s', path)
     rwi = pd.read_csv(path)
@@ -522,8 +525,14 @@ def process_terraclimate(
         # Import the raw data
         if (pdate.year == 2023) and (metric == 'pdsi'):
             # In 2023 the capitalization of pdsi changed
-            filename = f'TerraClimate_PDSI_{pdate.year}.nc'
-            metric = 'PDSI'
+            # The capitalisation of PDSI changes depending on how your OS
+            # handles case sensitivity
+            if platform.system() == 'Linux':
+                filename = f'TerraClimate_PDSI_{pdate.year}.nc'
+                metric = 'PDSI'
+            elif platform.system() == 'Darwin':
+                filename = f'TerraClimate_pdsi_{pdate.year}.nc'
+                metric = 'pdsi'
         else:
             filename = f'TerraClimate_{metric}_{pdate.year}.nc'
         path = BASE_DIR / DEFAULT_SOURCES_ROOT / source / filename
@@ -675,6 +684,7 @@ PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
     'meteorological/chirps-rainfall': process_chirps_rainfall,
     'meteorological/era5-reanalysis': process_era5reanalysis,
     'meteorological/terraclimate': process_terraclimate,
+    'population-weighted/relative-wealth-index': process_gadm_popdensity_rwi,
     'sociodemographic/worldpop-count': process_worldpopcount,
     'sociodemographic/worldpop-density': process_worldpopdensity,
 }
