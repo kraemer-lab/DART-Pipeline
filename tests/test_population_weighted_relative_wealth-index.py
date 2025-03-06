@@ -2,6 +2,7 @@
 from unittest import mock
 
 from freezegun import freeze_time
+import geopandas as gpd
 import pandas as pd
 
 from dart_pipeline.population_weighted.relative_wealth_index import \
@@ -13,14 +14,17 @@ from dart_pipeline.population_weighted.relative_wealth_index import \
 @mock.patch('pandas.read_csv')
 def test_process_gadm_popdensity_rwi(mock_pd_read, mock_gpd_read):
     # Mock GADM shapefile
-    mock_gpd_read.return_value = pd.DataFrame({
-        'GID_0': ['GID0'],
-        'COUNTRY': ['Mockland'],
-        'NAME_1': ['NAME1'],
-        'NAME_2': ['NAME2'],
-        'GID_2': ['GID2'],
-        'geometry': [mock.Mock()]
-    })
+    mock_gpd_read.return_value = gpd.GeoDataFrame(
+        pd.DataFrame({
+            'GID_0': ['GID0'],
+            'COUNTRY': ['Mockland'],
+            'NAME_1': ['NAME1'],
+            'NAME_2': ['NAME2'],
+            'GID_2': ['GID2'],
+        }),
+        geometry=gpd.points_from_xy([106.0], [10.0]),
+        crs='EPSG:4326'
+    )
 
     # Mock CSV imports
     mock_pd_read.side_effect = [
