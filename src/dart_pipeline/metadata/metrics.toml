@@ -25,6 +25,7 @@ auth = true
 auth_url = "https://cds.climate.copernicus.eu/how-to-api"
 attribution = ""
 resolution = "0.25 degree"
+years = [1940, "now"]
 
 [sources.meta]
 description = "Meta Data for Good"
@@ -62,35 +63,42 @@ description = "Air temperature"
 units = "degree_Celsius"
 resampling = "remapbil"
 statistics = ["daily_mean", "daily_max", "daily_min"]
+range = [-50, 50]
 
 [era5.surface_solar_radiation_downwards]
 description = "Accumulated solar radiation downwards"
 units = "J/m^2"
 statistics = ["daily_sum"]
 resampling = "remapbil"
+range = [0, 1000] # TODO
 
 [era5.total_precipitation]
 description = "Total precipitation"
 units = "m"
 statistics = ["daily_sum"]
+range = [0, 1000] # TODO
 
 [era5.wind_speed]
 description = "Wind speed"
 depends = ["10m_u_component_of_wind", "10m_v_component_of_wind"]
 units = "m/s"
 statistics = ["daily_mean"]
+range = [0, 110]
+range_citation = "https://en.wikipedia.org/wiki/Wind_speed%23Non-tornadic"
 
 [era5.relative_humidity]
 description = "Relative humidity"
 depends = ["2m_temperature", "2m_dewpoint_temperature", "surface_pressure"]
 units = "unitless"
 statistics = ["daily_mean", "daily_max", "daily_min"]
+range = [0, 100]
 
 [era5.specific_humidity]
 description = "Specific humidity"
 depends = ["2m_temperature", "2m_dewpoint_temperature", "surface_pressure"]
 units = "unitless"
 statistics = ["daily_mean", "daily_max", "daily_min"]
+range = [0, 30]
 
 [era5.hydrological_balance]
 description = "Hydrological balance"
@@ -141,14 +149,16 @@ statistics = ["mean"]
 license = "CC-BY-4.0"
 url = "https://data.humdata.org/dataset/relative-wealth-index"
 
-[worldpop.count]
-description = "Population count"
+[worldpop.population_count]
+description = "Population count, unconstrained, UN adjusted"
 units = "unitless"
 statistics = ["sum"]
 url = "https://hub.worldpop.org/geodata/listing?id=75"
+years = [2000, 2020]
 
-[worldpop.density]
-description = "Population density"
+[worldpop.population_density]
+description = "Population density, unconstrained, UN adjusted"
 units = "km^{-2}"
 statistics = ["mean"]
 url = "https://hub.worldpop.org/geodata/listing?id=77"
+years = [2000, 2020]
