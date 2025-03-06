@@ -83,8 +83,11 @@ def relative_wealth_index(iso3: str) -> URLCollection:
 
     Upstream URL: https://data.humdata.org/dataset/relative-wealth-index
     """
+    # Validate input parameter
     if not iso3:
         raise ValueError("No ISO3 code has been provided")
+
+    # Search the webpage for the link(s) to the dataset(s)
     url = "https://data.humdata.org/dataset/relative-wealth-index"
     if (r := requests.get(url)).status_code == 200:
         # Search for a URL in the HTML content
@@ -94,8 +97,8 @@ def relative_wealth_index(iso3: str) -> URLCollection:
         links = soup.find_all("a", href=lambda href: href and target in href)  # type: ignore
         # Return the first link found
         if links:
-            csv_url = links[0]["href"]
-            return URLCollection("https://data.humdata.org", [csv_url])
+            csvs = [link['href'] for link in links if 'csv' in link['href']]
+            return URLCollection('https://data.humdata.org', csvs)
         else:
             raise ValueError(f'Could not find a link containing "{target}"')
     else:

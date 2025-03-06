@@ -52,6 +52,11 @@ pytest tests/test_plots.py
 ```
 
 ```
+pytest tests/test_population_weighted_relative_wealth-index.py
+✅ def test_process_gadm_popdensity_rwi(
+```
+
+```
 pytest tests/test_process.py
 ✅ def test_process_rwi(
 ✅ def test_process_dengueperu(
