@@ -9,14 +9,8 @@ Economic
 
 ```
 uv run dart-pipeline get economic/relative-wealth-index 3=VNM
-uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=0
-uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=1
-uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=2
-uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=3
-uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=0 l=INFO plots
-uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=1 l=INFO plots
-uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=2 l=INFO plots
-uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=3 l=INFO plots
+
+uv run dart-pipeline process economic/relative-wealth-index 3=VNM l=INFO plots
 ```
 
 Epidemiological

@@ -2,12 +2,20 @@ INDEX
 =====
 
 ```
+economic/relative-wealth-index.py
+✅ def process_rwi(iso3: str, plots=False):
+```
+
+```
 geospatial/aphroditeprecipitation.py
 ✅ def process_gadm_aphroditeprecipitation(
 geospatial/aphroditetemperature.py
 ✅ def process_gadm_aphroditetemperature(
 geospatial/era5reanalysis.py
 ✅ def process_gadm_era5reanalysis(
+geospatial/relative_wealth_index.py
+✅ def get_admin_region(lat: float, lon: float, polygons) -> str:
+✅ def process_gadm_rwi(iso3: str, admin_level: str, plots=False):
 geospatial/worldpop_count.py
 ✅ def process_gadm_worldpopcount(
 geospatial/worldpop_density.py

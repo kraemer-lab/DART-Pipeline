@@ -7,10 +7,9 @@ import geopandas as gpd
 import pandas as pd
 import shapely.geometry
 
-from dart_pipeline.constants import OUTPUT_COLUMNS
+from dart_pipeline.constants import OUTPUT_COLUMNS, DEFAULT_OUTPUT_ROOT
 from dart_pipeline.plots import plot_gadm_macro_heatmap
-from dart_pipeline.util import \
-    get_country_name, get_shapefile, source_path, output_path
+from dart_pipeline.util import get_country_name, get_shapefile, source_path
 
 
 def get_admin_region(lat: float, lon: float, polygons) -> str:
@@ -29,8 +28,8 @@ def get_admin_region(lat: float, lon: float, polygons) -> str:
 
 
 def process_gadm_rwi(iso3: str, admin_level: str, plots=False):
-    """Process Relative Wealth Index data."""
-    source = 'economic/relative-wealth-index'
+    """Process Relative Wealth Index and geospatial data."""
+    sub_pipeline = 'geospatial/relative-wealth-index'
     iso3 = iso3.upper()
     logging.info('iso3:%s', iso3)
     logging.info('admin_level:%s', admin_level)
@@ -44,9 +43,10 @@ def process_gadm_rwi(iso3: str, admin_level: str, plots=False):
     admin_geoid = f'GID_{admin_level}'
     polygons = dict(zip(gdf[admin_geoid], gdf['geometry']))
 
-    # Import the relative wealth index data
+    # Import the Relative Wealth Index data
+    source = 'economic/relative-wealth-index'
     path = source_path(source, f'{iso3.lower()}_relative_wealth_index.csv')
-    logging.info('Importing:%s', path)
+    logging.info('importing:%s', path)
     rwi = pd.read_csv(path)
 
     # Create a plot
@@ -63,7 +63,10 @@ def process_gadm_rwi(iso3: str, admin_level: str, plots=False):
         country = get_country_name(iso3)
         title = f'Relative Wealth Index\n{country} - Admin Level {admin_level}'
         colourbar_label = 'Relative Wealth Index [unitless]'
-        path = Path(output_path(source), f'{iso3}/admin_level_{admin_level}')
+        path = Path(
+            DEFAULT_OUTPUT_ROOT, sub_pipeline,
+            f'{iso3}/admin_level_{admin_level}'
+        )
         plot_gadm_macro_heatmap(
             data, origin, extent, limits, gdf, zorder, title, colourbar_label,
             path
@@ -79,35 +82,37 @@ def process_gadm_rwi(iso3: str, admin_level: str, plots=False):
     # Get the mean RWI value for each region
     rwi = rwi.groupby('geo_id')['rwi'].mean().reset_index()
 
-    print(rwi.head())
+    # Dynamically choose which columns need to be added to the data
+    region_columns = ['COUNTRY', 'NAME_1', 'NAME_2', 'NAME_3']
+    admin_columns = region_columns[:int(admin_level) + 1]
+    # Merge with the shapefile to get the region names
+    rwi = rwi.merge(
+        gdf[[admin_geoid] + admin_columns],
+        left_on='geo_id', right_on=admin_geoid, how='left'
+    )
 
-    # # Dynamically choose which columns need to be added to the data
-    # region_columns = ['COUNTRY', 'NAME_1', 'NAME_2', 'NAME_3']
-    # admin_columns = region_columns[:int(admin_level) + 1]
-    # # Merge with the shapefile to get the region names
-    # rwi = rwi.merge(
-    #     gdf[[admin_geoid] + admin_columns],
-    #     left_on='geo_id', right_on=admin_geoid, how='left'
-    # )
+    # Rename the columns
+    rwi['iso3'] = iso3
+    columns = dict(zip(
+        admin_columns, [f'admin_level_{i}' for i in range(len(admin_columns))]
+    ))
+    rwi = rwi.rename(columns=columns)
+    # Add in the higher-level admin levels
+    for i in range(int(admin_level) + 1, 4):
+        rwi[f'admin_level_{i}'] = None
+    rwi['year'] = None
+    rwi['month'] = None
+    rwi['day'] = None
+    rwi['week'] = None
+    rwi['metric'] = 'Relative Wealth Index'
+    rwi = rwi.rename(columns={'rwi': 'value'})
+    rwi['unit'] = 'unitless'
+    rwi['resolution'] = None
+    rwi['creation_date'] = date.today()
+    # Re-order the columns
+    rwi = rwi[OUTPUT_COLUMNS]
 
-    # # Rename the columns
-    # columns = dict(zip(
-    #     admin_columns, [f'admin_level_{i}' for i in range(len(admin_columns))]
-    # ))
-    # rwi = rwi.rename(columns=columns)
-    # # Add in the higher-level admin levels
-    # for i in range(int(admin_level) + 1, 4):
-    #     rwi[f'admin_level_{i}'] = None
-    # rwi['year'] = None
-    # rwi['month'] = None
-    # rwi['day'] = None
-    # rwi['week'] = None
-    # rwi['metric'] = 'Relative Wealth Index'
-    # rwi = rwi.rename(columns={'rwi': 'value'})
-    # rwi['unit'] = 'unitless'
-    # rwi['resolution'] = None
-    # rwi['creation_date'] = date.today()
-    # # Re-order the columns
-    # rwi = rwi[OUTPUT_COLUMNS]
+    sub_pipeline = sub_pipeline.replace('/', '_')
+    filename = f'{iso3}_{sub_pipeline}_{date.today()}.csv'
 
-    # return rwi, f'{iso3}.csv'
+    return rwi.fillna(''), filename
