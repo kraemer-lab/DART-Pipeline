@@ -77,7 +77,13 @@ uv run dart-pipeline process geospatial/era5-reanalysis dataset=derived-era5-lan
 ```
 uv run dart-pipeline get geospatial/gadm 3=PER
 uv run dart-pipeline get geospatial/gadm 3=VNM
+uv run dart-pipeline get geospatial/gadm 3=VNM --unpack
 uv run dart-pipeline process geospatial/gadm 3=VNM a=0
+uv run dart-pipeline process geospatial/gadm 3=VNM a=1
+uv run dart-pipeline process geospatial/gadm 3=VNM a=0 l=INFO plots
+uv run dart-pipeline process geospatial/gadm 3=VNM a=1 l=INFO plots
+uv run dart-pipeline process geospatial/gadm 3=VNM a=2 l=INFO plots
+uv run dart-pipeline process geospatial/gadm 3=VNM a=3 l=INFO plots
 ```
 
 ### WorldPop Population Counts

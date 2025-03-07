@@ -10,7 +10,7 @@ import requests_mock
 
 from dart_pipeline.types import URLCollection
 from dart_pipeline.collate import (
-    gadm_data,
+    gadm,
     relative_wealth_index,
     ministerio_de_salud_peru_data,
     aphrodite_temperature_data,
@@ -23,17 +23,17 @@ from dart_pipeline.collate import (
 
 
 def test_gadm_data():
-    assert gadm_data("VNM") == URLCollection(
-        "https://geodata.ucdavis.edu/gadm/gadm4.1",
+    assert gadm('VNM') == URLCollection(
+        'https://geodata.ucdavis.edu/gadm/gadm4.1',
         [
-            "shp/gadm41_VNM_shp.zip",
-            "gpkg/gadm41_VNM.gpkg",
-            "json/gadm41_VNM_0.json",
-            "json/gadm41_VNM_1.json.zip",
-            "json/gadm41_VNM_2.json.zip",
-            "json/gadm41_VNM_3.json.zip",
+            'shp/gadm41_VNM_shp.zip',
+            'gpkg/gadm41_VNM.gpkg',
+            'json/gadm41_VNM_0.json',
+            'json/gadm41_VNM_1.json.zip',
+            'json/gadm41_VNM_2.json.zip',
+            'json/gadm41_VNM_3.json.zip',
         ],
-        relative_path="VNM",
+        relative_path='VNM',
     )
 
 

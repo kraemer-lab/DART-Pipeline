@@ -98,9 +98,24 @@ time uv run dart-pipeline process geospatial/era5-reanalysis dataset=derived-era
 ### Global Administrative Areas (GADM)
 
 ```
+time uv run dart-pipeline get geospatial/gadm 3=PER --unpack
+26.031s
 time uv run dart-pipeline get geospatial/gadm 3=VNM
-17.964s
+36.831s
+time uv run dart-pipeline get geospatial/gadm 3=VNM --unpack
+22.101s
 time uv run dart-pipeline process geospatial/gadm 3=VNM a=0
+1.913s
+time uv run dart-pipeline process geospatial/gadm 3=VNM a=1
+1.871s
+time uv run dart-pipeline process geospatial/gadm 3=VNM a=0 l=INFO plots
+2.055s
+time uv run dart-pipeline process geospatial/gadm 3=VNM a=1 l=INFO plots
+2.145s
+time uv run dart-pipeline process geospatial/gadm 3=VNM a=2 l=INFO plots
+2.742s
+time uv run dart-pipeline process geospatial/gadm 3=VNM a=3 l=INFO plots
+18.716s
 ```
 
 ### WorldPop Population Counts
