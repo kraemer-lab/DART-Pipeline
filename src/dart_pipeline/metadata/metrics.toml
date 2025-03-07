@@ -69,13 +69,14 @@ range = [-50, 50]
 description = "Accumulated solar radiation downwards"
 units = "J/m^2"
 statistics = ["daily_sum"]
-range = [0, 10e8] # TODO
+range = [0, 1e9]
+resampling = "remapbil"
 
 [era5.total_precipitation]
 description = "Total precipitation"
 units = "m"
 statistics = ["daily_sum"]
-range = [0, 1200] # TODO
+range = [0, 1200]
 
 [era5.wind_speed]
 description = "Wind speed"
