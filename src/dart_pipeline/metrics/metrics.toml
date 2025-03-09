@@ -11,7 +11,7 @@ url = "https://www.chc.ucsb.edu/data/chirps"
 attribution = ""
 
 [sources.era5]
-description = "ERA5 reanalysis data" 
+description = "ERA5 reanalysis data"
 license_text = """Access to Copernicus Products is given for any purpose in so far
 as it is lawful, whereas use may include, but is not limited to: reproduction;
 distribution; communication to the public; adaptation, modification and
@@ -26,6 +26,18 @@ auth_url = "https://cds.climate.copernicus.eu/how-to-api"
 attribution = ""
 resolution = "0.25 degree"
 years = [1940, "now"]
+accum_vars = ["evaporatian", "total_precipitation", "surface_solar_radiation_downwards"]
+
+[sources.era5.variable_mappings]
+2m_temperature = "t2m"
+surface_solar_radiation_downwards = "ssrd"
+2m_dewpoint_temperature = "d2m"
+surface_pressure = "sp"
+evaporation = "e"
+total_precipitation = "tp"
+10m_u_component_of_wind = "u10"
+10m_v_component_of_wind = "v10"
+
 
 [sources.meta]
 description = "Meta Data for Good"
@@ -62,27 +74,23 @@ statistics = ["daily_sum"]
 description = "2 meters air temperature"
 units = "degree_Celsius"
 resampling = "remapbil"
-statistics = ["daily_mean", "daily_max", "daily_min"]
 range = [-50, 50]
 
 [era5.surface_solar_radiation_downwards]
 description = "Accumulated solar radiation downwards"
 units = "J/m^2"
-statistics = ["daily_sum"]
 range = [0, 1e9]
 resampling = "remapbil"
 
 [era5.total_precipitation]
 description = "Total precipitation"
 units = "m"
-statistics = ["daily_sum"]
 range = [0, 1200]
 
 [era5.wind_speed]
 description = "Wind speed"
 depends = ["10m_u_component_of_wind", "10m_v_component_of_wind"]
 units = "m/s"
-statistics = ["daily_mean"]
 range = [0, 110]
 range_citation = "https://en.wikipedia.org/wiki/Wind_speed%23Non-tornadic"
 
@@ -90,57 +98,54 @@ range_citation = "https://en.wikipedia.org/wiki/Wind_speed%23Non-tornadic"
 description = "Relative humidity"
 depends = ["2m_temperature", "2m_dewpoint_temperature", "surface_pressure"]
 units = "percentage"
-statistics = ["daily_mean", "daily_max", "daily_min"]
+daily_minmax = true
 range = [0, 100]
 
 [era5.specific_humidity]
 description = "Specific humidity"
 depends = ["2m_temperature", "2m_dewpoint_temperature", "surface_pressure"]
 units = "g/kg"
-statistics = ["daily_mean", "daily_max", "daily_min"]
+daily_minmax = true
 range = [0, 30]
 
 [era5.hydrological_balance]
 description = "Hydrological balance"
-units = "m" 
+units = "m"
 depends = ["evaporation", "total_precipitation"]
-statistics = ["daily_sum"]
 
 [era5.spi]
 description = "Standardised precipitation index"
 depends = ["total_precipitation"]
 units = "unitless"
-statistics = ["daily_sum"]
 
 [era5.spie]
 description = "Standardised precipitation-evaporation index"
-depends = ["total_precipitation", "potential evapotranspiration"]
+# actually depends on potential_evapotranspiration which depends
+# on 2m_temperature.{daily_min,daily_mean,daily_max}
+depends = ["total_precipitation", "2m_temperature"]
 units = "unitless"
-statistics = ["daily_sum"]
 
 [era5.bc_total_precipitation]
 description = "Bias-corrected total precipitation"
 depends = ["total_precipitation"]
 units = "m"
-statistics = ["daily_sum"]
 
 [era5.bc_spi]
 description = "Bias-corrected standardised precipitation index"
 depends = ["total_precipitation"]
 units = "unitless"
-statistics = ["daily_sum"]
 
 [era5.bc_spie]
 description = "Bias-corrected standardised precipitation-evaporation index"
-depends = ["total_precipitation", "potential evapotranspiration"]
+# actually depends on potential_evapotranspiration which depends
+# on 2m_temperature.{daily_min,daily_mean,daily_max}
+depends = ["total_precipitation", "2m_temperature"]
 units = "unitless"
-statistics = ["daily_sum"]
 
 [era5.bc_hydrological_balance]
 description = "Bias-corrected hydrological balance"
 depends = ["evaporation", "total_precipitation"]
 units = "m"
-statistics = ["daily_sum"]
 
 [meta.relative_wealth_index]
 description = "Relative wealth index"
