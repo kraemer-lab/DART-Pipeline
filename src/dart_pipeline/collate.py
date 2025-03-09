@@ -45,7 +45,6 @@ from typing import Final, Callable
 from bs4 import BeautifulSoup
 import requests
 
-from .collate_api import download_era5_reanalysis_data
 from .constants import TERRACLIMATE_METRICS, PERU_REGIONS
 from .types import URLCollection, DataFile, PartialDate
 from .util import daterange, use_range, get_country_name
@@ -411,7 +410,6 @@ SOURCES: dict[
     'meteorological/aphrodite-daily-mean-temp': aphrodite_temperature_data,
     'meteorological/aphrodite-daily-precip': aphrodite_precipitation_data,
     'meteorological/chirps-rainfall': chirps_rainfall_data,
-    'meteorological/era5-reanalysis': download_era5_reanalysis_data,
     'meteorological/terraclimate': terraclimate_data,
     'sociodemographic/meta-pop-density': meta_pop_density_data,
     'sociodemographic/worldpop-count': worldpop_pop_count_data,
