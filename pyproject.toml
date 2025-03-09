@@ -8,7 +8,8 @@ dependencies = [
     "beautifulsoup4==4.*",
     "cdsapi==0.7.5",
     "contextily==1.6.0",
-    "geopandas==0.14.4",
+    "geoglue",
+    "geopandas>1",
     "lxml==4.9.*",
     "matplotlib>=3.9.2",
     "netCDF4>=1.7.2",
@@ -46,6 +47,9 @@ dev-dependencies = [
     "sphinx-book-theme>=1.1.3",
     "sphinx>=8.1.3",
 ]
+
+[tool.uv.sources]
+geoglue = { git = "https://github.com/kraemer-lab/geoglue" }
 
 [tool.coverage.run]
 omit = ["tests/*"]
