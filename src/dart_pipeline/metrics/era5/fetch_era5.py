@@ -1,14 +1,12 @@
 """
-Collate module for API-based retrievals.
-
-These require direct downloads to file.
+ERA5 Fetch module
 """
 
+import zipfile
 import datetime
-from typing import Literal, TypedDict
 from functools import cache
 from pathlib import Path
-from typing import TypedDict
+from typing import Literal, TypedDict, NamedTuple
 
 import cdsapi
 from geoglue.country import Country
@@ -19,8 +17,16 @@ from ...util import source_path
 DAYS = [f"{i:02d}" for i in range(1, 32)]
 MONTHS = [f"{i:02d}" for i in range(1, 13)]
 TIMES = [f"{i:02d}:00" for i in range(1, 24)]
+ERA5_HOURLY_ACCUM_FILE = "data_stream-oper_stepType-accum.nc"
+ERA5_HOURLY_INSTANT_FILE = "data_stream-oper_stepType-instant.nc"
+
 DailyStatistic = Literal["daily_mean", "daily_min", "daily_max", "daily_sum"]
 Resampling = Literal["remapdis", "remapbil"]
+
+
+class ERA5HourlyPath(NamedTuple):
+    instant: Path | None
+    accum: Path | None
 
 
 class CDSRequest(TypedDict):
@@ -50,9 +56,11 @@ def era5_variables() -> list[str]:
     return sorted(variables)
 
 
-def era5_request(iso3: str, year: int) -> CDSRequest:
+def era5_request(
+    iso3: str, year: int, backend: Literal["gadm", "geoboundaries"] = "gadm"
+) -> CDSRequest:
     "Returns cdsapi request dictionary for a given country ISO3, year"
-    C = Country(iso3, fetch_data=False)
+    C = Country(iso3, backend=backend)
     return {
         "product_type": ["reanalysis"],
         "variable": era5_variables(),
@@ -66,7 +74,26 @@ def era5_request(iso3: str, year: int) -> CDSRequest:
     }
 
 
-def era5_fetch_hourly(iso3: str, year: int) -> Path | None:
+def era5_extract_hourly_data(file: Path, extract_path: Path) -> ERA5HourlyPath:
+    "Extracts hourly data from downloaded zip file"
+    if file.suffix != ".zip":
+        raise ValueError(f"Not a valid zip {file=}")
+    instant_file, accum_file = None, None
+    with zipfile.ZipFile(file, "r") as zf:
+        zf.extractall(extract_path / file.stem)
+    if (accum_file := extract_path / file.stem / ERA5_HOURLY_ACCUM_FILE).exists():
+        accum_file = accum_file.rename(extract_path / (file.stem + ".accum.nc"))
+    if (instant_file := extract_path / file.stem / ERA5_HOURLY_INSTANT_FILE).exists():
+        instant_file = instant_file.rename(extract_path / (file.stem + ".instant.nc"))
+    if instant_file or accum_file:
+        return ERA5HourlyPath(instant=instant_file, accum=accum_file)
+    else:
+        raise ValueError(f"Error extracting hourly data from {file=}")
+
+
+def era5_fetch_hourly(
+    iso3: str, year: int, skip_exists: bool = True
+) -> ERA5HourlyPath | None:
     """Fetches ERA5 data for a particular statistic and resampling combination
 
     ERA5 data is fetched in groups of variables, one corresponding to each
@@ -83,6 +110,8 @@ def era5_fetch_hourly(iso3: str, year: int) -> Path | None:
         ISO3 code, used to request data in the appropriate extent
     year
         Data is downloaded for this year
+    skip_exists
+        Skip downloading if zipfile or extracted contents exist, default True
 
     Returns
     -------
@@ -91,14 +120,21 @@ def era5_fetch_hourly(iso3: str, year: int) -> Path | None:
     cur_year = datetime.datetime.now().year
     if year < 1940 or year > cur_year:
         raise ValueError(f"ERA5 reanalysis data only available from 1940-{cur_year}")
-    client = cdsapi.Client()
-    outfile = source_path("meteorological/era5-reanalysis", f"{iso3}-{year}-era5.zip")
+    folder = source_path("meteorological/era5-reanalysis")
+    outfile = folder / f"{iso3}-{year}-era5.zip"
+    accum_file = folder / f"{iso3}-{year}-era5.accum.nc"
+    instant_file = folder / f"{iso3}-{year}-era5.instant.nc"
+    if accum_file.exists() and instant_file.exists():
+        return ERA5HourlyPath(instant=instant_file, accum=accum_file)
+
     if not outfile.parent.exists():
         outfile.parent.mkdir(parents=True)
-    client.retrieve(
-        "reanalysis-era5-single-levels",
-        era5_request(iso3, year),
-        outfile,
-    )
+    if not skip_exists or not outfile.exists():
+        client = cdsapi.Client()
+        client.retrieve(
+            "reanalysis-era5-single-levels",
+            era5_request(iso3, year),
+            outfile,
+        )
     if outfile.exists():
-        return outfile
+        return era5_extract_hourly_data(outfile, folder)
