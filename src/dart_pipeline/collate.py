@@ -192,7 +192,7 @@ def aphrodite_precipitation_data() -> list[URLCollection]:
     ]
 
 
-def aphrodite_temperature_data(unpack) -> list[URLCollection]:
+def aphrodite_temperature_data() -> list[URLCollection]:
     "APHRODITE Daily mean temperature product (V1808) [requires account]"
 
     base_url = "http://aphrodite.st.hirosaki-u.ac.jp"
