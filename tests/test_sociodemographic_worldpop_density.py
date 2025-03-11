@@ -14,7 +14,7 @@ from dart_pipeline.process import process_worldpopdensity
 @patch('dart_pipeline.process.DEFAULT_SOURCES_ROOT')
 @patch('dart_pipeline.process.BASE_DIR')
 @patch('dart_pipeline.process.source_path')
-@patch('dart_pipeline.process.get_country_name')
+@patch('dart_pipeline.util.get_country_name')
 def test_process_worldpopdensity(
     mock_get_country_name, mock_source_path, mock_base_dir,
     mock_default_sources_root, mock_rasterio_open
