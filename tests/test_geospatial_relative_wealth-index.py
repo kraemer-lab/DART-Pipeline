@@ -1,7 +1,5 @@
 """Tests for functions in population-weighted/relative-wealth-index.py."""
-from datetime import date
 from unittest import mock
-import unittest
 
 from freezegun import freeze_time
 import geopandas as gpd
