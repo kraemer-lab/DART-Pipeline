@@ -1,22 +1,45 @@
 # Anything explicitly ignored
 gitignored/
 
-# Data folders
-A Collate Data/**/* Data/
-B Process Data/**/* Data/
+_build/
+# Built files
+/*.html
+*.pdf
+
+# Metadata files
+data/**/*.txt
+data/**/*.html
+
+# Images
+*.avif
+*.bmp
+*.eps
+*.gif
+*.ico
+*.jpeg
+*.jpg
+*.png
+*.svg
+*.tif
+*.tiff
+*.webp
 
 # Data files
+*.2015
 *.7z
 *.cpg
 *.csv
+*.ctl
 *.dbf
 *.f90
 *.geojson
 *.gpg
 *.gpkg
+*.grd
 *.json
 *.kmz
 *.nc
+*.nc.tgz
 *.prj
 *.sh
 *.shp
@@ -60,17 +83,11 @@ B Process Data/**/* Data/
 *.dcm
 *.doc
 *.docx
-*.jpeg
-*.jpg
 *.ods
 *.pdf
-*.png
 *.pptx
-*.session
-*.tiff
 *.vsdx
 *.xls
-*.xls#
 *.xlsx
 
 # Pycharm helper files
@@ -81,11 +98,14 @@ B Process Data/**/* Data/
 *.pyc
 venv
 __pycache__
+# syrupy
+*.ambr
 
-# Test result files
-*.xml 
+# Testing
+*.xml
+*.ambr
 
-# Latex files
+# LaTeX
 *.aux
 *.bbl
 *.blg
@@ -113,17 +133,30 @@ __pycache__
 # Hidden ipython notebook files
 .ipynb_checkpoints
 
-# Font files
+# Fonts
 *.ttf
 
-# Pass files
+# Passwords
+credentials.json
+# GNU Privacy Guard encrypted file
+*.gpg
+# Plaintext passwords
+*.pass
+# Pass
 *.password-store
 
-# Snakemake and GRAPEVNE build files
+# Snakemake and GRAPEVNE
 .snakemake
 **/results/out
-credentials.json
 
-# Sublime Text files
+# Visual Studio Code
+*.code-workspace
+.vscode/
+
+# Sublime Text
 *.sublime-project
 *.sublime-workspace
+
+# Obsidian
+*.canvas
+.obsidian/

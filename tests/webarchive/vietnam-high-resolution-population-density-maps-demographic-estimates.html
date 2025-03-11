@@ -1,0 +1,3625 @@
+<!DOCTYPE html>
+<!--[if IE 7]> <html lang="en_AU" class="ie ie7"> <![endif]-->
+<!--[if IE 8]> <html lang="en_AU" class="ie ie8"> <![endif]-->
+<!--[if IE 9]> <html lang="en_AU" class="ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html lang="en_AU"> <!--<![endif]-->
+  <head>
+
+    <script type="application/javascript">
+      /**
+       * A map holding all the information to be sent to the analytics servers
+       * @type {object}
+       */
+      var analyticsInfo = {
+          'organizationName': 'meta',
+          'organizationId': '74ad0574-923d-430b-8d52-ad80256c4461',
+          'groupNames': ["vnm"],
+          'groupIds': ["vnm"],
+          'isCod': false,
+          'isIndicator': false,
+          'isArchived': false,
+          'datasetName': 'vietnam-high-resolution-population-density-maps-demographic-estimates',
+          'datasetId': '191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d',
+          'pageTitle': 'Vietnam: High Resolution Population Density Maps + Demographic Estimates',
+          'datasetAvailability': 'public',
+          'authenticated': 'false'
+
+      };
+    </script>
+
+
+        <!-- start Mixpanel -->
+<script type="text/javascript">
+    (function (e, b) {
+        if (!b.__SV) {
+            var a, f, i, g;
+            window.mixpanel = b;
+            b._i = [];
+            b.init = function (a, e, d) {
+                function f(b, h) {
+                    var a = h.split(".");
+                    2 == a.length && (b = b[a[0]], h = a[1]);
+                    b[h] = function () {
+                        b.push([h].concat(Array.prototype.slice.call(arguments, 0)))
+                    }
+                }
+
+                var c = b;
+                "undefined" !== typeof d ? c = b[d] = [] : d = "mixpanel";
+                c.people = c.people || [];
+                c.toString = function (b) {
+                    var a = "mixpanel";
+                    "mixpanel" !== d && (a += "." + d);
+                    b || (a += " (stub)");
+                    return a
+                };
+                c.people.toString = function () {
+                    return c.toString(1) + ".people (stub)"
+                };
+                i = "disable time_event track track_pageview track_links track_forms register register_once alias unregister identify name_tag set_config reset people.set people.set_once people.increment people.append people.union people.track_charge people.clear_charges people.delete_user".split(" ");
+                for (g = 0; g < i.length; g++)f(c, i[g]);
+                b._i.push([a, e, d])
+            };
+            b.__SV = 1.2;
+            a = e.createElement("script");
+            a.type = "text/javascript";
+            a.async = !0;
+            a.src = "undefined" !== typeof MIXPANEL_CUSTOM_LIB_URL ? MIXPANEL_CUSTOM_LIB_URL : "file:" === e.location.protocol && "//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js".match(/^\/\//) ? "https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js" : "//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js";
+            f = e.getElementsByTagName("script")[0];
+            f.parentNode.insertBefore(a, f)
+        }
+    })(document, window.mixpanel || []);
+    mixpanel.init("5cbf12bc9984628fb2c55a49daf32e74");
+
+    var mixpanelTrackData = {
+      "page title": analyticsInfo.pageTitle,
+      "org name": analyticsInfo.organizationName,
+      "org id": analyticsInfo.organizationId,
+      "group names": analyticsInfo.groupNames,
+      "group ids": analyticsInfo.groupIds,
+      "authenticated": analyticsInfo.authenticated,
+      "dataset availability": analyticsInfo.datasetAvailability,
+      "is cod": analyticsInfo.isCod,
+      "is indicator": analyticsInfo.isIndicator,
+      "is archived": analyticsInfo.isArchived,
+      "dataset id": analyticsInfo.datasetId,
+      "dataset name": analyticsInfo.datasetName
+    };
+
+    mixpanel.track("page view", mixpanelTrackData);
+</script>
+<!-- end Mixpanel -->
+
+
+
+      <!-- Google Tag Manager - DATALAYER -->
+      <script type="application/javascript">
+        window.dataLayer = window.dataLayer || [];
+
+        <!-- Google Analytics - custom properties (dimensions) -->
+        (function() {
+            if (analyticsInfo.organizationName !== 'None') {
+                dataLayer.push({
+                  'org_name': analyticsInfo.organizationName
+                });
+            }
+
+
+
+            var locationNames = analyticsInfo.groupNames.length < 15 ? analyticsInfo.groupNames.join('~') : 'many';
+            if (locationNames) {
+                dataLayer.push({
+                  'location_names': locationNames
+                });
+            }
+        }());
+        <!-- END - Google Analytics - custom properties (dimensions) -->
+      </script>
+      <!-- Google Tag Manager -->
+      <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+      new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+      j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+      'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+      })(window,document,'script','dataLayer','GTM-MFNPQ7K');</script>
+      <!-- End Google Tag Manager -->
+
+
+
+
+
+    <meta charset="utf-8" />
+
+      <meta name="csrf_field_name" content="_csrf_token" />
+      <meta name="_csrf_token" content="IjYwNDE3MDgzZTQzYWE0OTU3ODhjYzU2ZTlkMzA1OWMyZjk1NTM5Mjci.ZugvkQ.Xob3fHzrEqN9EIC33HoSmzJ5OiY" />
+
+      <meta name="referrer" content="always">
+      <meta name="generator" content="ckan " />
+    <title>Vietnam: High Resolution Population Density Maps + Demographic Estimates  - Humanitarian Data Exchange</title>
+
+
+
+    <meta property="og:image" content="https://data.humdata.org/images/hxl_fb-01.png">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
+
+
+  <link rel="alternate" media="only screen and (max-width: 640px)" href="/m/dataset/vietnam-high-resolution-population-density-maps-demographic-estimates?">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+      <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+      <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+      <link rel="manifest" href="/site.webmanifest">
+
+      <meta name="msapplication-TileColor" content="#da532c">
+      <meta name="theme-color" content="#ffffff">
+      <link rel="search" type="application/opensearchdescription+xml" title="HDX Search" href="/xml/opensearch.xml">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <link rel="alternate" type="application/ld+json" href="https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d.jsonld?profiles=schemaorg"/>
+          <link rel="alternate" type="text/n3" href="https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d.n3"/>
+          <link rel="alternate" type="text/turtle" href="https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d.ttl"/>
+          <link rel="alternate" type="application/rdf+xml" href="https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d.xml"/>
+
+
+
+
+
+
+
+
+<style>
+
+    body .container .org-custom-styling h1, body .container .org-custom-styling a:after, body .container .org-custom-styling a {
+      color: #3b5998 !important;
+    }
+
+
+
+</style>
+
+
+
+
+
+
+
+    <link rel=preconnect href="https://fonts.gstatic.com" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <link href="/webassets/ckanext-hdx_theme/885297d3_page-styles.css" rel="stylesheet"/>
+<link href="/webassets/ckanext-hdx_theme/bf503a5b_onboarding-anon.css" rel="stylesheet"/>
+<link href="/webassets/ckanext-hdx_theme/d0e49d67_requestdata-styles.css" rel="stylesheet"/>
+<link href="/webassets/ckanext-hdx_theme/697401b3_dataset-search-styles.css" rel="stylesheet"/>
+<link href="/webassets/ckanext-hdx_theme/c5ef5d0f_charting-styles.css" rel="stylesheet"/>
+<link href="/webassets/ckanext-hdx_theme/490bc91d_dataset-styles.css" rel="stylesheet"/>
+<link href="/webassets/ckanext-hdx_theme/aaaf4b3e_contact-contributor-styles.css" rel="stylesheet"/>
+<link href="/webassets/ckanext-hdx_theme/1d16b81a_group-message-styles.css" rel="stylesheet"/>
+<link href="/webassets/ckanext-requestdata/2d41c8ce_main-styles.css" rel="stylesheet"/>
+<link href="/webassets/ckanext-hdx_theme/79286bc0_resource-list-styles.css" rel="stylesheet"/>
+<link href="/webassets/ckanext-hdx_theme/85dbc81f_dataset-quick-edit-styles.css" rel="stylesheet"/>
+<link href="/webassets/ckanext-hdx_theme/2f6b2f19_base-org-styles.css" rel="stylesheet"/>
+
+  </head>
+
+
+  <body data-site-root="/" data-locale-root="/" data-api-root="">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript>
+      <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MFNPQ7K" height="0" width="0" style="display:none;visibility:hidden"></iframe>
+    </noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div id="logoutPopup" class="popup popup-onbording" style="display: none;" >
+    <div class="content ">
+
+            <div class="row">
+
+                <div class="col-12">
+
+    <div class="notification-widget">
+        <div class="notification-title ">
+
+                You logged out of HDX
+
+            <i class="close humanitarianicons-Exit-Cancel"></i>
+        </div>
+        <div>
+            <div>
+
+    <div class="logout-widget">
+        <div class="center">
+            <img class="mTop20 lazyload" data-src="/images/onboarding/logout.png">
+            <div class="mTop30 notification-message">
+                Thank you for using HDX !
+            </div>
+        </div>
+    </div>
+
+            </div>
+        </div>
+    </div>
+
+                </div>
+
+            </div>
+
+    </div>
+</div>
+
+
+
+
+
+
+      <div class="container">
+        <div class="paddingRowHack">
+
+
+
+
+
+
+
+
+
+
+
+<!-- MOBILE NAV START -->
+<nav class="navbar navbar-static-top new-header d-block" role="navigation">
+    <div class="global-header"> <!-- header is streched for the homepage -->
+    <div class="header-message global-header-bg">
+        <div class="header-message-container">
+            <img class="header-message-image lazyload" data-src="/images/empty.png" />
+        </div>
+    </div>
+    <div class="global-header-bg">
+      <div class="container">
+        <div class="row">
+          <div class="col-12 global-header-content">
+            <a href="#" data-bs-toggle="dropdown" class="ocha-services" aria-label="OCHA services">
+              <span class="ocha-logo"></span>
+              <span class="ocha-services-text">OCHA Services</span>
+
+              <svg class="icon-o-arrow-up" viewBox="0 0 48 48"><path d="M0,34a4,4,0,0,1,1.17-2.83l20-20a4,4,0,0,1,5.66,0l20,20a4,4,0,1,1-5.66,5.66L24,19.66,6.83,36.83A4,4,0,0,1,0,34Z"/></svg>
+              <svg class="icon-o-arrow-down" viewBox="0 0 48 48"><path d="M48,14a4,4,0,0,1-1.17,2.83l-20,20a4,4,0,0,1-5.66,0l-20-20a4,4,0,0,1,5.66-5.66L24,28.34,41.17,11.17A4,4,0,0,1,48,14Z"/></svg>
+            </a>
+            <div class="dropdown-menu ocha-services-menu" role="menu">
+              <div class="container">
+                <div class="row">
+                  <div class="col-md-3 col-12 section-spacing">
+                    <p class="list-title">
+                      Related Platforms
+                    </p>
+                    <ul class="ocha-links-list">
+                      <li>
+                        <a href="https://centre.humdata.org/" target="_blank" data-module="hdx_click_stopper" data-module-link_type="header">Centre for Humanitarian Data</a>
+                      </li>
+                      <li>
+                        <a href="https://hxlstandard.org/" target="_blank" data-module="hdx_click_stopper" data-module-link_type="header">Humanitarian Exchange Language (HXL)</a>
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="col-md-3 col-12">
+                    <p class="list-title">
+                      Other OCHA Services
+                    </p>
+                    <ul class="ocha-links-list">
+                      <li>
+                        <a href="https://fts.unocha.org/" target="_blank" data-module="hdx_click_stopper" data-module-link_type="header">Financial Tracking Service</a>
+                      </li>
+                      <li>
+                        <a href="https://data.humdata.org/" target="_blank" data-module="hdx_click_stopper" data-module-link_type="header">Humanitarian Data Exchange</a>
+                      </li>
+                      <li>
+                        <a href="https://humanitarian.id/" target="_blank" data-module="hdx_click_stopper" data-module-link_type="header">Humanitarian ID</a>
+                      </li>
+                      <li>
+                        <a href="https://humanitarianaction.info/" target="_blank" data-module="hdx_click_stopper" data-module-link_type="header">Humanitarian Action</a>
+                      </li>
+                      <li>
+                        <a href="https://response.reliefweb.int/" target="_blank" data-module="hdx_click_stopper" data-module-link_type="header">ReliefWeb Response</a>
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="col-md-3 col-12 section-spacing">
+                    <p class="list-title list-title-empty">
+                      &nbsp;
+                    </p>
+                    <ul class="ocha-links-list">
+                      <li>
+                        <a href="https://interagencystandingcommittee.org/" target="_blank" data-module="hdx_click_stopper" data-module-link_type="header">Inter-Agency Standing Committee</a>
+                      </li>
+                      <li>
+                        <a href="https://www.unocha.org" target="_blank" data-module="hdx_click_stopper" data-module-link_type="header">OCHA Website</a>
+                      </li>
+                      <li>
+                        <a href="https://reliefweb.int" target="_blank" data-module="hdx_click_stopper" data-module-link_type="header">Relief Web</a>
+                      </li>
+                      <li>
+                        <a href="https://vosocc.unocha.org/" target="_blank" data-module="hdx_click_stopper" data-module-link_type="header">Virtual OSOCC</a>
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="col-md-3 col-12">
+                    <a href="https://www.unocha.org/ocha-digital-services" target="_blank" data-module="hdx_click_stopper" data-module-link_type="header" class="btn ocha-see-all">
+                      See all
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="header-user-box float-end">
+
+              <ul class="separated-list">
+
+<!--                 <li>
+                  <a class="action-red" href="/faqs/covid" data-module="hdx_click_stopper" data-module-link_type="footer" aria-label="faq link">
+                    <span class="action-text">
+                      <span class="full-text">Data Responsibility for </span>COVID-19
+                    </span>
+                  </a>
+                </li> -->
+                <li>
+                  <a class="action" href="/faq" data-module="hdx_click_stopper" data-module-link_type="footer" aria-label="faq link">
+                    <svg class="icon-o-help" viewBox="0 0 48 48"><path d="M29,43a5,5,0,0,1-5,5,5,5,0,1,1,3.53-8.53A4.82,4.82,0,0,1,29,43Z"/><path d="M24,0A11,11,0,0,0,13,11a4,4,0,0,0,8,0,3,3,0,0,1,6,0h0c0,2-.64,3-2.33,4.67-2,2-4.67,4.67-4.67,9.33v5a4,4,0,0,0,8,0V25c0-1.23.64-2,2.33-3.67A14.43,14.43,0,0,0,35,11h0A11,11,0,0,0,24,0Z"/></svg>
+                    <span class="action-text">
+                      FAQ
+                    </span>
+                  </a>
+                </li>
+
+
+
+                      <li>
+                        <a class="action" class="special-menuitem"
+                           href="/sign-in/?came_from=%2Fdataset%2Fvietnam-high-resolution-population-density-maps-demographic-estimates" aria-label="login">
+                          <svg class="icon-o-user" viewBox="0 0 48 48">
+                            <path d="M23,24h2A16,16,0,0,1,41,40v4a0,0,0,0,1,0,0H7a0,0,0,0,1,0,0V40A16,16,0,0,1,23,24Z"/>
+                            <rect x="15" y="4" width="18" height="18" rx="9" ry="9"/>
+                          </svg>
+                          <span class="action-text">
+                          Log in
+                        </span>
+
+                        </a>
+                      </li>
+                      <li>
+                        <a class="action"
+                           href="/signup/" aria-label="sign up">
+                          <svg class="icon-o-checked" viewBox="0 0 48 48">
+                            <path
+                              d="M24,2A22,22,0,1,0,46,24,22,22,0,0,0,24,2ZM38.06,18.37,23,33.83a2.92,2.92,0,0,1-2.9.8,3,3,0,0,1-1.6-.83L10,25.29A3,3,0,0,1,14.2,21l6.5,6.5L33.77,14.17a3,3,0,1,1,4.29,4.19Z"/>
+                          </svg>
+                          <span class="action-text">
+                            Sign up
+                          </span>
+                        </a>
+                      </li>
+
+
+
+
+                <li class="less-important">
+                  <a class="action" href="/m/dataset/vietnam-high-resolution-population-density-maps-demographic-estimates?force_layout=light">
+                    <span class="single-icon icon-phone"></span>
+                    <span>Switch to HDX Lite</span>
+                  </a>
+                </li>
+
+
+
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+</div>
+    <div class="hdx-header">
+    <div class="container">
+        <div class="navbar-header">
+          <div class="hdxLogo">
+              <a class="logo" href="/" aria-label="Humanitarian Data Exchange Logo"><div class="logo-img"></div><span id="hdxVersion">v1.83.2</span></a>
+          </div>
+          <div class="header-nav-search">
+            <div id="previous-searches" style="display: none;">
+                []
+            </div>
+            <form class="header-search-form" method="get" action="/search?sort=metadata_modified+desc">
+              <div id="input-search">
+                <div class="header-search-group input-group">
+                  <span class="input-group-text"><i class="humanitarianicons-Search"></i></span>
+                  <input type="text" class="searchInput form-control" id="qMobile" name="q" value="" autocomplete="off" placeholder="Search Datasets" aria-label="Search Datasets">
+                  <input type="hidden" value="main-nav" name="ext_search_source" />
+                </div>
+                <div class="search-ahead"></div>
+              </div>
+            </form>
+          </div>
+            <button class="navbar-toggler collapsed p-0" type="button" data-bs-toggle="collapse" data-bs-target="#bs-example-navbar-collapse-1" aria-controls="bs-example-navbar-collapse-1" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+            </button>
+            <ul class="mainLinks">
+
+            <li><a href="/dataset" data-module="hdx_click_stopper" data-module-link_type="main nav">Data</a></li>
+            <li><a href="/group" data-module="hdx_click_stopper" data-module-link_type="main nav">Locations</a></li>
+            <li><a href="/organization" data-module="hdx_click_stopper" data-module-link_type="main nav">Organisations</a></li>
+            <li style="position: relative">
+              <a href="#" data-bs-toggle="dropdown" aria-haspopup="true" role="button" aria-expanded="false">
+                <span id="crises-label" >Products <i class="humanitarianicons-Down"></i></span>
+              </a>
+              <ul class="dropdown-menu crises-menu" role="menu" aria-labelledby="crises-label">
+                <li class="crises-group">
+
+                  <ul>
+
+                    <li>
+                      <div><a href="/hapi" data-module="hdx_click_stopper" data-module-link_type="main nav" target="_blank">
+                        [NEW] HDX HAPI</a></div>
+                      <!--<div class="crises-datasets">[ ## Datasets ]</div>-->
+                    </li>
+
+                    <li>
+                      <div><a href="/signals" data-module="hdx_click_stopper" data-module-link_type="main nav" target="_blank">
+                        [NEW] HDX Signals</a></div>
+                      <!--<div class="crises-datasets">[ ## Datasets ]</div>-->
+                    </li>
+
+                    <li>
+                      <div><a href="/event/opt-israel-hostilities" data-module="hdx_click_stopper" data-module-link_type="main nav" target="_self">
+                         occupied Palestinian territory-Israel Hostilities</a></div>
+                      <!--<div class="crises-datasets">[ ## Datasets ]</div>-->
+                    </li>
+
+                    <li>
+                      <div><a href="/cod" data-module="hdx_click_stopper" data-module-link_type="main nav" target="_self">
+                        Common Operational Datasets (CODs)</a></div>
+                      <!--<div class="crises-datasets">[ ## Datasets ]</div>-->
+                    </li>
+
+                    <li>
+                      <div><a href="/dashboards/overview-of-data-grids" data-module="hdx_click_stopper" data-module-link_type="main nav" target="_self">
+                        Data Grids</a></div>
+                      <!--<div class="crises-datasets">[ ## Datasets ]</div>-->
+                    </li>
+
+                    <li>
+                      <div><a href="/dataviz-gallery" data-module="hdx_click_stopper" data-module-link_type="main nav" target="_self">
+                        Dataviz Gallery</a></div>
+                      <!--<div class="crises-datasets">[ ## Datasets ]</div>-->
+                    </li>
+
+                    <li>
+                      <div><a href="/dataviz-guide/" data-module="hdx_click_stopper" data-module-link_type="main nav" target="_blank">
+                        HDX Dataviz Guidelines</a></div>
+                      <!--<div class="crises-datasets">[ ## Datasets ]</div>-->
+                    </li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                  </ul>
+                </li>
+
+                <li class="crises-group">
+
+                  <a class="archive" href="/archive" data-module="hdx_click_stopper" data-module-link_type="main nav">Archived <i class="icon humanitarianicons-Out-of-platform"></i></a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                </li>
+
+              </ul>
+            </li>
+
+          </ul>
+            <span class="submit-data contribute-popup-init" dataset-id="DO_IGNORE"
+                data-module="hdx-onboarding-flow" data-start-page-type="add-data">
+
+
+                    <a href="/sign-in/?info_message_type=add-data" onclick=""
+                       data-module="hdx_click_stopper" data-module-link_type="header add data">
+
+
+
+
+                  <div class="submitData">
+                    Add data
+                  </div>
+                </a>
+            </span>
+        </div>
+
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+            <ul class="nav navbar-nav">
+                <li><a href="/dataset" data-module="hdx_click_stopper" data-module-link_type="main nav">Data</a></li>
+                <li><a href="/group" data-module="hdx_click_stopper" data-module-link_type="main nav">Locations</a></li>
+                <li><a href="/organization" data-module="hdx_click_stopper" data-module-link_type="main nav">Organisations</a></li>
+                <li class="crisis"><a class="crisis-title"><span>Dataviz</span></a></li>
+
+
+                  <li class="crisis"><a href="/hapi" data-module="hdx_click_stopper" data-module-link_type="main nav" target="_blank">[NEW] HDX HAPI</a></li>
+
+                  <li class="crisis"><a href="/signals" data-module="hdx_click_stopper" data-module-link_type="main nav" target="_blank">[NEW] HDX Signals</a></li>
+
+                  <li class="crisis"><a href="/event/opt-israel-hostilities" data-module="hdx_click_stopper" data-module-link_type="main nav" target="_self"> occupied Palestinian territory-Israel Hostilities</a></li>
+
+                  <li class="crisis"><a href="/cod" data-module="hdx_click_stopper" data-module-link_type="main nav" target="_self">Common Operational Datasets (CODs)</a></li>
+
+                  <li class="crisis"><a href="/dashboards/overview-of-data-grids" data-module="hdx_click_stopper" data-module-link_type="main nav" target="_self">Data Grids</a></li>
+
+                  <li class="crisis"><a href="/dataviz-gallery" data-module="hdx_click_stopper" data-module-link_type="main nav" target="_self">Dataviz Gallery</a></li>
+
+                  <li class="crisis"><a href="/dataviz-guide/" data-module="hdx_click_stopper" data-module-link_type="main nav" target="_blank">HDX Dataviz Guidelines</a></li>
+
+
+
+
+
+
+
+
+
+                <li class="crisis"><a href="/archive" class="crisis-title"><span>Dataviz / Archived</span></a></li>
+
+
+
+                <li class="sub-nav"><a href="/faq" data-module="hdx_click_stopper" data-module-link_type="main nav">FAQ</a></li>
+<!--                 <li class="sub-nav"><a class="action-red" href="/faqs/covid" data-module="hdx_click_stopper" data-module-link_type="main nav"><span class="full-text">Data Responsibility for </span>COVID-19</a></li> -->
+
+
+                <li class="sub-nav login top-pad">
+                  <a onclick="showOnboardingWidget('#loginPopup');" href="#" aria-label="login">Login</a> |
+                  <a href="/signup/" aria-label="sign up">Sign up</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    </div>
+</nav>
+<!-- MOBILE NAV END -->
+
+        </div>
+      </div>
+
+
+
+
+      <div role="main">
+        <div id="content" class="container">
+
+
+              <div class="container">
+                <div class="row paddingRowHack toolbarRow">
+                  <div class="col-12 paddingLeftHack paddingRightHack">
+                    <div class="float-start">
+                      <div class="toolbar">
+
+
+                            <nav aria-label="breadcrumb">
+                              <ol class="breadcrumb" vocab="https://schema.org/" typeof="BreadcrumbList">
+
+<li class="breadcrumb-item home" property="itemListElement" typeof="ListItem">
+  <a href="/" property="item" typeof="WebPage">
+    <span property="name">Home</span>
+  </a>
+  <meta property="position" content="1">
+</li>
+
+
+
+<li class="breadcrumb-item" property="itemListElement" typeof="ListItem">
+  <a href="/dataset" property="item" typeof="WebPage">
+    <span property="name">Datasets</span>
+  </a>
+  <meta property="position" content="2">
+</li>
+
+  <li class="breadcrumb-item active"><a href="/dataset/vietnam-high-resolution-population-density-maps-demographic-estimates">Vietnam: High Resolution Population Density Maps + Demographic Estimates</a></li>
+
+
+                              </ol>
+                            </nav>
+
+
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+
+              <div class="paddingRowHack">
+                <div class="flash-messages paddingLeftHack paddingRightHack">
+
+
+
+                </div>
+              </div>
+
+
+            <div class="container mainContent">
+
+              <div class="hdx-wrapper wrapper">
+
+
+                  <div class="row paddingRowHack contentBackground">
+                    <div class="col-12 paddingLeftHack paddingRightHack">
+
+<div class="row paddingRowHack whiteBackground">
+
+
+
+    <div class="col-12 paddingLeftHack paddingRightHack ">
+        <div class="row">
+            <div class="col-8 ">
+                <div class="row">
+                    <div class="col-12 mTop35 mBottom30" >
+                        <h1 class="itemTitle dataset-title">
+                            Vietnam: High Resolution Population Density Maps + Demographic Estimates
+
+
+
+                        </h1>
+                    </div>
+                </div>
+
+
+                <div class="row mBottom15">
+                    <div class="col-12" >
+
+                        <div data-module="hdx_show_more" style="visibility:hidden" class="notes embedded-content">
+                            <p>The world's most accurate population datasets. Seven maps/datasets for the distribution of various populations in Vietnam: (1) Overall population density (2) Women (3) Men (4) Children (ages 0-5) (5) Youth (ages 15-24) (6) Elderly (ages 60+) (7) Women of reproductive age (ages 15-49).</p>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            <div class="col-4 mTop35">
+
+
+
+
+                <div class="org-logo-large" style="width: 100%;">
+
+                    <a href="/organization/meta">
+                      <img class="org-logo lazyload" data-src="/image/2021-12-16-083913.730424Meta-Logo.png" alt="Data for Good at Meta"/>
+                    </a>
+
+                </div>
+
+            </div>
+            <div class="col-12 align-bottom-right mTop20 mBottom15">
+                <ul class="float-start dataset-resources ">
+
+
+
+
+
+
+  <li class="label-icons">
+
+
+
+
+
+
+
+
+
+      <span class="humanitarianicons-Staff-management" title="Sub-national Data" data-module="bs_tooltip" data-module-placement="top" data-bs-toggle="tooltip"  ></span>
+
+
+
+
+
+
+
+
+
+  </li>
+
+
+
+
+    <li class="label-icons"><span class="download-counts" title="Total number of downloads" data-module="bs_tooltip" data-module-placement="top" data-bs-toggle="tooltip">2800+ Downloads </span></li>
+
+
+
+    <li class="label-icons">
+      <span class="download-counts">This dataset updates: As needed</span>
+
+    </li>
+
+
+
+
+
+
+
+                </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div id="contactContributorPopup" class="popup popup-onboarding" style="display: none;" >
+    <div class="content ">
+
+    <div class="row two-column-widget two-column-select-organisation">
+        <div class="two-column-left col-sm-6 col-12">
+
+    <div>
+        <div class="large-title">Contact the Contributor</div>
+        <div class="mTop20 large-text">Use the form to ask a question or provide comments about this dataset to the contributor.</div>
+        <div class="mTop20 regular-text">
+            HDX feedback will be blind copied on this message so that we are aware of the initial correspondence related to datasets on the HDX site. Please  &nbsp;<a href="https://centre.humdata.org/contact-us/">contact us</a>&nbsp; directly should you need further support.
+        </div>
+    </div>
+
+        </div>
+        <div class="two-column-right col-sm-6 col-12">
+
+    <div id="contact-contributor">
+        <form id="contact-contributor-form">
+            <div class="row" style="overflow-y: auto; height: 400px;">
+                <div class="col-12">
+                    <div class="bold-regular-text" title="Vietnam: High Resolution Population Density Maps + Demographic Estimates" data-module="bs_tooltip" data-module-placement="bottom" data-bs-toggle="tooltip">
+                        [Dataset] <span class="contact-popup-title">Vietnam: High Resolution Population Density Maps +...</span>
+                        <input type="hidden" name="pkg_title" value="">
+                        <input type="hidden" name="pkg_owner_org" value="">
+                        <input type="hidden" name="pkg_id" value="">
+                    </div>
+                    <select class="required mTop15" id="contact-contributor-topics-selector" name="topic" required="required">
+                        <option id="" value="">Your inquiry is regarding ...</option>
+
+                            <option id="contact-contributor-general question" value="general question">General question</option>
+
+                            <option id="contact-contributor-metadata" value="metadata">Metadata</option>
+
+                            <option id="contact-contributor-problem report" value="problem report">Problem report</option>
+
+                            <option id="contact-contributor-suggested edits" value="suggested edits">Suggested edits</option>
+
+                    </select>
+                    <div class="mTop15 control">
+                        <input id="contact-contributor-fullname" name="fullname" required="required" class="full-width required " type="text" value="">
+                        <label for="contact-contributor-fullname">Your name</label>
+                    </div>
+                    <div class="mTop15 control">
+                        <input id="contact-contributor-email" name="email" required="required" class="full-width required " type="text" value="">
+                        <label for="contact-contributor-email">Your email address</label>
+                    </div>
+                    <div class="mTop15 control">
+                        <textarea id="contact-contributor-msg" name="msg" class="full-width required" required="required"></textarea>
+                        <label for="contact-contributor-msg">Comments</label>
+                    </div>
+                </div>
+            </div>
+            <div class="right-side-actions">
+                <input class="btn btn-empty btn-empty-black btn-large" type="button" onclick="closeCurrentWidget(this);" value="Cancel">
+                <input id="submitContactContributorMessage" class="btn btn-primary btn-large mL45 hdx-recaptcha" disabled type="submit" value="Submit" data-sitekey="6Lcl60EUAAAAAE46a3XcPM2nPUKI2K4XZbcsorkR" data-callback="contactContributorOnSubmit" data-size="invisible" data-badge="inline">
+            </div>
+        </form>
+    </div>
+
+            <div class="right-side-actions">
+
+
+            </div>
+        </div>
+    </div>
+
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div id="groupMessagePopup" class="popup popup-onboarding" style="display: none;" >
+    <div class="content ">
+
+    <div class="row two-column-widget two-column-select-organisation">
+        <div class="two-column-left col-sm-6 col-12">
+
+    <div>
+        <div class="large-title">Group Message</div>
+        <div class="mTop20 large-text">
+            Use group message to communicate and collaborate with other members of your organisation.
+        </div>
+        <div class="mTop20 regular-text">
+            This feature is available for datasets shared publicly or privately by your organisation. It is not visible to anyone outside of your organisation.<br/>
+        </div>
+    </div>
+
+        </div>
+        <div class="two-column-right col-sm-6 col-12">
+
+    <div id="group-message">
+        <form id="group-message-form">
+            <div class="alert alert-danger d-none"></div>
+            <div class="row" style="overflow-y: auto; height: 400px;">
+                <div class="col-12">
+                    <div class="bold-regular-text" title="Vietnam: High Resolution Population Density Maps + Demographic Estimates" data-module="bs_tooltip" data-module-placement="bottom" data-bs-toggle="tooltip">
+                        [DATASET] Vietnam: High Resolution Population Density Maps +...
+                        <input type="hidden" name="source_type" value="dataset">
+                        <input type="hidden" name="title" value="Vietnam: High Resolution Population Density Maps + Demographic Estimates">
+                        <input type="hidden" name="org_id" value="74ad0574-923d-430b-8d52-ad80256c4461">
+                        <input type="hidden" name="pkg_id" value="vietnam-high-resolution-population-density-maps-demographic-estimates">
+                    </div>
+                    <select class="required mTop15" id="group-message-topics-selector" name="topic" required="required" onchange="_groupMessageValidator();">
+                        <option id="" value="">Select recipient group(s)</option>
+
+                    </select>
+                    <div class="mTop15 control">
+                        <input id="group-message-fullname" name="fullname" class="full-width required" type="text" value="">
+                        <label for="group-message-fullname">Your name</label>
+                    </div>
+                    <div class="mTop15 control">
+                        <input id="group-message-email" name="email" class="full-width required" type="text" value="">
+                        <label for="group-message-email">Your email address</label>
+                    </div>
+                    <div class="mTop15 control">
+                        <textarea id="group-message-msg" name="msg" class="full-width required" required="required" oninput="_groupMessageValidator();"></textarea>
+                        <label for="group-message-msg">Comments</label>
+                    </div>
+                </div>
+            </div>
+            <div class="right-side-actions">
+                <input class="btn btn-empty btn-empty-black btn-large" type="button" onclick="closeCurrentWidget(this);" value="Cancel">
+                <input id="submitGroupMessage" class="btn btn-primary btn-large mL45 hdx-recaptcha disabled" type="submit" value="Submit" data-sitekey="6Lcl60EUAAAAAE46a3XcPM2nPUKI2K4XZbcsorkR" data-callback="groupMessageOnSubmit" data-size="invisible" data-badge="inline">
+            </div>
+        </form>
+    </div>
+
+            <div class="right-side-actions">
+
+
+            </div>
+        </div>
+    </div>
+
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div id="membershipDonePopup" class="popup popup-onbording" style="display: none;" >
+    <div class="content ">
+
+            <div class="row">
+
+                <div class="col-12">
+
+    <div class="notification-widget">
+        <div class="notification-title ">
+
+                Your message was sent
+
+            <i class="close humanitarianicons-Exit-Cancel"></i>
+        </div>
+        <div>
+            <div>
+
+    <div class="done-widget">
+        <div class="center">
+            <img class="gif mTop20 lazyload" data-src="/images/onboarding/outgoingmail.gif">
+            <div class="to-message" style="display: none;">
+                <div class="mTop30 notification-message">
+                    <strong>To:</strong>
+                </div>
+                <div class="notification-message to-message-container">
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+            </div>
+        </div>
+    </div>
+
+                </div>
+
+            </div>
+
+    </div>
+</div>
+
+
+<span class="base-actions-menu followButtonContainer float-end">
+    <ul data-module="hdx_click_stopper"
+        data-module-link_type="dataset header"
+        data-module-just_send_event="false" data-module-selector="#contact-the-contributor">
+
+
+
+                <li
+                  data-module="hdx-onboarding-flow"
+                  data-start-page-type="contact-contributor"
+                  data-start-page-additional-params="{&#34;dataset_id&#34;: &#34;191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d&#34;}">
+
+                    <a href="/sign-in/?came_from=%2Fdataset%2Fvietnam-high-resolution-population-density-maps-demographic-estimates&amp;info_message_type=contact-contributor"
+                       title="Contact the contributor lets users send inquiries directly to data contributors. This feature is available on all dataset pages."
+                       data-module="bs_tooltip" data-module-placement="top" data-bs-toggle="tooltip" data-delay='{"show":"700"}' id="contact-the-contributor">
+
+                        <i class="icon-envelope"></i>
+                      <span>Contact the contributor</span>
+                    </a>
+                </li>
+
+
+
+
+
+
+
+
+
+
+        <li>
+            <span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	<span class=" direct-share-links" style="font-size: 24px; min-width: 130px;" id="dataset_social" target-url="https://data.humdata.org/dataset/vietnam-high-resolution-population-density-maps-demographic-estimates">
+		<a style="font-size:24px;" href="https://X.com/share?url=https://data.humdata.org/dataset/vietnam-high-resolution-population-density-maps-demographic-estimates" target="_blank" title="X"
+           class="mx-analytics-share" data-shared-item="dataset" data-share-type="twitter">
+      <i class="icon-x-social"></i>
+	        <img style="display: none; padding: 11px 6px; vertical-align: top;" src="/images/filter_loading.gif">
+		</a>
+		<a style="font-size: 24px;" href="https://www.facebook.com/sharer.php?u=https://data.humdata.org/dataset/vietnam-high-resolution-population-density-maps-demographic-estimates" target="_blank" title="Facebook"
+           class="mx-analytics-share" data-shared-item="dataset" data-share-type="facebook">
+			<i class="humanitarianicons-Social-fb" aria-hidden="true"></i>
+	        <img style="display: none; padding: 11px 6px; vertical-align: top;" src="/images/filter_loading.gif">
+		</a>
+		<a style="font-size: 24px;" href='mailto:?subject=[HDX]: "Vietnam: High Resolution Population Density Maps + Demographic Estimates"&body=Description:%0D%0AThe world's most accurate population datasets. Seven maps/datasets for the distribution of various populations in Vietnam: (1) Overall population density (2) Women (3) Men (4) Children... %0D%0Ahttps://data.humdata.org/dataset/vietnam-high-resolution-population-density-maps-demographic-estimates' target="_blank" title="E-Mail"
+           class="mx-analytics-share" data-shared-item="dataset" data-share-type="email">
+      <i class="humanitarianicons-Social-mail" aria-hidden="true"></i>
+	        <img style="display: none; padding: 11px 6px; vertical-align: top;" src="/images/filter_loading.gif">
+		</a>
+	</span>
+
+
+            </span>
+        </li>
+    </ul>
+
+</span>
+
+                  <div class="dataseries-info">This dataset is part of the data series <span class="dataseries-explanation" title="A data series is a collection of datasets that has a shared topic usually provided by a single organization" data-module="bs_tooltip" data-bs-toggle="tooltip">[?]</span>: <a href="/dataset/?dataseries_name=Data+for+Good+at+Meta+-+High+Resolution+Population+Density+Maps+and+Demographic+Estimates" data-module="hdx_click_stopper" data-module-link_type="dataseries dataset page">Data for Good at Meta - High Resolution Population Density Maps and Demographic Estimates</a></div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 paddingLeftHack paddingRightHack">
+      <div class="mBottom15" style="border-bottom: 1px solid #dddddd;">
+      </div>
+    </div>
+
+
+
+
+
+
+</div>
+
+                    </div>
+                  </div>
+
+
+                <div class="row paddingRowHack contentBackground twoColumnBackground">
+                  <div class="col-12 paddingLeftHack paddingRightHack">
+                    <div class="row">
+
+                        <div class="col-3 wrapper-secondary">
+
+
+    <div >
+        <div id="dataset-downloads-data" style="display: none">
+            [{&#34;date&#34;: &#34;2024-04-01&#34;, &#34;value&#34;: 0}, {&#34;value&#34;: 4, &#34;date&#34;: &#34;2024-04-08&#34;}, {&#34;value&#34;: 47, &#34;date&#34;: &#34;2024-04-15&#34;}, {&#34;value&#34;: 5, &#34;date&#34;: &#34;2024-04-22&#34;}, {&#34;value&#34;: 16, &#34;date&#34;: &#34;2024-04-29&#34;}, {&#34;value&#34;: 24, &#34;date&#34;: &#34;2024-05-06&#34;}, {&#34;value&#34;: 30, &#34;date&#34;: &#34;2024-05-13&#34;}, {&#34;value&#34;: 2, &#34;date&#34;: &#34;2024-05-20&#34;}, {&#34;value&#34;: 15, &#34;date&#34;: &#34;2024-05-27&#34;}, {&#34;value&#34;: 95, &#34;date&#34;: &#34;2024-06-03&#34;}, {&#34;value&#34;: 85, &#34;date&#34;: &#34;2024-06-10&#34;}, {&#34;value&#34;: 47, &#34;date&#34;: &#34;2024-06-17&#34;}, {&#34;value&#34;: 47, &#34;date&#34;: &#34;2024-06-24&#34;}, {&#34;value&#34;: 58, &#34;date&#34;: &#34;2024-07-01&#34;}, {&#34;value&#34;: 52, &#34;date&#34;: &#34;2024-07-08&#34;}, {&#34;value&#34;: 37, &#34;date&#34;: &#34;2024-07-15&#34;}, {&#34;value&#34;: 20, &#34;date&#34;: &#34;2024-07-22&#34;}, {&#34;value&#34;: 21, &#34;date&#34;: &#34;2024-07-29&#34;}, {&#34;value&#34;: 28, &#34;date&#34;: &#34;2024-08-05&#34;}, {&#34;value&#34;: 35, &#34;date&#34;: &#34;2024-08-12&#34;}, {&#34;value&#34;: 38, &#34;date&#34;: &#34;2024-08-19&#34;}, {&#34;value&#34;: 5, &#34;date&#34;: &#34;2024-08-26&#34;}, {&#34;value&#34;: 10, &#34;date&#34;: &#34;2024-09-02&#34;}, {&#34;value&#34;: 76, &#34;date&#34;: &#34;2024-09-09&#34;}, {&#34;date&#34;: &#34;2024-09-16&#34;, &#34;value&#34;: 0}]
+        </div>
+        <h2 class="uppercase">Downloads</h2>
+        <div id="dataset-downloads-chart">
+            <div id="dataset-downloads-chart-no-data" style="display: none;">
+                <div class="title">NO DATA</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+      <div class="col-12">
+        <h2 class="uppercase">Related Showcases</h2>
+
+
+        <p class="empty">There are no showcases for this dataset.</p>
+
+
+
+
+      </div>
+      <div class="col-12">
+        <div class="form-check form-switch ps-0 mTop20">
+          <input class="form-check-input float-end" type="checkbox" role="switch" id="showDatasetActivity">
+          <label class="form-check-label" for="showDatasetActivity"><h2 class="uppercase mt-0">Activity</h2></label>
+        </div>
+        <div class="dataset-activity-wrapper d-none">
+
+
+
+
+
+
+
+
+
+
+
+
+  <ul class="activity">
+
+<li class="item changed-package">
+  <span class="fa-stack fa-lg">
+    <i class="fa fa-circle fa-stack-2x icon"></i>
+    <i class="fa fa-sitemap fa-stack-1x fa-inverse"></i>
+  </span>
+
+  <span class="actor">
+    <img src="//gravatar.com/avatar/13624f89689362b1aa78d8badaa21a0f?s=30&amp;d=identicon"
+        class="user-image" width="30" height="30" alt="Gravatar" /> <a onclick="showOnboardingWidget('#loginPopup');" href="#" aria-label="login">hdx_dataseries_bot</a>
+  </span>
+ updated the dataset
+
+  <span class="dataset">
+    <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d">Vietnam: High Resolution Population Density Maps + Demographic Estimates</a>
+
+  </span>
+
+  <br />
+  <span class="date" title="May 15, 2023, 23:42 (UTC)">
+    1 year ago
+
+  </span>
+</li>
+<li class="item changed-package">
+  <span class="fa-stack fa-lg">
+    <i class="fa fa-circle fa-stack-2x icon"></i>
+    <i class="fa fa-sitemap fa-stack-1x fa-inverse"></i>
+  </span>
+
+  <span class="actor">
+    <img src="//gravatar.com/avatar/bfb37b859c2cd64da37e25175848af79?s=30&amp;d=identicon"
+        class="user-image" width="30" height="30" alt="Gravatar" /> <a onclick="showOnboardingWidget('#loginPopup');" href="#" aria-label="login">hdx_bot_tags</a>
+  </span>
+ updated the dataset
+
+  <span class="dataset">
+    <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d">Vietnam: High Resolution Population Density Maps + Demographic Estimates</a>
+
+  </span>
+
+  <br />
+  <span class="date" title="March 3, 2023, 03:35 (UTC)">
+    2 years ago
+
+  </span>
+</li>
+<li class="item changed-package">
+  <span class="fa-stack fa-lg">
+    <i class="fa fa-circle fa-stack-2x icon"></i>
+    <i class="fa fa-sitemap fa-stack-1x fa-inverse"></i>
+  </span>
+
+  <span class="actor">
+    <img src="//gravatar.com/avatar/3cc8432a9e82746f5edd90ec64eb701f?s=30&amp;d=identicon"
+        class="user-image" width="30" height="30" alt="Gravatar" /> <a onclick="showOnboardingWidget('#loginPopup');" href="#" aria-label="login">dfg-meta</a>
+  </span>
+ updated the dataset
+
+  <span class="dataset">
+    <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d">Vietnam: High Resolution Population Density Maps + Demographic Estimates</a>
+
+  </span>
+
+  <br />
+  <span class="date" title="February 18, 2023, 01:25 (UTC)">
+    2 years ago
+
+  </span>
+</li>
+<li class="item changed-package">
+  <span class="fa-stack fa-lg">
+    <i class="fa fa-circle fa-stack-2x icon"></i>
+    <i class="fa fa-sitemap fa-stack-1x fa-inverse"></i>
+  </span>
+
+  <span class="actor">
+    <img src="//gravatar.com/avatar/3cc8432a9e82746f5edd90ec64eb701f?s=30&amp;d=identicon"
+        class="user-image" width="30" height="30" alt="Gravatar" /> <a onclick="showOnboardingWidget('#loginPopup');" href="#" aria-label="login">dfg-meta</a>
+  </span>
+ updated the dataset
+
+  <span class="dataset">
+    <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d">Vietnam: High Resolution Population Density Maps + Demographic Estimates</a>
+
+  </span>
+
+  <br />
+  <span class="date" title="February 18, 2023, 01:25 (UTC)">
+    2 years ago
+
+  </span>
+</li>
+<li class="item changed-package">
+  <span class="fa-stack fa-lg">
+    <i class="fa fa-circle fa-stack-2x icon"></i>
+    <i class="fa fa-sitemap fa-stack-1x fa-inverse"></i>
+  </span>
+
+  <span class="actor">
+    <img src="//gravatar.com/avatar/3cc8432a9e82746f5edd90ec64eb701f?s=30&amp;d=identicon"
+        class="user-image" width="30" height="30" alt="Gravatar" /> <a onclick="showOnboardingWidget('#loginPopup');" href="#" aria-label="login">dfg-meta</a>
+  </span>
+ updated the dataset
+
+  <span class="dataset">
+    <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d">Vietnam: High Resolution Population Density Maps + Demographic Estimates</a>
+
+  </span>
+
+  <br />
+  <span class="date" title="February 18, 2023, 01:25 (UTC)">
+    2 years ago
+
+  </span>
+</li>
+<li class="item changed-package">
+  <span class="fa-stack fa-lg">
+    <i class="fa fa-circle fa-stack-2x icon"></i>
+    <i class="fa fa-sitemap fa-stack-1x fa-inverse"></i>
+  </span>
+
+  <span class="actor">
+    <img src="//gravatar.com/avatar/3cc8432a9e82746f5edd90ec64eb701f?s=30&amp;d=identicon"
+        class="user-image" width="30" height="30" alt="Gravatar" /> <a onclick="showOnboardingWidget('#loginPopup');" href="#" aria-label="login">dfg-meta</a>
+  </span>
+ updated the dataset
+
+  <span class="dataset">
+    <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d">Vietnam: High Resolution Population Density Maps + Demographic Estimates</a>
+
+  </span>
+
+  <br />
+  <span class="date" title="February 18, 2023, 01:25 (UTC)">
+    2 years ago
+
+  </span>
+</li>
+<li class="item changed-package">
+  <span class="fa-stack fa-lg">
+    <i class="fa fa-circle fa-stack-2x icon"></i>
+    <i class="fa fa-sitemap fa-stack-1x fa-inverse"></i>
+  </span>
+
+  <span class="actor">
+    <img src="//gravatar.com/avatar/3cc8432a9e82746f5edd90ec64eb701f?s=30&amp;d=identicon"
+        class="user-image" width="30" height="30" alt="Gravatar" /> <a onclick="showOnboardingWidget('#loginPopup');" href="#" aria-label="login">dfg-meta</a>
+  </span>
+ updated the dataset
+
+  <span class="dataset">
+    <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d">Vietnam: High Resolution Population Density Maps + Demographic Estimates</a>
+
+  </span>
+
+  <br />
+  <span class="date" title="February 18, 2023, 01:25 (UTC)">
+    2 years ago
+
+  </span>
+</li>
+  </ul>
+
+          <br>
+
+        </div>
+      </div>
+    </div>
+
+                        </div>
+
+                      <div class=" col-9 wrapper-primary pL15">
+
+  <div class="mL30 mTop20">
+
+
+  </div>
+
+
+  <div class="mL30">
+    <ul class="nav nav-tabs">
+      <li class="nav-item">
+        <a id="link-data-resources-tab" href="#data-resources-0"
+           data-module="hdx_click_stopper" data-module-link_type="dataset resources tab" data-module-just_send_event="true"
+           data-bs-toggle="tab" class="nav-link active hdx-tab-button">Data and Resources
+        </a>
+      </li>
+      <li class="nav-item">
+        <a id="link-metadata-tab" href="#metadata-0"
+           data-module="hdx_click_stopper" data-module-link_type="dataset metadata tab" data-module-just_send_event="true"
+           data-bs-toggle="tab" class="nav-link hdx-tab-button">Metadata
+        </a>
+      </li>
+    </ul>
+  </div>
+  <div class="tab-content clearfix mL30">
+    <div class="tab-pane show active" id="data-resources-0">
+
+        <div class="dataset-res-wraper">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div id="dataUseSurveyPopup" class="popup popup-onbording" style="display: none;" >
+    <div class="content ">
+
+            <div class="row">
+
+                <div class="col-12">
+
+    <div class="notification-widget">
+        <div class="notification-title ">
+
+                HDX Data Use Survey
+
+            <i class="close humanitarianicons-Exit-Cancel"></i>
+        </div>
+        <div>
+            <div>
+
+  <div class="survey-widget">
+    <div class="survey-content">
+      <div class="center">
+      <div style="text-align: justify;">
+
+        Please take 30 seconds to help HDX and Data for Good at Meta understand your interest in this data.
+      </div>
+    </div>
+      <div class="right-side-actions">
+        <div id="dataUseSurveyPkgId" style="visibility:hidden;position:absolute;">191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d</div>
+        <div id="dataUseSurveyPkgUrl" style="visibility:hidden;position:absolute;">https://data.humdata.org/dataset/vietnam-high-resolution-population-density-maps-demographic-estimates</div>
+        <div id="dataUseSurveyOrgName" style="visibility:hidden;position:absolute;">meta</div>
+        <input class="btn btn-empty btn-empty-black btn-large float-start" type="button" onclick="closeCurrentWidget(this);" value="Not now">
+        <a href="#"  class="mL35 btn btn-primary btn-primary-small btn-large float-end" type="button" value="Take survey">Take the survey</a>
+      </div>
+    </div>
+    <iframe style="display: none;"></iframe>
+  </div>
+
+            </div>
+        </div>
+    </div>
+
+                </div>
+
+            </div>
+
+    </div>
+</div>
+
+
+
+<p id="dataset-resources" class="resources mTop35 info-wrapper">
+  <div class="requested-data-message"></div>
+
+
+
+      <ul class="hdx-bs3 resource-list">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<li class="resource-item " data-grouping-id="" style="display: ">
+
+    <a class="heading" title="vnm_children_under_five_2020_csv.zip">
+      <span class="resource-name">
+        vnm_children_under_five_2020_csv.zip<span class="format-label" property="dc:format" data-format="zip">zip</span>
+      </span>
+
+        <span class="format-filesize-label">(160.3M)</span>
+
+
+    </a>
+
+  <div class="update-date">
+
+
+
+    Modified:
+    18 February 2023
+  </div>
+  <div class="description">
+
+      <span class="empty">No description for this resource</span>
+
+  </div>
+
+
+
+
+
+
+
+    <div class="hdx-btn-group hdx-btn-group-fixed">
+
+
+
+
+
+              <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/b60dab07-0a27-47f3-894d-02e9fbee6473/download/vnm_children_under_five_2020_csv.zip"
+                 class="btn btn-empty btn-empty-blue hdx-btn resource-url-analytics ga-download"
+                 title="Download"
+                 tracking-type="upload"
+                 onclick="showDataUseSurveyPopup('b60dab07-0a27-47f3-894d-02e9fbee6473', 'https://docs.google.com/forms/d/e/1FAIpQLSfwnoQwyOzXXw2aQa1HhwmFICpSq1-Tnb3cfOgzWDm9iyOxZA/viewform?entry.730743274=hdx_organization_name&amp;entry.373528326=hdx_dataset_id&amp;entry.39727542=hdx_resource_id');return true;"
+              >
+
+                    <img src="/images/homepage/download.svg" alt="Download" />
+
+                  Download
+                  <span class="ga-download-resource-title" style="display: none">vnm_children_under_five_2020_csv.zip</span>
+                  <span class="ga-download-resource-id" style="display: none">b60dab07-0a27-47f3-894d-02e9fbee6473</span>
+              </a>
+
+
+
+
+                <a href="#" class="btn btn-empty btn-empty-blue hdx-btn" data-bs-toggle="dropdown">
+                  More
+                </a>
+
+                <ul class="dropdown-menu crises-menu" role="menu" style="right: 0;">
+
+
+                  <li class="crises-group">
+                    Export Metadata
+                    <ul>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/b60dab07-0a27-47f3-894d-02e9fbee6473/download_metadata?format=json">JSON</a>
+                      </li>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/b60dab07-0a27-47f3-894d-02e9fbee6473/download_metadata?format=csv">CSV</a>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+
+</li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<li class="resource-item " data-grouping-id="" style="display: ">
+
+    <a class="heading" title="vnm_children_under_five_2020_geotiff.zip">
+      <span class="resource-name">
+        vnm_children_under_five_2020_geotiff.zip<span class="format-label" property="dc:format" data-format="zip">zip</span>
+      </span>
+
+        <span class="format-filesize-label">(63.4M)</span>
+
+
+    </a>
+
+  <div class="update-date">
+
+
+
+    Modified:
+    18 February 2023
+  </div>
+  <div class="description">
+
+      <span class="empty">No description for this resource</span>
+
+  </div>
+
+
+
+
+
+
+
+    <div class="hdx-btn-group hdx-btn-group-fixed">
+
+
+
+
+
+              <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/a2ca47a3-b7d7-4a39-a605-161d4790c6f9/download/vnm_children_under_five_2020_geotiff.zip"
+                 class="btn btn-empty btn-empty-blue hdx-btn resource-url-analytics ga-download"
+                 title="Download"
+                 tracking-type="upload"
+                 onclick="showDataUseSurveyPopup('a2ca47a3-b7d7-4a39-a605-161d4790c6f9', 'https://docs.google.com/forms/d/e/1FAIpQLSfwnoQwyOzXXw2aQa1HhwmFICpSq1-Tnb3cfOgzWDm9iyOxZA/viewform?entry.730743274=hdx_organization_name&amp;entry.373528326=hdx_dataset_id&amp;entry.39727542=hdx_resource_id');return true;"
+              >
+
+                    <img src="/images/homepage/download.svg" alt="Download" />
+
+                  Download
+                  <span class="ga-download-resource-title" style="display: none">vnm_children_under_five_2020_geotiff.zip</span>
+                  <span class="ga-download-resource-id" style="display: none">a2ca47a3-b7d7-4a39-a605-161d4790c6f9</span>
+              </a>
+
+
+
+
+                <a href="#" class="btn btn-empty btn-empty-blue hdx-btn" data-bs-toggle="dropdown">
+                  More
+                </a>
+
+                <ul class="dropdown-menu crises-menu" role="menu" style="right: 0;">
+
+
+                  <li class="crises-group">
+                    Export Metadata
+                    <ul>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/a2ca47a3-b7d7-4a39-a605-161d4790c6f9/download_metadata?format=json">JSON</a>
+                      </li>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/a2ca47a3-b7d7-4a39-a605-161d4790c6f9/download_metadata?format=csv">CSV</a>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+
+</li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<li class="resource-item " data-grouping-id="" style="display: ">
+
+    <a class="heading" title="vnm_elderly_60_plus_2020_csv.zip">
+      <span class="resource-name">
+        vnm_elderly_60_plus_2020_csv.zip<span class="format-label" property="dc:format" data-format="zip">zip</span>
+      </span>
+
+        <span class="format-filesize-label">(160.1M)</span>
+
+
+    </a>
+
+  <div class="update-date">
+
+
+
+    Modified:
+    18 February 2023
+  </div>
+  <div class="description">
+
+      <span class="empty">No description for this resource</span>
+
+  </div>
+
+
+
+
+
+
+
+    <div class="hdx-btn-group hdx-btn-group-fixed">
+
+
+
+
+
+              <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/77edfcc3-d037-4233-9b16-7ebb684b4752/download/vnm_elderly_60_plus_2020_csv.zip"
+                 class="btn btn-empty btn-empty-blue hdx-btn resource-url-analytics ga-download"
+                 title="Download"
+                 tracking-type="upload"
+                 onclick="showDataUseSurveyPopup('77edfcc3-d037-4233-9b16-7ebb684b4752', 'https://docs.google.com/forms/d/e/1FAIpQLSfwnoQwyOzXXw2aQa1HhwmFICpSq1-Tnb3cfOgzWDm9iyOxZA/viewform?entry.730743274=hdx_organization_name&amp;entry.373528326=hdx_dataset_id&amp;entry.39727542=hdx_resource_id');return true;"
+              >
+
+                    <img src="/images/homepage/download.svg" alt="Download" />
+
+                  Download
+                  <span class="ga-download-resource-title" style="display: none">vnm_elderly_60_plus_2020_csv.zip</span>
+                  <span class="ga-download-resource-id" style="display: none">77edfcc3-d037-4233-9b16-7ebb684b4752</span>
+              </a>
+
+
+
+
+                <a href="#" class="btn btn-empty btn-empty-blue hdx-btn" data-bs-toggle="dropdown">
+                  More
+                </a>
+
+                <ul class="dropdown-menu crises-menu" role="menu" style="right: 0;">
+
+
+                  <li class="crises-group">
+                    Export Metadata
+                    <ul>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/77edfcc3-d037-4233-9b16-7ebb684b4752/download_metadata?format=json">JSON</a>
+                      </li>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/77edfcc3-d037-4233-9b16-7ebb684b4752/download_metadata?format=csv">CSV</a>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+
+</li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<li class="resource-item " data-grouping-id="" style="display: ">
+
+    <a class="heading" title="vnm_elderly_60_plus_2020_geotiff.zip">
+      <span class="resource-name">
+        vnm_elderly_60_plus_2020_geotiff.zip<span class="format-label" property="dc:format" data-format="zip">zip</span>
+      </span>
+
+        <span class="format-filesize-label">(63.4M)</span>
+
+
+    </a>
+
+  <div class="update-date">
+
+
+
+    Modified:
+    18 February 2023
+  </div>
+  <div class="description">
+
+      <span class="empty">No description for this resource</span>
+
+  </div>
+
+
+
+
+
+
+
+    <div class="hdx-btn-group hdx-btn-group-fixed">
+
+
+
+
+
+              <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/61b6a396-ffcc-4710-a453-174914822164/download/vnm_elderly_60_plus_2020_geotiff.zip"
+                 class="btn btn-empty btn-empty-blue hdx-btn resource-url-analytics ga-download"
+                 title="Download"
+                 tracking-type="upload"
+                 onclick="showDataUseSurveyPopup('61b6a396-ffcc-4710-a453-174914822164', 'https://docs.google.com/forms/d/e/1FAIpQLSfwnoQwyOzXXw2aQa1HhwmFICpSq1-Tnb3cfOgzWDm9iyOxZA/viewform?entry.730743274=hdx_organization_name&amp;entry.373528326=hdx_dataset_id&amp;entry.39727542=hdx_resource_id');return true;"
+              >
+
+                    <img src="/images/homepage/download.svg" alt="Download" />
+
+                  Download
+                  <span class="ga-download-resource-title" style="display: none">vnm_elderly_60_plus_2020_geotiff.zip</span>
+                  <span class="ga-download-resource-id" style="display: none">61b6a396-ffcc-4710-a453-174914822164</span>
+              </a>
+
+
+
+
+                <a href="#" class="btn btn-empty btn-empty-blue hdx-btn" data-bs-toggle="dropdown">
+                  More
+                </a>
+
+                <ul class="dropdown-menu crises-menu" role="menu" style="right: 0;">
+
+
+                  <li class="crises-group">
+                    Export Metadata
+                    <ul>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/61b6a396-ffcc-4710-a453-174914822164/download_metadata?format=json">JSON</a>
+                      </li>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/61b6a396-ffcc-4710-a453-174914822164/download_metadata?format=csv">CSV</a>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+
+</li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<li class="resource-item " data-grouping-id="" style="display: ">
+
+    <a class="heading" title="vnm_men_2020_csv.zip">
+      <span class="resource-name">
+        vnm_men_2020_csv.zip<span class="format-label" property="dc:format" data-format="zip">zip</span>
+      </span>
+
+        <span class="format-filesize-label">(162.1M)</span>
+
+
+    </a>
+
+  <div class="update-date">
+
+
+
+    Modified:
+    18 February 2023
+  </div>
+  <div class="description">
+
+      <span class="empty">No description for this resource</span>
+
+  </div>
+
+
+
+
+
+
+
+    <div class="hdx-btn-group hdx-btn-group-fixed">
+
+
+
+
+
+              <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/e0d42fbb-2436-4f3e-afd1-83d1ac6314b2/download/vnm_men_2020_csv.zip"
+                 class="btn btn-empty btn-empty-blue hdx-btn resource-url-analytics ga-download"
+                 title="Download"
+                 tracking-type="upload"
+                 onclick="showDataUseSurveyPopup('e0d42fbb-2436-4f3e-afd1-83d1ac6314b2', 'https://docs.google.com/forms/d/e/1FAIpQLSfwnoQwyOzXXw2aQa1HhwmFICpSq1-Tnb3cfOgzWDm9iyOxZA/viewform?entry.730743274=hdx_organization_name&amp;entry.373528326=hdx_dataset_id&amp;entry.39727542=hdx_resource_id');return true;"
+              >
+
+                    <img src="/images/homepage/download.svg" alt="Download" />
+
+                  Download
+                  <span class="ga-download-resource-title" style="display: none">vnm_men_2020_csv.zip</span>
+                  <span class="ga-download-resource-id" style="display: none">e0d42fbb-2436-4f3e-afd1-83d1ac6314b2</span>
+              </a>
+
+
+
+
+                <a href="#" class="btn btn-empty btn-empty-blue hdx-btn" data-bs-toggle="dropdown">
+                  More
+                </a>
+
+                <ul class="dropdown-menu crises-menu" role="menu" style="right: 0;">
+
+
+                  <li class="crises-group">
+                    Export Metadata
+                    <ul>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/e0d42fbb-2436-4f3e-afd1-83d1ac6314b2/download_metadata?format=json">JSON</a>
+                      </li>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/e0d42fbb-2436-4f3e-afd1-83d1ac6314b2/download_metadata?format=csv">CSV</a>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+
+</li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<li class="resource-item " data-grouping-id="" style="display: ">
+
+    <a class="heading" title="vnm_men_2020_geotiff.zip">
+      <span class="resource-name">
+        vnm_men_2020_geotiff.zip<span class="format-label" property="dc:format" data-format="zip">zip</span>
+      </span>
+
+        <span class="format-filesize-label">(63.5M)</span>
+
+
+    </a>
+
+  <div class="update-date">
+
+
+
+    Modified:
+    18 February 2023
+  </div>
+  <div class="description">
+
+      <span class="empty">No description for this resource</span>
+
+  </div>
+
+
+
+
+
+
+
+    <div class="hdx-btn-group hdx-btn-group-fixed">
+
+
+
+
+
+              <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/76990cd9-a2dc-44e6-809c-492698b090c0/download/vnm_men_2020_geotiff.zip"
+                 class="btn btn-empty btn-empty-blue hdx-btn resource-url-analytics ga-download"
+                 title="Download"
+                 tracking-type="upload"
+                 onclick="showDataUseSurveyPopup('76990cd9-a2dc-44e6-809c-492698b090c0', 'https://docs.google.com/forms/d/e/1FAIpQLSfwnoQwyOzXXw2aQa1HhwmFICpSq1-Tnb3cfOgzWDm9iyOxZA/viewform?entry.730743274=hdx_organization_name&amp;entry.373528326=hdx_dataset_id&amp;entry.39727542=hdx_resource_id');return true;"
+              >
+
+                    <img src="/images/homepage/download.svg" alt="Download" />
+
+                  Download
+                  <span class="ga-download-resource-title" style="display: none">vnm_men_2020_geotiff.zip</span>
+                  <span class="ga-download-resource-id" style="display: none">76990cd9-a2dc-44e6-809c-492698b090c0</span>
+              </a>
+
+
+
+
+                <a href="#" class="btn btn-empty btn-empty-blue hdx-btn" data-bs-toggle="dropdown">
+                  More
+                </a>
+
+                <ul class="dropdown-menu crises-menu" role="menu" style="right: 0;">
+
+
+                  <li class="crises-group">
+                    Export Metadata
+                    <ul>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/76990cd9-a2dc-44e6-809c-492698b090c0/download_metadata?format=json">JSON</a>
+                      </li>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/76990cd9-a2dc-44e6-809c-492698b090c0/download_metadata?format=csv">CSV</a>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+
+</li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<li class="resource-item " data-grouping-id="" style="display: ">
+
+    <a class="heading" title="vnm_women_2020_csv.zip">
+      <span class="resource-name">
+        vnm_women_2020_csv.zip<span class="format-label" property="dc:format" data-format="zip">zip</span>
+      </span>
+
+        <span class="format-filesize-label">(162.1M)</span>
+
+
+    </a>
+
+  <div class="update-date">
+
+
+
+    Modified:
+    18 February 2023
+  </div>
+  <div class="description">
+
+      <span class="empty">No description for this resource</span>
+
+  </div>
+
+
+
+
+
+
+
+    <div class="hdx-btn-group hdx-btn-group-fixed">
+
+
+
+
+
+              <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/0bd525fa-3f63-447b-9afa-3d5075657ce4/download/vnm_women_2020_csv.zip"
+                 class="btn btn-empty btn-empty-blue hdx-btn resource-url-analytics ga-download"
+                 title="Download"
+                 tracking-type="upload"
+                 onclick="showDataUseSurveyPopup('0bd525fa-3f63-447b-9afa-3d5075657ce4', 'https://docs.google.com/forms/d/e/1FAIpQLSfwnoQwyOzXXw2aQa1HhwmFICpSq1-Tnb3cfOgzWDm9iyOxZA/viewform?entry.730743274=hdx_organization_name&amp;entry.373528326=hdx_dataset_id&amp;entry.39727542=hdx_resource_id');return true;"
+              >
+
+                    <img src="/images/homepage/download.svg" alt="Download" />
+
+                  Download
+                  <span class="ga-download-resource-title" style="display: none">vnm_women_2020_csv.zip</span>
+                  <span class="ga-download-resource-id" style="display: none">0bd525fa-3f63-447b-9afa-3d5075657ce4</span>
+              </a>
+
+
+
+
+                <a href="#" class="btn btn-empty btn-empty-blue hdx-btn" data-bs-toggle="dropdown">
+                  More
+                </a>
+
+                <ul class="dropdown-menu crises-menu" role="menu" style="right: 0;">
+
+
+                  <li class="crises-group">
+                    Export Metadata
+                    <ul>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/0bd525fa-3f63-447b-9afa-3d5075657ce4/download_metadata?format=json">JSON</a>
+                      </li>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/0bd525fa-3f63-447b-9afa-3d5075657ce4/download_metadata?format=csv">CSV</a>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+
+</li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<li class="resource-item " data-grouping-id="" style="display: ">
+
+    <a class="heading" title="vnm_women_2020_geotiff.zip">
+      <span class="resource-name">
+        vnm_women_2020_geotiff.zip<span class="format-label" property="dc:format" data-format="zip">zip</span>
+      </span>
+
+        <span class="format-filesize-label">(63.5M)</span>
+
+
+    </a>
+
+  <div class="update-date">
+
+
+
+    Modified:
+    18 February 2023
+  </div>
+  <div class="description">
+
+      <span class="empty">No description for this resource</span>
+
+  </div>
+
+
+
+
+
+
+
+    <div class="hdx-btn-group hdx-btn-group-fixed">
+
+
+
+
+
+              <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/5bd99468-ea44-4a50-b64b-54343b182842/download/vnm_women_2020_geotiff.zip"
+                 class="btn btn-empty btn-empty-blue hdx-btn resource-url-analytics ga-download"
+                 title="Download"
+                 tracking-type="upload"
+                 onclick="showDataUseSurveyPopup('5bd99468-ea44-4a50-b64b-54343b182842', 'https://docs.google.com/forms/d/e/1FAIpQLSfwnoQwyOzXXw2aQa1HhwmFICpSq1-Tnb3cfOgzWDm9iyOxZA/viewform?entry.730743274=hdx_organization_name&amp;entry.373528326=hdx_dataset_id&amp;entry.39727542=hdx_resource_id');return true;"
+              >
+
+                    <img src="/images/homepage/download.svg" alt="Download" />
+
+                  Download
+                  <span class="ga-download-resource-title" style="display: none">vnm_women_2020_geotiff.zip</span>
+                  <span class="ga-download-resource-id" style="display: none">5bd99468-ea44-4a50-b64b-54343b182842</span>
+              </a>
+
+
+
+
+                <a href="#" class="btn btn-empty btn-empty-blue hdx-btn" data-bs-toggle="dropdown">
+                  More
+                </a>
+
+                <ul class="dropdown-menu crises-menu" role="menu" style="right: 0;">
+
+
+                  <li class="crises-group">
+                    Export Metadata
+                    <ul>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/5bd99468-ea44-4a50-b64b-54343b182842/download_metadata?format=json">JSON</a>
+                      </li>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/5bd99468-ea44-4a50-b64b-54343b182842/download_metadata?format=csv">CSV</a>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+
+</li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<li class="resource-item " data-grouping-id="" style="display: ">
+
+    <a class="heading" title="vnm_women_of_reproductive_age_15_49_2020_csv.zip">
+      <span class="resource-name">
+        vnm_women_of_reproductive_age_15_49_2020_csv.zip<span class="format-label" property="dc:format" data-format="zip">zip</span>
+      </span>
+
+        <span class="format-filesize-label">(161.6M)</span>
+
+
+    </a>
+
+  <div class="update-date">
+
+
+
+    Modified:
+    18 February 2023
+  </div>
+  <div class="description">
+
+      <span class="empty">No description for this resource</span>
+
+  </div>
+
+
+
+
+
+
+
+    <div class="hdx-btn-group hdx-btn-group-fixed">
+
+
+
+
+
+              <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/5727eb4e-ce2a-4250-a9a0-2603d889ff02/download/vnm_women_of_reproductive_age_15_49_2020_csv.zip"
+                 class="btn btn-empty btn-empty-blue hdx-btn resource-url-analytics ga-download"
+                 title="Download"
+                 tracking-type="upload"
+                 onclick="showDataUseSurveyPopup('5727eb4e-ce2a-4250-a9a0-2603d889ff02', 'https://docs.google.com/forms/d/e/1FAIpQLSfwnoQwyOzXXw2aQa1HhwmFICpSq1-Tnb3cfOgzWDm9iyOxZA/viewform?entry.730743274=hdx_organization_name&amp;entry.373528326=hdx_dataset_id&amp;entry.39727542=hdx_resource_id');return true;"
+              >
+
+                    <img src="/images/homepage/download.svg" alt="Download" />
+
+                  Download
+                  <span class="ga-download-resource-title" style="display: none">vnm_women_of_reproductive_age_15_49_2020_csv.zip</span>
+                  <span class="ga-download-resource-id" style="display: none">5727eb4e-ce2a-4250-a9a0-2603d889ff02</span>
+              </a>
+
+
+
+
+                <a href="#" class="btn btn-empty btn-empty-blue hdx-btn" data-bs-toggle="dropdown">
+                  More
+                </a>
+
+                <ul class="dropdown-menu crises-menu" role="menu" style="right: 0;">
+
+
+                  <li class="crises-group">
+                    Export Metadata
+                    <ul>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/5727eb4e-ce2a-4250-a9a0-2603d889ff02/download_metadata?format=json">JSON</a>
+                      </li>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/5727eb4e-ce2a-4250-a9a0-2603d889ff02/download_metadata?format=csv">CSV</a>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+
+</li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<li class="resource-item " data-grouping-id="" style="display: ">
+
+    <a class="heading" title="vnm_women_of_reproductive_age_15_49_2020_geotiff.zip">
+      <span class="resource-name">
+        vnm_women_of_reproductive_age_15_49_2020_geotiff.zip<span class="format-label" property="dc:format" data-format="zip">zip</span>
+      </span>
+
+        <span class="format-filesize-label">(63.5M)</span>
+
+
+    </a>
+
+  <div class="update-date">
+
+
+
+    Modified:
+    18 February 2023
+  </div>
+  <div class="description">
+
+      <span class="empty">No description for this resource</span>
+
+  </div>
+
+
+
+
+
+
+
+    <div class="hdx-btn-group hdx-btn-group-fixed">
+
+
+
+
+
+              <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/855e27d7-d191-440d-936a-ecedfded238d/download/vnm_women_of_reproductive_age_15_49_2020_geotiff.zip"
+                 class="btn btn-empty btn-empty-blue hdx-btn resource-url-analytics ga-download"
+                 title="Download"
+                 tracking-type="upload"
+                 onclick="showDataUseSurveyPopup('855e27d7-d191-440d-936a-ecedfded238d', 'https://docs.google.com/forms/d/e/1FAIpQLSfwnoQwyOzXXw2aQa1HhwmFICpSq1-Tnb3cfOgzWDm9iyOxZA/viewform?entry.730743274=hdx_organization_name&amp;entry.373528326=hdx_dataset_id&amp;entry.39727542=hdx_resource_id');return true;"
+              >
+
+                    <img src="/images/homepage/download.svg" alt="Download" />
+
+                  Download
+                  <span class="ga-download-resource-title" style="display: none">vnm_women_of_reproductive_age_15_49_2020_geotiff.zip</span>
+                  <span class="ga-download-resource-id" style="display: none">855e27d7-d191-440d-936a-ecedfded238d</span>
+              </a>
+
+
+
+
+                <a href="#" class="btn btn-empty btn-empty-blue hdx-btn" data-bs-toggle="dropdown">
+                  More
+                </a>
+
+                <ul class="dropdown-menu crises-menu" role="menu" style="right: 0;">
+
+
+                  <li class="crises-group">
+                    Export Metadata
+                    <ul>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/855e27d7-d191-440d-936a-ecedfded238d/download_metadata?format=json">JSON</a>
+                      </li>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/855e27d7-d191-440d-936a-ecedfded238d/download_metadata?format=csv">CSV</a>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+
+</li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<li class="resource-item " data-grouping-id="" style="display: ">
+
+    <a class="heading" title="vnm_youth_15_24_2020_csv.zip">
+      <span class="resource-name">
+        vnm_youth_15_24_2020_csv.zip<span class="format-label" property="dc:format" data-format="zip">zip</span>
+      </span>
+
+        <span class="format-filesize-label">(161.1M)</span>
+
+
+    </a>
+
+  <div class="update-date">
+
+
+
+    Modified:
+    18 February 2023
+  </div>
+  <div class="description">
+
+      <span class="empty">No description for this resource</span>
+
+  </div>
+
+
+
+
+
+
+
+    <div class="hdx-btn-group hdx-btn-group-fixed">
+
+
+
+
+
+              <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/aa6dd9dd-eecd-4f3d-b6b2-fa0f0b5faa70/download/vnm_youth_15_24_2020_csv.zip"
+                 class="btn btn-empty btn-empty-blue hdx-btn resource-url-analytics ga-download"
+                 title="Download"
+                 tracking-type="upload"
+                 onclick="showDataUseSurveyPopup('aa6dd9dd-eecd-4f3d-b6b2-fa0f0b5faa70', 'https://docs.google.com/forms/d/e/1FAIpQLSfwnoQwyOzXXw2aQa1HhwmFICpSq1-Tnb3cfOgzWDm9iyOxZA/viewform?entry.730743274=hdx_organization_name&amp;entry.373528326=hdx_dataset_id&amp;entry.39727542=hdx_resource_id');return true;"
+              >
+
+                    <img src="/images/homepage/download.svg" alt="Download" />
+
+                  Download
+                  <span class="ga-download-resource-title" style="display: none">vnm_youth_15_24_2020_csv.zip</span>
+                  <span class="ga-download-resource-id" style="display: none">aa6dd9dd-eecd-4f3d-b6b2-fa0f0b5faa70</span>
+              </a>
+
+
+
+
+                <a href="#" class="btn btn-empty btn-empty-blue hdx-btn" data-bs-toggle="dropdown">
+                  More
+                </a>
+
+                <ul class="dropdown-menu crises-menu" role="menu" style="right: 0;">
+
+
+                  <li class="crises-group">
+                    Export Metadata
+                    <ul>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/aa6dd9dd-eecd-4f3d-b6b2-fa0f0b5faa70/download_metadata?format=json">JSON</a>
+                      </li>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/aa6dd9dd-eecd-4f3d-b6b2-fa0f0b5faa70/download_metadata?format=csv">CSV</a>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+
+</li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<li class="resource-item " data-grouping-id="" style="display: ">
+
+    <a class="heading" title="vnm_youth_15_24_2020_geotiff.zip">
+      <span class="resource-name">
+        vnm_youth_15_24_2020_geotiff.zip<span class="format-label" property="dc:format" data-format="zip">zip</span>
+      </span>
+
+        <span class="format-filesize-label">(63.4M)</span>
+
+
+    </a>
+
+  <div class="update-date">
+
+
+
+    Modified:
+    18 February 2023
+  </div>
+  <div class="description">
+
+      <span class="empty">No description for this resource</span>
+
+  </div>
+
+
+
+
+
+
+
+    <div class="hdx-btn-group hdx-btn-group-fixed">
+
+
+
+
+
+              <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/e36dce9f-ea1d-4933-8a37-dc5838df11f0/download/vnm_youth_15_24_2020_geotiff.zip"
+                 class="btn btn-empty btn-empty-blue hdx-btn resource-url-analytics ga-download"
+                 title="Download"
+                 tracking-type="upload"
+                 onclick="showDataUseSurveyPopup('e36dce9f-ea1d-4933-8a37-dc5838df11f0', 'https://docs.google.com/forms/d/e/1FAIpQLSfwnoQwyOzXXw2aQa1HhwmFICpSq1-Tnb3cfOgzWDm9iyOxZA/viewform?entry.730743274=hdx_organization_name&amp;entry.373528326=hdx_dataset_id&amp;entry.39727542=hdx_resource_id');return true;"
+              >
+
+                    <img src="/images/homepage/download.svg" alt="Download" />
+
+                  Download
+                  <span class="ga-download-resource-title" style="display: none">vnm_youth_15_24_2020_geotiff.zip</span>
+                  <span class="ga-download-resource-id" style="display: none">e36dce9f-ea1d-4933-8a37-dc5838df11f0</span>
+              </a>
+
+
+
+
+                <a href="#" class="btn btn-empty btn-empty-blue hdx-btn" data-bs-toggle="dropdown">
+                  More
+                </a>
+
+                <ul class="dropdown-menu crises-menu" role="menu" style="right: 0;">
+
+
+                  <li class="crises-group">
+                    Export Metadata
+                    <ul>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/e36dce9f-ea1d-4933-8a37-dc5838df11f0/download_metadata?format=json">JSON</a>
+                      </li>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/e36dce9f-ea1d-4933-8a37-dc5838df11f0/download_metadata?format=csv">CSV</a>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+
+</li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<li class="resource-item " data-grouping-id="" style="display: ">
+
+    <a class="heading" title="vnm_general_2020_geotiff.zip">
+      <span class="resource-name">
+        vnm_general_2020_geotiff.zip<span class="format-label" property="dc:format" data-format="zip">zip</span>
+      </span>
+
+        <span class="format-filesize-label">(63.5M)</span>
+
+
+    </a>
+
+  <div class="update-date">
+
+
+
+    Modified:
+    18 February 2023
+  </div>
+  <div class="description">
+
+      <span class="empty">No description for this resource</span>
+
+  </div>
+
+
+
+
+
+
+
+    <div class="hdx-btn-group hdx-btn-group-fixed">
+
+
+
+
+
+              <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/fade8620-0935-4d26-b0c6-15515dd4bf8b/download/vnm_general_2020_geotiff.zip"
+                 class="btn btn-empty btn-empty-blue hdx-btn resource-url-analytics ga-download"
+                 title="Download"
+                 tracking-type="upload"
+                 onclick="showDataUseSurveyPopup('fade8620-0935-4d26-b0c6-15515dd4bf8b', 'https://docs.google.com/forms/d/e/1FAIpQLSfwnoQwyOzXXw2aQa1HhwmFICpSq1-Tnb3cfOgzWDm9iyOxZA/viewform?entry.730743274=hdx_organization_name&amp;entry.373528326=hdx_dataset_id&amp;entry.39727542=hdx_resource_id');return true;"
+              >
+
+                    <img src="/images/homepage/download.svg" alt="Download" />
+
+                  Download
+                  <span class="ga-download-resource-title" style="display: none">vnm_general_2020_geotiff.zip</span>
+                  <span class="ga-download-resource-id" style="display: none">fade8620-0935-4d26-b0c6-15515dd4bf8b</span>
+              </a>
+
+
+
+
+                <a href="#" class="btn btn-empty btn-empty-blue hdx-btn" data-bs-toggle="dropdown">
+                  More
+                </a>
+
+                <ul class="dropdown-menu crises-menu" role="menu" style="right: 0;">
+
+
+                  <li class="crises-group">
+                    Export Metadata
+                    <ul>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/fade8620-0935-4d26-b0c6-15515dd4bf8b/download_metadata?format=json">JSON</a>
+                      </li>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/fade8620-0935-4d26-b0c6-15515dd4bf8b/download_metadata?format=csv">CSV</a>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+
+</li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<li class="resource-item " data-grouping-id="" style="display: ">
+
+    <a class="heading" title="vnm_general_2020_csv.zip">
+      <span class="resource-name">
+        vnm_general_2020_csv.zip<span class="format-label" property="dc:format" data-format="zip">zip</span>
+      </span>
+
+        <span class="format-filesize-label">(162.5M)</span>
+
+
+    </a>
+
+  <div class="update-date">
+
+
+
+    Modified:
+    18 February 2023
+  </div>
+  <div class="description">
+
+      <span class="empty">No description for this resource</span>
+
+  </div>
+
+
+
+
+
+
+
+    <div class="hdx-btn-group hdx-btn-group-fixed">
+
+
+
+
+
+              <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/0fbf4055-7091-4041-a7ea-25f057debd7c/download/vnm_general_2020_csv.zip"
+                 class="btn btn-empty btn-empty-blue hdx-btn resource-url-analytics ga-download"
+                 title="Download"
+                 tracking-type="upload"
+                 onclick="showDataUseSurveyPopup('0fbf4055-7091-4041-a7ea-25f057debd7c', 'https://docs.google.com/forms/d/e/1FAIpQLSfwnoQwyOzXXw2aQa1HhwmFICpSq1-Tnb3cfOgzWDm9iyOxZA/viewform?entry.730743274=hdx_organization_name&amp;entry.373528326=hdx_dataset_id&amp;entry.39727542=hdx_resource_id');return true;"
+              >
+
+                    <img src="/images/homepage/download.svg" alt="Download" />
+
+                  Download
+                  <span class="ga-download-resource-title" style="display: none">vnm_general_2020_csv.zip</span>
+                  <span class="ga-download-resource-id" style="display: none">0fbf4055-7091-4041-a7ea-25f057debd7c</span>
+              </a>
+
+
+
+
+                <a href="#" class="btn btn-empty btn-empty-blue hdx-btn" data-bs-toggle="dropdown">
+                  More
+                </a>
+
+                <ul class="dropdown-menu crises-menu" role="menu" style="right: 0;">
+
+
+                  <li class="crises-group">
+                    Export Metadata
+                    <ul>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/0fbf4055-7091-4041-a7ea-25f057debd7c/download_metadata?format=json">JSON</a>
+                      </li>
+                      <li>
+                        <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/0fbf4055-7091-4041-a7ea-25f057debd7c/download_metadata?format=csv">CSV</a>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+
+</li>
+
+
+      </ul>
+
+
+
+
+<div class="modal data-check-modal" id="preview-data-check" tabindex="-1" role="dialog" data-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Data Check <small>- Use data with HXL hashtags to automatically detect errors and validate against common vocabularies.</small></h3>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <iframe frameborder="0" allowfullscreen="true" mozallowfullscreen="true" webkitallowfullscreen="true"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+        </div>
+
+    </div>
+    <div class="tab-pane" id="metadata-0">
+
+        <section class="additional-info info-wrapper mTop35">
+
+
+  <div class="text-end">
+    <p>Export metadata for this dataset: <a href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/download_metadata?format=json">JSON</a> | <a
+            href="/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/download_metadata?format=csv">CSV</a></p>
+  </div>
+
+  <table class="table-condensed mTop10">
+
+    <tbody>
+
+
+
+	<tr >
+		<th scope="row" class="dataset-label">Source</th>
+		<td class="dataset-details">Data for Good at Meta</td>
+	</tr>
+
+	<tr >
+		<th scope="row" class="dataset-label">Contributor</th>
+		<td class="dataset-details metadata-link">
+
+
+			<a class="mx-ga-dimension-organization"
+               href="/organization/74ad0574-923d-430b-8d52-ad80256c4461">
+	            	Data for Good at Meta
+	        </a>
+
+		</td>
+    </tr>
+	<tr >
+		<th scope="row" class="dataset-label"><span title="The earliest start date and latest end date across all resources included in the dataset." data-module="bs_tooltip" data-module-placement="top" data-bs-toggle="tooltip">Time Period of the Dataset [?]</span></th>
+		<td class="dataset-details">June 19, 2019-June 19, 2019 <a href="#" id="show-more-dates">... More</a></td>
+  </tr>
+
+
+
+  <tr class="d-none more-dates">
+    <th scope="row" class="dataset-label"><span title="The date of the most recent change to any data or metadata." data-module="bs_tooltip" data-module-placement="top" data-bs-toggle="tooltip">Modified [?]</span></th>
+    <td class="dataset-details">
+      18 February 2023
+    </td>
+  </tr>
+
+  <tr class="d-none more-dates">
+    <th scope="row" class="dataset-label"><span title="The date when the dataset was first added to HDX." data-module="bs_tooltip" data-module-placement="top" data-bs-toggle="tooltip">Dataset Added on HDX [?]</span></th>
+    <td class="dataset-details">
+      20 June 2019 <a href="#" class="d-none" id="hide-more-dates">Less</a>
+    </td>
+  </tr>
+	<tr >
+		<th scope="row" class="dataset-label">Expected Update Frequency</th>
+		<td class="dataset-details">As needed</td>
+  </tr>
+	<tr >
+		<th scope="row" class="dataset-label">Location</th>
+		<td class="dataset-details metadata-link mx-country">
+			<span data-module="hdx_show_more" style="visibility:hidden"><div>
+
+					<a href="/group/vnm">Viet Nam</a>
+
+			<br/></div></span>
+		</td>
+  </tr>
+
+
+
+		<tr>
+    	<th scope="row" class="dataset-label">Visibility</th>
+  		<td class="dataset-details">
+
+		  		<div id="private_block"><span id="visibility">Public</span></div>
+
+  		</td>
+	</tr>
+
+
+
+
+    <tr >
+    	<th scope="row" class="dataset-label">License</th>
+    	<td class="dataset-details  metadata-link">
+
+				<span property="dc:rights"><a href="/faqs/licenses">Creative Commons Attribution International</a></span>
+
+
+
+
+
+      </td>
+    </tr>
+
+
+	<tr >
+		<th scope="row" class="dataset-label">Methodology</th>
+
+	      <td class="dataset-details"><span data-module="hdx_show_more" style="visibility:hidden">
+
+			  	<p>To create our high-resolution maps, we use machine learning techniques to identify buildings from commercially available satellite images. Then we work with our partners at Columbia University to overlay general population estimates based on publicly available census data and other population statistics. The resulting maps are the most detailed and actionable tools available for aid and research organizations. For more information about the methodology used to create our high resolution population density maps and the demographic distributions, please visit: <a href="https://dataforgood.fb.com/docs/methodology-high-resolution-population-density-maps-demographic-estimates/" target="_blank" rel="nofollow">https://dataforgood.fb.com/docs/methodology-high-resolution-population-density-maps-demographic-estimates/</a></p>
+<p>For information about how to use HDX to access these datasets, please visit: <a href="https://dataforgood.fb.com/docs/high-resolution-population-density-maps-demographic-estimates-documentation/" target="_blank" rel="nofollow">https://dataforgood.fb.com/docs/high-resolution-population-density-maps-demographic-estimates-documentation/</a></p>
+<p>Adjustments to match the census population with the UN estimates are applied at the national level. The UN estimate for a given country (or state/territory) is divided by the total census estimate of population for the given country. The resulting adjustment factor is multiplied by each administrative unit census value for the target year. This preserves the relative population totals across administrative units while matching the UN total. More information can be found here: <a href="https://dataforgood.fb.com/docs/census-information-for-high-resolution-population-density-maps/" target="_blank" rel="nofollow">https://dataforgood.fb.com/docs/census-information-for-high-resolution-population-density-maps/</a></p>
+
+		  </span></td>
+	</tr>
+	<tr >
+		<th scope="row" class="dataset-label">Caveats / Comments</th>
+		<td class="dataset-details"><span data-module="hdx_show_more" style="visibility:hidden"><p>To reference this data, please use the following citation: Facebook Connectivity Lab and Center for International Earth Science Information Network - CIESIN - Columbia University. 2016. High Resolution Settlement Layer (HRSL). Source imagery for HRSL © 2016 DigitalGlobe. Accessed DAY MONTH YEAR."</p></span></td>
+	</tr>
+
+  <tr >
+		<th scope="row" class="dataset-label">Tags</th>
+		<td class="dataset-details">
+
+	    		<div class="tag-wrapper">
+
+              <a class="label tag" title="children" href="/dataset/?vocab_Topics=children">children</a>
+
+	    		</div>
+
+	    		<div class="tag-wrapper">
+
+              <a class="label tag" title="elderly" href="/dataset/?vocab_Topics=elderly">elderly</a>
+
+	    		</div>
+
+	    		<div class="tag-wrapper">
+
+              <a class="label tag" title="geodata" href="/dataset/?vocab_Topics=geodata">geodata</a>
+
+	    		</div>
+
+	    		<div class="tag-wrapper">
+
+              <a class="label tag" title="health" href="/dataset/?vocab_Topics=health">health</a>
+
+	    		</div>
+
+	    		<div class="tag-wrapper">
+
+              <a class="label tag" title="women" href="/dataset/?vocab_Topics=women">women</a>
+
+	    		</div>
+
+	    		<div class="tag-wrapper">
+
+              <a class="label tag" title="youth" href="/dataset/?vocab_Topics=youth">youth</a>
+
+	    		</div>
+
+		</td>
+	</tr>
+
+
+    <tr>
+      <th scope="row" class="dataset-label">File Format</th>
+      <td class="dataset-details">
+        <ul class="list-items dataset-resources unstyled">
+
+            <li>
+              <a class="label" data-format="zip"  onclick="$('#link-data-resources-tab').tab('show');">zip</a>
+            </li>
+
+        </ul>
+      </td>
+    </tr>
+
+
+
+
+
+
+
+    </tbody>
+  </table>
+</section>
+
+    </div>
+  </div>
+  <div id="hdx-dataset-banner" class="bottom-banner" style="display: none;">
+  <div class="container content  container-fluid">
+
+      <div class="row">
+          <div class="col-12">
+            <div class="content">
+
+<div>
+Try viewing this page in
+    <a href="/m/dataset/vietnam-high-resolution-population-density-maps-demographic-estimates?force_layout=light">
+        HDX Lite (beta)</a>
+
+    <br>
+- recommended for mobile and low bandwidth connections <br>
+- switching can be done from the top-right menu
+</div>
+
+
+              <i class="close humanitarianicons-Exit-Cancel"></i>
+            </div>
+          </div>
+      </div>
+
+  </div>
+</div>
+
+
+
+
+
+
+
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+
+
+
+
+
+              </div>
+            </div>
+
+
+        </div>
+      </div>
+
+
+
+
+
+
+
+
+<div class="allow-cookies-container" style="display: none;">
+  <div class="container">
+    <div class="row paddingRowHack">
+      <div class="">
+        <div class="">
+            <div class="col-12 paddingLeftHack paddingRightHack">
+              <div class="row" style="position: relative;">
+                <div class="col-sm-9 col-12">
+                  By using this site you consent to the use of cookies. Cookies can be managed in your browser or device settings.
+                </div>
+
+                <button class="allow-cookies-continue">Continue</button>
+              </div>
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<footer class="hdx-footer">
+  <div class="container">
+    <div class="row paddingRowHack" style="background-color: #353535;">
+      <div class="">
+        <div class="">
+            <div class="col-12 paddingLeftHack paddingRightHack">
+              <div class="row footer-wrapper">
+                <div class="col-12 col-md-6">
+                  <div class="row">
+                    <div class="col-12">
+                      <img class="logo-gray lazyload" data-src="/images/homepage/logo-hdx-gray.svg" alt="HDX logo">
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col-12 mBottom30">
+                      <div class="titlePlusVersion">
+                        HUMANITARIAN DATA EXCHANGE &nbsp; v1.83.2
+                      </div>
+                      <div class="titlePlusVersion">
+                        Find, share and use humanitarian data all in one place
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="col-12">
+                      <div class="mailChimpForm">
+                        <div class="subscribeText">Subscribe to our mailing list</div>
+                        <!-- Begin MailChimp Signup Form -->
+                        <div id="mc_embed_signup">
+                          <form action="//humdata.us14.list-manage.com/subscribe/post?u=ea3f905d50ea939780139789d&amp;id=99796325d1" method="post" id="mc-embedded-subscribe-form" name="mc-embedded-subscribe-form" class="validate" target="_blank" novalidate="" _lpchecked="1">
+
+                            <div class="six columns left" style="padding-left: 0px;">
+                              <input type="email" value="" name="EMAIL" class="email" id="mce-EMAIL" aria-label="email">
+                              <input type="submit" value="Subscribe" name="subscribe" id="mc-embedded-subscribe" class="btn btn-primary">
+                            </div>
+                            <div id="mce-responses" class="clear">
+                              <div class="response" id="mce-error-response" style="display:none"></div>
+                              <div class="response" id="mce-success-response" style="display:none"></div>
+                            </div>    <!-- real people should not fill this in and expect good things - do not remove this or risk form bot signups-->
+                            <!--
+                            <div>
+                              <input type="text" name="b_83487eb1105d72ff2427e4bd7_6fd988326c" tabindex="-1" value="">
+                            </div>
+                            -->
+                            <div class="clear one columns left">
+                            </div>
+                          </form>
+                        </div>
+                        <!--End mc_embed_signup-->
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+                <div class="col-12 col-md-6">
+                  <div class="row">
+                    <div class="col-12">
+                      <div class="titlePlusVersion match-logo-margin mBottom20">
+                        OUR OTHER SERVICES
+                      </div>
+                    </div>
+                    <div class="col-12 col-md-4 other-services">
+                      <a href="https://centre.humdata.org" target="_blank" data-module="hdx_click_stopper" data-module-link_type="footer" aria-label="the centre for humanitarian data">
+                        <img class="lazyload logo-centre" data-src="/images/homepage/logo-centre-gray.png" alt="The Centre for Humanitarian Data logo">
+                      </a>
+                    </div>
+                    <div class="col-12 col-md-4 other-services">
+                      <a href="https://hxlstandard.org/" target="_blank" data-module="hdx_click_stopper" data-module-link_type="footer" aria-label="hxl">
+                        <img class="lazyload logo-hxl" data-src="/images/homepage/logo-hxl.svg" alt="HXL logo">
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+
+
+
+              </div>
+            </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row paddingRowHack" style="background-color: #252525;">
+      <div class="">
+        <div class="">
+          <div class="col-12 paddingLeftHack paddingRightHack">
+            <div class="social-footer">
+              <div class="terms">
+                <a href="/faqs/terms" data-module="hdx_click_stopper" data-module-link_type="footer">
+                  TERMS OF SERVICE
+                </a>
+                <a href="https://data.humdata.org/about/hdx-qa-process" data-module="hdx_click_stopper" data-module-link_type="footer">
+                  QA PROCESS
+                </a>
+                <a href="https://github.com/OCHA-DAP" target="_blank" data-module="hdx_click_stopper" data-module-link_type="footer">
+                  OPEN SOURCE <i class="icon humanitarianicons-Out-of-platform"></i>
+                </a>
+                <a href="/faqs/devs" data-module="hdx_click_stopper" data-module-link_type="footer">
+                  RESOURCES FOR DEVELOPERS
+                </a>
+                <a href="/faqs/licenses" data-module="hdx_click_stopper" data-module-link_type="footer">
+                  DATA LICENSES
+                </a>
+                <a href="https://centre.humdata.org/category/blog/" target="_blank" data-module="hdx_click_stopper" data-module-link_type="footer">
+                  BLOG <i class="icon humanitarianicons-Out-of-platform"></i>
+                </a>
+                <a href="https://centre.humdata.org/contact-us/" target="_blank" data-module="hdx_click_stopper" data-module-link_type="footer">
+                  CONTACT <i class="icon humanitarianicons-Out-of-platform"></i>
+                </a>
+                <span class="separator"></span>
+                <span class="social-actions">
+                  <a href="https://www.x.com/humdata" title="X" target="_blank" data-module="hdx_click_stopper" data-module-link_type="footer">
+                    <i class="fa-brands fa-x-twitter"></i>
+                  </a>
+                  <a href="https://github.com/OCHA-DAP" title="GitHub" target="_blank" data-module="hdx_click_stopper" data-module-link_type="footer">
+                    <i class="fa-brands fa-github"></i>
+                  </a>
+                  <a href="https://linkedin.com/company/ocha-centre-for-humanitarian-data" title="LinkedIn" target="_blank" data-module="hdx_click_stopper" data-module-link_type="footer">
+                    <i class="fa-brands fa-linkedin-in"></i>
+                  </a>
+                </span>
+              </div>
+              <div class="service">
+                <div class="provided-by">
+                  Service provided by
+                </div>
+                <div class="service-details">
+                  <div class="ocha-service">
+                    <img class="ocha-logo lazyload" data-src="/images/homepage/logo-ocha-lockup-white.png" alt="OCHA logo" />
+                    <div class="spacer"></div>
+                    <div class="ocha-text">
+                      OCHA coordinates the global emergency response to save lives and protect people in humanitarian
+                      crises. We advocate for effective and principled humanitarian action by all, for all.
+                    </div>
+                  </div>
+                  <div class="license-group">
+                    <div class="license">
+                      Except where otherwise noted, content on this site is
+                      licensed under a Creative Commons Attribution 4.0
+                      International license.
+                    </div>
+                    <div class="license-cc">
+                      <svg width="40" height="40" viewBox="0 0 32 32">
+                        <path d="M15.886 28.968c-7.159 0.009-12.857-5.804-12.884-12.802-0.027-7.097 5.847-13.062 12.902-12.881 6.356-0.152 12.793 4.975 12.829 12.839 0.035 7.721-6.201 12.836-12.847 12.844zM15.907 0.254c-9.353-0.056-15.873 7.837-15.907 15.828-0.036 8.503 6.961 15.927 15.827 15.918 8.53-0.009 15.954-6.753 15.885-15.803 0.111-8.79-6.935-15.89-15.805-15.943z"></path>
+                        <path d="M25.263 18.406c-0.958 1.921-3.394 2.767-5.132 2.632-4.489-0.347-5.501-3.918-4.747-6.567 0.701-2.462 3.115-3.831 6.002-3.466 1.667 0.21 2.961 0.886 3.863 2.334-0.818 0.397-1.591 0.773-2.382 1.157-0.165-0.166-0.288-0.268-0.381-0.388-0.535-0.7-1.25-0.982-2.19-0.822-0.93 0.158-1.479 0.714-1.589 1.482-0.117 0.814-0.094 1.668 0.039 2.482 0.126 0.777 0.707 1.336 1.62 1.462 0.99 0.137 1.856-0.059 2.38-0.931 0.065-0.108 0.161-0.201 0.309-0.382 0.728 0.332 1.444 0.658 2.208 1.007z"></path>
+                        <path d="M16.842 13.347c-0.871 0.415-1.613 0.768-2.391 1.138-0.156-0.15-0.304-0.262-0.412-0.4-0.545-0.698-1.269-0.964-2.203-0.797-0.888 0.159-1.44 0.687-1.541 1.432-0.115 0.841-0.101 1.718 0.030 2.557 0.122 0.784 0.725 1.323 1.637 1.444 0.956 0.126 1.8-0.056 2.326-0.887 0.081-0.128 0.193-0.241 0.346-0.43 0.737 0.339 1.452 0.667 2.206 1.014-0.357 0.81-0.978 1.311-1.659 1.759-2.518 1.661-6.749 0.909-7.962-1.851-1.013-2.305-0.422-5.145 1.656-6.505 2.136-1.398 5.664-1.088 7.33 0.691 0.212 0.226 0.376 0.49 0.636 0.834z"></path>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</footer>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <script type="application/ld+json">
+    {
+    "@context": {
+        "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+        "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+        "schema": "http://schema.org/",
+        "xsd": "http://www.w3.org/2001/XMLSchema#"
+    },
+    "@graph": [
+        {
+            "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/b60dab07-0a27-47f3-894d-02e9fbee6473",
+            "@type": "schema:DataDownload",
+            "schema:contentSize": 168102866,
+            "schema:contentUrl": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/b60dab07-0a27-47f3-894d-02e9fbee6473/download/vnm_children_under_five_2020_csv.zip",
+            "schema:encodingFormat": "zip",
+            "schema:name": "vnm_children_under_five_2020_csv.zip"
+        },
+        {
+            "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/76990cd9-a2dc-44e6-809c-492698b090c0",
+            "@type": "schema:DataDownload",
+            "schema:contentSize": 66599683,
+            "schema:contentUrl": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/76990cd9-a2dc-44e6-809c-492698b090c0/download/vnm_men_2020_geotiff.zip",
+            "schema:encodingFormat": "zip",
+            "schema:name": "vnm_men_2020_geotiff.zip"
+        },
+        {
+            "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/61b6a396-ffcc-4710-a453-174914822164",
+            "@type": "schema:DataDownload",
+            "schema:contentSize": 66491272,
+            "schema:contentUrl": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/61b6a396-ffcc-4710-a453-174914822164/download/vnm_elderly_60_plus_2020_geotiff.zip",
+            "schema:encodingFormat": "zip",
+            "schema:name": "vnm_elderly_60_plus_2020_geotiff.zip"
+        },
+        {
+            "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/5bd99468-ea44-4a50-b64b-54343b182842",
+            "@type": "schema:DataDownload",
+            "schema:contentSize": 66619448,
+            "schema:contentUrl": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/5bd99468-ea44-4a50-b64b-54343b182842/download/vnm_women_2020_geotiff.zip",
+            "schema:encodingFormat": "zip",
+            "schema:name": "vnm_women_2020_geotiff.zip"
+        },
+        {
+            "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/855e27d7-d191-440d-936a-ecedfded238d",
+            "@type": "schema:DataDownload",
+            "schema:contentSize": 66535225,
+            "schema:contentUrl": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/855e27d7-d191-440d-936a-ecedfded238d/download/vnm_women_of_reproductive_age_15_49_2020_geotiff.zip",
+            "schema:encodingFormat": "zip",
+            "schema:name": "vnm_women_of_reproductive_age_15_49_2020_geotiff.zip"
+        },
+        {
+            "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/e36dce9f-ea1d-4933-8a37-dc5838df11f0",
+            "@type": "schema:DataDownload",
+            "schema:contentSize": 66513903,
+            "schema:contentUrl": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/e36dce9f-ea1d-4933-8a37-dc5838df11f0/download/vnm_youth_15_24_2020_geotiff.zip",
+            "schema:encodingFormat": "zip",
+            "schema:name": "vnm_youth_15_24_2020_geotiff.zip"
+        },
+        {
+            "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/0bd525fa-3f63-447b-9afa-3d5075657ce4",
+            "@type": "schema:DataDownload",
+            "schema:contentSize": 169980133,
+            "schema:contentUrl": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/0bd525fa-3f63-447b-9afa-3d5075657ce4/download/vnm_women_2020_csv.zip",
+            "schema:encodingFormat": "zip",
+            "schema:name": "vnm_women_2020_csv.zip"
+        },
+        {
+            "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/aa6dd9dd-eecd-4f3d-b6b2-fa0f0b5faa70",
+            "@type": "schema:DataDownload",
+            "schema:contentSize": 168947452,
+            "schema:contentUrl": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/aa6dd9dd-eecd-4f3d-b6b2-fa0f0b5faa70/download/vnm_youth_15_24_2020_csv.zip",
+            "schema:encodingFormat": "zip",
+            "schema:name": "vnm_youth_15_24_2020_csv.zip"
+        },
+        {
+            "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/0fbf4055-7091-4041-a7ea-25f057debd7c",
+            "@type": "schema:DataDownload",
+            "schema:contentSize": 170411979,
+            "schema:contentUrl": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/0fbf4055-7091-4041-a7ea-25f057debd7c/download/vnm_general_2020_csv.zip",
+            "schema:encodingFormat": "zip",
+            "schema:name": "vnm_general_2020_csv.zip"
+        },
+        {
+            "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/5727eb4e-ce2a-4250-a9a0-2603d889ff02",
+            "@type": "schema:DataDownload",
+            "schema:contentSize": 169450707,
+            "schema:contentUrl": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/5727eb4e-ce2a-4250-a9a0-2603d889ff02/download/vnm_women_of_reproductive_age_15_49_2020_csv.zip",
+            "schema:encodingFormat": "zip",
+            "schema:name": "vnm_women_of_reproductive_age_15_49_2020_csv.zip"
+        },
+        {
+            "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/e0d42fbb-2436-4f3e-afd1-83d1ac6314b2",
+            "@type": "schema:DataDownload",
+            "schema:contentSize": 169996772,
+            "schema:contentUrl": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/e0d42fbb-2436-4f3e-afd1-83d1ac6314b2/download/vnm_men_2020_csv.zip",
+            "schema:encodingFormat": "zip",
+            "schema:name": "vnm_men_2020_csv.zip"
+        },
+        {
+            "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/a2ca47a3-b7d7-4a39-a605-161d4790c6f9",
+            "@type": "schema:DataDownload",
+            "schema:contentSize": 66512930,
+            "schema:contentUrl": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/a2ca47a3-b7d7-4a39-a605-161d4790c6f9/download/vnm_children_under_five_2020_geotiff.zip",
+            "schema:encodingFormat": "zip",
+            "schema:name": "vnm_children_under_five_2020_geotiff.zip"
+        },
+        {
+            "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d",
+            "@type": "schema:Dataset",
+            "schema:about": {
+                "@id": "_:N0ff1bc066d7e4ffa8f1cb00cb87e4dd3"
+            },
+            "schema:dateModified": "2023-05-15T23:42:32.443864",
+            "schema:datePublished": "2019-06-20T23:37:00.696564",
+            "schema:description": "The world's most accurate population datasets. Seven maps/datasets for the distribution of various populations in Vietnam: (1) Overall population density (2) Women (3) Men (4) Children (ages 0-5) (5) Youth (ages 15-24) (6) Elderly (ages 60+) (7) Women of reproductive age (ages 15-49).",
+            "schema:distribution": [
+                {
+                    "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/fade8620-0935-4d26-b0c6-15515dd4bf8b"
+                },
+                {
+                    "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/77edfcc3-d037-4233-9b16-7ebb684b4752"
+                },
+                {
+                    "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/76990cd9-a2dc-44e6-809c-492698b090c0"
+                },
+                {
+                    "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/aa6dd9dd-eecd-4f3d-b6b2-fa0f0b5faa70"
+                },
+                {
+                    "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/5727eb4e-ce2a-4250-a9a0-2603d889ff02"
+                },
+                {
+                    "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/61b6a396-ffcc-4710-a453-174914822164"
+                },
+                {
+                    "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/e0d42fbb-2436-4f3e-afd1-83d1ac6314b2"
+                },
+                {
+                    "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/855e27d7-d191-440d-936a-ecedfded238d"
+                },
+                {
+                    "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/0fbf4055-7091-4041-a7ea-25f057debd7c"
+                },
+                {
+                    "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/e36dce9f-ea1d-4933-8a37-dc5838df11f0"
+                },
+                {
+                    "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/a2ca47a3-b7d7-4a39-a605-161d4790c6f9"
+                },
+                {
+                    "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/5bd99468-ea44-4a50-b64b-54343b182842"
+                },
+                {
+                    "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/b60dab07-0a27-47f3-894d-02e9fbee6473"
+                },
+                {
+                    "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/0bd525fa-3f63-447b-9afa-3d5075657ce4"
+                }
+            ],
+            "schema:includedInDataCatalog": {
+                "@id": "_:Nb2dcb5abc8a140c5b8e7100f0d36aa2d"
+            },
+            "schema:keywords": [
+                "health",
+                "youth",
+                "women",
+                "children",
+                "elderly",
+                "geodata"
+            ],
+            "schema:license": "http://www.opendefinition.org/licenses/cc-by",
+            "schema:name": "Vietnam: High Resolution Population Density Maps + Demographic Estimates",
+            "schema:publisher": {
+                "@id": "https://data.humdata.org/organization/74ad0574-923d-430b-8d52-ad80256c4461"
+            },
+            "schema:url": "https://data.humdata.org/dataset/vietnam-high-resolution-population-density-maps-demographic-estimates"
+        },
+        {
+            "@id": "_:Nb2dcb5abc8a140c5b8e7100f0d36aa2d",
+            "@type": "schema:DataCatalog",
+            "schema:description": "",
+            "schema:name": "Humanitarian Data Exchange",
+            "schema:url": "https://data.humdata.org"
+        },
+        {
+            "@id": "_:N0ff1bc066d7e4ffa8f1cb00cb87e4dd3",
+            "@type": "schema:Thing",
+            "schema:name": "vnm",
+            "schema:url": "https://data.humdata.org/group/vnm"
+        },
+        {
+            "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/fade8620-0935-4d26-b0c6-15515dd4bf8b",
+            "@type": "schema:DataDownload",
+            "schema:contentSize": 66601681,
+            "schema:contentUrl": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/fade8620-0935-4d26-b0c6-15515dd4bf8b/download/vnm_general_2020_geotiff.zip",
+            "schema:encodingFormat": "zip",
+            "schema:name": "vnm_general_2020_geotiff.zip"
+        },
+        {
+            "@id": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/77edfcc3-d037-4233-9b16-7ebb684b4752",
+            "@type": "schema:DataDownload",
+            "schema:contentSize": 167915684,
+            "schema:contentUrl": "https://data.humdata.org/dataset/191b04c5-3dc7-4c2a-8e00-9c0bdfdfbf9d/resource/77edfcc3-d037-4233-9b16-7ebb684b4752/download/vnm_elderly_60_plus_2020_csv.zip",
+            "schema:encodingFormat": "zip",
+            "schema:name": "vnm_elderly_60_plus_2020_csv.zip"
+        },
+        {
+            "@id": "https://data.humdata.org/organization/74ad0574-923d-430b-8d52-ad80256c4461",
+            "@type": "schema:Organization",
+            "schema:contactPoint": {
+                "@id": "_:N9e3cff94b1d24b99bb3d7d0f2ab85f10"
+            },
+            "schema:name": "Data for Good at Meta"
+        },
+        {
+            "@id": "_:N9e3cff94b1d24b99bb3d7d0f2ab85f10",
+            "@type": "schema:ContactPoint",
+            "schema:contactType": "customer service",
+            "schema:name": "8f9b58d8-7cf2-4761-a665-60edc2911db0",
+            "schema:url": "https://data.humdata.org"
+        }
+    ]
+}
+  </script>
+
+
+
+
+
+    <link href="/webassets/ckanext-hdx_theme/7c349f76_onboarding-done-styles.css" rel="stylesheet"/>
+    <script src="/webassets/ckanext-hdx_theme/791d05b2_ckan.js" type="text/javascript"></script>
+<script src="/webassets/ckanext-hdx_theme/a2247f0c_contact-contributor-scripts.js" type="text/javascript"></script>
+<script src="/webassets/ckanext-hdx_theme/5350e437_group-message-scripts.js" type="text/javascript"></script>
+<script src="/webassets/ckanext-hdx_theme/b9c9ae49_requestdata-scripts.js" type="text/javascript"></script>
+<script src="/webassets/ckanext-hdx_theme/495c86ff_resource-list-scripts.js" type="text/javascript"></script>
+<script src="/webassets/ckanext-hdx_theme/f1474f59_banner-scripts.js" type="text/javascript"></script>
+<script src="/webassets/ckanext-hdx_theme/5ff4885d_page-scripts.js" type="text/javascript"></script>
+<script src="/webassets/ckanext-hdx_theme/d26c8d58_search-scripts.js" type="text/javascript"></script>
+<script src="/webassets/ckanext-hdx_theme/109d0329_onboarding-scripts.js" type="text/javascript"></script>
+<script src="/webassets/ckanext-hdx_theme/d26b4b4f_onboarding-password-scripts.js" type="text/javascript"></script>
+<script src="/webassets/ckanext-hdx_theme/34911dbc_charting-scripts.js" type="text/javascript"></script>
+<script src="/webassets/ckanext-hdx_theme/b1efc951_dataset-scripts.js" type="text/javascript"></script>
+<script src="/webassets/ckanext-hdx_theme/77d48044_dataset-quick-edit-scripts.js" type="text/javascript"></script>
+<script src="/webassets/ckanext-hdx_theme/def03383_resource-hdx-autocomplete.js" type="text/javascript"></script>
+  </body>
+
+
+</html>
