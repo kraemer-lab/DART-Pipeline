@@ -20,7 +20,7 @@ import pandas as pd
 from dart_pipeline.constants import OUTPUT_COLUMNS
 from dart_pipeline.types import ProcessResult, PartialDate, AdminLevel
 from dart_pipeline.util import get_country_name, get_shapefile, source_path, \
-    output_path
+    output_path, populate_output_df_admin_levels, populate_output_df_temporal
 
 
 def get_geo_id(lat: float, lon: float, polygons: dict) -> str:
@@ -153,38 +153,13 @@ def process_gadm_popdensity_rwi(
         plt.close()
 
     # Format the output data frame
-    columns = {
-        'GID_0': 'iso3',
-        'COUNTRY': 'admin_level_0',
-        'NAME_1': 'admin_level_1',
-        'NAME_2': 'admin_level_2',
-        'NAME_3': 'admin_level_3',
-        'rwi_weight': 'value',
-    }
-    rwi = rwi.rename(columns=columns)
-    if admin_level == '0':
-        rwi['admin_level_1'] = None
-        rwi['admin_level_2'] = None
-        rwi['admin_level_3'] = None
-    elif admin_level == '1':
-        rwi['admin_level_2'] = None
-        rwi['admin_level_3'] = None
-    elif admin_level == '2':
-        rwi['admin_level_3'] = None
-    rwi['year'] = year
-    if pdate.month:
-        rwi['month'] = pdate.month
-    else:
-        rwi['month'] = None
-    if pdate.day:
-        rwi['day'] = pdate.day
-    else:
-        rwi['day'] = None
-    rwi['week'] = None
+    rwi = populate_output_df_admin_levels(rwi, admin_level)
+    rwi = populate_output_df_temporal(rwi, pdate)
     rwi['metric'] = 'Population-weighted relative wealth index'
+    rwi = rwi.rename(columns={'rwi_weight': 'value'})
     rwi['unit'] = 'unitless'
-    rwi['resolution'] = '~2.4 km'
     rwi['creation_date'] = date.today()
+    # Re-order the columns
     rwi = rwi[OUTPUT_COLUMNS]
 
     sub_pipeline = sub_pipeline.replace('/', '_')
