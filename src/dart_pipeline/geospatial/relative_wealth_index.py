@@ -9,7 +9,8 @@ import shapely.geometry
 
 from dart_pipeline.constants import OUTPUT_COLUMNS, DEFAULT_OUTPUT_ROOT
 from dart_pipeline.plots import plot_gadm_macro_heatmap
-from dart_pipeline.util import get_country_name, get_shapefile, source_path
+from dart_pipeline.util import get_country_name, get_shapefile, source_path, \
+    populate_output_df_admin_levels
 
 
 def get_admin_region(lat: float, lon: float, polygons) -> str:
@@ -83,23 +84,11 @@ def process_gadm_rwi(iso3: str, admin_level: str, plots=False):
     rwi = rwi.groupby('geo_id')['rwi'].mean().reset_index()
 
     # Dynamically choose which columns need to be added to the data
-    region_columns = ['COUNTRY', 'NAME_1', 'NAME_2', 'NAME_3']
-    admin_columns = region_columns[:int(admin_level) + 1]
     # Merge with the shapefile to get the region names
-    rwi = rwi.merge(
-        gdf[[admin_geoid] + admin_columns],
-        left_on='geo_id', right_on=admin_geoid, how='left'
-    )
+    rwi = rwi.merge(gdf, left_on='geo_id', right_on=admin_geoid, how='left')
 
-    # Rename the columns
-    rwi['iso3'] = iso3
-    columns = dict(zip(
-        admin_columns, [f'admin_level_{i}' for i in range(len(admin_columns))]
-    ))
-    rwi = rwi.rename(columns=columns)
-    # Add in the higher-level admin levels
-    for i in range(int(admin_level) + 1, 4):
-        rwi[f'admin_level_{i}'] = None
+    # Format the output data frame
+    rwi = populate_output_df_admin_levels(rwi, admin_level)
     rwi['year'] = None
     rwi['month'] = None
     rwi['day'] = None
@@ -107,7 +96,6 @@ def process_gadm_rwi(iso3: str, admin_level: str, plots=False):
     rwi['metric'] = 'Relative Wealth Index'
     rwi = rwi.rename(columns={'rwi': 'value'})
     rwi['unit'] = 'unitless'
-    rwi['resolution'] = None
     rwi['creation_date'] = date.today()
     # Re-order the columns
     rwi = rwi[OUTPUT_COLUMNS]
