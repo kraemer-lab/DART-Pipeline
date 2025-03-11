@@ -8,6 +8,7 @@ from dart_pipeline.meteorological.aphroditeprecipitation import \
     process_aphroditeprecipitation
 
 
+@freeze_time('2025-02-06')
 def test_process_aphrodite_precipitation_data():
     # Minimal mocking for `np.fromfile` and file operations
     nx, ny = 360, 280
@@ -40,7 +41,7 @@ def test_process_aphrodite_precipitation_data():
 
     # Mock file opening
     mocked_open = mock_open()
-    with freeze_time('2025-01-01'), \
+    with \
             patch('builtins.open', mocked_open), \
             patch('numpy.fromfile', mock_fromfile):
         # Call the function
@@ -50,8 +51,8 @@ def test_process_aphrodite_precipitation_data():
         )
 
         # Expected CSV file name
-        expected_csv_name = 'aphrodite-daily-precip.csv'
-        assert csv_name == expected_csv_name
+        filename = 'meteorological_aphrodite-daily-precip_2023_2025-02-06.csv'
+        assert csv_name == filename
 
         # Expected output structure
         assert not output.empty
@@ -59,7 +60,6 @@ def test_process_aphrodite_precipitation_data():
         assert 'month' in output.columns
         assert 'day' in output.columns
         assert 'value' in output.columns
-        assert 'resolution' in output.columns
         assert 'metric' in output.columns
         assert 'unit' in output.columns
         assert 'creation_date' in output.columns

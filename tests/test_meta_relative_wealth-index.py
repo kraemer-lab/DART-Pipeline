@@ -5,7 +5,7 @@ from freezegun import freeze_time
 import geopandas as gpd
 import pandas as pd
 
-from dart_pipeline.population_weighted.relative_wealth_index import \
+from dart_pipeline.meta.relative_wealth_index import \
     process_gadm_popdensity_rwi
 
 
@@ -16,11 +16,12 @@ def test_process_gadm_popdensity_rwi(mock_pd_read, mock_gpd_read):
     # Mock GADM shapefile
     mock_gpd_read.return_value = gpd.GeoDataFrame(
         pd.DataFrame({
-            'GID_0': ['GID0'],
+            'GID_0': ['MCK'],
             'COUNTRY': ['Mockland'],
+            'GID_1': ['GID1'],
             'NAME_1': ['NAME1'],
-            'NAME_2': ['NAME2'],
             'GID_2': ['GID2'],
+            'NAME_2': ['NAME2'],
         }),
         geometry=gpd.points_from_xy([106.0], [10.0]),
         crs='EPSG:4326'
@@ -48,6 +49,6 @@ def test_process_gadm_popdensity_rwi(mock_pd_read, mock_gpd_read):
     fn = 'VNM_population-weighted_relative-wealth-index_2023_2025-03-05.csv'
     assert filename == fn
     assert isinstance(df, pd.DataFrame)
-    assert 'iso3' in df.columns
+    assert 'ISO3' in df.columns
     assert 'value' in df.columns
     assert not df.empty

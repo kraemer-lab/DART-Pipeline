@@ -26,7 +26,7 @@ def test_process_gadm_worldpopcount(
     # Assertions for valid data processing
     assert isinstance(output, pd.DataFrame), 'Output should be a DataFrame'
     msg = 'Expected column missing in output'
-    assert 'admin_level_0' in output.columns, msg
+    assert 'NAME_1' in output.columns, msg
     assert 'metric' in output.columns, 'Expected column missing in output'
     msg = 'CSV filename does not match expected value'
     expected = 'VNM_geospatial_worldpop-count_2020_2025-02-06.csv'
@@ -48,6 +48,8 @@ def test_process_gadm_worldpopcount(
     ]
     # Call the function
     output, csv_filename = process_gadm_worldpopcount('VNM', '2020', '0')
+
+    assert 'ISO3' in output.columns
     # Check that fallback file was used and output generated
     msg = 'Output should be a DataFrame even with fallback file'
     assert isinstance(output, pd.DataFrame), msg

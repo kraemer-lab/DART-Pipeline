@@ -56,19 +56,21 @@ def process_rwi(iso3: str, plots=False):
 
     # Create an output data frame
     df = pd.DataFrame({
-        'iso3': [iso3],
-        'admin_level_0': [country],
-        'admin_level_1': [None],
-        'admin_level_2': [None],
-        'admin_level_3': [None],
+        'ISO3': [iso3],
+        'COUNTRY': [country],
+        'GID_1': [None],
+        'NAME_1': [None],
+        'GID_2': [None],
+        'NAME_2': [None],
+        'GID_3': [None],
+        'NAME_3': [None],
         'year': [None],
         'month': [None],
         'day': [None],
         'week': [None],
-        'metric': ['Relative Wealth Index'],
+        'metric': ['economic.relative_wealth_index'],
         'value': [gdf['rwi'].mean()],
         'unit': ['unitless'],
-        'resolution': [None],
         'creation_date': [date.today()]
     })
     # Re-order the columns
