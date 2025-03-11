@@ -6,7 +6,7 @@ import zipfile
 import datetime
 from functools import cache
 from pathlib import Path
-from typing import Literal, TypedDict, NamedTuple
+from typing import Literal
 
 import cdsapi
 from geoglue.country import Country
@@ -14,31 +14,16 @@ from geoglue.country import Country
 from ...metrics import get_metrics
 from ...util import source_path
 
+from .types import ERA5HourlyPath, CDSRequest
+
 DAYS = [f"{i:02d}" for i in range(1, 32)]
 MONTHS = [f"{i:02d}" for i in range(1, 13)]
-TIMES = [f"{i:02d}:00" for i in range(1, 24)]
+TIMES = [f"{i:02d}:00" for i in range(24)]
 ERA5_HOURLY_ACCUM_FILE = "data_stream-oper_stepType-accum.nc"
 ERA5_HOURLY_INSTANT_FILE = "data_stream-oper_stepType-instant.nc"
 
 DailyStatistic = Literal["daily_mean", "daily_min", "daily_max", "daily_sum"]
 Resampling = Literal["remapdis", "remapbil"]
-
-
-class ERA5HourlyPath(NamedTuple):
-    instant: Path | None
-    accum: Path | None
-
-
-class CDSRequest(TypedDict):
-    product_type: list[str]
-    variable: list[str]
-    year: list[str]
-    month: list[str]
-    day: list[str]
-    time: list[str]
-    area: list[int]
-    data_format: Literal["netcdf"]
-    download_format: Literal["unarchived"]
 
 
 @cache
