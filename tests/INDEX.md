@@ -20,12 +20,20 @@ pytest tests/test_collate_api.py
 ```
 
 ```
+pytest tests/test_economic_relative_wealth-index.py
+✅ def test_process_rwi(mock_savefig, mock_get_country, mock_source_path):
+```
+
+```
 pytest tests/test_geospatial_aphroditeprecipitation.py
 ✅ def test_process_gadm_aphroditeprecipitation():
 pytest tests/test_geospatial_aphroditetemperature.py
 ✅ def test_process_gadm_aphroditetemperature():
 pytest tests/test_geospatial_era5reanalysis.py
 ✅ def test_process_gadm_era5reanalysis(
+pytest tests/test_geospatial_relative_wealth-index.py
+✅ def test_get_admin_region():
+✅ def test_process_gadm_rwi(mock_plot, mock_get_country, mock_source_path, mock_get_shapefile):
 pytest tests/test_geospatial_worldpop_count.py
 ✅ def test_process_gadm_worldpopcount(
 pytest tests/test_geospatial_worldpop_density.py

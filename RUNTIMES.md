@@ -10,22 +10,8 @@ Economic
 time uv run dart-pipeline get economic/relative-wealth-index 3=VNM
 6.309s
 
-time uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=0
-3m57.924s
-time uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=1
-7.687s
-time uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=2
-24.059s
-time uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=3
-7m18.860s
-time uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=0 l=INFO plots
-52.822s
-time uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=1 l=INFO plots
-3.640s
-time uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=2 l=INFO plots
-6.672s
-time uv run dart-pipeline process economic/relative-wealth-index 3=VNM a=3 l=INFO plots
-1m18.97s
+time uv run dart-pipeline process economic/relative-wealth-index 3=VNM l=INFO plots
+2.166s
 ```
 
 Epidemiological
@@ -101,6 +87,22 @@ time uv run dart-pipeline process geospatial/era5-reanalysis dataset=derived-era
 time uv run dart-pipeline get geospatial/gadm 3=VNM
 17.964s
 time uv run dart-pipeline process geospatial/gadm 3=VNM a=0
+```
+
+### Relative Wealth Index
+
+```
+time uv run dart-pipeline get economic/relative-wealth-index 3=VNM
+time uv run dart-pipeline get geospatial/gadm 3=VNM
+
+time uv run dart-pipeline process geospatial/relative-wealth-index 3=VNM a=0 l=INFO plots
+3m59.123s
+time uv run dart-pipeline process geospatial/relative-wealth-index 3=VNM a=1 l=INFO plots
+0m8.291s
+time uv run dart-pipeline process geospatial/relative-wealth-index 3=VNM a=2 l=INFO plots
+0m25.306s
+time uv run dart-pipeline process geospatial/relative-wealth-index 3=VNM a=3 l=INFO plots
+7m8.266s
 ```
 
 ### WorldPop Population Counts
