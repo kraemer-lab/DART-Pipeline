@@ -34,10 +34,12 @@ import rasterio.mask
 import rasterio.transform
 import shapely.geometry
 
+from .economic.relative_wealth_index import process_rwi
 from .geospatial.aphroditeprecipitation import \
     process_gadm_aphroditeprecipitation
 from .geospatial.aphroditetemperature import process_gadm_aphroditetemperature
 from .geospatial.era5reanalysis import process_gadm_era5reanalysis
+from .geospatial.relative_wealth_index import process_gadm_rwi
 from .geospatial.worldpop_count import process_gadm_worldpopcount
 from .geospatial.worldpop_density import process_gadm_worldpopdensity
 from .meteorological.aphroditeprecipitation import \
@@ -54,8 +56,7 @@ from .plots import \
     plot_heatmap, plot_gadm_micro_heatmap, plot_gadm_macro_heatmap, \
     plot_timeseries
 from .types import ProcessResult, PartialDate, AdminLevel
-from .util import \
-    source_path, output_path, get_country_name, get_shapefile
+from .util import source_path, output_path, get_shapefile
 
 pandarallel.initialize(verbose=0)
 
@@ -63,86 +64,6 @@ TEST_MODE = os.getenv("DART_PIPELINE_TEST")
 # No data in APHRODITE data
 # See APHRO_MA_025deg_V1901.ctl and others
 NO_DATA = -99.90
-
-
-def process_rwi(iso3: str, admin_level: str, plots=False):
-    """Process Relative Wealth Index data."""
-    source = 'economic/relative-wealth-index'
-    iso3 = iso3.upper()
-    logging.info('iso3:%s', iso3)
-    logging.info('admin_level:%s', admin_level)
-    logging.info('plots:%s', plots)
-
-    # Create a dictionary of polygons where the key is the ID of the polygon
-    # and the value is its geometry
-    path = get_shapefile(iso3, admin_level)
-    logging.info('Importing:%s', path)
-    gdf = gpd.read_file(path)
-    admin_geoid = f'GID_{admin_level}'
-    polygons = dict(zip(gdf[admin_geoid], gdf['geometry']))
-
-    # Import the Relative Wealth Index data
-    path = source_path(source, f'{iso3.lower()}_relative_wealth_index.csv')
-    logging.info('Importing:%s', path)
-    rwi = pd.read_csv(path)
-
-    # Create a plot
-    if plots:
-        data = rwi.pivot(columns='longitude', index='latitude', values='rwi')
-        origin = 'lower'
-        min_lon = rwi['longitude'].min()
-        max_lon = rwi['longitude'].max()
-        min_lat = rwi['latitude'].min()
-        max_lat = rwi['latitude'].max()
-        extent = [min_lon, max_lon, min_lat, max_lat]
-        limits = [min_lon, min_lat, max_lon, max_lat]
-        zorder = 0
-        country = get_country_name(iso3)
-        title = f'Relative Wealth Index\n{country} - Admin Level {admin_level}'
-        colourbar_label = 'Relative Wealth Index [unitless]'
-        path = Path(output_path(source), f'{iso3}/admin_level_{admin_level}')
-        plot_gadm_macro_heatmap(
-            data, origin, extent, limits, gdf, zorder, title, colourbar_label,
-            path
-        )
-
-    def get_admin(x):
-        return get_admin_region(x['latitude'], x['longitude'], polygons)
-
-    # Assign each latitude and longitude to an admin region
-    rwi['geo_id'] = rwi.parallel_apply(get_admin, axis=1)  # type: ignore
-    rwi = rwi[rwi['geo_id'] != 'null']
-
-    # Get the mean RWI value for each region
-    rwi = rwi.groupby('geo_id')['rwi'].mean().reset_index()
-
-    # Dynamically choose which columns need to be added to the data
-    region_columns = ['COUNTRY', 'NAME_1', 'NAME_2', 'NAME_3']
-    admin_columns = region_columns[:int(admin_level) + 1]
-    # Merge with the shapefile to get the region names
-    rwi = rwi.merge(
-        gdf[[admin_geoid] + admin_columns],
-        left_on='geo_id', right_on=admin_geoid, how='left'
-    )
-
-    # Rename the columns
-    columns = dict(zip(
-        admin_columns, [f'admin_level_{i}' for i in range(len(admin_columns))]
-    ))
-    rwi = rwi.rename(columns=columns)
-    rwi = rwi.rename(columns={'rwi': 'value'})
-    # Add in the higher-level admin levels
-    for i in range(int(admin_level) + 1, 4):
-        rwi[f'admin_level_{i}'] = None
-    # Add the metric name and unit
-    rwi['metric'] = 'Relative Wealth Index'
-    rwi['unit'] = 'unitless'
-    # Re-order the columns
-    output_columns = \
-        [f'admin_level_{i}' for i in range(4)] + ['metric', 'value', 'unit']
-    rwi = rwi[output_columns]
-
-    return rwi, f'{iso3}.csv'
 
 
 def process_dengueperu(
@@ -654,21 +575,6 @@ def process_terraclimate(
     return output, 'terraclimate.csv'
 
 
-def get_admin_region(lat: float, lon: float, polygons) -> str:
-    """
-    Find the admin region in which a grid cell lies.
-
-    Return the ID of administrative region in which the centre (given by
-    latitude and longitude) of a 2.4km^2 grid cell lies.
-    """
-    point = shapely.geometry.Point(lon, lat)
-    for geo_id in polygons:
-        polygon = polygons[geo_id]
-        if polygon.contains(point):
-            return geo_id
-    return "null"
-
-
 PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
     'economic/relative-wealth-index': process_rwi,
     'epidemiological/dengue/peru': process_dengueperu,
@@ -677,6 +583,7 @@ PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
     'geospatial/chirps-rainfall': process_gadm_chirps_rainfall,
     'geospatial/era5-reanalysis': process_gadm_era5reanalysis,
     'geospatial/gadm': process_gadm_admin_map_data,
+    'geospatial/relative-wealth-index': process_gadm_rwi,
     'geospatial/worldpop-count': process_gadm_worldpopcount,
     'geospatial/worldpop-density': process_gadm_worldpopdensity,
     'meteorological/aphrodite-daily-mean-temp': process_aphroditetemperature,

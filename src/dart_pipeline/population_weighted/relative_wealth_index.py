@@ -54,7 +54,7 @@ def process_gadm_popdensity_rwi(
     plots=False
 ) -> ProcessResult:
     """
-    Process population-weighted Relative Wealth Index data.
+    Process population-weighted Relative Wealth Index and geospatial data.
 
     Purpose: Preprocess and aggregate Relative Wealth Index scores for
     administrative regions (admin2 or admin3) of Vietnam. The code for

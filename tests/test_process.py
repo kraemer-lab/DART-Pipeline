@@ -11,7 +11,6 @@ import pandas as pd
 import pytest
 
 from dart_pipeline.process import \
-    process_rwi, \
     process_dengueperu, \
     process_gadm_chirps_rainfall, \
     process_chirps_rainfall, \
@@ -25,60 +24,6 @@ class MockFile(BytesIO):
     """A mock file object that adds a fileno method."""
     def fileno(self):
         return 1
-
-
-@patch('pandas.DataFrame.parallel_apply')
-@patch('pandas.read_csv')
-@patch('dart_pipeline.util.source_path')
-@patch('geopandas.read_file')
-@patch('dart_pipeline.process.get_shapefile')
-def test_process_rwi(
-    mock_get_shapefile, mock_read_file, mock_source_path, mock_read_csv,
-    mock_parallel_apply
-):
-    # Test Case 1: Valid data processing
-    # Mocking shapefile
-    mock_get_shapefile.return_value = 'mock_path_to_shapefile'
-    mock_read_file.return_value = pd.DataFrame({
-        'GID_2': ['ID1', 'ID2'],
-        'geometry': [MagicMock(), MagicMock()],
-        'COUNTRY': ['Country', 'Country'],
-        'NAME_1': ['Region1', 'Region2'],
-        'NAME_2': ['Subregion1', 'Subregion2']
-    })
-    mock_source_path.return_value = 'mock_path_to_csv'
-    # Mock RWI data with latitude, longitude, and rwi columns
-    mock_read_csv.return_value = pd.DataFrame({
-        'latitude': [10.5, 20.5],
-        'longitude': [105.5, 110.5],
-        'rwi': [1.2, 0.5]
-    })
-    # Mock parallel_apply()
-    mock_parallel_apply.return_value = None
-
-    # Run the function
-    rwi_df, csv_filename = process_rwi('VNM', '2', plots=False)
-
-    # Assertions for valid data processing
-    assert isinstance(rwi_df, pd.DataFrame), 'Output should be a DataFrame'
-    assert 'admin_level_0' in rwi_df.columns, 'Expected column missing'
-    assert 'value' in rwi_df.columns, 'Expected column missing in output'
-    assert csv_filename == 'VNM.csv', 'CSV filename does not match expected'
-
-    # Test Case 2: Missing RWI CSV file
-    # Simulate missing CSV file
-    mock_read_csv.side_effect = FileNotFoundError('RWI CSV file not found')
-    with pytest.raises(FileNotFoundError):
-        process_rwi('VNM', '2')
-    # Reset the side effect to avoid affecting the next test case
-    mock_read_csv.side_effect = None
-
-    # Test Case 3: Check for plotting
-    with patch('dart_pipeline.process.plot_gadm_macro_heatmap') as mock_plot:
-        # Run with plotting enabled
-        rwi_df, csv_filename = process_rwi('VNM', '2', plots=True)
-        # Assert plot function was called
-        mock_plot.assert_called_once()
 
 
 @pytest.fixture
