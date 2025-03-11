@@ -5,7 +5,7 @@ from freezegun import freeze_time
 import geopandas as gpd
 import pandas as pd
 
-from dart_pipeline.population_weighted.relative_wealth_index import \
+from dart_pipeline.meta.relative_wealth_index import \
     process_gadm_popdensity_rwi
 
 

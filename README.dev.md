@@ -1,5 +1,5 @@
-DART-Pipeline Developer Documentation
-=====================================
+Developer Documentation
+=======================
 Done: ✅, in progress: ⏳, not working: ❌
 
 Economic
@@ -112,6 +112,22 @@ uv run dart-pipeline process geospatial/worldpop-density 3=VNM a=2 d=2020 l=INFO
 uv run dart-pipeline process geospatial/worldpop-density 3=VNM a=3 d=2020 l=INFO plots
 ```
 
+Meta
+----
+
+### Relative Wealth Index
+
+```
+uv run dart-pipeline get economic/relative-wealth-index 3=VNM
+uv run dart-pipeline get geospatial/gadm 3=VNM --unpack
+uv run dart-pipeline get sociodemographic/meta-pop-density 3=VNM --unpack
+
+uv run dart-pipeline process meta/relative-wealth-index 3=VNM a=0 l=INFO plots
+uv run dart-pipeline process meta/relative-wealth-index 3=VNM a=1 l=INFO plots
+uv run dart-pipeline process meta/relative-wealth-index 3=VNM a=2 l=INFO plots
+uv run dart-pipeline process meta/relative-wealth-index 3=VNM a=3 l=INFO plots
+```
+
 Meteorological
 --------------
 
@@ -172,22 +188,6 @@ uv run dart-pipeline get meteorological/era5-reanalysis d=2023 dataset=satellite
 uv run dart-pipeline get meteorological/era5-reanalysis d=2024-10-01 dataset=derived-era5-land-daily-statistics l=INFO
 uv run dart-pipeline get meteorological/era5-reanalysis d=2024-10-01 dataset=reanalysis-era5-complete l=INFO
 uv run dart-pipeline get meteorological/era5-reanalysis d=2024-10-01 dataset=reanalysis-era5-single-levels l=INFO
-```
-
-Population-Weighted
--------------------
-
-### Relative Wealth Index
-
-```
-uv run dart-pipeline get economic/relative-wealth-index 3=VNM
-uv run dart-pipeline get geospatial/gadm 3=VNM --unpack
-uv run dart-pipeline get sociodemographic/meta-pop-density 3=VNM --unpack
-
-uv run dart-pipeline process population-weighted/relative-wealth-index 3=VNM a=0 l=INFO plots
-uv run dart-pipeline process population-weighted/relative-wealth-index 3=VNM a=1 l=INFO plots
-uv run dart-pipeline process population-weighted/relative-wealth-index 3=VNM a=2 l=INFO plots
-uv run dart-pipeline process population-weighted/relative-wealth-index 3=VNM a=3 l=INFO plots
 ```
 
 Socio-Demographic

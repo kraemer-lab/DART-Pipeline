@@ -1,4 +1,4 @@
-INDEX
+Index
 =====
 
 ```
@@ -15,19 +15,19 @@ geospatial/worldpop_density.py
 ```
 
 ```
+meta/relative-wealth-index
+✅ def get_geo_id(lat: float, lon: float, polygons: dict) -> str:
+✅ def get_quadkey(x, zoom_level):
+✅ def process_gadm_popdensity_rwi(
+```
+
+```
 meteorological/aphroditeprecipitation.py
 ✅ def process_aphroditeprecipitation(
 meteorological/aphroditetemperature.py
 ✅ def process_aphroditetemperature(year=None, plots=False) -> \
 meteorological/era5reanalysis.py
 ✅ def process_era5reanalysis(dataset, partial_date, plots=False):
-```
-
-```
-population-weighted/relative-wealth-index
-✅ def get_geo_id(lat: float, lon: float, polygons: dict) -> str:
-✅ def get_quadkey(x, zoom_level):
-✅ def process_gadm_popdensity_rwi(
 ```
 
 ```

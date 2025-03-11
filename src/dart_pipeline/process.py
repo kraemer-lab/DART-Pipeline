@@ -40,12 +40,11 @@ from .geospatial.aphroditetemperature import process_gadm_aphroditetemperature
 from .geospatial.era5reanalysis import process_gadm_era5reanalysis
 from .geospatial.worldpop_count import process_gadm_worldpopcount
 from .geospatial.worldpop_density import process_gadm_worldpopdensity
+from .meta.relative_wealth_index import process_gadm_popdensity_rwi
 from .meteorological.aphroditeprecipitation import \
     process_aphroditeprecipitation
 from .meteorological.aphroditetemperature import process_aphroditetemperature
 from .meteorological.era5reanalysis import process_era5reanalysis
-from .population_weighted.relative_wealth_index import \
-    process_gadm_popdensity_rwi
 from .sociodemographic.worldpop_count import process_worldpopcount
 from .sociodemographic.worldpop_density import process_worldpopdensity
 from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS, BASE_DIR, \
@@ -679,12 +678,12 @@ PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
     'geospatial/gadm': process_gadm_admin_map_data,
     'geospatial/worldpop-count': process_gadm_worldpopcount,
     'geospatial/worldpop-density': process_gadm_worldpopdensity,
+    'meta/relative-wealth-index': process_gadm_popdensity_rwi,
     'meteorological/aphrodite-daily-mean-temp': process_aphroditetemperature,
     'meteorological/aphrodite-daily-precip': process_aphroditeprecipitation,
     'meteorological/chirps-rainfall': process_chirps_rainfall,
     'meteorological/era5-reanalysis': process_era5reanalysis,
     'meteorological/terraclimate': process_terraclimate,
-    'population-weighted/relative-wealth-index': process_gadm_popdensity_rwi,
     'sociodemographic/worldpop-count': process_worldpopcount,
     'sociodemographic/worldpop-density': process_worldpopdensity,
 }

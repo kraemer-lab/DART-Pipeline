@@ -1,5 +1,5 @@
-RUNTIMES
-========
+Run Times
+=========
 
 Economic
 --------
@@ -137,6 +137,29 @@ time uv run dart-pipeline process geospatial/worldpop-density 3=VNM a=0 d=2020 l
 1.513s
 ```
 
+Meta
+----
+
+### Relative Wealth Index
+
+```
+time uv run dart-pipeline get economic/relative-wealth-index 3=VNM
+8.243s
+time uv run dart-pipeline get geospatial/gadm 3=VNM --unpack
+15.217s
+time uv run dart-pipeline get sociodemographic/meta-pop-density 3=VNM --unpack
+11m43.312s
+
+time uv run dart-pipeline process meta/relative-wealth-index 3=VNM a=0 l=INFO plots
+9m2.44s
+time uv run dart-pipeline process meta/relative-wealth-index 3=VNM a=1 l=INFO plots
+2m33.13s
+time uv run dart-pipeline process meta/relative-wealth-index 3=VNM a=2 l=INFO plots
+3m6.37s
+time uv run dart-pipeline process meta/relative-wealth-index 3=VNM a=3 l=INFO plots
+13m41.98s
+```
+
 Meteorological
 --------------
 
@@ -213,29 +236,6 @@ time uv run dart-pipeline get meteorological/era5-reanalysis d=2024-10-01 datase
 
 time uv run dart-pipeline process meteorological/era5-reanalysis dataset=derived-era5-land-daily-statistics d=2024-10-01 l=INFO plots
 16.422s
-```
-
-Population-Weighted
--------------------
-
-### Relative Wealth Index
-
-```
-time uv run dart-pipeline get economic/relative-wealth-index 3=VNM
-8.243s
-time uv run dart-pipeline get geospatial/gadm 3=VNM --unpack
-15.217s
-time uv run dart-pipeline get sociodemographic/meta-pop-density 3=VNM --unpack
-11m43.312s
-
-time uv run dart-pipeline process population-weighted/relative-wealth-index 3=VNM a=0 l=INFO plots
-9m2.44s
-time uv run dart-pipeline process population-weighted/relative-wealth-index 3=VNM a=1 l=INFO plots
-2m33.13s
-time uv run dart-pipeline process population-weighted/relative-wealth-index 3=VNM a=2 l=INFO plots
-3m6.37s
-time uv run dart-pipeline process population-weighted/relative-wealth-index 3=VNM a=3 l=INFO plots
-13m41.98s
 ```
 
 Socio-Demographic

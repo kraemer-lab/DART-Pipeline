@@ -1,4 +1,4 @@
-INDEX
+Tests
 =====
 
 ```
@@ -33,6 +33,11 @@ pytest tests/test_geospatial_worldpop_density.py
 ```
 
 ```
+pytest tests/test_meta_relative_wealth-index.py
+✅ def test_process_gadm_popdensity_rwi(
+```
+
+```
 pytest tests/test_meteorological_aphroditeprecipitation.py
 ✅ def test_process_aphrodite_precipitation_data():
 pytest tests/test_meteorological_aphroditetemperature.py
@@ -49,11 +54,6 @@ pytest tests/test_plots.py
 ✅ def test_plot_timeseries(mock_mkdir, mock_savefig, mock_close):
 ✅ def test_plot_scatter(mock_mkdir, mock_savefig):
 ✅ def test_plot_gadm_scatter(mock_mkdir, mock_savefig, mock_close):
-```
-
-```
-pytest tests/test_population_weighted_relative_wealth-index.py
-✅ def test_process_gadm_popdensity_rwi(
 ```
 
 ```
