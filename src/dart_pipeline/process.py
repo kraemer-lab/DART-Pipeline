@@ -56,8 +56,7 @@ from .plots import \
     plot_heatmap, plot_gadm_micro_heatmap, plot_gadm_macro_heatmap, \
     plot_timeseries
 from .types import ProcessResult, PartialDate, AdminLevel
-from .util import \
-    source_path, output_path, get_country_name, get_shapefile
+from .util import source_path, output_path, get_shapefile
 
 pandarallel.initialize(verbose=0)
 
