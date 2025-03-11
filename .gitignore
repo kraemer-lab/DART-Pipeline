@@ -1,6 +1,7 @@
 # Anything explicitly ignored
 gitignored/
 
+_build/
 # Built files
 /*.html
 *.pdf
@@ -24,14 +25,17 @@ data/**/*.html
 *.webp
 
 # Data files
+*.2015
 *.7z
 *.cpg
 *.csv
+*.ctl
 *.dbf
 *.f90
 *.geojson
 *.gpg
 *.gpkg
+*.grd
 *.json
 *.kmz
 *.nc
@@ -94,9 +98,12 @@ data/**/*.html
 *.pyc
 venv
 __pycache__
+# syrupy
+*.ambr
 
-# Test result files
-*.xml 
+# Testing
+*.xml
+*.ambr
 
 # LaTeX
 *.aux

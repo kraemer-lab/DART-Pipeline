@@ -9,6 +9,7 @@ import textwrap
 
 from .types import DataFile, URLCollection
 from .constants import (
+    BASE_DIR,
     DEFAULT_SOURCES_ROOT,
     DEFAULT_OUTPUT_ROOT,
     MSG_PROCESS,
@@ -23,7 +24,7 @@ from .util import (
     download_files,
     get_credentials,
     only_one_from_collection,
-    output_path,
+    unpack_file,
     update_or_create_output
 )
 
@@ -82,6 +83,7 @@ def get(
     only_one: bool = True,
     update: bool = False,
     process: bool = False,
+    unpack: bool = True,
     **kwargs,
 ):
     """Get files for a source."""
@@ -104,6 +106,9 @@ def get(
     if isinstance(links[0], DataFile):
         print(f"-- {source_fmt} fetches data directly, nothing to do")
         return
+    if not links[0]:
+        print(f"-- {source_fmt} downloads data directly, nothing to do")
+        return
     links = cast(list[URLCollection], links)
     auth = get_credentials(source) if source in REQUIRES_AUTH else None
     # If only one link is being downloaded, reduce the list of links to one
@@ -113,10 +118,18 @@ def get(
     for coll in links:
         if not coll.missing_files(DATA_PATH / source) and not update:
             print(f"✅ SKIP {source_fmt} {coll}")
+            # If the file(s) have already been downloaded, they might not have
+            # been unpacked
+            if unpack:
+                for file in coll.files:
+                    to_unpack = path / coll.relative_path / Path(file).name
+                    print(f'• UNPACKING {to_unpack}', end='\r')
+                    unpack_file(to_unpack, same_folder=True)
+                    print(f'✅ UNPACKED {to_unpack}')
             continue
         msg = f"GET {source_fmt} {coll}"
         print(f" •  {msg}", end="\r")
-        success = download_files(coll, path, auth=auth)
+        success = download_files(coll, path, auth=auth, unpack=unpack)
         n_ok = sum(success)
         if n_ok == len(success):
             print(f"✅ {msg}")
@@ -142,7 +155,7 @@ def process_cli(source: str, **kwargs):
     if missing_params := non_default_params - set(kwargs):
         abort(source, f"missing required parameters {missing_params}")
     result = processor(**kwargs)
-    base_path = output_path(source)
+    base_path = BASE_DIR / DEFAULT_OUTPUT_ROOT / source
     result = result if isinstance(result, list) else [result]
     for df, filename in result:
         out = base_path / filename
@@ -218,16 +231,30 @@ def main():
     )
     check_parser.add_argument("source", help="Source to check files for")
 
-    get_parser = subparsers.add_parser("get", help="Get files for a source")
-    get_parser.add_argument("source", help="Source to get files for")
-    get_parser.add_argument("--update", help="Update cached files")
+    get_parser = subparsers.add_parser(
+        "get",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        help="Get files for a source",
+        epilog=textwrap.dedent("""
+        keyword arguments:
+          3=, iso3=        an ISO 3166-1 alpha-3 country code
+        """)
+    )
+    get_parser.add_argument("source", help="source to get files for")
+    get_parser.add_argument("--update", help="update cached files")
     get_parser.add_argument(
-        "-1", "--only-one", help="Get only one file", action="store_true"
+        "-1", "--only-one", help="get only one file", action="store_true"
     )
     get_parser.add_argument(
         "-p",
         "--process",
         help="If the source can be directly processed, process immediately",
+        action="store_true",
+    )
+    get_parser.add_argument(
+        '-u',
+        '--unpack',
+        help='The downloaded files will be unpacked if they are zipped.',
         action="store_true",
     )
 
@@ -272,7 +299,8 @@ def main():
             print("\n".join(list_all()))
         case "get":
             get(
-                args.source, args.only_one, args.update, args.process, **kwargs
+                args.source, args.only_one, args.update, args.process,
+                args.unpack, **kwargs
             )
         case "check":
             check(args.source, args.only_one)

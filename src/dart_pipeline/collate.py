@@ -1,15 +1,9 @@
 """
-Script to collate raw data by downloading it from online sources.
+Collate functions for DART pipeline that fetch data for the metrics.
 
-See `DART dataset summarisation.xls` for information about the data fields
-to be collated.
-
-This script has been tested on Python 3.12 and more versions will be tested in
-the future. See README.md for installation instructions.
-
-Password management is done by creating a file called `credentials.json` in the
-top-level of the `DART-Pipeline` directory and adding login credentials into it
-in the following format:
+Password management for metrics requiring authentication is done by creating a
+file called `credentials.json` in the top-level of the `DART-Pipeline`
+directory and adding login credentials into it in the following format:
 
 .. code-block::
 
@@ -34,9 +28,9 @@ testing purposes only):
 .. code-block::
 
     # To download only one file
-    $ uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp --only-one
+    uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp --only-one
     # To download all files
-    $ uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp
+    uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp
 
 This will create a `data/sources/meteorological/aphrodite-daily-mean-temp` folder
 into which data will be downloaded.
@@ -51,13 +45,18 @@ from typing import Final, Callable
 from bs4 import BeautifulSoup
 import requests
 
+from .collate_api import download_era5_reanalysis_data
 from .constants import TERRACLIMATE_METRICS, PERU_REGIONS
 from .types import URLCollection, DataFile, PartialDate
 from .util import daterange, use_range, get_country_name
 
 
 def gadm_data(iso3: str) -> URLCollection:
-    "Download and unpack GADM (Database of Global Administrative Areas) data"
+    """
+    Get URLs for GADM (Database of Global Administrative Areas) data.
+
+    See :doc:`geospatial` for more information.
+    """
     return URLCollection(
         "https://geodata.ucdavis.edu/gadm/gadm4.1",
         [
@@ -73,9 +72,22 @@ def gadm_data(iso3: str) -> URLCollection:
 
 
 def relative_wealth_index(iso3: str) -> URLCollection:
-    "Relative Wealth Index"
+    """This dataset contains the relative wealth index, which is the relative
+    standard of living, obtained from connectivity data, satellite imagery and
+    other sources. Cite the following if using this dataset:
+
+        Microestimates of wealth for all low- and middle-income countries.
+        Guanghua Chi, Han Fang, Sourav Chatterjee, Joshua E. Blumenstock
+        Proceedings of the National Academy of Sciences
+        Jan 2022, 119 (3) e2113658119; DOI: 10.1073/pnas.2113658119
+
+    Upstream URL: https://data.humdata.org/dataset/relative-wealth-index
+    """
+    # Validate input parameter
     if not iso3:
         raise ValueError("No ISO3 code has been provided")
+
+    # Search the webpage for the link(s) to the dataset(s)
     url = "https://data.humdata.org/dataset/relative-wealth-index"
     if (r := requests.get(url)).status_code == 200:
         # Search for a URL in the HTML content
@@ -85,8 +97,8 @@ def relative_wealth_index(iso3: str) -> URLCollection:
         links = soup.find_all("a", href=lambda href: href and target in href)  # type: ignore
         # Return the first link found
         if links:
-            csv_url = links[0]["href"]
-            return URLCollection("https://data.humdata.org", [csv_url])
+            csvs = [link['href'] for link in links if 'csv' in link['href']]
+            return URLCollection('https://data.humdata.org', csvs)
         else:
             raise ValueError(f'Could not find a link containing "{target}"')
     else:
@@ -180,7 +192,7 @@ def aphrodite_precipitation_data() -> list[URLCollection]:
     ]
 
 
-def aphrodite_temperature_data() -> list[URLCollection]:
+def aphrodite_temperature_data(unpack) -> list[URLCollection]:
     "APHRODITE Daily mean temperature product (V1808) [requires account]"
 
     base_url = "http://aphrodite.st.hirosaki-u.ac.jp"
@@ -243,8 +255,6 @@ def chirps_rainfall_data(partial_date: str) -> list[URLCollection]:
     chirps_first_year: Final[int] = 1981
     chirps_first_month: Final[date] = date(1981, 1, 1)
     urls: list[URLCollection] = []
-    if month:
-        month = int(month)
 
     if pdate.month:
         use_range(pdate.month, 1, 12, 'Month range')
@@ -293,7 +303,14 @@ def chirps_rainfall_data(partial_date: str) -> list[URLCollection]:
 
 
 def terraclimate_data(year: int) -> URLCollection:
-    "TerraClimate gridded temperature, precipitation, etc."
+    """TerraClimate gridded temperature, precipitation data.
+
+    TerraClimate is a dataset of monthly climate and climatic water balance for
+    terrestrial surfaces from 1958--2023. Data have a monthly temporal
+    resolution and 4 km (1/24th degree) spatial resolution.
+
+    Upstream URL: https://www.climatologylab.org/terraclimate.html
+    """
     use_range(year, 1958, 2023, "Terraclimate year range")
     return URLCollection(
         "https://climate.northwestknowledge.net/TERRACLIMATE-DATA",
@@ -388,14 +405,15 @@ REQUIRES_AUTH = [
 SOURCES: dict[
     str, Callable[..., URLCollection | list[URLCollection] | list[DataFile]]
 ] = {
-    "epidemiological/dengue/peru": ministerio_de_salud_peru_data,
-    "economic/relative-wealth-index": relative_wealth_index,
-    "geospatial/gadm": gadm_data,
-    "meteorological/aphrodite-daily-precip": aphrodite_precipitation_data,
-    "meteorological/aphrodite-daily-mean-temp": aphrodite_temperature_data,
-    "meteorological/chirps-rainfall": chirps_rainfall_data,
-    "meteorological/terraclimate": terraclimate_data,
-    "sociodemographic/meta-pop-density": meta_pop_density_data,
-    "sociodemographic/worldpop-count": worldpop_pop_count_data,
-    "sociodemographic/worldpop-density": worldpop_pop_density_data,
+    'economic/relative-wealth-index': relative_wealth_index,
+    'epidemiological/dengue/peru': ministerio_de_salud_peru_data,
+    'geospatial/gadm': gadm_data,
+    'meteorological/aphrodite-daily-mean-temp': aphrodite_temperature_data,
+    'meteorological/aphrodite-daily-precip': aphrodite_precipitation_data,
+    'meteorological/chirps-rainfall': chirps_rainfall_data,
+    'meteorological/era5-reanalysis': download_era5_reanalysis_data,
+    'meteorological/terraclimate': terraclimate_data,
+    'sociodemographic/meta-pop-density': meta_pop_density_data,
+    'sociodemographic/worldpop-count': worldpop_pop_count_data,
+    'sociodemographic/worldpop-density': worldpop_pop_density_data,
 }

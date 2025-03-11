@@ -1,15 +1,20 @@
 """
 Tests for collate functions in collate.py
 """
-
 from pathlib import Path
+from unittest.mock import patch, MagicMock
 
+from bs4 import BeautifulSoup
+import pytest
 import requests_mock
 
 from dart_pipeline.types import URLCollection
 from dart_pipeline.collate import (
     gadm_data,
     relative_wealth_index,
+    ministerio_de_salud_peru_data,
+    aphrodite_temperature_data,
+    aphrodite_precipitation_data,
     chirps_rainfall_data,
     meta_pop_density_data,
     worldpop_pop_count_data,
@@ -46,6 +51,164 @@ def test_relative_wealth_index():
                 "/dataset/76f2a2ea-ba50-40f5-b79c-db95d668b843/resource/06d29bc0-5a4c-4be0-be1a-c546a9be540c/download/vnm_relative_wealth_index.csv"
             ],
         )
+
+
+@pytest.fixture
+def mock_requests():
+    with patch('requests.get') as mock_get:
+        yield mock_get
+
+
+@pytest.fixture
+def mock_bs4():
+    with patch('bs4.BeautifulSoup', wraps=BeautifulSoup) as mock_soup:
+        yield mock_soup
+
+
+@pytest.mark.parametrize(
+    'mock_html, expect_error, expected_data', [
+        # Test Case 1: Valid HTML with onclick attributes
+        (
+            """
+            <a onclick="data:image/png;base64,SGVsbG8sIHdvcmxkISc=').then(something'); a.download = 'file1.xlsx'; a.click"></a>
+            <button onclick="data:image/png;base64,SGVsbG8sIHdvcmxkISc=').then(something'); a.download = 'file2.xlsx'; a.click"></button>
+            """,
+            False,
+            [
+                ('file1.xlsx', b'Hello world'),
+                ('file2.xlsx', b'Python Test'),
+            ],
+        ),
+        # Test Case 2: HTML with no onclick attributes
+        (
+            "<html><body><p>No links here!</p></body></html>",
+            True,
+            [],
+        ),
+    ]
+)
+def test_ministerio_de_salud_peru_data(
+    mock_requests, mock_bs4, mock_html, expect_error, expected_data
+):
+    # Mock PERU_REGIONS
+    regions = ['Amazonas', 'Lima']
+    with patch('dart_pipeline.constants.PERU_REGIONS', regions):
+        # Mock response for requests.get
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.content = mock_html.encode('utf-8')
+        mock_requests.return_value = mock_response
+
+        # Mock BeautifulSoup parsing
+        def soup_side_effect(content, parser):
+            return BeautifulSoup(content, 'html.parser')
+
+        mock_bs4.side_effect = soup_side_effect
+
+        if expect_error:
+            # Expect an error if no links are present
+            with pytest.raises(ValueError, match='No links found on the page'):
+                ministerio_de_salud_peru_data()
+        else:
+            # Call the function and validate the results
+            data_files = ministerio_de_salud_peru_data()
+
+            assert data_files[0][0] == 'file1.xlsx'
+            assert data_files[0][1] == '.'
+            assert data_files[0][2] == b"Hello, world!'"
+            assert data_files[1][0] == 'file2.xlsx'
+            assert data_files[1][1] == '.'
+            assert data_files[1][2] == b"Hello, world!'"
+
+
+def test_aphrodite_temperature_data():
+    """Test the collation of links for APHRODITE temperature data."""
+    result = aphrodite_temperature_data(unpack=True)
+    # Base URL
+    base_url = 'http://aphrodite.st.hirosaki-u.ac.jp'
+    # Expected output
+    expected = [
+        URLCollection(
+            f"{base_url}/product/APHRO_V1808_TEMP/APHRO_MA/050deg_nc",
+            [
+                "APHRO_MA_TAVE_050deg_V1808.2015.nc.gz",  # 19 MB
+                "APHRO_MA_TAVE_050deg_V1808.nc.ctl.gz",  # 347 B
+            ],
+        ),
+        URLCollection(
+            f"{base_url}/product/APHRO_V1808_TEMP/APHRO_MA/050deg",
+            ["read_aphro_v1808.f90"],
+        ),
+        URLCollection(
+            f"{base_url}/product/APHRO_V1808_TEMP/APHRO_MA/025deg_nc",
+            [
+                "APHRO_MA_TAVE_025deg_V1808.2015.nc.gz",  # 64 MB
+                "APHRO_MA_TAVE_025deg_V1808.nc.ctl.gz",  # 485 B
+            ],
+        ),
+        URLCollection(
+            f"{base_url}/product/APHRO_V1808_TEMP/APHRO_MA/025deg",
+            [
+                "APHRO_MA_TAVE_025deg_V1808.2015.gz",  # 64 MB
+                "APHRO_MA_TAVE_025deg_V1808.ctl.gz",  # 312 B
+                "read_aphro_v1808.f90",  # 2.6 KB
+            ],
+        ),
+        URLCollection(
+            f"{base_url}/product/APHRO_V1808_TEMP/APHRO_MA/005deg_nc",
+            [
+                "APHRO_MA_TAVE_CLM_005deg_V1808.nc.gz",  # 1.2 GB
+            ],
+        ),
+        URLCollection(
+            f"{base_url}/product/APHRO_V1808_TEMP/APHRO_MA/005deg",
+            [
+                "APHRO_MA_TAVE_CLM_005deg_V1808.ctl.gz",  # 334 B
+                "APHRO_MA_TAVE_CLM_005deg_V1808.grd.gz",  # 1.4 GB
+                "read_aphro_clm_v1808.f90",  # 2.1 KB
+            ],
+        ),
+    ]
+
+    assert result == expected
+
+
+def test_aphrodite_precipitation_data():
+    """Test the collation of links for APHRODITE precipitation data."""
+    result = aphrodite_precipitation_data()
+    # Base URL
+    base_url = 'http://aphrodite.st.hirosaki-u.ac.jp'
+    # Expected output
+    expected = [
+        URLCollection(
+            f'{base_url}/product/APHRO_V1901/APHRO_MA/005deg',
+            ['APHRO_MA_PREC_CLM_005deg_V1901.ctl.gz'],
+        ),
+        URLCollection(
+            f'{base_url}/product/APHRO_V1901/APHRO_MA/025deg',
+            [
+                'APHRO_MA_025deg_V1901.2015.gz',
+                'APHRO_MA_025deg_V1901.ctl.gz',
+            ],
+        ),
+        URLCollection(
+            f'{base_url}/product/APHRO_V1901/APHRO_MA/025deg_nc',
+            ['APHRO_MA_025deg_V1901.2015.nc.gz'],
+        ),
+        URLCollection(
+            f'{base_url}/product/APHRO_V1901/APHRO_MA/050deg',
+            [
+                'APHRO_MA_050deg_V1901.2015.gz',
+                'APHRO_MA_050deg_V1901.ctl.gz',
+            ],
+        ),
+        URLCollection(
+            f'{base_url}/product/APHRO_V1901/APHRO_MA/050deg_nc',
+            ['APHRO_MA_050deg_V1901.2015.nc.gz'],
+        ),
+    ]
+
+    assert result == expected
 
 
 def test_chirps_rainfall_data():
@@ -115,14 +278,16 @@ def test_worldpop_pop_count_data():
     assert worldpop_pop_count_data("VNM") == URLCollection(
         "https://data.worldpop.org",
         [
-            "GIS/Population/Individual_countries/VNM/Vietnam_100m_Population/VNM_ppp_v2b_2020_UNadj.tif",
-            "GIS/Population/Individual_countries/VNM/Vietnam_100m_Population.7z",
+            "GIS/Population/Individual_countries/VNM/Viet_Nam_100m_Population/VNM_ppp_v2b_2020_UNadj.tif",
+            "GIS/Population/Individual_countries/VNM/Viet_Nam_100m_Population.7z",
         ],
+        relative_path='VNM',
     )
 
 
 def test_worldpop_pop_density_data():
     assert worldpop_pop_density_data("VNM") == URLCollection(
         "https://data.worldpop.org/GIS/Population_Density/Global_2000_2020_1km_UNadj/2020/VNM",
-        ["vnm_pd_2020_1km_UNadj_ASCII_XYZ.zip" "vnm_pd_2020_1km_UNadj.tif"],
+        ["vnm_pd_2020_1km_UNadj_ASCII_XYZ.zip", "vnm_pd_2020_1km_UNadj.tif"],
+        relative_path='VNM',
     )
