@@ -1,6 +1,7 @@
 """Tests for process functions in process.py."""
 from unittest.mock import patch, mock_open
 
+from freezegun import freeze_time
 import numpy as np
 import pandas as pd
 
@@ -8,6 +9,7 @@ from dart_pipeline.meteorological.aphroditetemperature import \
     process_aphroditetemperature
 
 
+@freeze_time('2025-02-06')
 def test_process_aphroditetemperature():
     # Minimal mocking for `np.fromfile` and file operations
     nx, ny, _ = 360, 280, 365
@@ -44,4 +46,5 @@ def test_process_aphroditetemperature():
         assert (output['year'] == year).all()
         assert (output['metric'] == 'aphrodite-daily-mean-temp').all()
         assert (output['unit'] == '°C').all()
-        assert csv_name == 'aphrodite-daily-mean-temp.csv'
+        fn = 'meteorological_aphrodite-daily-mean-temp_2023_2025-02-06.csv'
+        assert csv_name == fn

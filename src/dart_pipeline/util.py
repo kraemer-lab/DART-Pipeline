@@ -29,7 +29,7 @@ from .constants import (
     COMPRESSED_FILE_EXTS,
     OUTPUT_COLUMNS
 )
-from .types import Credentials, URLCollection, DefaultPathProtocol
+from .types import Credentials, URLCollection, DefaultPathProtocol, PartialDate
 
 # Pandas display options
 pd.set_option('display.max_columns', None)
@@ -368,3 +368,44 @@ def get_shapefile(iso3: str, admin_level: Literal["0", "1", "2", "3"]) -> Path:
         "geospatial/gadm",
         Path(iso3, f"gadm41_{iso3}_{admin_level}.shp"),
     )
+
+
+def populate_output_df_admin_levels(
+    df: pd.DataFrame, admin_level: Literal['0', '1', '2', '3']
+) -> pd.DataFrame:
+    """Populate the admin level-related columns of the output data frame."""
+    if admin_level == '0':
+        df['GID_1'] = None
+        df['NAME_1'] = None
+        df['GID_2'] = None
+        df['NAME_2'] = None
+        df['GID_3'] = None
+        df['NAME_3'] = None
+    elif admin_level == '1':
+        df['GID_2'] = None
+        df['NAME_2'] = None
+        df['GID_3'] = None
+        df['NAME_3'] = None
+    elif admin_level == '2':
+        df['GID_3'] = None
+        df['NAME_3'] = None
+
+    return df
+
+
+def populate_output_df_temporal(
+    df: pd.DataFrame, pdate: PartialDate
+) -> pd.DataFrame:
+    """Populate the temporal-related columns of the output data frame."""
+    df['year'] = pdate.year
+    if pdate.month:
+        df['month'] = pdate.month
+    else:
+        df['month'] = None
+    if pdate.day:
+        df['day'] = pdate.day
+    else:
+        df['day'] = None
+    df['week'] = None
+
+    return df

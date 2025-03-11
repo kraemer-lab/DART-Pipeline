@@ -38,11 +38,10 @@ def test_process_worldpopcountdata(
 
     # Verify the DataFrame contents
     expected_population = 1 + 2 + 4 + 5 + 6  # Excludes MIN_FLOAT
-    assert result.loc[0, 'iso3'] == iso3
-    assert result.loc[0, 'admin_level_0'] == 'Vietnam'
+    assert result.loc[0, 'GID_0'] == iso3
+    assert result.loc[0, 'COUNTRY'] == 'Vietnam'
     assert result.loc[0, 'year'] == year
-    assert result.loc[0, 'metric'] == 'population'
-    assert result.loc[0, 'unit'] == 'unitless'
+    assert result.loc[0, 'metric'] == 'Population Count'
+    assert result.loc[0, 'unit'] == ''
     assert result.loc[0, 'value'] == expected_population
-    assert result.loc[0, 'resolution'] == 'people per pixel'
     assert str(result.loc[0, 'creation_date']) == '2025-02-06'

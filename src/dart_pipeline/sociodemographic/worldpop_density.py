@@ -21,8 +21,8 @@ def process_worldpopdensity(
     """Process WorldPop population density."""
     sub_pipeline = 'sociodemographic/worldpop-density'
     logging.info('iso3:%s', iso3)
-    country_name = get_country_name(iso3)
-    logging.info('country_name:%s', country_name)
+    country = get_country_name(iso3)
+    logging.info('country:%s', country)
     pdate = PartialDate.from_string(partial_date)
     logging.info('partial_date:%s', pdate)
     logging.info('plots:%s', plots)
@@ -57,12 +57,12 @@ def process_worldpopdensity(
         data[data == 0] = np.nan
         # Take the log of the data
         log_data = np.log(data)
-        title = f'Population Density\n{country_name} - {pdate.year}'
+        title = f'Population Density\n{country} - {pdate.year}'
         colourbar_label = 'Population Density (Log Scale)'
         path = Path(
             BASE_DIR, DEFAULT_OUTPUT_ROOT, 'sociodemographic',
             'worldpop-density',
-            f'{country_name} - {pdate.year}.png'
+            f'{country} - {pdate.year}.png'
         )
         plot_heatmap(
             log_data, title, colourbar_label, path, extent=None, log_plot=True
@@ -72,19 +72,21 @@ def process_worldpopdensity(
     df = pd.DataFrame(columns=OUTPUT_COLUMNS)
 
     # Populate output data frame
-    df.loc[0, 'iso3'] = iso3
-    df.loc[0, 'admin_level_0'] = country_name
-    df.loc[0, 'admin_level_1'] = None
-    df.loc[0, 'admin_level_2'] = None
-    df.loc[0, 'admin_level_3'] = None
+    df.loc[0, 'GID_0'] = iso3
+    df.loc[0, 'COUNTRY'] = country
+    df.loc[0, 'GID_1'] = ''
+    df.loc[0, 'NAME_1'] = ''
+    df.loc[0, 'GID_2'] = ''
+    df.loc[0, 'NAME_2'] = ''
+    df.loc[0, 'GID_3'] = ''
+    df.loc[0, 'NAME_3'] = ''
     df.loc[0, 'year'] = pdate.year
-    df.loc[0, 'month'] = None
-    df.loc[0, 'day'] = None
-    df.loc[0, 'week'] = None
+    df.loc[0, 'month'] = ''
+    df.loc[0, 'day'] = ''
+    df.loc[0, 'week'] = ''
     df.loc[0, 'metric'] = 'Population Density'
     df.loc[0, 'value'] = value
-    df.loc[0, 'unit'] = 'people per pixel'
-    df.loc[0, 'resolution'] = 'Admin Level 0'
+    df.loc[0, 'unit'] = ''
     df.loc[0, 'creation_date'] = date.today()
 
     sub_pipeline = sub_pipeline.replace('/', '_')

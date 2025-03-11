@@ -2,6 +2,7 @@
 from io import BytesIO
 from unittest.mock import patch, MagicMock
 
+from freezegun import freeze_time
 from shapely.geometry import Polygon
 import geopandas as gpd
 import numpy as np
@@ -17,6 +18,7 @@ class MockFile(BytesIO):
         return 1
 
 
+@freeze_time('2025-02-06')
 def test_process_gadm_aphroditeprecipitation():
     iso3 = 'VNM'
     admin_level = '0'
@@ -70,8 +72,9 @@ def test_process_gadm_aphroditeprecipitation():
 
         # Assertions
         assert isinstance(output, pd.DataFrame)
-        assert 'iso3' in output.columns
+        assert 'GID_0' in output.columns
         assert 'value' in output.columns
-        assert output['iso3'].iloc[0] == iso3
+        assert output['GID_0'].iloc[0] == iso3
         assert output['value'].sum() == 0
-        assert csv_path == 'aphrodite-daily-precip.csv'
+        filename = 'VNM_geospatial_aphrodite-daily-precip_2023_2025-02-06.csv'
+        assert csv_path == filename

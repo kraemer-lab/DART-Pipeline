@@ -30,9 +30,10 @@ def process_gadm_aphroditeprecipitation(
     partial date.
     """
     sub_pipeline = 'geospatial/aphrodite-daily-precip'
-    pdate = PartialDate.from_string(partial_date)
+    iso3 = iso3.upper()
     logging.info('iso3:%s', iso3)
     logging.info('admin_level:%s', admin_level)
+    pdate = PartialDate.from_string(partial_date)
     logging.info('partial_date:%s', pdate)
     logging.info('scope:%s', pdate.scope)
     logging.info('plots:%s', plots)
@@ -132,18 +133,20 @@ def process_gadm_aphroditeprecipitation(
                 valid_prcp_region = valid_prcp[region_mask]
 
                 output_row = {
-                    'iso3': iso3,
-                    'admin_level_0': row['COUNTRY'],
-                    'admin_level_1': row.get('NAME_1', ''),
-                    'admin_level_2': row.get('NAME_2', ''),
-                    'admin_level_3': row.get('NAME_3', ''),
+                    'GID_0': iso3,
+                    'COUNTRY': row['COUNTRY'],
+                    'GID_1': row.get('GID_1', ''),
+                    'NAME_1': row.get('NAME_1', ''),
+                    'GID_2': row.get('GID_2', ''),
+                    'NAME_2': row.get('NAME_2', ''),
+                    'GID_3': row.get('GID_3', ''),
+                    'NAME_3': row.get('NAME_3', ''),
                     'year': year,
                     'month': this_date.month,
                     'day': this_date.day,
                     'week': '',
+                    'metric': f'aphrodite-daily-precip ({res})',
                     'value': valid_prcp_region.sum(),
-                    'resolution': '0.25°' if res == '025deg' else '0.5°',
-                    'metric': 'aphrodite-daily-precip',
                     'unit': 'mm',
                     'creation_date': date.today()
                 }
@@ -167,4 +170,7 @@ def process_gadm_aphroditeprecipitation(
                     title, colourbar_label, path, gdf
                 )
 
-    return output, 'aphrodite-daily-precip.csv'
+    sub_pipeline = sub_pipeline.replace('/', '_')
+    filename = f'{iso3}_{sub_pipeline}_{year}_{date.today()}.csv'
+
+    return output, filename

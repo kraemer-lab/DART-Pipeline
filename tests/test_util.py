@@ -6,8 +6,10 @@ import pytest
 import requests_mock
 import pandas as pd
 
+from dart_pipeline.types import PartialDate
 from dart_pipeline.util import download_file, days_in_year, get_country_name, \
-    use_range, update_or_create_output
+    use_range, update_or_create_output, get_shapefile, \
+    populate_output_df_admin_levels, populate_output_df_temporal
 
 
 def test_download_file():
@@ -93,11 +95,14 @@ def test_use_range():
 def new_dataframe():
     """Fixture to create a sample data frame."""
     return pd.DataFrame({
-        'iso3': ['VNM'],
-        'admin_level_0': ['Vietnam'],
-        'admin_level_1': ['An Giang'],
-        'admin_level_2': ['An Phú'],
-        'admin_level_3': ['Khánh An'],
+        'GID_0': ['VNM'],
+        'COUNTRY': ['Vietnam'],
+        'GID_1': ['VNM.1'],
+        'NAME_1': ['An Giang'],
+        'GID_2': ['VNM.1.1'],
+        'NAME_2': ['An Phú'],
+        'GID_3': ['VNM.1.1.1'],
+        'NAME_3': ['Khánh An'],
         'year': [''],
         'month': [''],
         'day': [''],
@@ -114,11 +119,14 @@ def new_dataframe():
 def old_dataframe():
     """Fixture to create a mock existing data frame."""
     return pd.DataFrame({
-        'iso3': ['VNM'],
-        'admin_level_0': ['Vietnam'],
-        'admin_level_1': ['An Giang'],
-        'admin_level_2': ['An Phú'],
-        'admin_level_3': ['Khánh An'],
+        'GID_0': ['VNM'],
+        'COUNTRY': ['Vietnam'],
+        'GID_1': ['VNM.1'],
+        'NAME_1': ['An Giang'],
+        'GID_2': ['VNM.1.1'],
+        'NAME_2': ['An Phú'],
+        'GID_3': ['VNM.1.1.1'],
+        'NAME_3': ['Khánh An'],
         'year': [''],
         'month': [''],
         'day': [''],
@@ -188,13 +196,81 @@ def test_update_or_create_output_invalid_input():
 
     # Invalid path
     df = pd.DataFrame({
-        'iso3': ['AAA'],
-        'admin_level_0': ['Country1'],
-        'admin_level_1': ['State1'],
-        'admin_level_2': ['City1'],
-        'admin_level_3': ['District1'],
+        'GID_0': ['AAA'],
+        'COUNTRY': ['Country1'],
+        'NAME_1': ['State1'],
+        'NAME_2': ['City1'],
+        'NAME_3': ['District1'],
         'metric': [100]
     })
     invalid_path = 12345
     with pytest.raises(TypeError, match='Expected a valid file path'):
         update_or_create_output(df, invalid_path)
+
+
+@patch('dart_pipeline.util.source_path')
+def test_get_shapefile(mock_source_path):
+    iso3 = 'VNM'
+    admin_level = '1'
+    expected_path = Path('geospatial/gadm/VNM/gadm41_VNM_1.shp')
+
+    mock_source_path.return_value = expected_path
+    result = get_shapefile(iso3, admin_level)
+
+    mock_source_path.assert_called_once_with(
+        'geospatial/gadm', Path('VNM/gadm41_VNM_1.shp')
+    )
+    assert result == expected_path
+
+
+def test_populate_output_df_admin_levels():
+    base_df = pd.DataFrame({
+        'GID_1': ['A'], 'NAME_1': ['B'],
+        'GID_2': ['C'], 'NAME_2': ['D'],
+        'GID_3': ['E'], 'NAME_3': ['F']
+    })
+
+    df_admin_0 = populate_output_df_admin_levels(base_df.copy(), '0')
+    cols = ['GID_1', 'NAME_1', 'GID_2', 'NAME_2', 'GID_3', 'NAME_3']
+    assert df_admin_0[cols].isnull().all().all()
+
+    df_admin_1 = populate_output_df_admin_levels(base_df.copy(), '1')
+    cols = ['GID_2', 'NAME_2', 'GID_3', 'NAME_3']
+    assert df_admin_1[cols].isnull().all().all()
+    assert df_admin_1[['GID_1', 'NAME_1']].notnull().all().all()
+
+    df_admin_2 = populate_output_df_admin_levels(base_df.copy(), '2')
+    assert df_admin_2[['GID_3', 'NAME_3']].isnull().all().all()
+    cols = ['GID_1', 'NAME_1', 'GID_2', 'NAME_2']
+    assert df_admin_2[cols].notnull().all().all()
+
+    df_admin_3 = populate_output_df_admin_levels(base_df.copy(), '3')
+    assert df_admin_3.notnull().all().all()
+
+
+def test_populate_output_df_temporal():
+    base_df = pd.DataFrame({'some_data': [1, 2, 3]})
+
+    # Test with full date
+    pdate_full = PartialDate(year=2023, month=5, day=15)
+    df_full = populate_output_df_temporal(base_df.copy(), pdate_full)
+    assert (df_full['year'] == 2023).all()
+    assert (df_full['month'] == 5).all()
+    assert (df_full['day'] == 15).all()
+    assert df_full['week'].isnull().all()
+
+    # Test with only year and month
+    pdate_year_month = PartialDate(year=2023, month=5, day=None)
+    df_year_month = populate_output_df_temporal(base_df.copy(), pdate_year_month)
+    assert (df_year_month['year'] == 2023).all()
+    assert (df_year_month['month'] == 5).all()
+    assert df_year_month['day'].isnull().all()
+    assert df_year_month['week'].isnull().all()
+
+    # Test with only year
+    pdate_year_only = PartialDate(year=2023, month=None, day=None)
+    df_year_only = populate_output_df_temporal(base_df.copy(), pdate_year_only)
+    assert (df_year_only['year'] == 2023).all()
+    assert df_year_only['month'].isnull().all()
+    assert df_year_only['day'].isnull().all()
+    assert df_year_only['week'].isnull().all()

@@ -14,8 +14,8 @@ from dart_pipeline.constants import BASE_DIR, OUTPUT_COLUMNS, \
 def process_era5reanalysis(dataset, partial_date, plots=False):
     """Process ERA5 atmospheric reanalysis data."""
     sub_pipeline = 'meteorological/era5-reanalysis'
-    pdate = PartialDate.from_string(partial_date)
     logging.info('dataset:%s', dataset)
+    pdate = PartialDate.from_string(partial_date)
     logging.info('partial_date:%s', pdate)
     logging.info('plots:%s', plots)
 
@@ -55,11 +55,14 @@ def process_era5reanalysis(dataset, partial_date, plots=False):
             plot_heatmap(data[0, :, :], title, colourbar_label, path)
 
         # Add to output data frame
-        df.loc[i, 'iso3'] = ''
-        df.loc[i, 'admin_level_0'] = ''
-        df.loc[i, 'admin_level_1'] = ''
-        df.loc[i, 'admin_level_2'] = ''
-        df.loc[i, 'admin_level_3'] = ''
+        df.loc[i, 'GID_0'] = ''
+        df.loc[i, 'COUNTRY'] = ''
+        df.loc[i, 'GID_1'] = ''
+        df.loc[i, 'NAME_1'] = ''
+        df.loc[i, 'GID_2'] = ''
+        df.loc[i, 'NAME_2'] = ''
+        df.loc[i, 'GID_3'] = ''
+        df.loc[i, 'NAME_3'] = ''
         df.loc[i, 'year'] = pdate.year
         df.loc[i, 'month'] = pdate.month
         df.loc[i, 'day'] = pdate.day
@@ -67,9 +70,11 @@ def process_era5reanalysis(dataset, partial_date, plots=False):
         df.loc[i, 'metric'] = metric
         df.loc[i, 'value'] = mean_value
         df.loc[i, 'unit'] = unit
-        df.loc[i, 'resolution'] = 'global'
         df.loc[i, 'creation_date'] = date.today()
 
         ds.close()
 
-    return df.fillna(''), 'era5-reanalysis.csv'
+    sub_pipeline = sub_pipeline.replace('/', '_')
+    filename = f'{sub_pipeline}_{pdate.year}_{date.today()}.csv'
+
+    return df.fillna(''), filename

@@ -30,9 +30,10 @@ def process_gadm_aphroditetemperature(
     partial date.
     """
     sub_pipeline = 'geospatial/aphrodite-daily-mean-temp'
-    pdate = PartialDate.from_string(partial_date)
+    iso3 = iso3.upper()
     logging.info('iso3:%s', iso3)
     logging.info('admin_level:%s', admin_level)
+    pdate = PartialDate.from_string(partial_date)
     logging.info('partial_date:%s', pdate)
     logging.info('scope:%s', pdate.scope)
     logging.info('plots:%s', plots)
@@ -150,19 +151,21 @@ def process_gadm_aphroditetemperature(
                 valid_temp_region = valid_prcp[region_mask]
 
                 output_row = {
-                    'iso3': iso3,
-                    'admin_level_0': row['COUNTRY'],
-                    'admin_level_1': row.get('NAME_1', ''),
-                    'admin_level_2': row.get('NAME_2', ''),
-                    'admin_level_3': row.get('NAME_3', ''),
+                    'GID_0': iso3,
+                    'COUNTRY': row['COUNTRY'],
+                    'GID_1': row.get('GID_1', ''),
+                    'NAME_1': row.get('NAME_1', ''),
+                    'GID_2': row.get('GID_2', ''),
+                    'NAME_2': row.get('NAME_2', ''),
+                    'GID_3': row.get('GID_3', ''),
+                    'NAME_3': row.get('NAME_3', ''),
                     'year': year,
                     'month': this_date.month,
                     'day': this_date.day,
                     'week': '',
+                    'metric': f'aphrodite-daily-mean-temp ({res})',
                     'value': valid_temp_region.mean() if
                     len(valid_temp_region) > 0 else '',
-                    'resolution': '0.25°' if res == '025deg' else '0.5°',
-                    'metric': 'aphrodite-daily-mean-temp',
                     'unit': '°C',
                     'creation_date': date.today()
                 }
@@ -186,4 +189,7 @@ def process_gadm_aphroditetemperature(
                     title, colourbar_label, path, gdf
                 )
 
-    return output, 'aphrodite-daily-mean-temp.csv'
+    sub_pipeline = sub_pipeline.replace('/', '_')
+    filename = f'{iso3}_{sub_pipeline}_{year}_{date.today()}.csv'
+
+    return output, filename

@@ -1,5 +1,8 @@
+"""Test the geospatial ERA5 atmospheric reanalysis sub-pipeline."""
+from pathlib import Path
 from unittest.mock import patch, MagicMock
 
+from freezegun import freeze_time
 from shapely.geometry import Polygon
 import geopandas as gpd
 import numpy as np
@@ -9,6 +12,7 @@ import pytest
 from dart_pipeline.process import process_gadm_era5reanalysis
 
 
+@freeze_time('2025-02-06')
 @patch('pathlib.Path.iterdir')
 @patch('netCDF4.Dataset')
 @patch('geopandas.read_file')
@@ -31,9 +35,13 @@ def test_process_gadm_era5reanalysis(
     # Mock the shapefile with a single geometry and admin information
     mock_geometry = Polygon([(100, 10), (100, 20), (110, 20), (110, 10)])
     mock_gdf = gpd.GeoDataFrame({
+        'GID_0': ['MCK'],
         'COUNTRY': ['Mockland'],
-        'NAME_1': ['MockRegion'],
+        'GID_1': ['MCK.1'],
+        'NAME_1': ['Mock Region'],
+        'GID_2': [None],
         'NAME_2': [None],
+        'GID_3': [None],
         'NAME_3': [None],
         'geometry': [mock_geometry]
     })
@@ -48,8 +56,8 @@ def test_process_gadm_era5reanalysis(
 
     # Mock folder and its iteration
     mock_file = MagicMock()
-    mock_file.name = f'{dataset}_2023-01.nc'
-    mock_iterdir.return_value = [mock_file]
+    mock_file.name = f'{dataset}_{partial_date}.nc'
+    mock_iterdir.return_value = [Path(mock_file.name)]
 
     # Run the function
     df, filename = process_gadm_era5reanalysis(
@@ -58,16 +66,18 @@ def test_process_gadm_era5reanalysis(
 
     # Validate the returned DataFrame structure
     assert isinstance(df, pd.DataFrame)
-    assert 'admin_level_0' in df.columns
-    assert 'admin_level_1' in df.columns
+    assert 'GID_0' in df.columns
+    assert 'COUNTRY' in df.columns
+    assert 'GID_1' in df.columns
+    assert 'NAME_1' in df.columns
     # Ensure temperature column was added
     assert 'value' in df.columns
-    assert df['admin_level_0'].iloc[0] == 'Mockland'
+    assert df['COUNTRY'].iloc[0] == 'Mockland'
     assert df['year'].iloc[0] == 2023
     assert df['month'].iloc[0] == 1
 
     # Check that filename was created correctly
-    assert filename == 'era5-reanalysis.csv'
+    assert filename == 'MCK_geospatial_era5-reanalysis_2023_2025-02-06.csv'
 
     # Ensure function fails gracefully with an invalid date
     with pytest.raises(ValueError):

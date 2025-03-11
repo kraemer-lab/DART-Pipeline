@@ -25,9 +25,10 @@ def process_worldpopcount(
     """
     sub_pipeline = 'sociodemographic/worldpop-count'
     iso3 = iso3.upper()
-    country = get_country_name(iso3)
-    logging.info('year:%s', year)
     logging.info('iso3:%s', iso3)
+    country = get_country_name(iso3)
+    logging.info('country:%s', country)
+    logging.info('year:%s', year)
     logging.info('resolution_type:%s', rt)
 
     filename = Path(f'{iso3}_{rt}_v2b_{year}_UNadj.tif')
@@ -50,16 +51,21 @@ def process_worldpopcount(
     df = pd.DataFrame(columns=OUTPUT_COLUMNS)
 
     # Populate output data frame
-    df.loc[0, 'iso3'] = iso3
-    df.loc[0, 'admin_level_0'] = country
+    df.loc[0, 'GID_0'] = iso3
+    df.loc[0, 'COUNTRY'] = country
+    df.loc[0, 'GID_1'] = ''
+    df.loc[0, 'NAME_1'] = ''
+    df.loc[0, 'GID_2'] = ''
+    df.loc[0, 'NAME_2'] = ''
+    df.loc[0, 'GID_3'] = ''
+    df.loc[0, 'NAME_3'] = ''
     df.loc[0, 'year'] = year
-    df.loc[0, 'metric'] = 'population'
-    df.loc[0, 'unit'] = 'unitless'
+    df.loc[0, 'month'] = ''
+    df.loc[0, 'day'] = ''
+    df.loc[0, 'week'] = ''
+    df.loc[0, 'metric'] = 'Population Count'
     df.loc[0, 'value'] = population
-    if rt == 'ppp':
-        df.loc[0, 'resolution'] = 'people per pixel'
-    elif rt == 'pph':
-        df.loc[0, 'resolution'] = 'people per hectare'
+    df.loc[0, 'unit'] = ''
     df.loc[0, 'creation_date'] = date.today()
 
     sub_pipeline = sub_pipeline.replace('/', '_')

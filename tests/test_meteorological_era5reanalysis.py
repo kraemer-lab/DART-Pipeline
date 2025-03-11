@@ -2,6 +2,7 @@
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
+from freezegun import freeze_time
 import numpy as np
 import pandas as pd
 import pytest
@@ -25,6 +26,7 @@ def mock_nc_dataset():
     return mock_dataset
 
 
+@freeze_time('2025-02-06')
 @patch('netCDF4.Dataset')
 @patch('dart_pipeline.plots.plot_heatmap')
 def test_process_era5reanalysis(
@@ -68,7 +70,7 @@ def test_process_era5reanalysis(
             )
 
     # Validate output
-    assert output_file == 'era5-reanalysis.csv'
+    assert output_file == 'meteorological_era5-reanalysis_2023_2025-02-06.csv'
     assert isinstance(df, pd.DataFrame)
     assert len(df) == 1
 

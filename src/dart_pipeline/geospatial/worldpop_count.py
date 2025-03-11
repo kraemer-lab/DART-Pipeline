@@ -27,12 +27,12 @@ def process_gadm_worldpopcount(
     sub_pipeline = 'geospatial/worldpop-count'
     iso3 = iso3.upper()
     logging.info('iso3:%s', iso3)
+    pdate = PartialDate.from_string(partial_date)
     logging.info('partial_date:%s', partial_date)
     logging.info('admin_level:%s', admin_level)
     logging.info('rt:%s', rt)
     logging.info('plots:%s', plots)
 
-    pdate = PartialDate.from_string(partial_date)
     if pdate.day:
         msg = f'The date {partial_date} includes a day. Provide only a ' + \
             'year in YYYY format.'
@@ -97,23 +97,30 @@ def process_gadm_worldpopcount(
     # Iterate over each region in the shape file
     for i, region in gdf.iterrows():
         # Add the region name to the output data frame
-        output.loc[i, 'admin_level_0'] = region['COUNTRY']
+        output.loc[i, 'GID_0'] = region['GID_0']
+        output.loc[i, 'COUNTRY'] = region['COUNTRY']
         # Initialise the graph title
         title = region['COUNTRY']
         # Add more region names and update the graph title if the admin level
         # is high enough to warrant it
         if int(admin_level) >= 1:
-            output.loc[i, 'admin_level_1'] = region['NAME_1']
+            output.loc[i, 'GID_1'] = region['GID_1']
+            output.loc[i, 'NAME_1'] = region['NAME_1']
             title = region['NAME_1']
         if int(admin_level) >= 2:
-            output.loc[i, 'admin_level_2'] = region['NAME_2']
+            output.loc[i, 'GID_2'] = region['GID_2']
+            output.loc[i, 'NAME_2'] = region['NAME_2']
             title = region['NAME_2']
         if int(admin_level) >= 3:
-            output.loc[i, 'admin_level_3'] = region['NAME_3']
+            output.loc[i, 'GID_3'] = region['GID_3']
+            output.loc[i, 'NAME_3'] = region['NAME_3']
             title = region['NAME_3']
 
         # Add date information to the output data frame
         output.loc[i, 'year'] = pdate.year
+        output.loc[i, 'month'] = pdate.year
+        output.loc[i, 'day'] = pdate.year
+        output.loc[i, 'week'] = None
 
         # Check if the population data intersects this region
         geometry = region.geometry
@@ -131,11 +138,10 @@ def process_gadm_worldpopcount(
         logging.info('region:%s', title)
         logging.info('region_total:%s', region_total)
         # Add the result to the output data frame
-        metric = 'population'
+        metric = 'Population Count'
         output.loc[i, 'metric'] = metric
         output.loc[i, 'value'] = region_total
-        unit = 'people'
-        output.loc[i, 'unit'] = unit
+        output.loc[i, 'unit'] = None
 
     # Create a plot
     if plots:
@@ -151,18 +157,13 @@ def process_gadm_worldpopcount(
             zorder = 1
         name = get_country_name(iso3, common_name=True)
         title = f'{metric}\n{name} - {pdate.year}'
-        colourbar_label = f'Average {metric} per pixel [{unit}]'
+        colourbar_label = metric
         path = output_path(sub_pipeline, f'{iso3}/admin_level_{admin_level}')
         plot_gadm_macro_heatmap(
             data, origin, extent, limits, gdf, zorder, title, colourbar_label,
             path, log_plot=True
         )
 
-    output['iso3'] = iso3
-    if rt == 'ppp':
-        output['resolution'] = 'people per pixel'
-    elif rt == 'pph':
-        output['resolution'] = 'people per hectare'
     output['creation_date'] = date.today()
 
     sub_pipeline = sub_pipeline.replace('/', '_')

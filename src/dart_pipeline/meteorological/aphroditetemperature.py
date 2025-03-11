@@ -133,19 +133,21 @@ def process_aphroditetemperature(year=None, plots=False) -> \
             output.loc[i, 'month'] = this_date.month
             output.loc[i, 'day'] = this_date.day
             output.loc[i, 'value'] = valid_temp.mean()
-            if res == '025deg':
-                output.loc[i, 'resolution'] = '0.25°'
-            elif res == '050deg':
-                output.loc[i, 'resolution'] = '0.5°'
 
-    output['iso3'] = ''
-    output['admin_level_0'] = ''
-    output['admin_level_1'] = ''
-    output['admin_level_2'] = ''
-    output['admin_level_3'] = ''
+    output['GID_0'] = ''
+    output['COUNTRY'] = ''
+    output['GID_1'] = ''
+    output['NAME_1'] = ''
+    output['GID_2'] = ''
+    output['NAME_2'] = ''
+    output['GID_3'] = ''
+    output['NAME_3'] = ''
     output['week'] = ''
     output['metric'] = 'aphrodite-daily-mean-temp'
     output['unit'] = '°C'
     output['creation_date'] = date.today()
 
-    return output, 'aphrodite-daily-mean-temp.csv'
+    sub_pipeline = sub_pipeline.replace('/', '_')
+    filename = f'{sub_pipeline}_{year}_{date.today()}.csv'
+
+    return output, filename

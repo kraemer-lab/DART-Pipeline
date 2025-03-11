@@ -67,18 +67,25 @@ PERU_REGIONS = [
 
 # Column names in the output CSVs
 OUTPUT_COLUMNS = [
-    'iso3',
-    'admin_level_0',
-    'admin_level_1',
-    'admin_level_2',
-    'admin_level_3',
+    # Admin levels
+    'GID_0',  # Admin level 0 code (aka iso3 code)
+    'COUNTRY',  # Admin level 0 name (aka country name)
+    'GID_1',  # Admin level 1 code
+    'NAME_1',  # Admin level 1 name
+    'GID_2',  # Admin level 2 code
+    'NAME_2',  # Admin level 2 name
+    'GID_3',  # Admin level 3 code
+    'NAME_3',  # Admin level 3 name
+
+    # Temporal information
     'year',
     'month',
     'day',
     'week',
+
+    # Data
     'metric',
     'value',
     'unit',
-    'resolution',
     'creation_date'
 ]

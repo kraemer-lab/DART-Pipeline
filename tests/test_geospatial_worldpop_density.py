@@ -1,6 +1,7 @@
 """Tests for process functions in geospatial/worldpop_density.py."""
 from unittest.mock import patch, MagicMock
 
+from freezegun import freeze_time
 import pandas as pd
 import pytest
 import rasterio
@@ -8,6 +9,7 @@ import rasterio
 from dart_pipeline.process import process_gadm_worldpopdensity
 
 
+@freeze_time('2025-02-06')
 @patch('os.listdir')
 @patch('geopandas.gpd.read_file')
 @patch('dart_pipeline.process.get_shapefile')
@@ -27,10 +29,11 @@ def test_process_gadm_worldpopdensity(
     # Assertions for valid data processing
     assert isinstance(output, pd.DataFrame), 'Output should be a DataFrame'
     msg = 'Expected column missing in output'
-    assert 'admin_level_0' in output.columns, msg
+    assert 'COUNTRY' in output.columns, msg
     assert 'metric' in output.columns, 'Expected column missing in output'
+    filename = 'VNM_geospatial_worldpop-density_2020_2025-02-06.csv'
     msg = 'CSV filename does not match expected value'
-    assert csv_filename == 'worldpop-density.csv', msg
+    assert csv_filename == filename, msg
 
     # Test case 2: Invalid date with day included
     with pytest.raises(ValueError, match='Provide only a year in YYYY format'):

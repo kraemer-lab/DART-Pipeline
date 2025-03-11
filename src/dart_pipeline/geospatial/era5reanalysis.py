@@ -24,6 +24,7 @@ def process_gadm_era5reanalysis(
     """Process GADM and ERA5 atmospheric reanalysis data."""
     sub_pipeline = 'geospatial/era5-reanalysis'
     logging.info('dataset:%s', dataset)
+    iso3 = iso3.upper()
     logging.info('iso3:%s', iso3)
     logging.info('admin_level:%s', admin_level)
     pdate = PartialDate.from_string(partial_date)
@@ -54,7 +55,7 @@ def process_gadm_era5reanalysis(
 
     # Process the data
     idx = 0
-    for i, path in enumerate(sorted(filepaths)):
+    for _, path in enumerate(sorted(filepaths)):
         logging.info('importing:%s', path)
         ds = nc.Dataset(path, 'r')  # type: ignore
 
@@ -70,33 +71,41 @@ def process_gadm_era5reanalysis(
         unit = ds.variables[variable].units
 
         # Iterate over the regions in the shape file
-        for j, region in gdf.iterrows():
+        for _, region in gdf.iterrows():
             geometry = region.geometry
 
             # Populate a row for the output data frame
-            df.loc[idx, 'admin_level_0'] = region['COUNTRY']
+            df.loc[idx, 'GID_0'] = region['GID_0']
+            df.loc[idx, 'COUNTRY'] = region['COUNTRY']
             region_name = region['COUNTRY']
             # Update the new row and the region name if the admin level is high
             # enough
             if int(admin_level) >= 1:
-                df.loc[idx, 'admin_level_1'] = region['NAME_1']
+                df.loc[idx, 'GID_1'] = region['GID_1']
+                df.loc[idx, 'NAME_1'] = region['NAME_1']
                 region_name = region['NAME_1']
             else:
-                df.loc[idx, 'admin_level_1'] = None
+                df.loc[idx, 'GID_1'] = None
+                df.loc[idx, 'NAME_1'] = None
             if int(admin_level) >= 2:
-                df.loc[idx, 'admin_level_2'] = region['NAME_2']
+                df.loc[idx, 'GID_2'] = region['GID_2']
+                df.loc[idx, 'NAME_2'] = region['NAME_2']
                 region_name = region['NAME_2']
             else:
-                df.loc[idx, 'admin_level_2'] = None
+                df.loc[idx, 'GID_2'] = None
+                df.loc[idx, 'NAME_2'] = None
             if int(admin_level) >= 3:
-                df.loc[idx, 'admin_level_3'] = region['NAME_3']
+                df.loc[idx, 'GID_3'] = region['GID_3']
+                df.loc[idx, 'NAME_3'] = region['NAME_3']
                 region_name = region['NAME_3']
             else:
-                df.loc[idx, 'admin_level_3'] = None
+                df.loc[idx, 'GID_3'] = None
+                df.loc[idx, 'NAME_3'] = None
             # Populate the year and month
             df.loc[idx, 'year'] = pdate.year
             df.loc[idx, 'month'] = pdate.month
             df.loc[idx, 'day'] = pdate.day
+            df.loc[idx, 'week'] = None
 
             # Define transform for geometry_mask based on grid resolution
             transform = rasterio.transform.from_origin(
@@ -126,11 +135,9 @@ def process_gadm_era5reanalysis(
                 )
 
             # Add to output data frame
-            df.loc[idx, 'iso3'] = iso3
             df.loc[idx, 'metric'] = metric
             df.loc[idx, 'value'] = np.nansum(masked_data)
             df.loc[idx, 'unit'] = unit
-            df.loc[idx, 'resolution'] = f'Admin Level {admin_level}'
             df.loc[idx, 'creation_date'] = date.today()
 
             # Increment the row
@@ -139,4 +146,7 @@ def process_gadm_era5reanalysis(
         # Close the NetCDF file after use
         ds.close()
 
-    return df.fillna(''), 'era5-reanalysis.csv'
+    sub_pipeline = sub_pipeline.replace('/', '_')
+    filename = f'{iso3}_{sub_pipeline}_{pdate.year}_{date.today()}.csv'
+
+    return df.fillna(''), filename

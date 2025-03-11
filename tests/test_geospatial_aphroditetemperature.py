@@ -1,8 +1,8 @@
-"""Tests for process functions in process.py."""
+"""Test the geospatial APHRODITE temperature (V1808) sub-pipeline."""
 from io import BytesIO
-
 from unittest.mock import patch, MagicMock
 
+from freezegun import freeze_time
 from shapely.geometry import Polygon
 import numpy as np
 import pandas as pd
@@ -17,6 +17,7 @@ class MockFile(BytesIO):
         return 1
 
 
+@freeze_time('2025-02-06')
 def test_process_gadm_aphroditetemperature():
     iso3 = 'VNM'
     admin_level = '0'
@@ -78,8 +79,9 @@ def test_process_gadm_aphroditetemperature():
 
         # Assertions
         assert isinstance(output, pd.DataFrame)
-        assert 'iso3' in output.columns
+        assert 'GID_0' in output.columns
         assert 'value' in output.columns
-        assert output['iso3'].iloc[0] == iso3
+        assert output['GID_0'].iloc[0] == iso3
         assert output['value'].iloc[0] == ''
-        assert csv_path == 'aphrodite-daily-mean-temp.csv'
+        fn = 'VNM_geospatial_aphrodite-daily-mean-temp_2023_2025-02-06.csv'
+        assert csv_path == fn
