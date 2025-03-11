@@ -27,9 +27,9 @@ def test_process_rwi(mock_savefig, mock_get_country, mock_source_path):
 
     expected_filename = 'MLD_economic_relative-wealth-index_2025-03-07.csv'
     assert filename == expected_filename
-    assert 'iso3' in output_df.columns
+    assert 'GID_0' in output_df.columns
     assert 'value' in output_df.columns
     assert 'unit' in output_df.columns
-    assert output_df.iloc[0]['iso3'] == 'MLD'
+    assert output_df.iloc[0]['GID_0'] == 'MLD'
     assert output_df.iloc[0]['value'] == rwi['rwi'].mean()
     assert not mock_savefig.called
