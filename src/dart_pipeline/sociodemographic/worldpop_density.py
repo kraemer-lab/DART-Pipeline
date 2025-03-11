@@ -72,7 +72,7 @@ def process_worldpopdensity(
     df = pd.DataFrame(columns=OUTPUT_COLUMNS)
 
     # Populate output data frame
-    df.loc[0, 'GID_0'] = iso3
+    df.loc[0, 'ISO3'] = iso3
     df.loc[0, 'COUNTRY'] = country
     df.loc[0, 'GID_1'] = ''
     df.loc[0, 'NAME_1'] = ''
@@ -84,7 +84,7 @@ def process_worldpopdensity(
     df.loc[0, 'month'] = ''
     df.loc[0, 'day'] = ''
     df.loc[0, 'week'] = ''
-    df.loc[0, 'metric'] = 'Population Density'
+    df.loc[0, 'metric'] = 'sociodemographic.worldpop-density'
     df.loc[0, 'value'] = value
     df.loc[0, 'unit'] = ''
     df.loc[0, 'creation_date'] = date.today()

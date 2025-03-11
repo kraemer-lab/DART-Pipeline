@@ -44,10 +44,10 @@ def test_process_worldpopdensity(
     assert len(result) == 1  # Single row in the output DataFrame
 
     # Verify the DataFrame contents
-    assert result.loc[0, 'GID_0'] == iso3
+    assert result.loc[0, 'ISO3'] == iso3
     assert result.loc[0, 'COUNTRY'] == 'Vietnam'
     assert result.loc[0, 'year'] == 2020
-    assert result.loc[0, 'metric'] == 'Population Density'
+    assert result.loc[0, 'metric'] == 'sociodemographic.worldpop-density'
     assert result.loc[0, 'unit'] == ''
     assert result.loc[0, 'value'] == 4
     assert result.loc[0, 'creation_date'] == date.today()

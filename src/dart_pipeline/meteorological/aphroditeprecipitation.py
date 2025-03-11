@@ -116,7 +116,7 @@ def process_aphroditeprecipitation(
             output.loc[i, 'day'] = this_date.day
             output.loc[i, 'value'] = valid_prcp.sum()
 
-    output['GID_0'] = ''
+    output['ISO3'] = ''
     output['COUNTRY'] = ''
     output['GID_1'] = ''
     output['NAME_1'] = ''
@@ -125,7 +125,7 @@ def process_aphroditeprecipitation(
     output['GID_3'] = ''
     output['NAME_3'] = ''
     output['week'] = ''
-    output['metric'] = 'aphrodite-daily-precip'
+    output['metric'] = 'meteorological/aphrodite-daily-precipitation'
     output['unit'] = 'mm'
     output['creation_date'] = date.today()
 

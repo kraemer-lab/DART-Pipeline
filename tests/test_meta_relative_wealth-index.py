@@ -49,6 +49,6 @@ def test_process_gadm_popdensity_rwi(mock_pd_read, mock_gpd_read):
     fn = 'VNM_population-weighted_relative-wealth-index_2023_2025-03-05.csv'
     assert filename == fn
     assert isinstance(df, pd.DataFrame)
-    assert 'GID_0' in df.columns
+    assert 'ISO3' in df.columns
     assert 'value' in df.columns
     assert not df.empty

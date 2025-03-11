@@ -20,9 +20,8 @@ Epidemiological
 
 ```
 uv run dart-pipeline get epidemiological/dengue/peru
-uv run dart-pipeline process epidemiological/dengue/peru l=INFO
+
 uv run dart-pipeline process epidemiological/dengue/peru l=INFO plots
-uv run dart-pipeline process epidemiological/dengue/peru a=1 l=INFO
 uv run dart-pipeline process epidemiological/dengue/peru a=1 l=INFO plots
 ```
 
@@ -79,6 +78,7 @@ uv run dart-pipeline process geospatial/era5-reanalysis dataset=derived-era5-lan
 ```
 uv run dart-pipeline get geospatial/gadm 3=PER
 uv run dart-pipeline get geospatial/gadm 3=VNM
+
 uv run dart-pipeline process geospatial/gadm 3=VNM a=0
 ```
 
@@ -142,7 +142,6 @@ Meteorological
 ```
 uv run dart-pipeline get meteorological/aphrodite-daily-mean-temp unpack
 
-uv run dart-pipeline process meteorological/aphrodite-daily-mean-temp l=INFO
 uv run dart-pipeline process meteorological/aphrodite-daily-mean-temp l=INFO plots
 ```
 
@@ -151,7 +150,6 @@ uv run dart-pipeline process meteorological/aphrodite-daily-mean-temp l=INFO plo
 ```
 uv run dart-pipeline get meteorological/aphrodite-daily-precip unpack
 
-uv run dart-pipeline process meteorological/aphrodite-daily-precip l=INFO
 uv run dart-pipeline process meteorological/aphrodite-daily-precip l=INFO plots
 ```
 
@@ -160,10 +158,10 @@ uv run dart-pipeline process meteorological/aphrodite-daily-precip l=INFO plots
 ```
 uv run dart-pipeline get meteorological/chirps-rainfall d=2023
 uv run dart-pipeline get meteorological/chirps-rainfall d=2023-05
-uv run dart-pipeline process meteorological/chirps-rainfall d=2023 l=INFO
+
 uv run dart-pipeline process meteorological/chirps-rainfall d=2023 l=INFO plots
-uv run dart-pipeline process meteorological/chirps-rainfall d=2023-05 l=INFO
-uv run dart-pipeline process meteorological/chirps-rainfall d=2023-05-11 l=INFO
+uv run dart-pipeline process meteorological/chirps-rainfall d=2023-05 l=INFO plots
+uv run dart-pipeline process meteorological/chirps-rainfall d=2023-05-11 l=INFO plots
 ```
 
 ### ERA5 atmospheric reanalysis
@@ -182,8 +180,6 @@ uv run dart-pipeline process meteorological/era5-reanalysis dataset=derived-era5
 ```
 uv run dart-pipeline get meteorological/terraclimate year=2023
 
-uv run dart-pipeline process meteorological/terraclimate d=2023-01 3=PER a=0 l=INFO
-uv run dart-pipeline process meteorological/terraclimate d=2023-01 3=PER a=1 l=INFO
 uv run dart-pipeline process meteorological/terraclimate d=2023-01 3=VNM a=0 l=INFO plots
 uv run dart-pipeline process meteorological/terraclimate d=2023-01 3=VNM a=1 l=INFO plots
 ```

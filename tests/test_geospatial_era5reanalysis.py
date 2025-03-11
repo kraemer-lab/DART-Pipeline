@@ -66,7 +66,7 @@ def test_process_gadm_era5reanalysis(
 
     # Validate the returned DataFrame structure
     assert isinstance(df, pd.DataFrame)
-    assert 'GID_0' in df.columns
+    assert 'ISO3' in df.columns
     assert 'COUNTRY' in df.columns
     assert 'GID_1' in df.columns
     assert 'NAME_1' in df.columns

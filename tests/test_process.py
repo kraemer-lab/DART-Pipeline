@@ -1,7 +1,9 @@
 """Tests for process functions in process.py."""
+from datetime import date
 from io import BytesIO
 import platform
 
+from freezegun import freeze_time
 from unittest.mock import patch, MagicMock
 
 from shapely.geometry import Polygon
@@ -92,8 +94,8 @@ def test_process_dengueperu(
 
         # Validate the output DataFrame
         assert isinstance(master, pd.DataFrame)
-        assert master['admin_level_0'].iloc[0] == 'Peru'
-        assert master['admin_level_1'].iloc[0] == expected_admin_level_1
+        assert master['COUNTRY'].iloc[0] == 'Peru'
+        assert master['NAME_1'].iloc[0] == expected_admin_level_1
         assert master['metric'].tolist() == [
             'Confirmed Dengue Cases', 'Probable Dengue Cases'
         ]
@@ -103,6 +105,7 @@ def test_process_dengueperu(
         mock_read_excel.assert_called()
 
 
+@freeze_time('2025-02-06')
 @patch('geopandas.read_file')
 @patch("dart_pipeline.process.get_chirps_rainfall_data_path")
 @patch("dart_pipeline.process.get_shapefile")
@@ -158,14 +161,22 @@ def test_process_gadm_chirps_rainfall(
 
     # Verify the output DataFrame
     expected_data = {
-        'admin_level_0': ['Vietnam'],
-        'admin_level_1': ['Hanoi'],
-        'admin_level_2': ['District 1'],
-        'admin_level_3': ['Ward 1'],
+        'ISO3': ['VNM'],
+        'COUNTRY': ['Vietnam'],
+        'GID_1': [None],
+        'NAME_1': ['Hanoi'],
+        'GID_2': [None],
+        'NAME_2': ['District 1'],
+        'GID_3': [None],
+        'NAME_3': ['Ward 1'],
         'year': [2023],
         'month': [5],
         'day': [None],
-        'rainfall': [0]
+        'week': [None],
+        'metric': ['geospatial.chirps-rainfall'],
+        'value': [0],
+        'unit': ['mm'],
+        'creation_date': [date.fromisoformat('2025-02-06')],
     }
     expected_df = pd.DataFrame(expected_data).astype(object)
     pd.testing.assert_frame_equal(output, expected_df)
@@ -180,6 +191,7 @@ def test_process_gadm_chirps_rainfall(
     min_lon, min_lat, max_lon, max_lat = region_geometry.bounds
 
 
+@freeze_time('2025-02-06')
 @patch('dart_pipeline.process.output_path')
 @patch('rasterio.open')
 @patch('dart_pipeline.process.get_chirps_rainfall_data_path')
@@ -205,10 +217,22 @@ def test_process_chirps_rainfall(
 
     # Verify the output DataFrame
     expected_data = {
+        'ISO3': [None],
+        'COUNTRY': [None],
+        'GID_1': [None],
+        'NAME_1': [None],
+        'GID_2': [None],
+        'NAME_2': [None],
+        'GID_3': [None],
+        'NAME_3': [None],
         'year': [2023],
         'month': [5],
         'day': [None],
-        'rainfall': [0.0]
+        'week': [None],
+        'metric': ['meteorological.chirps-rainfall'],
+        'value': [0.0],
+        'unit': ['mm'],
+        'creation_date': [date.fromisoformat('2025-02-06')],
     }
     expected_df = pd.DataFrame(expected_data).astype(object)
     pd.testing.assert_frame_equal(output, expected_df)
@@ -432,11 +456,11 @@ def test_process_terraclimate(
 
     # Validate the returned DataFrame structure
     assert isinstance(output, pd.DataFrame)
-    assert 'admin_level_0' in output.columns
-    assert 'admin_level_1' in output.columns
+    assert 'COUNTRY' in output.columns
+    assert 'NAME_1' in output.columns
     # Ensure temperature column was added
     assert 'temperature' in output.columns
-    assert output['admin_level_0'].iloc[0] == 'Mockland'
+    assert output['COUNTRY'].iloc[0] == 'Mockland'
     assert output['year'].iloc[0] == 1900
     assert output['month'].iloc[0] == 1
 

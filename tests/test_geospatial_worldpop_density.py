@@ -51,6 +51,8 @@ def test_process_gadm_worldpopdensity(
     ]
     # Call the function
     output, csv_filename = process_gadm_worldpopdensity('VNM', '2020', '0')
+
+    assert 'ISO3' in output.columns
     # Check that fallback file was used and output generated
     msg = 'Output should be a DataFrame even with fallback file'
     assert isinstance(output, pd.DataFrame), msg

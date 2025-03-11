@@ -95,7 +95,7 @@ def test_use_range():
 def new_dataframe():
     """Fixture to create a sample data frame."""
     return pd.DataFrame({
-        'GID_0': ['VNM'],
+        'ISO3': ['VNM'],
         'COUNTRY': ['Vietnam'],
         'GID_1': ['VNM.1'],
         'NAME_1': ['An Giang'],
@@ -119,7 +119,7 @@ def new_dataframe():
 def old_dataframe():
     """Fixture to create a mock existing data frame."""
     return pd.DataFrame({
-        'GID_0': ['VNM'],
+        'ISO3': ['VNM'],
         'COUNTRY': ['Vietnam'],
         'GID_1': ['VNM.1'],
         'NAME_1': ['An Giang'],

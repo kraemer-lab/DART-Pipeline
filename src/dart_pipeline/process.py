@@ -125,13 +125,13 @@ def process_dengueperu(
         name = filename.removesuffix('.xlsx').split('_')[-1].capitalize()
         logging.info('processing:%s', name)
         # Add to the output data frame
-        df['admin_level_0'] = 'Peru'
+        df['COUNTRY'] = 'Peru'
         if admin_level == '1':
-            df['admin_level_1'] = name
+            df['NAME_1'] = name
         else:
-            df['admin_level_1'] = ''
-        df['admin_level_2'] = ''
-        df['admin_level_3'] = ''
+            df['NAME_1'] = ''
+        df['NAME_2'] = ''
+        df['NAME_3'] = ''
 
         # Add to master data frame
         master = pd.concat([master, df], ignore_index=True)
@@ -152,7 +152,7 @@ def process_dengueperu(
             plot_timeseries(df, title, path)
 
     # Fill in additional columns
-    master['iso3'] = 'PER'
+    master['ISO3'] = 'PER'
     master['month'] = ''
     master['day'] = ''
     master['unit'] = 'cases'
@@ -199,28 +199,25 @@ def process_gadm_chirps_rainfall(
     # Earth's center of mass
 
     # Initialise the data frame that will store the output data for each region
-    columns = [
-        'admin_level_0', 'admin_level_1', 'admin_level_2', 'admin_level_3',
-        'year', 'month', 'day', 'rainfall'
-    ]
-    output = pd.DataFrame(columns=columns)
+    output = pd.DataFrame(columns=OUTPUT_COLUMNS)
 
     # Iterate over each region in the shape file
     for i, region in gdf.iterrows():
         # Add the region name to the output data frame
-        output.loc[i, 'admin_level_0'] = region['COUNTRY']
+        output.loc[i, 'ISO3'] = iso3
+        output.loc[i, 'COUNTRY'] = region['COUNTRY']
         # Initialise the graph title
         title = region['COUNTRY']
         # Add more region names and update the graph title if the admin level
         # is high enough to warrant it
         if int(admin_level) >= 1:
-            output.loc[i, 'admin_level_1'] = region['NAME_1']
+            output.loc[i, 'NAME_1'] = region['NAME_1']
             title = region['NAME_1']
         if int(admin_level) >= 2:
-            output.loc[i, 'admin_level_2'] = region['NAME_2']
+            output.loc[i, 'NAME_2'] = region['NAME_2']
             title = region['NAME_2']
         if int(admin_level) >= 3:
-            output.loc[i, 'admin_level_3'] = region['NAME_3']
+            output.loc[i, 'NAME_3'] = region['NAME_3']
             title = region['NAME_3']
 
         # Add date information to the output data frame
@@ -248,7 +245,10 @@ def process_gadm_chirps_rainfall(
         logging.info('region:%s', title)
         logging.info('region_total:%s', region_total)
         # Add the result to the output data frame
-        output.loc[i, 'rainfall'] = region_total
+        output.loc[i, 'metric'] = 'geospatial.chirps-rainfall'
+        output.loc[i, 'value'] = region_total
+        output.loc[i, 'unit'] = 'mm'
+        output.loc[i, 'creation_date'] = date.today()
 
         if plots:
             # Get the bounds of the region
@@ -303,7 +303,7 @@ def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
         pass
 
     # Initialise output data frame
-    output = pd.DataFrame()
+    output = pd.DataFrame(columns=OUTPUT_COLUMNS)
     # Iterate over the regions in the shape file
     for _, region in gdf.iterrows():
         # Initialise a new row for the output data frame
@@ -311,11 +311,11 @@ def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
         # Initialise the title
         # Update the new row and the title if the admin level is high enough
         if int(admin_level) >= 1:
-            new_row["Admin Level 1"] = region["NAME_1"]
+            new_row['NAME_1'] = region["NAME_1"]
         if int(admin_level) >= 2:
-            new_row["Admin Level 2"] = region["NAME_2"]
+            new_row['NAME_2'] = region["NAME_2"]
         if int(admin_level) >= 3:
-            new_row["Admin Level 3"] = region["NAME_3"]
+            new_row['NAME_3'] = region["NAME_3"]
 
         # Calculate area in square metres
         area = region.geometry.area
@@ -375,8 +375,7 @@ def process_chirps_rainfall(partial_date: str, plots=False) -> ProcessResult:
     src = rasterio.open(file)
 
     # Initialise the data frame that will store the output data for each region
-    columns = ['year', 'month', 'day', 'rainfall']
-    output = pd.DataFrame(columns=columns)
+    output = pd.DataFrame(columns=OUTPUT_COLUMNS)
 
     # Add date information to the output data frame
     output.loc[0, 'year'] = pdate.year
@@ -393,7 +392,10 @@ def process_chirps_rainfall(partial_date: str, plots=False) -> ProcessResult:
     # Hide nulls
     data[data == -9999] = 0
     # Add the result to the output data frame
-    output.loc[0, 'rainfall'] = np.nansum(data)
+    output.loc[0, 'metric'] = 'meteorological.chirps-rainfall'
+    output.loc[0, 'value'] = np.nansum(data)
+    output.loc[0, 'unit'] = 'mm'
+    output.loc[0, 'creation_date'] = date.today()
 
     # Create a plot
     if plots:
@@ -428,11 +430,7 @@ def process_terraclimate(
     logging.info('plots:%s', plots)
 
     # Initialise output data frame
-    columns = [
-        'admin_level_0', 'admin_level_1', 'admin_level_2', 'admin_level_3',
-        'year', 'month'
-    ]
-    output = pd.DataFrame(columns=columns)
+    output = pd.DataFrame(columns=OUTPUT_COLUMNS)
 
     # Import a shapefile
     path = BASE_DIR / DEFAULT_SOURCES_ROOT / 'geospatial' / 'gadm' / iso3 / \
@@ -517,10 +515,10 @@ def process_terraclimate(
 
                 # Initialise a new row for the output data frame
                 idx = i * len(months) + j
-                output.loc[idx, 'admin_level_0'] = region['COUNTRY']
-                output.loc[idx, 'admin_level_1'] = None
-                output.loc[idx, 'admin_level_2'] = None
-                output.loc[idx, 'admin_level_3'] = None
+                output.loc[idx, 'COUNTRY'] = region['COUNTRY']
+                output.loc[idx, 'NAME_1'] = None
+                output.loc[idx, 'NAME_2'] = None
+                output.loc[idx, 'NAME_3'] = None
                 output.loc[idx, 'year'] = month.year
                 output.loc[idx, 'month'] = month.month
                 # Initialise the graph title
@@ -528,13 +526,13 @@ def process_terraclimate(
                 # Update the new row and the title if the admin level is high
                 # enough
                 if int(admin_level) >= 1:
-                    output.loc[idx, 'admin_level_1'] = region['NAME_1']
+                    output.loc[idx, 'NAME_1'] = region['NAME_1']
                     region_name = region['NAME_1']
                 if int(admin_level) >= 2:
-                    output.loc[idx, 'admin_level_2'] = region['NAME_2']
+                    output.loc[idx, 'NAME_2'] = region['NAME_2']
                     region_name = region['NAME_2']
                 if int(admin_level) >= 3:
-                    output.loc[idx, 'admin_level_3'] = region['NAME_3']
+                    output.loc[idx, 'NAME_3'] = region['NAME_3']
                     region_name = region['NAME_3']
 
                 # Define transform for geometry_mask based on grid resolution

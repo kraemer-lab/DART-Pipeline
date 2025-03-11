@@ -36,7 +36,7 @@ def test_process_gadm_rwi(
 
     # Mock GADM shapefile
     gdf = gpd.GeoDataFrame({
-        'GID_0': ['MCK', 'MCK'],
+        'ISO3': ['MCK', 'MCK'],
         'COUNTRY': ['Mockland', 'Mockland'],
         'GID_1': ['region_1', 'region_2'],
         'NAME_1': ['Region 1', 'Region 2'],
@@ -63,7 +63,7 @@ def test_process_gadm_rwi(
 
     expected_filename = 'MLD_geospatial_relative-wealth-index_2025-03-07.csv'
     assert filename == expected_filename
-    assert 'GID_0' in output_rwi.columns
+    assert 'ISO3' in output_rwi.columns
     assert 'value' in output_rwi.columns
     assert 'unit' in output_rwi.columns
     assert output_rwi.iloc[0]['NAME_1'] == 'Region 1'

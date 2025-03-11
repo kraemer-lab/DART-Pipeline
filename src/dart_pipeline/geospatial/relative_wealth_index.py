@@ -88,12 +88,13 @@ def process_gadm_rwi(iso3: str, admin_level: str, plots=False):
     rwi = rwi.merge(gdf, left_on='geo_id', right_on=admin_geoid, how='left')
 
     # Format the output data frame
+    rwi = rwi.rename(columns={'GID_0': 'ISO3'})
     rwi = populate_output_df_admin_levels(rwi, admin_level)
     rwi['year'] = None
     rwi['month'] = None
     rwi['day'] = None
     rwi['week'] = None
-    rwi['metric'] = 'Relative Wealth Index'
+    rwi['metric'] = 'geospatial.relative-wealth-index'
     rwi = rwi.rename(columns={'rwi': 'value'})
     rwi['unit'] = 'unitless'
     rwi['creation_date'] = date.today()

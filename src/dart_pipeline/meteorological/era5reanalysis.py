@@ -55,7 +55,7 @@ def process_era5reanalysis(dataset, partial_date, plots=False):
             plot_heatmap(data[0, :, :], title, colourbar_label, path)
 
         # Add to output data frame
-        df.loc[i, 'GID_0'] = ''
+        df.loc[i, 'ISO3'] = ''
         df.loc[i, 'COUNTRY'] = ''
         df.loc[i, 'GID_1'] = ''
         df.loc[i, 'NAME_1'] = ''
@@ -67,7 +67,7 @@ def process_era5reanalysis(dataset, partial_date, plots=False):
         df.loc[i, 'month'] = pdate.month
         df.loc[i, 'day'] = pdate.day
         df.loc[i, 'week'] = ''
-        df.loc[i, 'metric'] = metric
+        df.loc[i, 'metric'] = 'meteorological.era5-reanalysis'
         df.loc[i, 'value'] = mean_value
         df.loc[i, 'unit'] = unit
         df.loc[i, 'creation_date'] = date.today()

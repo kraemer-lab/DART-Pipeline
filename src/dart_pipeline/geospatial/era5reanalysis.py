@@ -75,7 +75,7 @@ def process_gadm_era5reanalysis(
             geometry = region.geometry
 
             # Populate a row for the output data frame
-            df.loc[idx, 'GID_0'] = region['GID_0']
+            df.loc[idx, 'ISO3'] = region['GID_0']
             df.loc[idx, 'COUNTRY'] = region['COUNTRY']
             region_name = region['COUNTRY']
             # Update the new row and the region name if the admin level is high
@@ -135,7 +135,7 @@ def process_gadm_era5reanalysis(
                 )
 
             # Add to output data frame
-            df.loc[idx, 'metric'] = metric
+            df.loc[idx, 'metric'] = 'geospatial.era5-reanalysis'
             df.loc[idx, 'value'] = np.nansum(masked_data)
             df.loc[idx, 'unit'] = unit
             df.loc[idx, 'creation_date'] = date.today()

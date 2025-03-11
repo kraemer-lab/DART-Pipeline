@@ -18,6 +18,7 @@ from dart_pipeline.util import (
     source_path, get_shapefile, get_country_name, output_path
 )
 
+
 def process_gadm_worldpopdensity(
     iso3, partial_date: str, admin_level: AdminLevel = '0', rt: str = 'ppp',
     plots=False
@@ -97,7 +98,7 @@ def process_gadm_worldpopdensity(
     # Iterate over each region in the shape file
     for i, region in gdf.iterrows():
         # Add the region name to the output data frame
-        output.loc[i, 'GID_0'] = region['GID_0']
+        output.loc[i, 'ISO3'] = region['GID_0']
         output.loc[i, 'COUNTRY'] = region['COUNTRY']
         # Initialise the graph title
         title = region['COUNTRY']
@@ -140,7 +141,7 @@ def process_gadm_worldpopdensity(
         logging.info('region:%s', title)
         logging.info('region_total:%s', region_total)
         # Add the result to the output data frame
-        metric = 'Population Density'
+        metric = 'worldpop.population_density'
         output.loc[i, 'metric'] = metric
         output.loc[i, 'value'] = region_total
         output.loc[i, 'unit'] = None

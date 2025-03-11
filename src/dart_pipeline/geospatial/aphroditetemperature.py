@@ -150,8 +150,9 @@ def process_gadm_aphroditetemperature(
                 # Filter data for this sub-region
                 valid_temp_region = valid_prcp[region_mask]
 
+                metric = f'geospatial.aphrodite-daily-mean-temperature.{res}'
                 output_row = {
-                    'GID_0': iso3,
+                    'ISO3': iso3,
                     'COUNTRY': row['COUNTRY'],
                     'GID_1': row.get('GID_1', ''),
                     'NAME_1': row.get('NAME_1', ''),
@@ -163,7 +164,7 @@ def process_gadm_aphroditetemperature(
                     'month': this_date.month,
                     'day': this_date.day,
                     'week': '',
-                    'metric': f'aphrodite-daily-mean-temp ({res})',
+                    'metric': metric,
                     'value': valid_temp_region.mean() if
                     len(valid_temp_region) > 0 else '',
                     'unit': '°C',

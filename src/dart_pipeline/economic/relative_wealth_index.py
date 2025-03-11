@@ -56,7 +56,7 @@ def process_rwi(iso3: str, plots=False):
 
     # Create an output data frame
     df = pd.DataFrame({
-        'GID_0': [iso3],
+        'ISO3': [iso3],
         'COUNTRY': [country],
         'GID_1': [None],
         'NAME_1': [None],
@@ -68,7 +68,7 @@ def process_rwi(iso3: str, plots=False):
         'month': [None],
         'day': [None],
         'week': [None],
-        'metric': ['Relative Wealth Index'],
+        'metric': ['economic.relative_wealth_index'],
         'value': [gdf['rwi'].mean()],
         'unit': ['unitless'],
         'creation_date': [date.today()]

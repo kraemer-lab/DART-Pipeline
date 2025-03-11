@@ -134,7 +134,7 @@ def process_aphroditetemperature(year=None, plots=False) -> \
             output.loc[i, 'day'] = this_date.day
             output.loc[i, 'value'] = valid_temp.mean()
 
-    output['GID_0'] = ''
+    output['ISO3'] = ''
     output['COUNTRY'] = ''
     output['GID_1'] = ''
     output['NAME_1'] = ''
@@ -143,7 +143,7 @@ def process_aphroditetemperature(year=None, plots=False) -> \
     output['GID_3'] = ''
     output['NAME_3'] = ''
     output['week'] = ''
-    output['metric'] = 'aphrodite-daily-mean-temp'
+    output['metric'] = 'meteorological.aphrodite-daily-mean-temperature'
     output['unit'] = '°C'
     output['creation_date'] = date.today()
 

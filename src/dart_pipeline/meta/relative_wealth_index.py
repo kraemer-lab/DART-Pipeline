@@ -153,9 +153,10 @@ def process_gadm_popdensity_rwi(
         plt.close()
 
     # Format the output data frame
+    rwi = rwi.rename(columns={'GID_0': 'ISO3'})
     rwi = populate_output_df_admin_levels(rwi, admin_level)
     rwi = populate_output_df_temporal(rwi, pdate)
-    rwi['metric'] = 'Population-weighted relative wealth index'
+    rwi['metric'] = 'meta.relative_wealth_index'
     rwi = rwi.rename(columns={'rwi_weight': 'value'})
     rwi['unit'] = 'unitless'
     rwi['creation_date'] = date.today()

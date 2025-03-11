@@ -68,8 +68,8 @@ PERU_REGIONS = [
 # Column names in the output CSVs
 OUTPUT_COLUMNS = [
     # Admin levels
-    'GID_0',  # Admin level 0 code (aka iso3 code)
-    'COUNTRY',  # Admin level 0 name (aka country name)
+    'ISO3',  # Admin level 0 code (aka GID_0)
+    'COUNTRY',  # Admin level 0 name (aka NAME_0)
     'GID_1',  # Admin level 1 code
     'NAME_1',  # Admin level 1 name
     'GID_2',  # Admin level 2 code

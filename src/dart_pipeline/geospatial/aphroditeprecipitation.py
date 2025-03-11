@@ -132,8 +132,9 @@ def process_gadm_aphroditeprecipitation(
                 # Filter data for this sub-region
                 valid_prcp_region = valid_prcp[region_mask]
 
+                metric = f'geospatial.aphrodite-daily-precipitation.{res}'
                 output_row = {
-                    'GID_0': iso3,
+                    'ISO3': iso3,
                     'COUNTRY': row['COUNTRY'],
                     'GID_1': row.get('GID_1', ''),
                     'NAME_1': row.get('NAME_1', ''),
@@ -145,7 +146,7 @@ def process_gadm_aphroditeprecipitation(
                     'month': this_date.month,
                     'day': this_date.day,
                     'week': '',
-                    'metric': f'aphrodite-daily-precip ({res})',
+                    'metric': metric,
                     'value': valid_prcp_region.sum(),
                     'unit': 'mm',
                     'creation_date': date.today()

@@ -76,7 +76,7 @@ def test_process_era5reanalysis(
 
     # Validate data
     row = df.iloc[0]
-    assert row['metric'] == 'Test Metric'
+    assert row['metric'] == 'meteorological.era5-reanalysis'
     assert row['value'] == 2.0  # Mean of [1.0, 2.0, 3.0]
     assert row['unit'] == 'Test Unit'
     assert row['year'] == 2023

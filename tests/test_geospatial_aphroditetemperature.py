@@ -79,9 +79,9 @@ def test_process_gadm_aphroditetemperature():
 
         # Assertions
         assert isinstance(output, pd.DataFrame)
-        assert 'GID_0' in output.columns
+        assert 'ISO3' in output.columns
         assert 'value' in output.columns
-        assert output['GID_0'].iloc[0] == iso3
+        assert output['ISO3'].iloc[0] == iso3
         assert output['value'].iloc[0] == ''
         fn = 'VNM_geospatial_aphrodite-daily-mean-temp_2023_2025-02-06.csv'
         assert csv_path == fn

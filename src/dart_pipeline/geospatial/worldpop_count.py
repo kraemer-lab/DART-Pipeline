@@ -97,7 +97,7 @@ def process_gadm_worldpopcount(
     # Iterate over each region in the shape file
     for i, region in gdf.iterrows():
         # Add the region name to the output data frame
-        output.loc[i, 'GID_0'] = region['GID_0']
+        output.loc[i, 'ISO3'] = region['GID_0']
         output.loc[i, 'COUNTRY'] = region['COUNTRY']
         # Initialise the graph title
         title = region['COUNTRY']
@@ -138,7 +138,7 @@ def process_gadm_worldpopcount(
         logging.info('region:%s', title)
         logging.info('region_total:%s', region_total)
         # Add the result to the output data frame
-        metric = 'Population Count'
+        metric = 'worldpop.population_count'
         output.loc[i, 'metric'] = metric
         output.loc[i, 'value'] = region_total
         output.loc[i, 'unit'] = None
