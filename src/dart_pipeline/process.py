@@ -46,15 +46,15 @@ from .meteorological.aphroditeprecipitation import \
     process_aphroditeprecipitation
 from .meteorological.aphroditetemperature import process_aphroditetemperature
 from .meteorological.era5reanalysis import process_era5reanalysis
+from .meteorological.chirpsrainfall import process_chirpsrainfall
 from .population_weighted.relative_wealth_index import \
     process_gadm_popdensity_rwi
 from .sociodemographic.worldpop_count import process_worldpopcount
 from .sociodemographic.worldpop_density import process_worldpopdensity
 from .constants import TERRACLIMATE_METRICS, OUTPUT_COLUMNS, BASE_DIR, \
-    DEFAULT_SOURCES_ROOT, DEFAULT_OUTPUT_ROOT, MIN_FLOAT
+    DEFAULT_SOURCES_ROOT, DEFAULT_OUTPUT_ROOT
 from .plots import \
-    plot_heatmap, plot_gadm_micro_heatmap, plot_gadm_macro_heatmap, \
-    plot_timeseries
+    plot_gadm_micro_heatmap, plot_gadm_macro_heatmap, plot_timeseries
 from .types import ProcessResult, PartialDate, AdminLevel
 from .util import source_path, output_path, get_shapefile
 
@@ -330,86 +330,6 @@ def process_gadm_admin_map_data(iso3: str, admin_level: AdminLevel):
     return output, f"{iso3}/admin{admin_level}_area.csv"
 
 
-def get_chirps_rainfall_data_path(date: PartialDate) -> Path:
-    """Get the path to a CHIRPS rainfall data file."""
-    file = None
-    match date.scope:
-        case "daily":
-            file = Path(
-                "global_daily",
-                str(date.year),
-                date.zero_padded_month,
-                f"chirps-v2.0.{date.to_string('.')}.tif",
-            )
-        case "monthly":
-            file = Path(
-                "global_monthly",
-                str(date.year),
-                f"chirps-v2.0.{date.to_string('.')}.tif",
-            )
-        case "annual":
-            file = Path("global_annual", f"chirps-v2.0.{date}.tif")
-
-    path = source_path("meteorological/chirps-rainfall", file)
-    if not path.exists():
-        raise FileNotFoundError(f"CHIRPS rainfall data not found: {path}")
-
-    return path
-
-
-def process_chirps_rainfall(partial_date: str, plots=False) -> ProcessResult:
-    """
-    Process CHIRPS Rainfall data.
-
-    "CHIRPS" stands for Climate Hazards Group InfraRed Precipitation with
-    Station.
-    """
-    source = 'meteorological/chirps-rainfall'
-    pdate = PartialDate.from_string(partial_date)
-    logging.info('partial_date:%s', pdate)
-    logging.info('scope:%s', pdate.scope)
-    logging.info('plots:%s', plots)
-
-    # Import the GeoTIFF file
-    file = get_chirps_rainfall_data_path(pdate)
-    logging.info('importing:%s', file)
-    src = rasterio.open(file)
-
-    # Initialise the data frame that will store the output data for each region
-    columns = ['year', 'month', 'day', 'rainfall']
-    output = pd.DataFrame(columns=columns)
-
-    # Add date information to the output data frame
-    output.loc[0, 'year'] = pdate.year
-    if pdate.month:
-        output.loc[0, 'month'] = pdate.month
-    if pdate.day:
-        output.loc[0, 'day'] = pdate.day
-
-    # Rasterio stores image layers in 'bands'
-    # Get the data in the first band as an array
-    data = src.read(1)
-    # Replace placeholder numbers with 0
-    data[data == MIN_FLOAT] = 0
-    # Hide nulls
-    data[data == -9999] = 0
-    # Add the result to the output data frame
-    output.loc[0, 'rainfall'] = np.nansum(data)
-
-    # Create a plot
-    if plots:
-        title = f'Rainfall\n{pdate}'
-        colourbar_label = 'Rainfall [mm]'
-        path = Path(
-            output_path(source), str(pdate).replace('-', '/'),
-            str(pdate) + '.png'
-        )
-        plot_heatmap(data, title, colourbar_label, path)
-
-    # Export
-    return output, 'chirps-rainfall.csv'
-
-
 def process_terraclimate(
     partial_date: str, iso3: str, admin_level: str, plots=False
 ):
@@ -588,7 +508,7 @@ PROCESSORS: dict[str, Callable[..., ProcessResult | list[ProcessResult]]] = {
     'geospatial/worldpop-density': process_gadm_worldpopdensity,
     'meteorological/aphrodite-daily-mean-temp': process_aphroditetemperature,
     'meteorological/aphrodite-daily-precip': process_aphroditeprecipitation,
-    'meteorological/chirps-rainfall': process_chirps_rainfall,
+    'meteorological/chirps-rainfall': process_chirpsrainfall,
     'meteorological/era5-reanalysis': process_era5reanalysis,
     'meteorological/terraclimate': process_terraclimate,
     'population-weighted/relative-wealth-index': process_gadm_popdensity_rwi,

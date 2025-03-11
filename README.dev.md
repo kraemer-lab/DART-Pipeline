@@ -133,10 +133,11 @@ uv run dart-pipeline process meteorological/aphrodite-daily-precip plots
 ```
 uv run dart-pipeline get meteorological/chirps-rainfall d=2023
 uv run dart-pipeline get meteorological/chirps-rainfall d=2023-05
-uv run dart-pipeline process meteorological/chirps-rainfall d=2023 l=INFO
+
 uv run dart-pipeline process meteorological/chirps-rainfall d=2023 l=INFO plots
-uv run dart-pipeline process meteorological/chirps-rainfall d=2023-05 l=INFO
-uv run dart-pipeline process meteorological/chirps-rainfall d=2023-05-11 l=INFO
+uv run dart-pipeline process meteorological/chirps-rainfall d=2023 l=INFO plots
+uv run dart-pipeline process meteorological/chirps-rainfall d=2023-05 l=INFO plots
+uv run dart-pipeline process meteorological/chirps-rainfall d=2023-05-11 l=INFO plots
 ```
 
 ### ERA5 atmospheric reanalysis
@@ -160,14 +161,6 @@ uv run dart-pipeline process meteorological/terraclimate d=2023-01 3=VNM a=0 l=I
 uv run dart-pipeline process meteorological/terraclimate d=2023-01 3=VNM a=1 l=INFO plots
 ```
 
-### ERA5 atmospheric reanalysis
-
-```
-uv run dart-pipeline get meteorological/era5-reanalysis d=2023 dataset=satellite-sea-ice-thickness l=INFO
-uv run dart-pipeline get meteorological/era5-reanalysis d=2024-10-01 dataset=derived-era5-land-daily-statistics l=INFO
-uv run dart-pipeline get meteorological/era5-reanalysis d=2024-10-01 dataset=reanalysis-era5-complete l=INFO
-uv run dart-pipeline get meteorological/era5-reanalysis d=2024-10-01 dataset=reanalysis-era5-single-levels l=INFO
-```
 
 Population-Weighted
 -------------------

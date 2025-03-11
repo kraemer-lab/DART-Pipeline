@@ -1,3 +1,4 @@
+"""Module for processing ERA5 atmospheric reanalysis data."""
 from datetime import date
 import logging
 
