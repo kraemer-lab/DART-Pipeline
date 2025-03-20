@@ -9,6 +9,7 @@ class MetricInfo(TypedDict, total=False):
     description: str
     depends: list[str]
     units: str
+    range: tuple[int, int] | tuple[float, float]
     statistics: list[str]
 
 

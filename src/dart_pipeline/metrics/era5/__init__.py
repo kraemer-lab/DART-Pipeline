@@ -9,8 +9,8 @@ from geoglue.cds import ReanalysisSingleLevels, CdsPath
 from geoglue.resample import resample
 from geoglue.zonal_stats import DatasetZonalStatistics
 
-from ...metrics import register_source, register_fetch, register_process
-from ...util import source_path, output_path
+from ...metrics import register_metrics, register_fetch, register_process, MetricInfo
+from ...util import source_path, output_path, iso3_admin_unpack
 
 from .derived import compute_derived_metric
 
@@ -38,7 +38,7 @@ VARIABLE_MAPPINGS = {
 }
 
 depends_hydrological_balance = ["total_precipitation", "evaporation"]
-METRICS = {
+METRICS: dict[str, MetricInfo] = {
     "2m_temperature": {
         "description": "2 meters air temperature",
         "units": "degree_Celsius",
@@ -102,11 +102,8 @@ METRICS = {
         "units": "m",
     },
 }
-STATS = ["min", "mean", "max", "sum"]
-VARIABLES = sum([METRICS[m].get("depends", [m]) for m in METRICS], [])
-INSTANT_METRICS = [m for m in METRICS if m not in ACCUM_METRICS]
 
-register_source(
+register_metrics(
     "era5",
     description="ERA5 reanalysis data",
     license_text="""Access to Copernicus Products is given for any purpose in so far
@@ -119,6 +116,10 @@ foregoing.""",
     metrics=METRICS,
 )
 
+STATS = ["min", "mean", "max", "sum"]
+VARIABLES = sum([METRICS[m].get("depends", [m]) for m in METRICS], [])
+INSTANT_METRICS = [m for m in METRICS if m not in ACCUM_METRICS]
+
 
 def collect_variables_to_drop(kind: Literal["instant", "accum"]) -> list[str]:
     "Collect list of variables to drop for a particular variable type"
@@ -129,9 +130,7 @@ def collect_variables_to_drop(kind: Literal["instant", "accum"]) -> list[str]:
     return sorted(collect - set(METRICS.keys()))
 
 
-def metric_path(
-    iso3: str, admin: Literal[1, 2, 3], year: int, metric: str, statistic: str
-) -> Path:
+def metric_path(iso3: str, admin: int, year: int, metric: str, statistic: str) -> Path:
     assert statistic in STATS
     return output_path(
         f"{iso3}/era5",
@@ -147,8 +146,9 @@ def era5_fetch(iso3: str, year: int) -> CdsPath | None:
 
 
 @register_process("era5")
-def era5_process(iso3: str, admin: Literal[1, 2, 3], year: int) -> list[Path]:
+def era5_process(iso3_admin: str, year: int) -> list[Path]:
     "Processes ERA5 data for a particular year"
+    iso3, admin = iso3_admin_unpack(iso3_admin)
     paths = {
         stat: source_path(f"{iso3}/proc/era5", f"{iso3}-{year}-era5.daily_{stat}.nc")
         for stat in ["mean", "min", "max", "sum"]
