@@ -12,6 +12,7 @@ dependencies = [
     "geopandas>1",
     "lxml==4.9.*",
     "matplotlib>=3.9.2",
+    "metpy>=1.6.3",
     "netCDF4>=1.7.2",
     "openpyxl==3.1.*",
     "pandarallel>=1.6.5",
