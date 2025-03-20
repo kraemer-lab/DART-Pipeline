@@ -27,15 +27,29 @@ from .constants import (
     DEFAULT_OUTPUT_ROOT,
     DEFAULT_PLOTS_ROOT,
     COMPRESSED_FILE_EXTS,
-    OUTPUT_COLUMNS
+    OUTPUT_COLUMNS,
 )
 from .types import Credentials, URLCollection, DefaultPathProtocol
 
+VALID_ISO3 = [c.alpha_3 for c in pycountry.countries]
+
 # Pandas display options
-pd.set_option('display.max_columns', None)
-pd.set_option('display.max_rows', None)
-pd.set_option('display.max_colwidth', 40)
-pd.set_option('display.width', 228)  # sierra
+pd.set_option("display.max_columns", None)
+pd.set_option("display.max_rows", None)
+pd.set_option("display.max_colwidth", 40)
+pd.set_option("display.width", 228)  # sierra
+
+
+def iso3_admin_unpack(iso3_admin: str) -> tuple[str, int]:
+    "Unpacks iso3-admin_level with verification"
+    iso3, admin = iso3_admin.split("-")
+    iso3 = iso3.upper()
+    if iso3 not in VALID_ISO3:
+        raise LookupError(f"Not a valid ISO3 code {iso3=}")
+    admin = int(admin)
+    if admin not in [1, 2, 3]:
+        raise ValueError("Not a valid admin level, must be one of 1, 2, 3")
+    return iso3, admin
 
 
 def abort(bold_text: str, rest: str):
@@ -83,9 +97,7 @@ def daterange(
         yield start_date + timedelta(n)
 
 
-def get_credentials(
-    source: str, credentials: str | Path | None = None
-) -> Credentials:
+def get_credentials(source: str, credentials: str | Path | None = None) -> Credentials:
     """
     Get a username and password pair from a credentials.json file.
 
@@ -137,8 +149,7 @@ def get_credentials(
 
     # fallback to file if no environment variable set
     credentials_path = (
-        Path(BASE_DIR, "credentials.json") if credentials is None else
-        Path(credentials)
+        Path(BASE_DIR, "credentials.json") if credentials is None else Path(credentials)
     )
     if not credentials_path.exists():
         raise FileNotFoundError(
@@ -172,8 +183,10 @@ def download_file(
 
 
 def download_files(
-    links: URLCollection, out_dir: Path, auth: Credentials | None = None,
-    unpack: bool = True
+    links: URLCollection,
+    out_dir: Path,
+    auth: Credentials | None = None,
+    unpack: bool = True,
 ) -> list[bool]:
     """Download multiple files in a list."""
     out_dir = out_dir / links.relative_path
@@ -272,76 +285,74 @@ def bold_brackets(s: str) -> str:
 def unpack_file(path: Path | str, same_folder: bool = False):
     """Unpack a zipped file."""
     path = Path(path)
-    logging.info('unpacking:%s', path)
-    logging.info('same_folder:%s', same_folder)
+    logging.info("unpacking:%s", path)
+    logging.info("same_folder:%s", same_folder)
     match path.suffix:
-        case '.7z':
+        case ".7z":
             with py7zr.SevenZipFile(path, mode="r") as archive:
                 archive.extractall(
                     path.parent if same_folder else path.parent / path.stem
                 )
-        case '.f90':
+        case ".f90":
             pass
-        case '.gpkg':
+        case ".gpkg":
             pass
-        case '.json':
+        case ".json":
             pass
-        case '.gz':
-            with gzip.open(path, 'rb') as f_in:
+        case ".gz":
+            with gzip.open(path, "rb") as f_in:
                 if same_folder:
-                    extract_path = path.with_suffix('')
+                    extract_path = path.with_suffix("")
                 else:
-                    folder = str(path.name).replace('.gz', '')
-                    file = str(path.name).replace('.gz', '')
+                    folder = str(path.name).replace(".gz", "")
+                    file = str(path.name).replace(".gz", "")
                     extract_path = path.parent / Path(folder) / Path(file)
                     extract_path.parent.mkdir(parents=True, exist_ok=True)
-                logging.info('extract_path:%s', extract_path)
+                logging.info("extract_path:%s", extract_path)
                 try:
-                    with open(extract_path, 'wb') as f_out:
+                    with open(extract_path, "wb") as f_out:
                         shutil.copyfileobj(f_in, f_out)
                 except gzip.BadGzipFile:
-                    print(f'BadGzipFile: Not a gzipped file ({path.name})')
+                    print(f"BadGzipFile: Not a gzipped file ({path.name})")
             return
         case _:
-            extract_dir = path.parent if same_folder else \
-                path.parent / path.stem
+            extract_dir = path.parent if same_folder else path.parent / path.stem
             shutil.unpack_archive(path, str(extract_dir))
 
 
-def update_or_create_output(
-    new_df: pd.DataFrame, out: str | Path, return_df=False
-):
+def update_or_create_output(new_df: pd.DataFrame, out: str | Path, return_df=False):
     """Either update an existing CSV or create a new one."""
     # Validate the input
     if not isinstance(new_df, pd.DataFrame):
-        raise TypeError('Expected a pandas DataFrame as input')
+        raise TypeError("Expected a pandas DataFrame as input")
     if not isinstance(out, (str, Path)):
-        raise TypeError('Expected a valid file path')
+        raise TypeError("Expected a valid file path")
 
     # Check if the CSV file already exists
     if out.exists():
         # Import the existing CSV with everything as a string
         old_df = pd.read_csv(out, dtype=str)
-        old_df.fillna('', inplace=True)
+        old_df.fillna("", inplace=True)
         # Convert the new data frame to str
         new_df = new_df.astype(str)
-        new_df.fillna('', inplace=True)
+        new_df.fillna("", inplace=True)
 
         # Merge the new data with the existing data
         key_columns = OUTPUT_COLUMNS
-        key_columns.remove('value')
+        key_columns.remove("value")
         merged_df = old_df.merge(
-            new_df, on=key_columns, suffixes=('_old', '_new'), how='outer'
+            new_df, on=key_columns, suffixes=("_old", "_new"), how="outer"
         )
 
         # Update values where creation_date is the same but value is different
-        updated_values = merged_df['value_new'].notna() & \
-            (merged_df['value_old'] != merged_df['value_new'])
-        merged_df.loc[updated_values, 'value_old'] = merged_df['value_new']
+        updated_values = merged_df["value_new"].notna() & (
+            merged_df["value_old"] != merged_df["value_new"]
+        )
+        merged_df.loc[updated_values, "value_old"] = merged_df["value_new"]
 
         # Keep the updated/old values and drop the helper column
-        merged_df = merged_df.rename(columns={'value_old': 'value'})
-        df = merged_df.drop(columns=['value_new'])
+        merged_df = merged_df.rename(columns={"value_old": "value"})
+        df = merged_df.drop(columns=["value_new"])
         df = df.drop_duplicates()
 
         # Add rows from the new data frame not in the old one
@@ -354,7 +365,7 @@ def update_or_create_output(
         df = new_df
 
     # Export
-    logging.info(f'exporting:{out}')
+    logging.info(f"exporting:{out}")
     df.to_csv(out, index=False)
 
     # When testing we want to be able to inspect the data frame
