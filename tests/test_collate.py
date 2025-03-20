@@ -1,6 +1,7 @@
 """
 Tests for collate functions in collate.py
 """
+
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -55,18 +56,19 @@ def test_relative_wealth_index():
 
 @pytest.fixture
 def mock_requests():
-    with patch('requests.get') as mock_get:
+    with patch("requests.get") as mock_get:
         yield mock_get
 
 
 @pytest.fixture
 def mock_bs4():
-    with patch('bs4.BeautifulSoup', wraps=BeautifulSoup) as mock_soup:
+    with patch("bs4.BeautifulSoup", wraps=BeautifulSoup) as mock_soup:
         yield mock_soup
 
 
 @pytest.mark.parametrize(
-    'mock_html, expect_error, expected_data', [
+    "mock_html, expect_error, expected_data",
+    [
         # Test Case 1: Valid HTML with onclick attributes
         (
             """
@@ -75,8 +77,8 @@ def mock_bs4():
             """,
             False,
             [
-                ('file1.xlsx', b'Hello world'),
-                ('file2.xlsx', b'Python Test'),
+                ("file1.xlsx", b"Hello world"),
+                ("file2.xlsx", b"Python Test"),
             ],
         ),
         # Test Case 2: HTML with no onclick attributes
@@ -85,47 +87,47 @@ def mock_bs4():
             True,
             [],
         ),
-    ]
+    ],
 )
 def test_ministerio_de_salud_peru_data(
     mock_requests, mock_bs4, mock_html, expect_error, expected_data
 ):
     # Mock PERU_REGIONS
-    regions = ['Amazonas', 'Lima']
-    with patch('dart_pipeline.constants.PERU_REGIONS', regions):
+    regions = ["Amazonas", "Lima"]
+    with patch("dart_pipeline.constants.PERU_REGIONS", regions):
         # Mock response for requests.get
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.content = mock_html.encode('utf-8')
+        mock_response.content = mock_html.encode("utf-8")
         mock_requests.return_value = mock_response
 
         # Mock BeautifulSoup parsing
         def soup_side_effect(content, parser):
-            return BeautifulSoup(content, 'html.parser')
+            return BeautifulSoup(content, "html.parser")
 
         mock_bs4.side_effect = soup_side_effect
 
         if expect_error:
             # Expect an error if no links are present
-            with pytest.raises(ValueError, match='No links found on the page'):
+            with pytest.raises(ValueError, match="No links found on the page"):
                 ministerio_de_salud_peru_data()
         else:
             # Call the function and validate the results
             data_files = ministerio_de_salud_peru_data()
 
-            assert data_files[0][0] == 'file1.xlsx'
-            assert data_files[0][1] == '.'
+            assert data_files[0][0] == "file1.xlsx"
+            assert data_files[0][1] == "."
             assert data_files[0][2] == b"Hello, world!'"
-            assert data_files[1][0] == 'file2.xlsx'
-            assert data_files[1][1] == '.'
+            assert data_files[1][0] == "file2.xlsx"
+            assert data_files[1][1] == "."
             assert data_files[1][2] == b"Hello, world!'"
 
 
 def test_aphrodite_temperature_data():
     """Test the collation of links for APHRODITE temperature data."""
-    result = aphrodite_temperature_data(unpack=True)
+    result = aphrodite_temperature_data()
     # Base URL
-    base_url = 'http://aphrodite.st.hirosaki-u.ac.jp'
+    base_url = "http://aphrodite.st.hirosaki-u.ac.jp"
     # Expected output
     expected = [
         URLCollection(
@@ -177,34 +179,34 @@ def test_aphrodite_precipitation_data():
     """Test the collation of links for APHRODITE precipitation data."""
     result = aphrodite_precipitation_data()
     # Base URL
-    base_url = 'http://aphrodite.st.hirosaki-u.ac.jp'
+    base_url = "http://aphrodite.st.hirosaki-u.ac.jp"
     # Expected output
     expected = [
         URLCollection(
-            f'{base_url}/product/APHRO_V1901/APHRO_MA/005deg',
-            ['APHRO_MA_PREC_CLM_005deg_V1901.ctl.gz'],
+            f"{base_url}/product/APHRO_V1901/APHRO_MA/005deg",
+            ["APHRO_MA_PREC_CLM_005deg_V1901.ctl.gz"],
         ),
         URLCollection(
-            f'{base_url}/product/APHRO_V1901/APHRO_MA/025deg',
+            f"{base_url}/product/APHRO_V1901/APHRO_MA/025deg",
             [
-                'APHRO_MA_025deg_V1901.2015.gz',
-                'APHRO_MA_025deg_V1901.ctl.gz',
+                "APHRO_MA_025deg_V1901.2015.gz",
+                "APHRO_MA_025deg_V1901.ctl.gz",
             ],
         ),
         URLCollection(
-            f'{base_url}/product/APHRO_V1901/APHRO_MA/025deg_nc',
-            ['APHRO_MA_025deg_V1901.2015.nc.gz'],
+            f"{base_url}/product/APHRO_V1901/APHRO_MA/025deg_nc",
+            ["APHRO_MA_025deg_V1901.2015.nc.gz"],
         ),
         URLCollection(
-            f'{base_url}/product/APHRO_V1901/APHRO_MA/050deg',
+            f"{base_url}/product/APHRO_V1901/APHRO_MA/050deg",
             [
-                'APHRO_MA_050deg_V1901.2015.gz',
-                'APHRO_MA_050deg_V1901.ctl.gz',
+                "APHRO_MA_050deg_V1901.2015.gz",
+                "APHRO_MA_050deg_V1901.ctl.gz",
             ],
         ),
         URLCollection(
-            f'{base_url}/product/APHRO_V1901/APHRO_MA/050deg_nc',
-            ['APHRO_MA_050deg_V1901.2015.nc.gz'],
+            f"{base_url}/product/APHRO_V1901/APHRO_MA/050deg_nc",
+            ["APHRO_MA_050deg_V1901.2015.nc.gz"],
         ),
     ]
 
@@ -213,7 +215,7 @@ def test_aphrodite_precipitation_data():
 
 def test_chirps_rainfall_data():
     base_url = "https://data.chc.ucsb.edu"
-    assert chirps_rainfall_data('2020') == [
+    assert chirps_rainfall_data("2020") == [
         URLCollection(
             f"{base_url}/products/CHIRPS-2.0/global_annual/tifs",
             ["chirps-v2.0.2020.tif"],
@@ -221,22 +223,22 @@ def test_chirps_rainfall_data():
         )
     ]
 
-    base_url = 'https://data.chc.ucsb.edu'
-    assert chirps_rainfall_data('2020-01') == [
+    base_url = "https://data.chc.ucsb.edu"
+    assert chirps_rainfall_data("2020-01") == [
         URLCollection(
-            f'{base_url}/products/CHIRPS-2.0/global_annual/tifs',
-            ['chirps-v2.0.2020.tif'],
-            relative_path='global_annual',
+            f"{base_url}/products/CHIRPS-2.0/global_annual/tifs",
+            ["chirps-v2.0.2020.tif"],
+            relative_path="global_annual",
         ),
         URLCollection(
             f"{base_url}/products/CHIRPS-2.0/global_monthly/tifs",
-            ['chirps-v2.0.2020.01.tif.gz'],
-            relative_path='global_monthly/2020',
+            ["chirps-v2.0.2020.01.tif.gz"],
+            relative_path="global_monthly/2020",
         ),
         URLCollection(
-            f'{base_url}/products/CHIRPS-2.0/global_daily/tifs/p05/2020',
-            [f'chirps-v2.0.2020.01.{day:02d}.tif.gz' for day in range(1, 32)],
-            relative_path='global_daily/2020/01',
+            f"{base_url}/products/CHIRPS-2.0/global_daily/tifs/p05/2020",
+            [f"chirps-v2.0.2020.01.{day:02d}.tif.gz" for day in range(1, 32)],
+            relative_path="global_daily/2020/01",
         ),
     ]
 
@@ -281,7 +283,7 @@ def test_worldpop_pop_count_data():
             "GIS/Population/Individual_countries/VNM/Viet_Nam_100m_Population/VNM_ppp_v2b_2020_UNadj.tif",
             "GIS/Population/Individual_countries/VNM/Viet_Nam_100m_Population.7z",
         ],
-        relative_path='VNM',
+        relative_path="VNM",
     )
 
 
@@ -289,5 +291,5 @@ def test_worldpop_pop_density_data():
     assert worldpop_pop_density_data("VNM") == URLCollection(
         "https://data.worldpop.org/GIS/Population_Density/Global_2000_2020_1km_UNadj/2020/VNM",
         ["vnm_pd_2020_1km_UNadj_ASCII_XYZ.zip", "vnm_pd_2020_1km_UNadj.tif"],
-        relative_path='VNM',
+        relative_path="VNM",
     )
