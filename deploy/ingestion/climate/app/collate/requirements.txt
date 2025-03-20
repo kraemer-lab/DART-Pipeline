@@ -1,5 +1,0 @@
-cdsapi==0.6.1
-lxml==4.9.3
-py7zr==0.20.6
-Requests==2.31.0
-utils==1.0.2
