@@ -1,4 +1,5 @@
 """Tests for utility functions."""
+
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -6,8 +7,13 @@ import pytest
 import requests_mock
 import pandas as pd
 
-from dart_pipeline.util import download_file, days_in_year, get_country_name, \
-    use_range, update_or_create_output
+from dart_pipeline.util import (
+    download_file,
+    days_in_year,
+    get_country_name,
+    use_range,
+    update_or_create_output,
+)
 
 
 def test_download_file():
@@ -92,50 +98,52 @@ def test_use_range():
 @pytest.fixture
 def new_dataframe():
     """Fixture to create a sample data frame."""
-    return pd.DataFrame({
-        'iso3': ['VNM'],
-        'admin_level_0': ['Vietnam'],
-        'admin_level_1': ['An Giang'],
-        'admin_level_2': ['An Phú'],
-        'admin_level_3': ['Khánh An'],
-        'year': [''],
-        'month': [''],
-        'day': [''],
-        'week': [''],
-        'metric': ['Example'],
-        'value': [0.998],
-        'unit': [''],
-        'resolution': [''],
-        'creation_date': [''],
-    })
+    return pd.DataFrame(
+        {
+            "iso3": ["VNM"],
+            "admin_level_0": ["Vietnam"],
+            "admin_level_1": ["An Giang"],
+            "admin_level_2": ["An Phú"],
+            "admin_level_3": ["Khánh An"],
+            "year": [""],
+            "month": [""],
+            "day": [""],
+            "week": [""],
+            "metric": ["Example"],
+            "value": [0.998],
+            "unit": [""],
+            "resolution": [""],
+            "creation_date": [""],
+        }
+    )
 
 
 @pytest.fixture
 def old_dataframe():
     """Fixture to create a mock existing data frame."""
-    return pd.DataFrame({
-        'iso3': ['VNM'],
-        'admin_level_0': ['Vietnam'],
-        'admin_level_1': ['An Giang'],
-        'admin_level_2': ['An Phú'],
-        'admin_level_3': ['Khánh An'],
-        'year': [''],
-        'month': [''],
-        'day': [''],
-        'week': [''],
-        'metric': ['Example'],
-        'value': [0.002],
-        'unit': [''],
-        'resolution': [''],
-        'creation_date': [''],
-    })
+    return pd.DataFrame(
+        {
+            "iso3": ["VNM"],
+            "admin_level_0": ["Vietnam"],
+            "admin_level_1": ["An Giang"],
+            "admin_level_2": ["An Phú"],
+            "admin_level_3": ["Khánh An"],
+            "year": [""],
+            "month": [""],
+            "day": [""],
+            "week": [""],
+            "metric": ["Example"],
+            "value": [0.002],
+            "unit": [""],
+            "resolution": [""],
+            "creation_date": [""],
+        }
+    )
 
 
-@patch('pandas.read_csv')
-@patch('pandas.DataFrame.to_csv')
-def test_update_or_create_output_create_new(
-    mock_to_csv, mock_read_csv, new_dataframe
-):
+@patch("pandas.read_csv")
+@patch("pandas.DataFrame.to_csv")
+def test_update_or_create_output_create_new(mock_to_csv, mock_read_csv, new_dataframe):
     """Test that when a file does not already exist a new one is created."""
     # Mock a non-existing file
     mock_path = MagicMock(spec=Path)
@@ -149,8 +157,8 @@ def test_update_or_create_output_create_new(
     mock_to_csv.assert_called_once_with(mock_path, index=False)
 
 
-@patch('pandas.read_csv')
-@patch('pandas.DataFrame.to_csv')
+@patch("pandas.read_csv")
+@patch("pandas.DataFrame.to_csv")
 def test_update_or_create_output_update_existing(
     mock_to_csv, mock_read_csv, new_dataframe, old_dataframe
 ):
@@ -173,28 +181,30 @@ def test_update_or_create_output_update_existing(
     # Check that the returned object is indeed a data frame
     assert isinstance(df, pd.DataFrame)
     # Check that the merged data frame has the expected values
-    assert df.loc[0, 'value'].values[0] == '0.998'
+    assert df.loc[0, "value"].values[0] == "0.998"
     assert len(df) == 2
 
 
 def test_update_or_create_output_invalid_input():
     """Test for when these is invalid input."""
     # Invalid data frame
-    invalid_input = 'not_a_dataframe'
-    mock_path = Path('dummy_path.csv')
-    match = 'Expected a pandas DataFrame as input'
+    invalid_input = "not_a_dataframe"
+    mock_path = Path("dummy_path.csv")
+    match = "Expected a pandas DataFrame as input"
     with pytest.raises(TypeError, match=match):
         update_or_create_output(invalid_input, mock_path)
 
     # Invalid path
-    df = pd.DataFrame({
-        'iso3': ['AAA'],
-        'admin_level_0': ['Country1'],
-        'admin_level_1': ['State1'],
-        'admin_level_2': ['City1'],
-        'admin_level_3': ['District1'],
-        'metric': [100]
-    })
+    df = pd.DataFrame(
+        {
+            "iso3": ["AAA"],
+            "admin_level_0": ["Country1"],
+            "admin_level_1": ["State1"],
+            "admin_level_2": ["City1"],
+            "admin_level_3": ["District1"],
+            "metric": [100],
+        }
+    )
     invalid_path = 12345
-    with pytest.raises(TypeError, match='Expected a valid file path'):
+    with pytest.raises(TypeError, match="Expected a valid file path"):
         update_or_create_output(df, invalid_path)

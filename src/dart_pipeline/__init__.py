@@ -1,4 +1,5 @@
 """Main code for DART Pipeline."""
+
 from pathlib import Path
 from typing import cast
 import argparse
@@ -25,7 +26,7 @@ from .util import (
     get_credentials,
     only_one_from_collection,
     unpack_file,
-    update_or_create_output
+    update_or_create_output,
 )
 
 DATA_PATH = Path(os.getenv("DART_PIPELINE_SOURCES_PATH", DEFAULT_SOURCES_ROOT))
@@ -59,7 +60,7 @@ at the same time by adding a [-p] flag:
 
 To find out if a processor or a getter requires parameters, run without:
     uv run dart-pipeline process geospatial/gadm
-    ❗ geospatial/gadm missing required parameters {'iso3', 'admin_level'}
+    ❗ geospatial/gadm missing required parameters {"iso3", "admin_level"}
 
 [PATHS]
 
@@ -123,9 +124,9 @@ def get(
             if unpack:
                 for file in coll.files:
                     to_unpack = path / coll.relative_path / Path(file).name
-                    print(f'• UNPACKING {to_unpack}', end='\r')
+                    print(f"• UNPACKING {to_unpack}", end="\r")
                     unpack_file(to_unpack, same_folder=True)
-                    print(f'✅ UNPACKED {to_unpack}')
+                    print(f"✅ UNPACKED {to_unpack}")
             continue
         msg = f"GET {source_fmt} {coll}"
         print(f" •  {msg}", end="\r")
@@ -200,7 +201,7 @@ def parse_params(params: list[str]) -> dict[str, str | int]:
     """
     out = {}
     for param in params:
-        if '=' in param:
+        if "=" in param:
             k, v = param.split("=")
             key = k.replace("-", "_")
             v = int(v) if key in INTEGER_PARAMS else v
@@ -209,14 +210,14 @@ def parse_params(params: list[str]) -> dict[str, str | int]:
             # This is a Boolean
             out[param] = True
     # Replace shorthand kwargs
-    if 'a' in out:
-        out['admin_level'] = out.pop('a')
-    if '3' in out:
-        out['iso3'] = out.pop('3')
-    if 'd' in out:
-        out['partial_date'] = out.pop('d')
-    if 'l' in out:
-        out['logging_level'] = out.pop('l')
+    if "a" in out:
+        out["admin_level"] = out.pop("a")
+    if "3" in out:
+        out["iso3"] = out.pop("3")
+    if "d" in out:
+        out["partial_date"] = out.pop("d")
+    if "l" in out:
+        out["logging_level"] = out.pop("l")
 
     return out
 
@@ -238,7 +239,7 @@ def main():
         epilog=textwrap.dedent("""
         keyword arguments:
           3=, iso3=        an ISO 3166-1 alpha-3 country code
-        """)
+        """),
     )
     get_parser.add_argument("source", help="source to get files for")
     get_parser.add_argument("--update", help="update cached files")
@@ -252,9 +253,9 @@ def main():
         action="store_true",
     )
     get_parser.add_argument(
-        '-u',
-        '--unpack',
-        help='The downloaded files will be unpacked if they are zipped.',
+        "-u",
+        "--unpack",
+        help="The downloaded files will be unpacked if they are zipped.",
         action="store_true",
     )
 
@@ -275,32 +276,36 @@ def main():
                              'WARNING'
         Boolean flags:
           plots              plots will be created
-        """)
+        """),
     )
     process_parser.add_argument("source", help="source to process")
 
     args, unknownargs = parser.parse_known_args()
     kwargs = parse_params(unknownargs)
 
-    if 'logging_level' in kwargs:
-        match kwargs['logging_level']:
-            case 'DEBUG':
+    if "logging_level" in kwargs:
+        match kwargs["logging_level"]:
+            case "DEBUG":
                 logging.basicConfig(level=logging.DEBUG)
-            case 'INFO':
+            case "INFO":
                 logging.basicConfig(level=logging.INFO)
-            case 'ERROR':
+            case "ERROR":
                 logging.basicConfig(level=logging.ERROR)
-            case 'CRITICAL':
+            case "CRITICAL":
                 logging.basicConfig(level=logging.CRITICAL)
-        del kwargs['logging_level']
+        del kwargs["logging_level"]
 
     match args.command:
         case "list":
             print("\n".join(list_all()))
         case "get":
             get(
-                args.source, args.only_one, args.update, args.process,
-                args.unpack, **kwargs
+                args.source,
+                args.only_one,
+                args.update,
+                args.process,
+                args.unpack,
+                **kwargs,
             )
         case "check":
             check(args.source, args.only_one)

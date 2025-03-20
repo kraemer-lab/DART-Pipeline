@@ -96,8 +96,8 @@ def relative_wealth_index(iso3: str) -> URLCollection:
         links = soup.find_all("a", href=lambda href: href and target in href)  # type: ignore
         # Return the first link found
         if links:
-            csvs = [link['href'] for link in links if 'csv' in link['href']]
-            return URLCollection('https://data.humdata.org', csvs)
+            csvs = [link["href"] for link in links if "csv" in link["href"]]
+            return URLCollection("https://data.humdata.org", csvs)
         else:
             raise ValueError(f'Could not find a link containing "{target}"')
     else:
@@ -110,14 +110,12 @@ def ministerio_de_salud_peru_data() -> list[DataFile]:
 
     https://www.dge.gob.pe/sala-situacional-dengue
     """
-    pages = ["Nacional_dengue"] + \
-        ["sala_dengue_" + region for region in PERU_REGIONS]
+    pages = ["Nacional_dengue"] + ["sala_dengue_" + region for region in PERU_REGIONS]
     # If the user specifies that only one dataset should be downloaded
     data: list[DataFile] = []
     for page in pages:
-        url = "https://www.dge.gob.pe/sala-situacional-dengue/uploads/" + \
-            f"{page}.html"
-        print(f'Accessing {url}')
+        url = "https://www.dge.gob.pe/sala-situacional-dengue/uploads/" + f"{page}.html"
+        print(f"Accessing {url}")
         response = requests.get(url)
         # Raise an exception for bad response status
         response.raise_for_status()
@@ -249,19 +247,17 @@ def chirps_rainfall_data(partial_date: str) -> list[URLCollection]:
     Data is in TIF format (.tif.gz), not COG format (.cog).
     """
     pdate = PartialDate.from_string(partial_date)
-    base_url = 'https://data.chc.ucsb.edu'
-    fmt = 'tifs'  # cogs is unsupported at the moment
+    base_url = "https://data.chc.ucsb.edu"
+    fmt = "tifs"  # cogs is unsupported at the moment
     chirps_first_year: Final[int] = 1981
     chirps_first_month: Final[date] = date(1981, 1, 1)
     urls: list[URLCollection] = []
 
     if pdate.month:
-        use_range(pdate.month, 1, 12, 'Month range')
+        use_range(pdate.month, 1, 12, "Month range")
 
     today = date.today()
-    use_range(
-        pdate.year, chirps_first_year, today.year, 'CHIRPS annual data range'
-    )
+    use_range(pdate.year, chirps_first_year, today.year, "CHIRPS annual data range")
     urls.append(
         URLCollection(
             f"{base_url}/products/CHIRPS-2.0/global_annual/{fmt}",
@@ -275,27 +271,28 @@ def chirps_rainfall_data(partial_date: str) -> list[URLCollection]:
         month_requested = date(pdate.year, pdate.month, 1)
         this_month = date(today.year, today.month, 1)
         if chirps_first_month <= month_requested < this_month:
-            base = f'{base_url}/products/CHIRPS-2.0/global_monthly/{fmt}'
-            files = [f'chirps-v2.0.{pdate.year}.{pdate.month:02d}.tif.gz']
-            path = f'global_monthly/{pdate.year}'
+            base = f"{base_url}/products/CHIRPS-2.0/global_monthly/{fmt}"
+            files = [f"chirps-v2.0.{pdate.year}.{pdate.month:02d}.tif.gz"]
+            path = f"global_monthly/{pdate.year}"
             urls.append(URLCollection(base, files, relative_path=path))
         else:
             logging.warning(
-                'Monthly data is only available from ' +
-                f'{chirps_first_year}-01 onwards'
+                "Monthly data is only available from "
+                + f"{chirps_first_year}-01 onwards"
             )
             return urls
 
         # Download the daily data for the year and month provided
         end = date(int(pdate.year), int(pdate.month) + 1, 1)
         end = end - timedelta(days=1)
-        base = f'{base_url}/products/CHIRPS-2.0/global_daily/' + \
-            f'{fmt}/p05/{pdate.year}'
+        base = (
+            f"{base_url}/products/CHIRPS-2.0/global_daily/" + f"{fmt}/p05/{pdate.year}"
+        )
         files = [
             f"chirps-v2.0.{str(day).replace('-', '.')}.tif.gz"
             for day in daterange(month_requested, end)
         ]
-        path = f'global_daily/{pdate.year}/{pdate.month:02d}'
+        path = f"global_daily/{pdate.year}/{pdate.month:02d}"
         urls.append(URLCollection(base, files, relative_path=path))
 
     return urls
@@ -331,7 +328,7 @@ def meta_pop_density_data(iso3: str) -> URLCollection:
     # Main webpage
     url = (
         "https://data.humdata.org/dataset/"
-        f'{country.lower().replace(' ', '-')}-high-resolution-population-'
+        f"{country.lower().replace(' ', '-')}-high-resolution-population-"
         "density-maps-demographic-estimates"
     )
     if (response := requests.get(url)).status_code == 200:
@@ -368,7 +365,7 @@ def worldpop_pop_count_data(iso3: str) -> URLCollection:
     # common name ('Vietnam') is not correct
     country = get_country_name(iso3, common_name=False)
     # When country='Viet Nam', replace the space with an underscore
-    country = country.replace(' ', '_')
+    country = country.replace(" ", "_")
     return URLCollection(
         "https://data.worldpop.org",
         [
@@ -390,7 +387,7 @@ def worldpop_pop_density_data(iso3: str) -> URLCollection:
             # GeoDataFrame
             f"{iso3.lower()}_pd_{year}_1km_UNadj_ASCII_XYZ.zip",
             # GeoTIFF
-            f"{iso3.lower()}_pd_{year}_1km_UNadj.tif"
+            f"{iso3.lower()}_pd_{year}_1km_UNadj.tif",
         ],
         relative_path=iso3,
     )
@@ -404,14 +401,14 @@ REQUIRES_AUTH = [
 SOURCES: dict[
     str, Callable[..., URLCollection | list[URLCollection] | list[DataFile]]
 ] = {
-    'economic/relative-wealth-index': relative_wealth_index,
-    'epidemiological/dengue/peru': ministerio_de_salud_peru_data,
-    'geospatial/gadm': gadm_data,
-    'meteorological/aphrodite-daily-mean-temp': aphrodite_temperature_data,
-    'meteorological/aphrodite-daily-precip': aphrodite_precipitation_data,
-    'meteorological/chirps-rainfall': chirps_rainfall_data,
-    'meteorological/terraclimate': terraclimate_data,
-    'sociodemographic/meta-pop-density': meta_pop_density_data,
-    'sociodemographic/worldpop-count': worldpop_pop_count_data,
-    'sociodemographic/worldpop-density': worldpop_pop_density_data,
+    "economic/relative-wealth-index": relative_wealth_index,
+    "epidemiological/dengue/peru": ministerio_de_salud_peru_data,
+    "geospatial/gadm": gadm_data,
+    "meteorological/aphrodite-daily-mean-temp": aphrodite_temperature_data,
+    "meteorological/aphrodite-daily-precip": aphrodite_precipitation_data,
+    "meteorological/chirps-rainfall": chirps_rainfall_data,
+    "meteorological/terraclimate": terraclimate_data,
+    "sociodemographic/meta-pop-density": meta_pop_density_data,
+    "sociodemographic/worldpop-count": worldpop_pop_count_data,
+    "sociodemographic/worldpop-density": worldpop_pop_density_data,
 }

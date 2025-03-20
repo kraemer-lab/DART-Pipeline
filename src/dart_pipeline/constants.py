@@ -1,17 +1,25 @@
 """Global constants."""
+
 from pathlib import Path
 
 COMPRESSED_FILE_EXTS = [
-    ".tif.gz", ".tar.gz", ".tar.bz2", ".zip", ".7z", '.gz', '.nc.gz',
-    '.ctl.gz', '.grd.gz'
+    ".tif.gz",
+    ".tar.gz",
+    ".tar.bz2",
+    ".zip",
+    ".7z",
+    ".gz",
+    ".nc.gz",
+    ".ctl.gz",
+    ".grd.gz",
 ]
 
 INTEGER_PARAMS = ["year"]
 
 BASE_DIR = Path(__file__).parent.parent.parent
-DEFAULT_SOURCES_ROOT = BASE_DIR / 'data' / 'sources'
-DEFAULT_OUTPUT_ROOT = BASE_DIR / 'data' / 'processed'
-DEFAULT_PLOTS_ROOT = BASE_DIR / 'data' / 'plots'
+DEFAULT_SOURCES_ROOT = BASE_DIR / "data" / "sources"
+DEFAULT_OUTPUT_ROOT = BASE_DIR / "data" / "processed"
+DEFAULT_PLOTS_ROOT = BASE_DIR / "data" / "plots"
 
 COL_BLUE = "\033[0;34m"
 COL_CYAN = "\033[0;36m"
@@ -67,18 +75,18 @@ PERU_REGIONS = [
 
 # Column names in the output CSVs
 OUTPUT_COLUMNS = [
-    'iso3',
-    'admin_level_0',
-    'admin_level_1',
-    'admin_level_2',
-    'admin_level_3',
-    'year',
-    'month',
-    'day',
-    'week',
-    'metric',
-    'value',
-    'unit',
-    'resolution',
-    'creation_date'
+    "iso3",
+    "admin_level_0",
+    "admin_level_1",
+    "admin_level_2",
+    "admin_level_3",
+    "year",
+    "month",
+    "day",
+    "week",
+    "metric",
+    "value",
+    "unit",
+    "resolution",
+    "creation_date",
 ]
