@@ -26,7 +26,7 @@ auth_url = "https://cds.climate.copernicus.eu/how-to-api"
 attribution = ""
 resolution = "0.25 degree"
 years = [1940, "now"]
-accum_vars = ["evaporatian", "total_precipitation", "surface_solar_radiation_downwards"]
+accum_vars = ["evaporation", "total_precipitation", "surface_solar_radiation_downwards"]
 
 [sources.era5.variable_mappings]
 2m_temperature = "t2m"
@@ -98,14 +98,12 @@ range_citation = "https://en.wikipedia.org/wiki/Wind_speed%23Non-tornadic"
 description = "Relative humidity"
 depends = ["2m_temperature", "2m_dewpoint_temperature", "surface_pressure"]
 units = "percentage"
-daily_minmax = true
 range = [0, 100]
 
 [era5.specific_humidity]
 description = "Specific humidity"
 depends = ["2m_temperature", "2m_dewpoint_temperature", "surface_pressure"]
 units = "g/kg"
-daily_minmax = true
 range = [0, 30]
 
 [era5.hydrological_balance]
