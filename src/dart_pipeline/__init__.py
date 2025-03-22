@@ -8,7 +8,7 @@ import importlib
 from .metrics import get, process as process_metric, print_metrics, gather_metrics
 from .paths import get_path
 
-LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s %(message)s"
+LOG_FORMAT = "%(asctime)s %(levelname)s %(message)s"
 
 USAGE = f"""[DART] – [D]engue [A]dvanced [R]eadiness [T]ools pipeline
 
