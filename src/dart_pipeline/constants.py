@@ -1,7 +1,5 @@
 """Global constants."""
 
-from pathlib import Path
-
 COMPRESSED_FILE_EXTS = [
     ".tif.gz",
     ".tar.gz",
@@ -13,13 +11,6 @@ COMPRESSED_FILE_EXTS = [
     ".ctl.gz",
     ".grd.gz",
 ]
-
-INTEGER_PARAMS = ["year"]
-
-BASE_DIR = Path(__file__).parent.parent.parent
-DEFAULT_SOURCES_ROOT = BASE_DIR / "data" / "sources"
-DEFAULT_OUTPUT_ROOT = BASE_DIR / "data" / "processed"
-DEFAULT_PLOTS_ROOT = BASE_DIR / "data" / "plots"
 
 COL_BLUE = "\033[0;34m"
 COL_CYAN = "\033[0;36m"
