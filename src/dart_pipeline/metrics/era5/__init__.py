@@ -1,16 +1,20 @@
+import os
+import logging
 import multiprocessing
 from typing import Literal
 from pathlib import Path
+from functools import cache, partial
 
 import xarray as xr
 
-from geoglue.country import Country
-from geoglue.cds import ReanalysisSingleLevels, CdsPath
+from geoglue import MemoryRaster, Country
+from geoglue.cds import ReanalysisSingleLevels, CdsPath, CdsDataset
 from geoglue.resample import resample
 from geoglue.zonal_stats import DatasetZonalStatistics
 
 from ...metrics import register_metrics, register_fetch, register_process, MetricInfo
-from ...util import source_path, output_path, iso3_admin_unpack
+from ...util import iso3_admin_unpack
+from ...paths import get_path
 
 from .derived import compute_derived_metric
 
@@ -41,65 +45,72 @@ depends_hydrological_balance = ["total_precipitation", "evaporation"]
 METRICS: dict[str, MetricInfo] = {
     "2m_temperature": {
         "description": "2 meters air temperature",
-        "units": "degree_Celsius",
+        "unit": "K",
         "range": (-50, 50),
     },
     "surface_solar_radiation_downwards": {
         "description": "Accumulated solar radiation downwards",
-        "units": "J/m^2",
+        "unit": "J/m^2",
         "range": (0, 1e9),
     },
     "total_precipitation": {
         "description": "Total precipitation",
-        "units": "m",
+        "unit": "m",
         "range": (0, 1200),
     },
     "wind_speed": {
         "description": "Wind speed",
         "depends": ["10m_u_component_of_wind", "10m_v_component_of_wind"],
         "range": (0, 110),
+        "unit": "m/s",
     },
     "relative_humidity": {
         "description": "Relative humidity",
         "depends": ["2m_temperature", "2m_dewpoint_temperature", "surface_pressure"],
         "range": (0, 100),
+        "unit": "percentage",
     },
     "specific_humidity": {
         "description": "Specific humidity",
         "depends": ["2m_temperature", "2m_dewpoint_temperature", "surface_pressure"],
-        "units": "g/kg",
         "range": (0, 30),
+        "unit": "g/kg",
     },
     "hydrological_balance": {
         "description": "Hydrological balance",
         "depends": depends_hydrological_balance,
-        "units": "m",
+        "unit": "m",
     },
     "spi": {
         "description": "Standardised precipitation",
         "depends": ["total_precipitation"],
-        "units": "unitless",
+        "unit": "unitless",
     },
     # actually depends on potential_evapotranspiration which depends on 2m_temperature.daily_{min,mean,max}
     "spie": {
         "description": "Standardised precipitation-evaporation index",
         "depends": ["total_precipitation", "2m_temperature"],
-        "units": "unitless",
+        "unit": "unitless",
     },
     "bc_total_precipitation": {
         "description": "Bias-corrected total precipitation",
         "depends": ["total_precipitation"],
-        "units": "m",
+        "unit": "m",
+    },
+    "bc_spi": {
+        "description": "Bias-corrected standardised precipitation",
+        "depends": ["total_precipitation"],
+        "unit": "unitless",
     },
     "bc_spie": {
         "description": "Bias-corrected standardised precipitation-evaporation index",
         "depends": ["total_precipitation", "2m_temperature"],
-        "units": "unitless",
+        "unit": "unitless",
     },
     "bc_hydrological_balance": {
         "description": "Bias-corrected hydrological balance",
         "depends": depends_hydrological_balance,
-        "units": "m",
+        "unit": "m",
     },
 }
 
@@ -111,14 +122,26 @@ as it is lawful, whereas use may include, but is not limited to: reproduction;
 distribution; communication to the public; adaptation, modification and
 combination with other data and information; or any combination of the
 foregoing.""",
-    requires_auth=True,
     auth_url="https://cds.climate.copernicus.eu/how-to-api",
     metrics=METRICS,
 )
 
 STATS = ["min", "mean", "max", "sum"]
-VARIABLES = sum([METRICS[m].get("depends", [m]) for m in METRICS], [])
+VARIABLES = sorted(set(sum([METRICS[m].get("depends", [m]) for m in METRICS], [])))
 INSTANT_METRICS = [m for m in METRICS if m not in ACCUM_METRICS]
+DERIVED_METRICS_SEPARATE_IMPL = ["spi", "spie"] + [
+    m for m in ACCUM_METRICS if m.startswith("bc_")
+]
+
+
+@cache
+def get_resampled_paths(iso3: str, year: int) -> dict[str, Path]:
+    return {
+        stat: get_path(
+            "scratch", "era5", iso3, f"{iso3}-{year}-era5.daily_{stat}.resampled.nc"
+        )
+        for stat in ["mean", "min", "max", "sum"]
+    }
 
 
 def collect_variables_to_drop(kind: Literal["instant", "accum"]) -> list[str]:
@@ -127,90 +150,135 @@ def collect_variables_to_drop(kind: Literal["instant", "accum"]) -> list[str]:
     collect = set()
     for m in ms:
         collect.update(METRICS[m].get("depends", []))
-    return sorted(collect - set(METRICS.keys()))
+    vars_to_drop = sorted(collect - set(METRICS.keys()))
+    return [VARIABLE_MAPPINGS.get(v, v) for v in vars_to_drop]
 
 
 def metric_path(iso3: str, admin: int, year: int, metric: str, statistic: str) -> Path:
     assert statistic in STATS
-    return output_path(
-        f"{iso3}/era5",
-        f"{iso3}-{admin}-{year}-era5.{metric}.daily_{statistic}.nc",
+    return get_path(
+        "output",
+        "era5",
+        iso3,
+        f"{iso3}-{admin}-{year}-era5.{metric}.daily_{statistic}.parquet",
     )
 
 
+@cache
+def get_population(iso3: str, year: int) -> MemoryRaster:
+    return Country(iso3).population_raster(year)
+
+
+def population_weighted_aggregation(
+    metric_statistic: tuple[str, str],
+    iso3: str,
+    admin: int,
+    year: int,
+) -> Path:
+    logger = multiprocessing.get_logger()
+    metric, statistic = metric_statistic
+    logger.info(f"Population aggregation for {metric=} with {statistic=}")
+    unit = METRICS[metric].get("unit")
+    resampled_paths = get_resampled_paths(iso3, year)
+    country = Country(iso3)
+    ds = DatasetZonalStatistics(
+        xr.open_dataset(resampled_paths[statistic]),
+        country.admin(admin),
+        weights=get_population(iso3, year),
+    )
+    operation = (
+        "mean(coverage_weight=area_spherical_km2)"
+        if metric not in ACCUM_METRICS
+        else "area_weighted_sum"
+    )
+    df = ds.zonal_stats(
+        VARIABLE_MAPPINGS.get(metric, metric),
+        operation,
+        const_cols={"ISO3": iso3, "metric": f"era5.{metric}.{statistic}", "unit": unit},
+    )
+    outfile = metric_path(iso3, admin, year, metric, statistic)
+    df.to_parquet(outfile)
+    return outfile
+
+
 @register_fetch("era5")
-def era5_fetch(iso3: str, year: int) -> CdsPath | None:
+def era5_fetch(iso3: str, date: str) -> CdsPath | None:
     iso3 = iso3.upper()
-    data = ReanalysisSingleLevels(iso3, VARIABLES, source_path(f"{iso3}/era5"))
+    year = int(date)
+    data = ReanalysisSingleLevels(
+        iso3, VARIABLES, path=get_path("sources", "era5", iso3)
+    )
     return data.get(year)
 
 
 @register_process("era5")
-def era5_process(iso3_admin: str, year: int) -> list[Path]:
-    "Processes ERA5 data for a particular year"
-    iso3, admin = iso3_admin_unpack(iso3_admin)
+def era5_process(iso3: str, date: str, overwrite: bool = False) -> list[Path]:
+    """Processes ERA5 data for a particular year
+
+    Parameters
+    ----------
+    iso3
+        Country ISO 3166-2 alpha-3 code
+    date
+        Year for which to process ERA5 data
+    overwrite
+        Whether to overwrite existing generated data, default
+        is to skip generation if file exists (default=False)
+
+    Returns
+    -------
+    List of generated or pre-existing data files in parquet format
+    """
+    logging.info("Processing era5")
+    year = int(date)
+    iso3, admin = iso3_admin_unpack(iso3)
     paths = {
-        stat: source_path(f"{iso3}/proc/era5", f"{iso3}-{year}-era5.daily_{stat}.nc")
+        stat: get_path("scratch", "era5", iso3, f"{iso3}-{year}-era5.daily_{stat}.nc")
         for stat in ["mean", "min", "max", "sum"]
     }
     # after cdo resampling
-    resampled_paths = {
-        stat: source_path(
-            f"{iso3}/proc/era5", f"{iso3}-{year}-era5.daily_{stat}.resampled.nc"
-        )
-        for stat in ["mean", "min", "max", "sum"]
-    }
+    resampled_paths = get_resampled_paths(iso3, year)
 
     iso3 = iso3.upper()
-    country = Country(iso3)
     pool = ReanalysisSingleLevels(
-        iso3, VARIABLES, source_path(f"{iso3}/era5")
+        iso3, VARIABLES, path=get_path("sources", "era5", iso3)
     ).get_dataset_pool()
 
     ds = pool[year]
-    derived_metrics = [m for m in METRICS if METRICS[m].get("depends")]
+
+    # List of derived metrics that do not have another implementation (usually
+    # requiring more parameters). In practice this includes all metrics that
+    # can be calculated without using a reference dataset
+    derived_metrics = [
+        m
+        for m in METRICS
+        if METRICS[m].get("depends") and m not in DERIVED_METRICS_SEPARATE_IMPL
+    ]
     for metric in derived_metrics:
         if metric in ACCUM_METRICS:
             ds.accum[metric] = compute_derived_metric(metric, ds.accum)
         else:
             ds.instant[metric] = compute_derived_metric(metric, ds.instant)
 
-    ds.instant = ds.instant.drop_vars(collect_variables_to_drop("instant"))
-    ds.accum = ds.accum.drop_vars(collect_variables_to_drop("accum"))
+    ds = CdsDataset(
+        instant=ds.instant.drop_vars(collect_variables_to_drop("instant")),
+        accum=ds.accum.drop_vars(collect_variables_to_drop("accum")),
+    )
 
+    logging.info("Calculating daily statistics (mean, sum)")
     daily_agg = ds.daily()  # mean and sum
     daily_agg.instant.to_netcdf(paths["mean"])
     daily_agg.accum.to_netcdf(paths["sum"])
-
+    logging.info("Calculating daily statistics (min, max)")
     ds.daily_max().to_netcdf(paths["max"])
     ds.daily_min().to_netcdf(paths["min"])
 
-    population = country.population_raster(year)
     for stat in ("min", "max", "mean", "sum"):
         resampling = "remapdis" if stat == "sum" else "remapbil"
-        resample(resampling, paths[stat], population, resampled_paths[stat])
-
-    def population_weighted_aggregation(metric_statistic: tuple[str, str]) -> Path:
-        metric, statistic = metric_statistic
-        assert statistic in ["min", "max", "mean", "sum"], f"Invalid {statistic=}"
-        ds = DatasetZonalStatistics(
-            xr.open_dataset(resampled_paths[statistic]),
-            country.admin(admin),
-            weights=population,
+        logging.info(f"Resampling using CDO for {stat=} using {resampling=}")
+        resample(
+            resampling, paths[stat], get_population(iso3, year), resampled_paths[stat]
         )
-        operation = (
-            "mean(coverage_weight=area_spherical_km2)"
-            if metric not in ACCUM_METRICS
-            else "area_weighted_sum"
-        )
-        df = ds.zonal_stats(
-            VARIABLE_MAPPINGS.get(metric, metric),
-            operation,
-            const_cols={"ISO3": iso3, "metric": f"era5.{metric}.{statistic}"},
-        )
-        outfile = metric_path(iso3, admin, year, metric, statistic)
-        df.to_parquet(outfile)
-        return outfile
 
     metric_statistic_combinations: list[tuple[str, str]] = [
         (metric, statistic)
@@ -218,9 +286,47 @@ def era5_process(iso3_admin: str, year: int) -> list[Path]:
         for statistic in ["min", "max", "mean"]
     ] + [(metric, "sum") for metric in ACCUM_METRICS]
 
-    with multiprocessing.Pool() as processing_pool:
-        return list(
-            processing_pool.map(
-                population_weighted_aggregation, metric_statistic_combinations
-            )
+    # remove metrics that are separately calculated and need reference datasets
+    metric_statistic_combinations = [
+        (m, s)
+        for m, s in metric_statistic_combinations
+        if m not in DERIVED_METRICS_SEPARATE_IMPL
+    ]
+
+    os.environ["TQDM_DISABLE"] = "1"
+    print(metric_statistic_combinations)
+    multiprocessing.log_to_stderr(logging.INFO)
+
+    already_existing_metrics = [
+        (m, s)
+        for m, s in metric_statistic_combinations
+        if metric_path(iso3, admin, year, m, s).exists()
+    ]
+    paths, generated_paths = [], []
+    if not overwrite and already_existing_metrics:
+        paths = [
+            metric_path(iso3, admin, year, m, s) for m, s in already_existing_metrics
+        ]
+        metric_statistic_combinations = [
+            (m, s)
+            for m, s in metric_statistic_combinations
+            if (m, s) not in already_existing_metrics
+        ]
+        logging.warning(
+            f"Skipping calculations for existing metrics {iso3}-{admin} {year=} {already_existing_metrics!r}"
         )
+    if metric_statistic_combinations:
+        with multiprocessing.Pool() as p:
+            generated_paths = list(
+                p.map(
+                    partial(
+                        population_weighted_aggregation,
+                        iso3=iso3,
+                        admin=admin,
+                        year=year,
+                    ),
+                    metric_statistic_combinations,
+                )
+            )
+    del os.environ["TQDM_DISABLE"]
+    return paths + generated_paths

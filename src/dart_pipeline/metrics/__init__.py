@@ -29,7 +29,7 @@ def gather_metrics() -> list[str]:
 class MetricInfo(TypedDict, total=False):
     description: str
     depends: list[str]
-    units: str
+    unit: str
     range: tuple[int, int] | tuple[float, float]
     statistics: list[str]
 
