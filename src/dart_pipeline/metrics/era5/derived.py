@@ -47,4 +47,7 @@ def hydrological_balance(ds: xr.Dataset, bias_corrected=False) -> xr.DataArray:
 
 
 def compute_derived_metric(metric: str, ds: xr.Dataset, **kwargs):
-    DERIVED_METRICS_CALL_TABLE[metric](ds, **kwargs)
+    da = DERIVED_METRICS_CALL_TABLE[metric](ds, **kwargs)
+    return xr.DataArray(
+        da, dims=["valid_time", "latitude", "longitude"], coords=ds.coords
+    )
