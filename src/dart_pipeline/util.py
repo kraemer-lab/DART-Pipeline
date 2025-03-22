@@ -12,9 +12,7 @@ from datetime import timedelta
 from typing import Generator, Literal
 from functools import cache
 from pathlib import Path
-from collections.abc import Iterable
 
-from lxml import html
 import gzip
 import pandas as pd
 import py7zr
@@ -22,14 +20,11 @@ import pycountry
 import requests
 
 from .constants import (
-    BASE_DIR,
-    DEFAULT_SOURCES_ROOT,
-    DEFAULT_OUTPUT_ROOT,
-    DEFAULT_PLOTS_ROOT,
     COMPRESSED_FILE_EXTS,
     OUTPUT_COLUMNS,
 )
-from .types import Credentials, URLCollection, DefaultPathProtocol
+from .types import Credentials, URLCollection
+from .paths import get_path
 
 VALID_ISO3 = [c.alpha_3 for c in pycountry.countries]
 
@@ -148,16 +143,14 @@ def get_credentials(source: str, credentials: str | Path | None = None) -> Crede
         return credentials_from_string(credentials_env, source)
 
     # fallback to file if no environment variable set
-    credentials_path = (
-        Path(BASE_DIR, "credentials.json") if credentials is None else Path(credentials)
-    )
-    if not credentials_path.exists():
+    if credentials and not Path(credentials).exists():
         raise FileNotFoundError(
             """No credentials.json file was found. Either you have
                 not created one or it is not in the specified location
                 (the default location is the DART-Pipeline folder"""
         )
-    return credentials_from_string(credentials_path.read_text(), source)
+    else:
+        return credentials_from_string(Path(credentials).read_text(), source)
 
 
 def download_file(
@@ -198,88 +191,6 @@ def download_files(
         successes.append(download_file(url, out_filepath, auth, unpack=unpack))
 
     return successes
-
-
-def default_path_getter(env_var: str, default: str) -> DefaultPathProtocol:
-    def default_path(source: str, path: str | Path | None = None) -> Path:
-        root = Path(os.getenv(env_var, default))
-        return root / source / path if path else root / source
-
-    return default_path
-
-
-source_path = default_path_getter("DART_PIPELINE_SOURCES", DEFAULT_SOURCES_ROOT)
-output_path = default_path_getter("DART_PIPELINE_OUTPUT", DEFAULT_OUTPUT_ROOT)
-plots_path = default_path_getter("DART_PIPELINE_PLOTS", DEFAULT_PLOTS_ROOT)
-
-
-def walk(
-    url: str, out_dir: Path, auth: Credentials | None = None
-) -> list[tuple[str, list[str]]]:
-    """
-    Re-create `os.walk` and `Path.walk` for use with a website.
-
-    Does not actually download the files, instead returns a list which
-    can be passed to download_files()
-
-    Parameters
-    ----------
-    url
-        The base URL of the website being accessed.
-    out_dir
-        The folder to which the data will be downloaded.
-    auth
-        Credentials associated with the walk if required
-    """
-    # In general, use strings for creating and handling URLs as opposed to
-    # urllib's URL objects or path objects.
-    # - The requests.get() function expects a string
-    # - The urllib module can be useful for more advanced URL manipulation but
-    #   always use the urlunparse() function to convert back into a string
-    # - Avoid os.path.join() because on Windows machines the slash will be the
-    #   wrong way around
-    # We want to be able to identify the parent URL
-    idx = url.rindex("/")
-    parent_url = url[:idx]
-
-    if (page := requests.get(url, auth=auth)).status_code != 200:
-        logging.warning(f"Status code {page.status_code}")
-    webpage = html.fromstring(page.content)
-    links = webpage.xpath("//a/@href")
-    # Classify the links on the page
-    sorters = []
-    download_list = []
-    children = []
-    parents = []
-    files = []
-    if not isinstance(links, Iterable):
-        raise ValueError(f"No links found in URL: {url}")
-    for link in links:
-        if not isinstance(link, str):
-            continue
-        if link in ["?C=N;O=D", "?C=M;O=A", "?C=S;O=A", "?C=D;O=A"]:
-            sorters.append(link)
-        elif link.endswith("/"):
-            if parent_url.endswith(link.removesuffix("/")):
-                # This is the parent's URL
-                parents.append(link)
-            else:
-                children.append(link)
-        else:
-            files.append(link)
-    # Remove hidden files
-    files = [x for x in files if not x.startswith(".")]
-    download_list = [(url, files)]
-
-    for child in children:
-        url_new = url + "/" + child.removesuffix("/")
-        download_list += walk(url_new, out_dir, auth)
-    return download_list
-
-
-def bold_brackets(s: str) -> str:
-    """Given a text with brackets such as [this], renders it in bold font"""
-    return s.replace("[", "\033[1m").replace("]", "\033[0m")
 
 
 def unpack_file(path: Path | str, same_folder: bool = False):
@@ -329,7 +240,7 @@ def update_or_create_output(new_df: pd.DataFrame, out: str | Path, return_df=Fal
         raise TypeError("Expected a valid file path")
 
     # Check if the CSV file already exists
-    if out.exists():
+    if Path(out).exists():
         # Import the existing CSV with everything as a string
         old_df = pd.read_csv(out, dtype=str)
         old_df.fillna("", inplace=True)
@@ -375,7 +286,4 @@ def update_or_create_output(new_df: pd.DataFrame, out: str | Path, return_df=Fal
 
 def get_shapefile(iso3: str, admin_level: Literal["0", "1", "2", "3"]) -> Path:
     """Get a shape file."""
-    return source_path(
-        "geospatial/gadm",
-        Path(iso3, f"gadm41_{iso3}_{admin_level}.shp"),
-    )
+    return get_path("sources", "gadm") / iso3 / f"gadm41_{iso3}_{admin_level}.shp"
