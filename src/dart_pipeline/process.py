@@ -41,10 +41,8 @@ from .metrics.meta_relative_wealth_index import (
     process_gadm_rwi,
     process_gadm_popdensity_rwi,
 )
-from .geospatial.aphroditeprecipitation import process_gadm_aphroditeprecipitation
-from .geospatial.aphroditetemperature import process_gadm_aphroditetemperature
-from .meteorological.aphroditeprecipitation import process_aphroditeprecipitation
-from .meteorological.aphroditetemperature import process_aphroditetemperature
+from .metrics.aphrodite.precipitation import process_gadm_aphroditeprecipitation
+from .metrics.aphrodite.temperature import process_gadm_aphroditetemperature
 from .constants import (
     TERRACLIMATE_METRICS,
     OUTPUT_COLUMNS,
@@ -536,8 +534,6 @@ PROCESSORS: dict[str, Callable[..., pd.DataFrame | list[pd.DataFrame]]] = {
     "geospatial/chirps-rainfall": process_gadm_chirps_rainfall,
     "geospatial/gadm": process_gadm_admin_map_data,
     "geospatial/relative-wealth-index": process_gadm_rwi,
-    "meteorological/aphrodite-daily-mean-temp": process_aphroditetemperature,
-    "meteorological/aphrodite-daily-precip": process_aphroditeprecipitation,
     "meteorological/chirps-rainfall": process_chirps_rainfall,
     "meteorological/terraclimate": process_terraclimate,
     "population-weighted/relative-wealth-index": process_gadm_popdensity_rwi,
