@@ -4,15 +4,16 @@ from datetime import date, datetime, timedelta
 from typing import Literal
 import logging
 
-import geopandas as gpd
 import numpy as np
 import pandas as pd
 import shapely.geometry
+from geoglue import Country
 
-from dart_pipeline.plots import plot_gadm_scatter
-from dart_pipeline.types import PartialDate
-from dart_pipeline.util import source_path, output_path, days_in_year, get_shapefile
-from dart_pipeline.constants import OUTPUT_COLUMNS
+from ..plots import plot_gadm_scatter
+from ..types import PartialDate
+from ..util import days_in_year
+from ..paths import get_path
+from ..constants import OUTPUT_COLUMNS
 
 # No data in APHRODITE data
 # See APHRO_MA_025deg_V1901.ctl and others
@@ -32,7 +33,6 @@ def process_gadm_aphroditeprecipitation(
     Aggregates by given admin level for the given country (ISO3 code) and
     partial date.
     """
-    sub_pipeline = "geospatial/aphrodite-daily-precip"
     pdate = PartialDate.from_string(partial_date)
     logging.info("iso3:%s", iso3)
     logging.info("admin_level:%s", admin_level)
@@ -41,9 +41,7 @@ def process_gadm_aphroditeprecipitation(
     logging.info("plots:%s", plots)
 
     # Import shape file
-    path = get_shapefile(iso3, admin_level)
-    logging.info("importing:%s", path)
-    gdf = gpd.read_file(path)
+    gdf = Country(iso3).admin(int(admin_level))
 
     # Initialise output data frame
     output = pd.DataFrame(columns=OUTPUT_COLUMNS)
@@ -77,9 +75,9 @@ def process_gadm_aphroditeprecipitation(
         ylat = y_start + np.arange(ny) * scale_factor
 
         # Open the file
-        path = source_path("meteorological/aphrodite-daily-precip", "")
-        file_path = path / f"APHRO_MA_{res}_{version}.{year}"
-        # Read binary data
+        file_path = get_path(
+            "sources", "global", "aphrodite", f"APHRO_MA_{res}_{version}.{year}"
+        )
         with open(file_path, "rb") as f:
             # Initialise arrays
             prcp_data = np.zeros((nday, ny, nx))
@@ -164,8 +162,12 @@ def process_gadm_aphroditeprecipitation(
             if plots:
                 title = f"Precipitation\n{this_date}"
                 colourbar_label = "Precipitation [mm]"
-                folder = f"admin_level_{admin_level}/{res.replace('0', '0_')}"
-                path = output_path(sub_pipeline) / folder / f"{this_date}.png"
+                path = get_path(
+                    "output",
+                    iso3,
+                    "aphrodite",
+                    f"{iso3}-{this_date}-aphrodite.total_precipitation.png",
+                )
                 plot_gadm_scatter(
                     valid_lon, valid_lat, valid_prcp, title, colourbar_label, path, gdf
                 )

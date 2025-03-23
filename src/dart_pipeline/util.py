@@ -21,7 +21,6 @@ import requests
 
 from .constants import (
     COMPRESSED_FILE_EXTS,
-    OUTPUT_COLUMNS,
 )
 from .types import Credentials, URLCollection
 from .paths import get_path
@@ -229,59 +228,6 @@ def unpack_file(path: Path | str, same_folder: bool = False):
         case _:
             extract_dir = path.parent if same_folder else path.parent / path.stem
             shutil.unpack_archive(path, str(extract_dir))
-
-
-def update_or_create_output(new_df: pd.DataFrame, out: str | Path, return_df=False):
-    """Either update an existing CSV or create a new one."""
-    # Validate the input
-    if not isinstance(new_df, pd.DataFrame):
-        raise TypeError("Expected a pandas DataFrame as input")
-    if not isinstance(out, (str, Path)):
-        raise TypeError("Expected a valid file path")
-
-    # Check if the CSV file already exists
-    if Path(out).exists():
-        # Import the existing CSV with everything as a string
-        old_df = pd.read_csv(out, dtype=str)
-        old_df.fillna("", inplace=True)
-        # Convert the new data frame to str
-        new_df = new_df.astype(str)
-        new_df.fillna("", inplace=True)
-
-        # Merge the new data with the existing data
-        key_columns = OUTPUT_COLUMNS
-        key_columns.remove("value")
-        merged_df = old_df.merge(
-            new_df, on=key_columns, suffixes=("_old", "_new"), how="outer"
-        )
-
-        # Update values where creation_date is the same but value is different
-        updated_values = merged_df["value_new"].notna() & (
-            merged_df["value_old"] != merged_df["value_new"]
-        )
-        merged_df.loc[updated_values, "value_old"] = merged_df["value_new"]
-
-        # Keep the updated/old values and drop the helper column
-        merged_df = merged_df.rename(columns={"value_old": "value"})
-        df = merged_df.drop(columns=["value_new"])
-        df = df.drop_duplicates()
-
-        # Add rows from the new data frame not in the old one
-        mask = ~new_df.apply(tuple, axis=1).isin(old_df.apply(tuple, axis=1))
-        df = pd.concat([df, new_df[mask]])
-
-    # If a CSV of output data does not already exist
-    else:
-        # Output the data as-is
-        df = new_df
-
-    # Export
-    logging.info(f"exporting:{out}")
-    df.to_csv(out, index=False)
-
-    # When testing we want to be able to inspect the data frame
-    if return_df:
-        return df
 
 
 def get_shapefile(iso3: str, admin_level: Literal["0", "1", "2", "3"]) -> Path:

@@ -2,7 +2,6 @@
 
 from unittest import mock
 
-from freezegun import freeze_time
 import geopandas as gpd
 import pandas as pd
 import shapely.geometry
@@ -23,16 +22,11 @@ def test_get_admin_region():
     assert get_admin_region(3, 3, polygons) == "null"
 
 
-@freeze_time("2025-03-07")
-@mock.patch("dart_pipeline.geospatial.relative_wealth_index.get_shapefile")
-@mock.patch("dart_pipeline.geospatial.relative_wealth_index.source_path")
+@mock.patch("dart_pipeline.geospatial.relative_wealth_index.get_path")
 @mock.patch("dart_pipeline.geospatial.relative_wealth_index.get_country_name")
 @mock.patch("dart_pipeline.geospatial.relative_wealth_index.plot_gadm_macro_heatmap")
-def test_process_gadm_rwi(
-    mock_plot, mock_get_country, mock_source_path, mock_get_shapefile
-):
-    mock_get_shapefile.return_value = "mock_shapefile.shp"
-    mock_source_path.return_value = "mock_rwi.csv"
+def test_process_gadm_rwi(mock_plot, mock_get_country, mock_get_path):
+    mock_get_path.return_value = "mock_rwi.csv"
     mock_get_country.return_value = "Mockland"
 
     # Mock GADM shapefile
@@ -46,7 +40,7 @@ def test_process_gadm_rwi(
             "COUNTRY": ["Mockland", "Mockland"],
             "NAME_1": ["Region 1", "Region 2"],
         }
-    )
+    ).set_crs("EPSG:4326")
 
     # Mock RWI data
     rwi = pd.DataFrame(
@@ -65,10 +59,8 @@ def test_process_gadm_rwi(
             side_effect=lambda func, axis: rwi.apply(func, axis=axis),
         ),
     ):
-        output_rwi, filename = process_gadm_rwi("MLD", "1", plots=False)
+        output_rwi = process_gadm_rwi("VNM", 1, plots=False)
 
-    expected_filename = "MLD_geospatial_relative-wealth-index_2025-03-07.csv"
-    assert filename == expected_filename
     assert "iso3" in output_rwi.columns
     assert "value" in output_rwi.columns
     assert "unit" in output_rwi.columns

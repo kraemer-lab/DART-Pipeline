@@ -1,7 +1,6 @@
 """Module for processing Meta relative wealth index data."""
 
 from datetime import date
-from pathlib import Path
 import logging
 import matplotlib.pyplot as plt
 
@@ -9,13 +8,14 @@ import contextily as ctx
 import geopandas as gpd
 import pandas as pd
 
-from dart_pipeline.constants import OUTPUT_COLUMNS, DEFAULT_OUTPUT_ROOT
-from dart_pipeline.util import get_country_name, source_path
+from ..constants import OUTPUT_COLUMNS
+from ..util import get_country_name
+from ..paths import get_path
 
 
 def process_rwi(iso3: str, plots=False):
     """Process Relative Wealth Index data only."""
-    sub_pipeline = "economic/relative-wealth-index"
+    sub_pipeline = "meta", "relative_wealth_index"
     iso3 = iso3.upper()
     logging.info("iso3:%s", iso3)
     country = get_country_name(iso3)
@@ -23,8 +23,7 @@ def process_rwi(iso3: str, plots=False):
     logging.info("plots:%s", plots)
 
     # Import the Relative Wealth Index data
-    source = "economic/relative-wealth-index"
-    path = source_path(source, f"{iso3.lower()}_relative_wealth_index.csv")
+    path = get_path("sources", "meta", f"{iso3.lower()}_relative_wealth_index.csv")
     logging.info("importing:%s", path)
     rwi = pd.read_csv(path)
 
@@ -45,8 +44,7 @@ def process_rwi(iso3: str, plots=False):
         # Add a basemap using EPSG:4326 (WGS 84) projection
         ctx.add_basemap(ax, crs="EPSG:4326", source=ctx.providers.OpenStreetMap.Mapnik)
         # Export
-        path = Path(DEFAULT_OUTPUT_ROOT, sub_pipeline, iso3)
-        path.parent.mkdir(parents=True, exist_ok=True)
+        path = get_path("output", iso3, *sub_pipeline)
         logging.info("exporting:%s", path)
         plt.savefig(path)
         plt.close()
@@ -70,10 +68,4 @@ def process_rwi(iso3: str, plots=False):
             "creation_date": [date.today()],
         }
     )
-    # Re-order the columns
-    df = df[OUTPUT_COLUMNS]
-
-    sub_pipeline = sub_pipeline.replace("/", "_")
-    filename = f"{iso3}_{sub_pipeline}_{date.today()}.csv"
-
-    return df.fillna(""), filename
+    return df[OUTPUT_COLUMNS]
