@@ -1,16 +1,19 @@
 """Module for processing Meta relative wealth index data."""
 
 from datetime import date
-from pathlib import Path
 import logging
 
-import geopandas as gpd
 import pandas as pd
 import shapely.geometry
+from geoglue import Country
+from pandarallel import pandarallel
 
-from dart_pipeline.constants import OUTPUT_COLUMNS, DEFAULT_OUTPUT_ROOT
-from dart_pipeline.plots import plot_gadm_macro_heatmap
-from dart_pipeline.util import get_country_name, get_shapefile, source_path
+from ..constants import OUTPUT_COLUMNS
+from ..plots import plot_gadm_macro_heatmap
+from ..util import get_country_name
+from ..paths import get_path
+
+pandarallel.initialize(progress_bar=True)
 
 
 def get_admin_region(lat: float, lon: float, polygons) -> str:
@@ -28,9 +31,8 @@ def get_admin_region(lat: float, lon: float, polygons) -> str:
     return "null"
 
 
-def process_gadm_rwi(iso3: str, admin_level: str, plots=False):
+def process_gadm_rwi(iso3: str, admin_level: int, plots=False):
     """Process Relative Wealth Index and geospatial data."""
-    sub_pipeline = "geospatial/relative-wealth-index"
     iso3 = iso3.upper()
     logging.info("iso3:%s", iso3)
     logging.info("admin_level:%s", admin_level)
@@ -38,15 +40,14 @@ def process_gadm_rwi(iso3: str, admin_level: str, plots=False):
 
     # Create a dictionary of polygons where the key is the ID of the polygon
     # and the value is its geometry
-    path = get_shapefile(iso3, admin_level)
-    logging.info("Importing:%s", path)
-    gdf = gpd.read_file(path)
+    gdf = Country(iso3).admin(admin_level)
     admin_geoid = f"GID_{admin_level}"
     polygons = dict(zip(gdf[admin_geoid], gdf["geometry"]))
 
     # Import the Relative Wealth Index data
-    source = "economic/relative-wealth-index"
-    path = source_path(source, f"{iso3.lower()}_relative_wealth_index.csv")
+    path = get_path(
+        "sources", iso3, "meta", f"{iso3.lower()}_relative_wealth_index.csv"
+    )
     logging.info("importing:%s", path)
     rwi = pd.read_csv(path)
 
@@ -64,8 +65,11 @@ def process_gadm_rwi(iso3: str, admin_level: str, plots=False):
         country = get_country_name(iso3)
         title = f"Relative Wealth Index\n{country} - Admin Level {admin_level}"
         colourbar_label = "Relative Wealth Index [unitless]"
-        path = Path(
-            DEFAULT_OUTPUT_ROOT, sub_pipeline, f"{iso3}/admin_level_{admin_level}"
+        path = get_path(
+            "output",
+            iso3,
+            "meta",
+            f"{iso3}-{admin_level}-meta.relative_wealth_index.png",
         )
         plot_gadm_macro_heatmap(
             data, origin, extent, limits, gdf, zorder, title, colourbar_label, path
@@ -105,15 +109,10 @@ def process_gadm_rwi(iso3: str, admin_level: str, plots=False):
     rwi["month"] = None
     rwi["day"] = None
     rwi["week"] = None
-    rwi["metric"] = "Relative Wealth Index"
+    rwi["metric"] = "meta.relative_wealth_index"
     rwi = rwi.rename(columns={"rwi": "value"})
     rwi["unit"] = "unitless"
     rwi["resolution"] = None
     rwi["creation_date"] = date.today()
     # Re-order the columns
-    rwi = rwi[OUTPUT_COLUMNS]
-
-    sub_pipeline = sub_pipeline.replace("/", "_")
-    filename = f"{iso3}_{sub_pipeline}_{date.today()}.csv"
-
-    return rwi.fillna(""), filename
+    return rwi[OUTPUT_COLUMNS]

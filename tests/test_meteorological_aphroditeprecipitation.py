@@ -2,7 +2,6 @@
 
 from unittest.mock import patch, mock_open
 
-from freezegun import freeze_time
 import numpy as np
 
 from dart_pipeline.meteorological.aphroditeprecipitation import (
@@ -43,19 +42,12 @@ def test_process_aphrodite_precipitation_data():
     # Mock file opening
     mocked_open = mock_open()
     with (
-        freeze_time("2025-01-01"),
         patch("builtins.open", mocked_open),
         patch("numpy.fromfile", mock_fromfile),
     ):
         # Call the function
         year = 2023
-        output, csv_name = process_aphroditeprecipitation(
-            year=year, resolution=["025deg"], plots=False
-        )
-
-        # Expected CSV file name
-        expected_csv_name = "aphrodite-daily-precip.csv"
-        assert csv_name == expected_csv_name
+        output = process_aphroditeprecipitation(year=year, resolution=["025deg"])
 
         # Expected output structure
         assert not output.empty

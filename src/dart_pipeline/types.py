@@ -4,10 +4,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime
 
-import pandas as pd
-
 Credentials = tuple[str, str]
-ProcessResult = tuple[pd.DataFrame, str]
 AdminLevel = Literal["0", "1", "2"]
 
 

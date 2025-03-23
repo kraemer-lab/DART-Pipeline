@@ -1,7 +1,6 @@
 """Tests for utility functions."""
 
 from pathlib import Path
-from unittest.mock import patch, MagicMock
 
 import pytest
 import requests_mock
@@ -12,7 +11,6 @@ from dart_pipeline.util import (
     days_in_year,
     get_country_name,
     use_range,
-    update_or_create_output,
 )
 
 
@@ -139,72 +137,3 @@ def old_dataframe():
             "creation_date": [""],
         }
     )
-
-
-@patch("pandas.read_csv")
-@patch("pandas.DataFrame.to_csv")
-def test_update_or_create_output_create_new(mock_to_csv, mock_read_csv, new_dataframe):
-    """Test that when a file does not already exist a new one is created."""
-    # Mock a non-existing file
-    mock_path = MagicMock(spec=Path)
-    mock_path.exists.return_value = False
-
-    update_or_create_output(new_dataframe, mock_path)
-
-    # Check that read_csv was never called
-    mock_read_csv.assert_not_called()
-    # Check that to_csv was called with the correct data frame
-    mock_to_csv.assert_called_once_with(mock_path, index=False)
-
-
-@patch("pandas.read_csv")
-@patch("pandas.DataFrame.to_csv")
-def test_update_or_create_output_update_existing(
-    mock_to_csv, mock_read_csv, new_dataframe, old_dataframe
-):
-    """Test that when the file already exists it gets updated."""
-    # Mock an existing file
-    mock_path = MagicMock(spec=Path)
-    mock_path.exists.return_value = True
-
-    # Mock the read_csv call to return the existing data frame
-    mock_read_csv.return_value = old_dataframe
-
-    # Call the function being tested
-    df = update_or_create_output(new_dataframe, mock_path, return_df=True)
-
-    # Verify that read_csv was called with the correct path
-    mock_read_csv.assert_called_once_with(mock_path, dtype=str)
-
-    # Check that to_csv was called once
-    mock_to_csv.assert_called_once()
-    # Check that the returned object is indeed a data frame
-    assert isinstance(df, pd.DataFrame)
-    # Check that the merged data frame has the expected values
-    assert df.loc[0, "value"].values[0] == "0.998"
-    assert len(df) == 2
-
-
-def test_update_or_create_output_invalid_input():
-    """Test for when these is invalid input."""
-    # Invalid data frame
-    invalid_input = "not_a_dataframe"
-    mock_path = Path("dummy_path.csv")
-    match = "Expected a pandas DataFrame as input"
-    with pytest.raises(TypeError, match=match):
-        update_or_create_output(invalid_input, mock_path)
-
-    # Invalid path
-    df = pd.DataFrame(
-        {
-            "iso3": ["AAA"],
-            "admin_level_0": ["Country1"],
-            "admin_level_1": ["State1"],
-            "admin_level_2": ["City1"],
-            "admin_level_3": ["District1"],
-            "metric": [100],
-        }
-    )
-    invalid_path = 12345
-    with pytest.raises(TypeError, match="Expected a valid file path"):
-        update_or_create_output(df, invalid_path)

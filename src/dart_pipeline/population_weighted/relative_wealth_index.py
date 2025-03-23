@@ -18,9 +18,10 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from dart_pipeline.constants import OUTPUT_COLUMNS
-from dart_pipeline.types import ProcessResult, PartialDate, AdminLevel
-from dart_pipeline.util import get_country_name, get_shapefile, source_path, output_path
+from ..constants import OUTPUT_COLUMNS
+from ..types import PartialDate, AdminLevel
+from ..util import get_country_name, get_shapefile
+from ..paths import get_path
 
 
 def get_geo_id(lat: float, lon: float, polygons: dict) -> str:
@@ -51,7 +52,7 @@ def get_quadkey(x, zoom_level):
 
 def process_gadm_popdensity_rwi(
     iso3: str, partial_date: str = "2020", admin_level: AdminLevel = "2", plots=False
-) -> ProcessResult:
+) -> pd.DataFrame:
     """
     Process population-weighted Relative Wealth Index and geospatial data.
 
@@ -63,7 +64,6 @@ def process_gadm_popdensity_rwi(
 
     Originally adapted by Prathyush Sambaturu.
     """
-    sub_pipeline = "population-weighted/relative-wealth-index"
     logging.info("iso3:%s", iso3)
     country_name = get_country_name(iso3)
     logging.info("country_name:%s", country_name)
@@ -86,8 +86,9 @@ def process_gadm_popdensity_rwi(
     polygons = dict(zip(shapefile[admin_geoid], shapefile["geometry"]))
 
     # Import the Relative Wealth Index data
-    source = "economic/relative-wealth-index"
-    path = source_path(source, f"{iso3.lower()}_relative_wealth_index.csv")
+    path = get_path(
+        "sources", iso3, "meta", f"{iso3.lower()}_relative_wealth_index.csv"
+    )
     logging.info("importing:%s", path)
     rwi = pd.read_csv(path)
     # Assign each RWI value to an administrative region
@@ -98,8 +99,7 @@ def process_gadm_popdensity_rwi(
     rwi["quadkey"] = rwi.apply(lambda x: get_quadkey(x, zoom_level), axis=1)
 
     # Import population density data
-    source = "sociodemographic/meta-pop-density"
-    path = source_path(source, f"{iso3.upper()}/{iso3.lower()}_general_{year}.csv")
+    path = get_path("sources", iso3, "meta", f"{iso3.lower()}_general_{year}.csv")
     logging.info("importing:%s", path)
     population = pd.read_csv(path)
     population = population.rename(
@@ -139,8 +139,12 @@ def process_gadm_popdensity_rwi(
         plt.xticks(rotation=30)
         plt.ylabel("Latitude")
         # Export
-        path = output_path(sub_pipeline, f"{iso3}/admin_level_{admin_level}")
-        path.parent.mkdir(parents=True, exist_ok=True)
+        path = get_path(
+            "output",
+            iso3,
+            "meta",
+            f"{iso3}-{admin_level}-meta.relative_wealth_index.png",
+        )
         logging.info("exporting:%s", path)
         plt.savefig(path)
         plt.close()
@@ -178,9 +182,4 @@ def process_gadm_popdensity_rwi(
     rwi["unit"] = "unitless"
     rwi["resolution"] = "~2.4 km"
     rwi["creation_date"] = date.today()
-    rwi = rwi[OUTPUT_COLUMNS]
-
-    sub_pipeline = sub_pipeline.replace("/", "_")
-    filename = f"{iso3}_{sub_pipeline}_{year}_{date.today()}.csv"
-
-    return rwi.fillna(""), filename
+    return rwi[OUTPUT_COLUMNS]

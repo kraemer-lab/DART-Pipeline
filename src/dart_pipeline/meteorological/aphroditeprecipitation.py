@@ -7,10 +7,9 @@ import re
 import numpy as np
 import pandas as pd
 
-from dart_pipeline.plots import plot_scatter
-from dart_pipeline.util import source_path, days_in_year, output_path
-from dart_pipeline.types import ProcessResult
-from dart_pipeline.constants import OUTPUT_COLUMNS
+from ..constants import OUTPUT_COLUMNS
+from ..util import days_in_year
+from ..paths import get_path
 
 # No data in APHRODITE data
 # See APHRO_MA_025deg_V1901.ctl and others
@@ -18,11 +17,10 @@ NO_DATA = -99.90
 
 
 def process_aphroditeprecipitation(
-    year=None, resolution=["025deg", "050deg"], plots=False
-) -> list[ProcessResult]:
+    year=None, resolution=["025deg", "050deg"]
+) -> pd.DataFrame:
     """Process APHRODITE Daily accumulated precipitation (V1901) data."""
-    sub_pipeline = "meteorological/aphrodite-daily-precip"
-    base_path = source_path(sub_pipeline, "")
+    base_path = get_path("sources", "global", "aphrodite")
     version = "V1901"
     if not year:
         # Regex pattern to match the resolution, version and year in filenames
@@ -60,13 +58,13 @@ def process_aphroditeprecipitation(
         nx, ny = params[res]["n_deg"]
         recl = nx * ny
         # Longitude and latitude bounds
-        x_start, y_start = params[res]["start_coords"]
-        scale_factor = params[res]["scale_factor"]
-        xlon = x_start + np.arange(nx) * scale_factor
-        ylat = y_start + np.arange(ny) * scale_factor
+        # x_start, y_start = params[res]["start_coords"]
+        # scale_factor = params[res]["scale_factor"]
+        # xlon = x_start + np.arange(nx) * scale_factor
+        # ylat = y_start + np.arange(ny) * scale_factor
 
         # Open the file
-        file_path = Path(base_path) / Path(f"APHRO_MA_{res}_{version}.{year}")
+        file_path = base_path / f"APHRO_MA_{res}_{version}.{year}"
         # Read binary data
         with open(file_path, "rb") as f:
             # Initialise arrays
@@ -86,7 +84,6 @@ def process_aphroditeprecipitation(
 
         prcp_data = prcp_data.astype("float32")
         rstn_data = rstn_data.astype("float32")
-        valid_xlon, valid_ylat = np.meshgrid(xlon, ylat, indexing="xy")
 
         # Iterate through days
         for iday in range(nday):
@@ -97,18 +94,6 @@ def process_aphroditeprecipitation(
                 prcp_data[iday, :, :] != NO_DATA
             )
             valid_prcp = prcp_data[iday][valid_mask]
-            valid_lon = valid_xlon[valid_mask]
-            valid_lat = valid_ylat[valid_mask]
-
-            # Scatter plot
-            if plots:
-                title = f"Precipitation\n{this_date}"
-                colourbar_label = "Precipitation [mm]"
-                folder = res.replace("0", "0_")
-                path = output_path(sub_pipeline) / folder / f"{this_date}.png"
-                plot_scatter(
-                    valid_lon, valid_lat, valid_prcp, title, colourbar_label, path
-                )
 
             i = len(output)
             output.loc[i, "year"] = year
@@ -124,4 +109,4 @@ def process_aphroditeprecipitation(
     output["unit"] = "mm"
     output["creation_date"] = date.today()
 
-    return output, "aphrodite-daily-precip.csv"
+    return output

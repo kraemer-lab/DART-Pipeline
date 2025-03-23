@@ -98,7 +98,7 @@ def test_plot_gadm_micro_heatmap(
         region = gpd.GeoDataFrame(geometry=[polygon]).iloc[0]
 
         # Patch the output_path function within this test's scope
-        with patch("dart_pipeline.util.output_path", side_effect=mock_output_path):
+        with patch("dart_pipeline.paths.get_path", side_effect=mock_output_path):
             plot_gadm_micro_heatmap(
                 data, gdf, pdate, title, colourbar_label, region, extent, path
             )

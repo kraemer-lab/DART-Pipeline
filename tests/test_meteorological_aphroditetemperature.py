@@ -30,7 +30,7 @@ def test_process_aphroditetemperature():
     with patch("builtins.open", mocked_open), patch("numpy.fromfile", mock_fromfile):
         # Call the function
         year = 2023
-        output, csv_name = process_aphroditetemperature(year=year, plots=False)
+        output = process_aphroditetemperature(year=year)
 
         # Assert the output is a DataFrame
         assert isinstance(output, pd.DataFrame)
@@ -40,6 +40,4 @@ def test_process_aphroditetemperature():
 
         # Check key output values
         assert (output["year"] == year).all()
-        assert (output["metric"] == "aphrodite-daily-mean-temp").all()
         assert (output["unit"] == "°C").all()
-        assert csv_name == "aphrodite-daily-mean-temp.csv"

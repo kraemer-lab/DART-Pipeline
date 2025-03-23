@@ -8,26 +8,24 @@ import re
 import numpy as np
 import pandas as pd
 
-from dart_pipeline.plots import plot_scatter
-from dart_pipeline.util import source_path, days_in_year, output_path
-from dart_pipeline.types import ProcessResult
-from dart_pipeline.constants import OUTPUT_COLUMNS
+from ..constants import OUTPUT_COLUMNS
+from ..util import days_in_year
+from ..paths import get_path
 
 # No data in APHRODITE data
 # See APHRO_MA_025deg_V1901.ctl and others
 NO_DATA = -99.90
 
 
-def process_aphroditetemperature(year=None, plots=False) -> list[ProcessResult]:
+def process_aphroditetemperature(year=None) -> pd.DataFrame:
     """Process APHRODITE Daily mean temperature product (V1808) data."""
-    sub_pipeline = "meteorological/aphrodite-daily-mean-temp"
     version = "V1808"
     if not year:
         # Regex pattern to match the resolution, version and year in filenames
-        pattern = r"APHRO_MA_TAVE_(\d+deg)_V(\d+)\.(\d+)"
+        pattern = r"APHRO_MA_TAVE_(\d+deg)_V1808\.(\d+)"
         # Find the latest year for which there is data
         years = []
-        path = source_path(sub_pipeline, "")
+        path = get_path("sources", "global", "aphrodite")
         for filename in Path(path).iterdir():
             match = re.match(pattern, str(filename.name))
             if match:
@@ -83,9 +81,12 @@ def process_aphroditetemperature(year=None, plots=False) -> list[ProcessResult]:
         product = params[data_type]["product"]
         res = params[data_type]["resolution"]
         ext = params[data_type]["extension"]
-        path = source_path(sub_pipeline, "")
-        path = path / f"APHRO_MA_{product}_{res}_{version}.{year}{ext}"
-        # Read binary data
+        path = get_path(
+            "sources",
+            "global",
+            "aphrodite",
+            f"APHRO_MA_{product}_{res}_{version}.{year}{ext}",
+        )
         logging.info("opening:%s", path)
         with open(path, "rb") as f:
             # Initialise arrays
@@ -115,18 +116,6 @@ def process_aphroditetemperature(year=None, plots=False) -> list[ProcessResult]:
                 temp_data[iday, :, :] != NO_DATA
             )
             valid_temp = temp_data[iday][valid_mask]
-            valid_lon = valid_xlon[valid_mask]
-            valid_lat = valid_ylat[valid_mask]
-
-            # Scatter plot
-            if plots:
-                title = f"Temperature\n{this_date}"
-                colourbar_label = "Temperature [°C]"
-                folder = res.replace("0", "0_")
-                path = output_path(sub_pipeline) / folder / f"{this_date}.png"
-                plot_scatter(
-                    valid_lon, valid_lat, valid_temp, title, colourbar_label, path
-                )
 
             i = len(output)
             output.loc[i, "year"] = year
@@ -144,8 +133,8 @@ def process_aphroditetemperature(year=None, plots=False) -> list[ProcessResult]:
     output["admin_level_2"] = ""
     output["admin_level_3"] = ""
     output["week"] = ""
-    output["metric"] = "aphrodite-daily-mean-temp"
+    output["metric"] = "aphrodite.2m_temperature.daily_mean"
     output["unit"] = "°C"
     output["creation_date"] = date.today()
 
-    return output, "aphrodite-daily-mean-temp.csv"
+    return output

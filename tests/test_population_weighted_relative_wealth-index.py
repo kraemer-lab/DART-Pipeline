@@ -2,7 +2,6 @@
 
 from unittest import mock
 
-from freezegun import freeze_time
 import geopandas as gpd
 import pandas as pd
 
@@ -11,7 +10,6 @@ from dart_pipeline.population_weighted.relative_wealth_index import (
 )
 
 
-@freeze_time("2025-03-05")
 @mock.patch("geopandas.read_file")
 @mock.patch("pandas.read_csv")
 def test_process_gadm_popdensity_rwi(mock_pd_read, mock_gpd_read):
@@ -45,10 +43,8 @@ def test_process_gadm_popdensity_rwi(mock_pd_read, mock_gpd_read):
         ),
     ]
 
-    df, filename = process_gadm_popdensity_rwi("VNM", "2023", "2", plots=False)
+    df = process_gadm_popdensity_rwi("VNM", "2023", "2", plots=False)
 
-    fn = "VNM_population-weighted_relative-wealth-index_2023_2025-03-05.csv"
-    assert filename == fn
     assert isinstance(df, pd.DataFrame)
     assert "iso3" in df.columns
     assert "value" in df.columns

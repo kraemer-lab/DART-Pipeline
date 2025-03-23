@@ -25,14 +25,12 @@ def test_process_gadm_aphroditetemperature():
     admin_level = "0"
     partial_date = "2023-07"
     resolution = ["025deg"]
-    plots = False
 
     with (
         patch("dart_pipeline.process.PartialDate") as mock_partial_date,
         patch("dart_pipeline.util.get_shapefile") as mock_get_shapefile,
         patch("geopandas.read_file") as mock_read_file,
-        patch("dart_pipeline.util.source_path") as mock_source_path,
-        patch("dart_pipeline.util.output_path") as mock_output_path,
+        patch("dart_pipeline.paths.get_path") as mock_get_path,
         patch("builtins.open") as mock_open,
         patch("numpy.fromfile") as mock_fromfile,
     ):
@@ -58,8 +56,7 @@ def test_process_gadm_aphroditetemperature():
         mock_read_file.return_value = mock_gdf
 
         # Mock source_path and output_path
-        mock_source_path.return_value = MagicMock()
-        mock_output_path.return_value = MagicMock()
+        mock_get_path.return_value = MagicMock()
 
         # Mock np.fromfile() to return a fake array
         nx, ny = 360, 280
@@ -76,8 +73,8 @@ def test_process_gadm_aphroditetemperature():
         mock_open.return_value.__enter__.return_value = mock_file
 
         # Call the function
-        output, csv_path = process_gadm_aphroditetemperature(
-            iso3, admin_level, partial_date, resolution, plots
+        output = process_gadm_aphroditetemperature(
+            iso3, admin_level, partial_date, resolution
         )
 
         # Assertions
@@ -86,4 +83,3 @@ def test_process_gadm_aphroditetemperature():
         assert "value" in output.columns
         assert output["iso3"].iloc[0] == iso3
         assert output["value"].iloc[0] == ""
-        assert csv_path == "aphrodite-daily-mean-temp.csv"
