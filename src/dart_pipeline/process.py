@@ -36,13 +36,15 @@ import rasterio.transform
 import shapely.geometry
 from geoglue import Country
 
-from .economic.relative_wealth_index import process_rwi
+from .metrics.meta_relative_wealth_index import (
+    process_rwi_point_estimate,
+    process_gadm_rwi,
+    process_gadm_popdensity_rwi,
+)
 from .geospatial.aphroditeprecipitation import process_gadm_aphroditeprecipitation
 from .geospatial.aphroditetemperature import process_gadm_aphroditetemperature
-from .geospatial.relative_wealth_index import process_gadm_rwi
 from .meteorological.aphroditeprecipitation import process_aphroditeprecipitation
 from .meteorological.aphroditetemperature import process_aphroditetemperature
-from .population_weighted.relative_wealth_index import process_gadm_popdensity_rwi
 from .constants import (
     TERRACLIMATE_METRICS,
     OUTPUT_COLUMNS,
@@ -527,7 +529,7 @@ def process_terraclimate(partial_date: str, iso3: str, admin_level: str):
 
 
 PROCESSORS: dict[str, Callable[..., pd.DataFrame | list[pd.DataFrame]]] = {
-    "economic/relative-wealth-index": process_rwi,
+    "economic/relative-wealth-index": process_rwi_point_estimate,
     "epidemiological/dengue/peru": process_dengueperu,
     "geospatial/aphrodite-daily-mean-temp": process_gadm_aphroditetemperature,
     "geospatial/aphrodite-daily-precip": process_gadm_aphroditeprecipitation,
