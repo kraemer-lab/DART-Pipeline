@@ -10,11 +10,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from dart_pipeline.process import (
-    process_dengueperu,
+from dart_pipeline.metrics.chirps import (
     process_gadm_chirps_rainfall,
     process_chirps_rainfall,
+    chirps_rainfall_data,
 )
+from dart_pipeline.types import URLCollection
 
 # Smallest single-precision floating-point number
 MIN_FLOAT = -3.4028234663852886e38
@@ -67,49 +68,41 @@ def mock_os_walk():
         yield mock_walk
 
 
-@pytest.mark.parametrize(
-    "admin_level, expected_admin_level_1, expected_plot_calls, should_raise",
-    [
-        ("0", "", 1, False),  # Admin level 0
-        ("1", "Region1", 1, False),  # Admin level 1
-        ("2", None, 0, True),  # Invalid admin level
-    ],
-)
-def test_process_dengueperu(
-    admin_level,
-    expected_admin_level_1,
-    expected_plot_calls,
-    should_raise,
-    mock_get_path,
-    mock_plot_timeseries,
-    mock_read_excel,
-    mock_os_walk,
-):
-    if should_raise:
-        match = f"Invalid admin level: {admin_level}"
-        with pytest.raises(ValueError, match=match):
-            process_dengueperu(admin_level=admin_level)
-    else:
-        master = process_dengueperu(admin_level=admin_level, plots=True)
+def test_chirps_rainfall_data():
+    base_url = "https://data.chc.ucsb.edu"
+    assert chirps_rainfall_data("2020") == [
+        URLCollection(
+            f"{base_url}/products/CHIRPS-2.0/global_annual/tifs",
+            ["chirps-v2.0.2020.tif"],
+            relative_path="global_annual",
+        )
+    ]
 
-        # Validate the output DataFrame
-        assert isinstance(master, pd.DataFrame)
-        assert master["admin_level_0"].iloc[0] == "Peru"
-        assert master["admin_level_1"].iloc[0] == expected_admin_level_1
-        assert master["metric"].tolist() == [
-            "Confirmed Dengue Cases",
-            "Probable Dengue Cases",
-        ]
-
-        # Check the mock calls
-        mock_read_excel.assert_called()
+    base_url = "https://data.chc.ucsb.edu"
+    assert chirps_rainfall_data("2020-01") == [
+        URLCollection(
+            f"{base_url}/products/CHIRPS-2.0/global_annual/tifs",
+            ["chirps-v2.0.2020.tif"],
+            relative_path="global_annual",
+        ),
+        URLCollection(
+            f"{base_url}/products/CHIRPS-2.0/global_monthly/tifs",
+            ["chirps-v2.0.2020.01.tif.gz"],
+            relative_path="global_monthly/2020",
+        ),
+        URLCollection(
+            f"{base_url}/products/CHIRPS-2.0/global_daily/tifs/p05/2020",
+            [f"chirps-v2.0.2020.01.{day:02d}.tif.gz" for day in range(1, 32)],
+            relative_path="global_daily/2020/01",
+        ),
+    ]
 
 
 @patch("geopandas.read_file")
-@patch("dart_pipeline.process.get_chirps_rainfall_data_path")
-@patch("dart_pipeline.process.get_shapefile")
+@patch("dart_pipeline.metrics.chirps.get_chirps_rainfall_data_path")
+@patch("dart_pipeline.util.get_shapefile")
 @patch("rasterio.open")
-@patch("dart_pipeline.process.get_path")
+@patch("dart_pipeline.paths.get_path")
 @patch("matplotlib.pyplot.savefig")
 def test_process_gadm_chirps_rainfall(
     mock_savefig,
@@ -176,9 +169,9 @@ def test_process_gadm_chirps_rainfall(
     assert mock_gdf.to_crs.call_count == 2
 
 
-@patch("dart_pipeline.process.get_path")
+@patch("dart_pipeline.paths.get_path")
 @patch("rasterio.open")
-@patch("dart_pipeline.process.get_chirps_rainfall_data_path")
+@patch("dart_pipeline.metrics.chirps.get_chirps_rainfall_data_path")
 def test_process_chirps_rainfall(mock_data_path, mock_raster_open, mock_get_path):
     partial_date = "2023-05"
     plots = False

@@ -8,28 +8,95 @@ ted-relative-wealth-index
 Originally adapted by Prathyush Sambaturu.
 """
 
+import functools
+import multiprocessing
 from datetime import date
 import logging
 
 from pyquadkey2 import quadkey
 from shapely.geometry import Point
+import requests
 import contextily
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import pandas as pd
-from pandarallel import pandarallel
 from geoglue import Country
+from bs4 import BeautifulSoup
 
 from ..constants import OUTPUT_COLUMNS
-from ..types import PartialDate, AdminLevel
+from ..types import PartialDate, AdminLevel, URLCollection
 from ..util import get_country_name, get_shapefile
 from ..plots import plot_gadm_macro_heatmap
 from ..paths import get_path
 
-pandarallel.initialize(progress_bar=False)
+
+def meta_pop_density_data(iso3: str) -> URLCollection:
+    """
+    Download Population Density Maps from Data for Good at Meta.
+
+    Documentation:
+    https://dataforgood.facebook.com/dfg/docs/high-resolution-population-density-maps-demographic-estimates-documentation
+    """
+    country = get_country_name(iso3)
+    print(f"Country:   {country}")
+    # Main webpage
+    url = (
+        "https://data.humdata.org/dataset/"
+        f"{country.lower().replace(' ', '-')}-high-resolution-population-"
+        "density-maps-demographic-estimates"
+    )
+    if (response := requests.get(url)).status_code == 200:
+        # Search for a URL in the HTML content
+        soup = BeautifulSoup(response.text, "html.parser")
+        # Find all anchor tags (<a>) with href attribute containing the ISO3
+        target = iso3.lower()
+        if links := soup.find_all("a", href=lambda href: href and target in href):  # type: ignore
+            return URLCollection(
+                "https://data.humdata.org",
+                [link["href"] for link in links if link["href"].endswith(".zip")],
+                relative_path=iso3,
+            )
+        else:
+            raise ValueError(f'Could not find a link containing "{target}"')
+    else:
+        raise ValueError(f'Bad response for page: "{response.status_code}"')
 
 
-def get_geo_id(lat: float, lon: float, polygons: dict) -> str:
+def fetch_relative_wealth_index(iso3: str) -> URLCollection:
+    """This dataset contains the relative wealth index, which is the relative
+    standard of living, obtained from connectivity data, satellite imagery and
+    other sources. Cite the following if using this dataset:
+
+        Microestimates of wealth for all low- and middle-income countries.
+        Guanghua Chi, Han Fang, Sourav Chatterjee, Joshua E. Blumenstock
+        Proceedings of the National Academy of Sciences
+        Jan 2022, 119 (3) e2113658119; DOI: 10.1073/pnas.2113658119
+
+    Upstream URL: https://data.humdata.org/dataset/relative-wealth-index
+    """
+    # Validate input parameter
+    if not iso3:
+        raise ValueError("No ISO3 code has been provided")
+
+    # Search the webpage for the link(s) to the dataset(s)
+    url = "https://data.humdata.org/dataset/relative-wealth-index"
+    if (r := requests.get(url)).status_code == 200:
+        # Search for a URL in the HTML content
+        soup = BeautifulSoup(r.text, "html.parser")
+        # Find all anchor tags (<a>) with href attribute containing the ISO3
+        target = iso3.lower()
+        links = soup.find_all("a", href=lambda href: href and target in href)  # type: ignore
+        # Return the first link found
+        if links:
+            csvs = [link["href"] for link in links if "csv" in link["href"]]
+            return URLCollection("https://data.humdata.org", csvs)
+        else:
+            raise ValueError(f'Could not find a link containing "{target}"')
+    else:
+        raise ValueError(f'Bad response for page: "{r.status_code}"')
+
+
+def get_geo_id(x: dict[str, float], polygons: dict) -> str:
     """
     Find the administrative region ID containing a given point.
 
@@ -42,7 +109,7 @@ def get_geo_id(lat: float, lon: float, polygons: dict) -> str:
     Returns:
         str: The ID of the region containing the point, or 'null' if not found.
     """
-    point = Point(lon, lat)
+    point = Point(x["longitude"], x["latitude"])
     for geo_id in polygons:
         polygon = polygons[geo_id]
         if polygon.contains(point):
@@ -112,9 +179,7 @@ def process_gadm_popdensity_rwi(
     logging.info("importing:%s", path)
     rwi = pd.read_csv(path)
     # Assign each RWI value to an administrative region
-    rwi["geo_id"] = rwi.apply(
-        lambda x: get_geo_id(x["latitude"], x["longitude"], polygons), axis=1
-    )
+    rwi["geo_id"] = rwi.apply(lambda x: get_geo_id(x, polygons), axis=1)
     rwi = rwi[rwi["geo_id"] != "null"]
     rwi["quadkey"] = rwi.apply(lambda x: get_quadkey(x, zoom_level), axis=1)
 
@@ -271,11 +336,12 @@ def process_gadm_rwi(iso3: str, admin_level: int, plots=False):
             data, origin, extent, limits, gdf, zorder, title, colourbar_label, path
         )
 
-    def get_admin(x):
-        return get_geo_id(x["latitude"], x["longitude"], polygons)
-
     # Assign each latitude and longitude to an admin region
-    rwi["geo_id"] = rwi.parallel_apply(get_admin, axis=1)  # type: ignore
+    with multiprocessing.Pool() as p:
+        geo_id = p.map(
+            functools.partial(get_geo_id, polygons=polygons), rwi.to_dict("records")
+        )
+    rwi["geo_id"] = geo_id
     rwi = rwi[rwi["geo_id"] != "null"]
 
     # Get the mean RWI value for each region

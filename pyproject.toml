@@ -15,7 +15,6 @@ dependencies = [
     "metpy>=1.6.3",
     "netCDF4>=1.7.2",
     "openpyxl==3.1.*",
-    "pandarallel>=1.6.5",
     "pandas>=2.2",
     "py7zr==0.20.6",
     "pycountry==24.6.1",

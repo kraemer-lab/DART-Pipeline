@@ -203,6 +203,6 @@ def print_metrics(filter_by: str | None = None):
         for m_name in matched_metrics:
             metric = source["metrics"][m_name]
             print(f"  \033[1m{s}.{m_name}\033[0m")
-            print(f"    {metric['description']} [{metric['units']}]")
+            print(f"    {metric['description']} [{metric['unit']}]")
             if metric.get("resolution"):
                 print("    Resolution:", metric["resolution"])
