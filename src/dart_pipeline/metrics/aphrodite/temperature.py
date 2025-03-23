@@ -1,34 +1,32 @@
-"""Module for processing ."""
+"""Module for processing APHRODITE temperature (V1808) data."""
 
 from datetime import date, datetime, timedelta
 from typing import Literal
 import logging
 
+import geopandas as gpd
 import numpy as np
 import pandas as pd
 import shapely.geometry
-from geoglue import Country
 
-from ..plots import plot_gadm_scatter
-from ..types import PartialDate
-from ..util import days_in_year
-from ..paths import get_path
-from ..constants import OUTPUT_COLUMNS
+from ...util import days_in_year, get_shapefile
+from ...types import PartialDate
+from ...constants import OUTPUT_COLUMNS
+from ...paths import get_path
 
 # No data in APHRODITE data
 # See APHRO_MA_025deg_V1901.ctl and others
 NO_DATA = -99.90
 
 
-def process_gadm_aphroditeprecipitation(
+def process_gadm_aphroditetemperature(
     iso3: str,
     admin_level: Literal["0", "1", "2", "3"],
     partial_date: str,
-    resolution=["025deg", "050deg"],
-    plots=False,
+    resolution=["025deg"],
 ):
     """
-    Process GADM and APHRODITE Daily accumulated precipitation (V1901) data.
+    Process GADM and APHRODITE Daily mean temperature product (V1808) data.
 
     Aggregates by given admin level for the given country (ISO3 code) and
     partial date.
@@ -38,63 +36,86 @@ def process_gadm_aphroditeprecipitation(
     logging.info("admin_level:%s", admin_level)
     logging.info("partial_date:%s", pdate)
     logging.info("scope:%s", pdate.scope)
-    logging.info("plots:%s", plots)
 
     # Import shape file
-    gdf = Country(iso3).admin(int(admin_level))
+    path = get_shapefile(iso3, admin_level)
+    logging.info("importing:%s", path)
+    gdf = gpd.read_file(path)
 
     # Initialise output data frame
     output = pd.DataFrame(columns=OUTPUT_COLUMNS)
 
-    version = "V1901"
+    version = "V1808"
     year = pdate.year
     params = {
-        # Parameters from APHRO_MA_025deg_V1901.ctl
+        # Parameters APHRO_MA_TAVE_025deg_V1808.ctl
         "025deg": {
+            "product": "TAVE",
+            "resolution": "025deg",
+            "extension": "",
             "n_deg": (360, 280),
             "start_coords": (60.125, -14.875),
             "scale_factor": 0.25,
         },
-        # Parameters from APHRO_MA_050deg_V1901.ctl
-        "050deg": {
+        # Parameters APHRO_MA_TAVE_050deg_V1808.nc.ctl
+        "050deg_nc": {
+            "product": "TAVE",
+            "resolution": "050deg",
+            "extension": ".nc",
             "n_deg": (180, 140),
             "start_coords": (60.25, -14.75),
             "scale_factor": 0.5,
         },
+        # Parameters APHRO_MA_TAVE_CLM_005deg_V1808.ctl
+        "005deg_nc": {
+            "product": "TAVE_CLM",
+            "resolution": "005deg",
+            "extension": ".nc",
+            "n_deg": (1800, 1400),
+            "start_coords": (60.025, -14.975),
+            "scale_factor": 0.05,
+        },
     }
-
-    for res in resolution:
+    for data_type in resolution:
         nday = days_in_year(int(year))
         # Record length
-        nx, ny = params[res]["n_deg"]
+        nx, ny = params[data_type]["n_deg"]
         recl = nx * ny
         # Longitude and latitude bounds
-        x_start, y_start = params[res]["start_coords"]
-        scale_factor = params[res]["scale_factor"]
+        x_start, y_start = params[data_type]["start_coords"]
+        scale_factor = params[data_type]["scale_factor"]
         xlon = x_start + np.arange(nx) * scale_factor
         ylat = y_start + np.arange(ny) * scale_factor
 
         # Open the file
-        file_path = get_path(
-            "sources", "global", "aphrodite", f"APHRO_MA_{res}_{version}.{year}"
+        product = params[data_type]["product"]
+        res = params[data_type]["resolution"]
+        ext = params[data_type]["extension"]
+        path = get_path(
+            "sources",
+            "global",
+            "aphrodite",
+            f"APHRO_MA_{product}_{res}_{version}.{year}{ext}",
         )
-        with open(file_path, "rb") as f:
+        # Read binary data
+        logging.info("importing:%s", path)
+        with open(path, "rb") as f:
             # Initialise arrays
-            prcp_data = np.zeros((nday, ny, nx))
+            temp_data = np.zeros((nday, ny, nx))
             rstn_data = np.zeros((nday, ny, nx))
 
             for iday in range(nday):
-                # Read next batch of prcp values of size nx * ny
-                prcp_raw = np.fromfile(f, dtype="float32", count=recl)
-                prcp_raw = prcp_raw.reshape((ny, nx))
+                # Read next batch of temp values of size nx * ny
+                temp_raw = np.fromfile(f, dtype="float32", count=recl)
+                temp_raw = temp_raw.reshape((ny, nx))
                 # Read next batch of rstn values of size nx * ny
                 rstn_raw = np.fromfile(f, dtype="float32", count=recl)
                 rstn_raw = rstn_raw.reshape((ny, nx))
                 # Store in arrays
-                prcp_data[iday, :, :] = prcp_raw
+                temp_data[iday, :, :] = temp_raw
                 rstn_data[iday, :, :] = rstn_raw
 
-        prcp_data = prcp_data.astype("float32")
+        temp_data = temp_data.astype("float32")
         rstn_data = rstn_data.astype("float32")
         valid_xlon, valid_ylat = np.meshgrid(xlon, ylat, indexing="xy")
 
@@ -109,9 +130,9 @@ def process_gadm_aphroditeprecipitation(
                 continue
 
             valid_mask = (rstn_data[iday, :, :] != 0.0) & (
-                prcp_data[iday, :, :] != NO_DATA
+                temp_data[iday, :, :] != NO_DATA
             )
-            valid_prcp = prcp_data[iday][valid_mask]
+            valid_prcp = temp_data[iday][valid_mask]
             valid_lon = valid_xlon[valid_mask]
             valid_lat = valid_ylat[valid_mask]
 
@@ -131,7 +152,7 @@ def process_gadm_aphroditeprecipitation(
                 )
 
                 # Filter data for this sub-region
-                valid_prcp_region = valid_prcp[region_mask]
+                valid_temp_region = valid_prcp[region_mask]
 
                 output_row = {
                     "iso3": iso3,
@@ -143,10 +164,12 @@ def process_gadm_aphroditeprecipitation(
                     "month": this_date.month,
                     "day": this_date.day,
                     "week": "",
-                    "value": valid_prcp_region.sum(),
+                    "value": valid_temp_region.mean()
+                    if len(valid_temp_region) > 0
+                    else "",
                     "resolution": "0.25°" if res == "025deg" else "0.5°",
-                    "metric": "aphrodite-daily-precip",
-                    "unit": "mm",
+                    "metric": "aphrodite-daily-mean-temp",
+                    "unit": "°C",
                     "creation_date": date.today(),
                 }
                 to_append.append(pd.DataFrame([output_row]))
@@ -158,18 +181,4 @@ def process_gadm_aphroditeprecipitation(
                 to_append = [df for df in to_append if not df.empty]
                 output = pd.concat([output] + to_append, ignore_index=True)
 
-            # Scatter plot
-            if plots:
-                title = f"Precipitation\n{this_date}"
-                colourbar_label = "Precipitation [mm]"
-                path = get_path(
-                    "output",
-                    iso3,
-                    "aphrodite",
-                    f"{iso3}-{this_date}-aphrodite.total_precipitation.png",
-                )
-                plot_gadm_scatter(
-                    valid_lon, valid_lat, valid_prcp, title, colourbar_label, path, gdf
-                )
-
-    return output, "aphrodite-daily-precip.csv"
+    return output
