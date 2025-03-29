@@ -13,11 +13,11 @@ from typing import Literal
 
 def adjust_gamma_distribution(
     ds: xr.Dataset, window: int, dimension: str
-) -> tuple[float, float, float]:
+) -> xr.Dataset:
     ds_ma = ds.rolling(time=window, center=False).mean()
     # Nat log of moving averages
     ds_In = np.log(ds_ma)
-    ds_In = ds_In.where(not np.isinf(ds_In))
+    ds_In = ds_In.where(np.isinf(ds_In) == False)  # noqa: E712 comparison with False
     ds_mu = ds_ma.mean(dimension)
 
     # Overall mean of moving averages
@@ -32,7 +32,9 @@ def adjust_gamma_distribution(
     A = np.log(ds_mu) - (ds_sum / n)
     alpha = (1 / (4 * A)) * (1 + (1 + ((4 * A) / 3)) ** 0.5)
     beta = ds_mu / alpha
-    return A, alpha, beta
+    return xr.Dataset(
+        {"alpha": alpha, "beta": beta}, attrs={"dart_gamma_window": window}
+    )
 
 
 def standardized_precipitation(
@@ -77,11 +79,11 @@ def standardized_precipitation(
     tp = "tp" if not var.startswith("bc_") else "bc_tp"
     match var.removeprefix("bc_"):
         case "spi":
-            A, alpha, beta = adjust_gamma_distribution(
+            params = adjust_gamma_distribution(
                 ds_ref[tp], window=window, dimension=dimension
             )
         case "spie":
-            A, alpha, beta = adjust_gamma_distribution(
+            params = adjust_gamma_distribution(
                 ds_ref, window=window, dimension=dimension
             )
     ds_ma = ds.rolling(time=window, center=False).mean(dim=dimension)
@@ -89,7 +91,7 @@ def standardized_precipitation(
     def gamma_func(data, a, scale):
         return scipy.stats.gamma.cdf(data, a=a, scale=scale)
 
-    gamma = xr.apply_ufunc(gamma_func, ds_ma, alpha, beta)  # type: ignore
+    gamma = xr.apply_ufunc(gamma_func, ds_ma, params.alpha, params.beta)  # type: ignore
     # standardized precipitation index (inverse of CDF)
     norminv = functools.partial(scipy.stats.norm.ppf, loc=0, scale=1)
     norm_spi = xr.apply_ufunc(norminv, gamma)
