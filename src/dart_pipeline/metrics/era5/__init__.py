@@ -17,6 +17,7 @@ from ...util import iso3_admin_unpack
 from ...paths import get_path
 
 from .derived import compute_derived_metric
+from .spi import fit_gamma_distribution
 
 ACCUM_METRICS = [
     "hydrological_balance",
@@ -111,6 +112,10 @@ METRICS: dict[str, MetricInfo] = {
         "description": "Bias-corrected hydrological balance",
         "depends": depends_hydrological_balance,
         "unit": "m",
+    },
+    "spi.gamma": {
+        "description": "Fitted gamma distribution from historical data for SPI",
+        "unit": "unitless",
     },
 }
 
@@ -330,3 +335,22 @@ def era5_process(iso3: str, date: str, overwrite: bool = False) -> list[Path]:
             )
     del os.environ["TQDM_DISABLE"]
     return paths + generated_paths
+
+
+@register_process("era5.spi.gamma")
+def gamma_spi(iso3: str, reference: Path, window: int = 6) -> xr.Dataset:
+    ref = xr.open_dataset(reference)
+    # perform weekly resampling
+    ref = ref.resample(time="7D").sum()
+    tdim = [d for d in list(ref.coords) if d.endswith("time")]
+    if len(tdim) > 1:
+        raise ValueError(
+            f"More than one time dimension detected in reference dataset {tdim=}"
+        )
+    if len(tdim) == 0:
+        raise ValueError("No time dimension detected in reference dataset")
+    ds = fit_gamma_distribution(ref.tp, window=window, dimension=tdim[0])
+    ds.attrs["DART_history"] = f"gamma_spi({iso3!r}, {reference=}, {window=})"
+    ds.attrs["ISO3"] = iso3
+    ds.attrs["metric"] = "era5.spi.gamma"
+    return ds
