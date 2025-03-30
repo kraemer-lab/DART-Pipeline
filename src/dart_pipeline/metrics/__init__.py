@@ -1,4 +1,5 @@
 import inspect
+import logging
 import textwrap
 from pathlib import Path
 from typing import TypedDict, Unpack, cast
@@ -62,14 +63,19 @@ def register_fetch(metric: str):
 
 
 def register_process(metric: str):
-    if metric.split(".")[0] not in METRICS:
+    parts = metric.split(".")
+    source = parts[0]
+    if source not in METRICS:
         raise ValueError(
             "Metric first part (before .) refers to a metric source that must be registered using register_metrics()"
         )
-    if "." in metric:
-        source, metric = metric.split(".")[:2]
-        if metric in METRICS[source]["metrics"]:
-            raise ValueError("Metric must be registered using register_metrics()")
+    if len(parts) > 1:
+        metric_without_source_prefix = ".".join(parts[1:])
+        if metric_without_source_prefix not in METRICS[source]["metrics"]:
+            raise ValueError(
+                f"Metric {metric_without_source_prefix!r} must be registered as "
+                f"part of {source=} using register_metrics()"
+            )
 
     def decorator(func):
         PROCESSORS[metric] = func
@@ -94,50 +100,58 @@ def get(
         if p.default is p.empty
     }
     if missing_params := non_default_params - set(kwargs):
-        abort(source, f"missing required parameters {missing_params}")
+        abort(metric, f"missing required parameters {missing_params}")
 
     path = get_path("sources", source)
     links = FETCHERS[metric](**kwargs)
     source_fmt = f"\033[1m{source}\033[0m"
     links = links if isinstance(links, list) else [links]
     if isinstance(links[0], DataFile):
-        print(f"-- {source_fmt} fetches data directly, nothing to do")
+        logging.info(f"GET {source_fmt} fetches data directly, nothing to do")
         return
     if not links[0]:
-        print(f"-- {source_fmt} downloads data directly, nothing to do")
+        logging.info(f"GET {source_fmt} downloads data directly, nothing to do")
         return
     if isinstance(links[0], URLCollection):
         links = cast(list[URLCollection], links)
         for coll in links:
             if not coll.missing_files(path) and not update:
-                print(f"✅ SKIP {source_fmt} {coll}")
+                logging.info(f"skip {source_fmt} {coll}")
                 # unpack files
                 for file in coll.files:
                     to_unpack = path / coll.relative_path / Path(file).name
-                    print(f"• UNPACKING {to_unpack}", end="\r")
                     unpack_file(to_unpack, same_folder=True)
-                    print(f"✅ UNPACKED {to_unpack}")
+                    logging.info(f"unpacked {to_unpack}")
             msg = f"GET {source_fmt} {coll}"
-            print(f" •  {msg}", end="\r")
             success = download_files(coll, path, auth=None, unpack=True)
             n_ok = sum(success)
             if n_ok == len(success):
-                print(f"✅ {msg}")
+                logging.info(f"{msg}")
             elif n_ok > 0:
-                print(f"🟡 {msg} [{n_ok}/{len(success)} OK]")
+                logging.warning(f"partial {msg} [{n_ok}/{len(success)} OK]")
             else:
-                print(f"❌ {msg}")
+                logging.error(msg)
     if not skip_process and metric in PROCESSORS and metric not in SKIP_AUTO_PROCESS:
         process(metric, **kwargs)
 
 
+def print_path(p: Path) -> str:
+    if " " in str(p):
+        return '"' + str(p) + '"'
+    return str(p)
+
+
+def print_paths(ps: list[Path]) -> str:
+    return " ".join(map(print_path, ps))
+
+
 def process(metric: str, **kwargs) -> list[Path]:
     """Process a data source according to inputs from the command line."""
+    logging.info("processing %s", metric)
     source = metric.split(".")[0]
     if source not in PROCESSORS:
         abort("source not found:", source)
-    print(f" • PROC \033[1m{source}\033[0m ...", end="\r")
-    processor = PROCESSORS[source]
+    processor = PROCESSORS[metric]
     non_default_params = {
         p.name
         for p in inspect.signature(processor).parameters.values()
@@ -198,7 +212,7 @@ def print_metrics(filter_by: str | None = None):
 
         print()
         matched_metrics = [
-            m.split(".")[1] for m in filtered_metrics if m.split(".")[0] == s
+            ".".join(m.split(".")[1:]) for m in filtered_metrics if m.split(".")[0] == s
         ]
         for m_name in matched_metrics:
             metric = source["metrics"][m_name]
