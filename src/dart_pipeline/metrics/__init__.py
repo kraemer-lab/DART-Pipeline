@@ -1,3 +1,4 @@
+import json
 import inspect
 import logging
 import textwrap
@@ -187,6 +188,53 @@ def process(metric: str, **kwargs) -> list[Path]:
         return [outfile]
     else:
         raise ValueError("Unsupported result type {res=}")
+
+
+def find_metrics(
+    metric: str, iso3: str | None = None, date: int | str | None = None
+) -> list[Path]:
+    "Lists output files that match metric"
+    main = iso3 if iso3 else "global"
+    source = metric.split(".")[0]
+    glob = f"{main}-{date}-{metric}.*" if date else f"{main}-{metric}.*"
+    return list(get_path("output", main, source).glob(glob))
+
+
+def show_path(m: Path):
+    match m.suffix:
+        case ".nc":
+            print(xr.open_dataset(m))
+        case ".parquet":
+            print(pd.read_parquet(m))
+        case ".csv":
+            print(pd.read_csv(m))
+        case ".json":
+            data = json.loads(m.read_text())
+            print(json.dumps(data, sort_keys=True, indent=2))
+        case _:
+            print(m)
+
+
+def find_metric(
+    metric: str, iso3: str | None = None, date: str | None = None
+) -> pd.DataFrame | xr.Dataset | dict | Path:
+    "Reads in metric if only one match found"
+
+    ms = find_metrics(metric, iso3, date)
+    if len(ms) > 1:
+        raise ValueError(f"No unique data file found for {metric=}, {iso3=}, {date=}")
+    m = ms[0]
+    match m.suffix:
+        case ".nc":
+            return xr.open_dataset(m)
+        case ".parquet":
+            return pd.read_parquet(m)
+        case ".csv":
+            return pd.read_csv(m)
+        case ".json":
+            return json.loads(m.read_text())
+        case _:
+            return m
 
 
 def print_metrics(filter_by: str | None = None):

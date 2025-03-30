@@ -5,7 +5,14 @@ import logging
 import argparse
 import importlib
 
-from .metrics import get, process as process_metric, print_metrics, gather_metrics
+from .metrics import (
+    get,
+    process as process_metric,
+    print_metrics,
+    gather_metrics,
+    find_metrics,
+    show_path,
+)
 from .paths import get_path
 
 LOG_FORMAT = "%(asctime)s %(levelname)s %(message)s"
@@ -21,6 +28,7 @@ ingestion into a database. It has the following subcommands
 
      [get]    Gets data from a particular source. Sources may need
             additional parameters to be set.
+    [show]    Shows data for a particular metric
     [list]    Lists sources and processors of the data
  [process]    Processes data downloaded by a particular source
 
@@ -104,6 +112,7 @@ def main():
         help="Skip immediate processing",
         action="store_true",
     )
+
     process_parser = subparsers.add_parser(
         "process",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -117,6 +126,9 @@ def main():
         """,
     )
     process_parser.add_argument("metric", help="Metric to process")
+
+    show_parser = subparsers.add_parser("show", help="Show metric data")
+    show_parser.add_argument("metric", help="Metric to process")
 
     args, unknownargs = parser.parse_known_args()
     kwargs = parse_params(unknownargs)
@@ -143,6 +155,15 @@ def main():
             )
         case "process":
             process_metric(args.metric, **kwargs)
+        case "show":
+            ms = find_metrics(args.metric, **kwargs)
+            match len(ms):
+                case 0:
+                    print(f"No match found for {args.metric!r}, {kwargs}")
+                case 1:
+                    show_path(ms[0])
+                case _:
+                    print("\n".join(map(str, ms)))
         case _:
             print(USAGE.replace("[", "\033[1m").replace("]", "\033[0m"))
 
