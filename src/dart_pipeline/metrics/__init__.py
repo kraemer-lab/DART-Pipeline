@@ -4,6 +4,7 @@ import textwrap
 from pathlib import Path
 from typing import TypedDict, Unpack, cast
 
+import xarray as xr
 import pandas as pd
 
 from ..paths import get_path
@@ -159,20 +160,33 @@ def process(metric: str, **kwargs) -> list[Path]:
     }
     if missing_params := non_default_params - set(kwargs):
         abort(source, f"missing required parameters {missing_params}")
-    res: pd.DataFrame | list[Path] = processor(**kwargs)
+    res: pd.DataFrame | xr.Dataset | list[Path] = processor(**kwargs)
     if isinstance(res, list) and all(isinstance(r, Path) for r in res):
+        logging.info("output %s %s", metric, print_paths(res))
         return res  # nothing to do, processor has already written data
-    assert isinstance(res, pd.DataFrame)
-    iso3 = res.ISO3.unique()[0]
-    data_metric = res.metric.unique()[0]
-    admin = res.attrs["admin"]
-    if data_metric != metric:
-        raise ValueError(
-            f"Metric returned by processor {data_metric=} differs from requested {metric=}"
-        )
-    outfile = get_path("output", source) / f"{iso3}-{admin}-{metric}.parquet"
-    res.to_parquet(outfile, index=False)
-    return [outfile]
+    assert not isinstance(res, list)
+    if isinstance(res, pd.DataFrame):
+        iso3 = res.ISO3.unique()[0]
+        data_metric = res.metric.unique()[0]
+        admin = int(res.attrs["admin"])
+        assert admin in [1, 2, 3], f"Invalid administrative level {admin=}"
+        if data_metric != metric:
+            raise ValueError(
+                f"Metric returned by processor {data_metric=} differs from requested {metric=}"
+            )
+        outfile = get_path("output", iso3, source) / f"{iso3}-{admin}-{metric}.parquet"
+        res.to_parquet(outfile, index=False)
+        logging.info("output %s %s", metric, print_path(outfile))
+        return [outfile]
+    elif isinstance(res, xr.Dataset):
+        iso3 = res.attrs["ISO3"]
+        metric = res.attrs["metric"]
+        outfile = get_path("output", iso3, source) / f"{iso3}-{metric}.nc"
+        res.to_netcdf(outfile)
+        logging.info("output %s %s", metric, print_path(outfile))
+        return [outfile]
+    else:
+        raise ValueError("Unsupported result type {res=}")
 
 
 def print_metrics(filter_by: str | None = None):
