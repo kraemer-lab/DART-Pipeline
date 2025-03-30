@@ -65,7 +65,7 @@ def parse_params(params: list[str]) -> dict[str, str | int]:
     code or a iso3 code paired with an admin level (1, 2, or 3), separated by a
     hyphen, e.g. VNM or VNM-2.
 
-    The second parameter, if present, is *always* interpreted as a year or
+    The second positional parameter, if present, is interpreted as a year or
     partial date, such as 2020 or 2020-01 to represent January 2020.
     """
     out = {}
@@ -73,7 +73,7 @@ def parse_params(params: list[str]) -> dict[str, str | int]:
         return {}
     iso3 = params.pop(0)
     out: dict[str, str | int | bool] = {"iso3": iso3}
-    if params:
+    if params and "=" not in params[0]:
         out["date"] = params.pop(0)
     for param in params:
         if "=" in param:
