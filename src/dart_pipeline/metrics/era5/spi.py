@@ -4,16 +4,14 @@ standardised precipitation-evaporation index
 """
 
 import functools
+from typing import Literal
+
 import scipy.stats
 import numpy as np
 import xarray as xr
 
-from typing import Literal
 
-
-def adjust_gamma_distribution(
-    ds: xr.Dataset, window: int, dimension: str
-) -> xr.Dataset:
+def fit_gamma_distribution(ds: xr.Dataset, window: int, dimension: str) -> xr.Dataset:
     ds_ma = ds.rolling(time=window, center=False).mean()
     # Nat log of moving averages
     ds_In = np.log(ds_ma)
@@ -32,9 +30,7 @@ def adjust_gamma_distribution(
     A = np.log(ds_mu) - (ds_sum / n)
     alpha = (1 / (4 * A)) * (1 + (1 + ((4 * A) / 3)) ** 0.5)
     beta = ds_mu / alpha
-    return xr.Dataset(
-        {"alpha": alpha, "beta": beta}, attrs={"dart_gamma_window": window}
-    )
+    return xr.Dataset({"alpha": alpha, "beta": beta})
 
 
 def standardized_precipitation(
@@ -79,13 +75,11 @@ def standardized_precipitation(
     tp = "tp" if not var.startswith("bc_") else "bc_tp"
     match var.removeprefix("bc_"):
         case "spi":
-            params = adjust_gamma_distribution(
+            params = fit_gamma_distribution(
                 ds_ref[tp], window=window, dimension=dimension
             )
         case "spie":
-            params = adjust_gamma_distribution(
-                ds_ref, window=window, dimension=dimension
-            )
+            params = fit_gamma_distribution(ds_ref, window=window, dimension=dimension)
     ds_ma = ds.rolling(time=window, center=False).mean(dim=dimension)
 
     def gamma_func(data, a, scale):
