@@ -116,6 +116,7 @@ METRICS: dict[str, MetricInfo] = {
     "spi.gamma": {
         "description": "Fitted gamma distribution from historical data for SPI",
         "unit": "unitless",
+        "depends": ["total_precipitation"],
     },
 }
 
