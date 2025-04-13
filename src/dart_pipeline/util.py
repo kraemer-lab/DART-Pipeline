@@ -2,6 +2,7 @@
 
 import copy
 import json
+
 import os
 import sys
 import shutil
@@ -32,6 +33,27 @@ pd.set_option("display.max_columns", None)
 pd.set_option("display.max_rows", None)
 pd.set_option("display.max_colwidth", 40)
 pd.set_option("display.width", 228)  # sierra
+
+
+def get_admin_from_dataframe(df: pd.DataFrame) -> int:
+    "Gets admin level (1, 2, or 3) from data"
+
+    if df.attrs.get("admin"):
+        return df.attrs["admin"]
+    if "GID_1" in df.columns:
+        return max(i for i in (1, 2, 3) if f"GID_{i}" in df.columns)
+
+
+def logfmt(d: dict) -> str:
+    parts = []
+    for k, v in d.items():
+        if isinstance(v, str):
+            if any(c in v for c in ' ="'):
+                v = '"' + v.replace('"', '\\"') + '"'
+        else:
+            v = str(v)
+        parts.append(f"{k}={v}")
+    return " ".join(parts)
 
 
 def iso3_admin_unpack(iso3_admin: str) -> tuple[str, int]:
