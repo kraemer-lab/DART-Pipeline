@@ -21,12 +21,17 @@ SKIP_AUTO_PROCESS = ["era5"]
 
 
 def gather_metrics() -> list[str]:
-    return [
-        f.stem
-        for f in Path(__file__).parent.glob("*")
-        if (f.is_dir() and (f / "__init__.py").exists())
-        or (f.suffix == ".py" and f.name != "__init__.py")
+    root = Path(__file__).parent
+    paths = [
+        str(p.relative_to(root))
+        .replace(".py", "")
+        .replace("__init__", "")
+        .replace("/", ".")
+        .removesuffix(".")
+        for p in root.rglob("*.py")
     ]
+    paths = [p for p in paths if p != ""]
+    return paths
 
 
 class MetricInfo(TypedDict, total=False):
