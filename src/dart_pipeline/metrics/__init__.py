@@ -9,7 +9,7 @@ import xarray as xr
 import pandas as pd
 
 from ..paths import get_path
-from ..util import abort, unpack_file, download_files
+from ..util import abort, unpack_file, download_files, logfmt
 from ..types import DataFile, URLCollection
 
 METRICS = {}
@@ -149,7 +149,7 @@ def print_paths(ps: list[Path]) -> str:
 
 def process(metric: str, **kwargs) -> list[Path]:
     """Process a data source according to inputs from the command line."""
-    logging.info("processing %s", metric)
+    logging.info("processing %s %s", metric, logfmt(kwargs))
     source = metric.split(".")[0]
     if source not in PROCESSORS:
         abort("source not found:", source)
@@ -160,7 +160,7 @@ def process(metric: str, **kwargs) -> list[Path]:
         if p.default is p.empty
     }
     if missing_params := non_default_params - set(kwargs):
-        abort(source, f"missing required parameters {missing_params}")
+        abort(metric, f"missing required parameters {missing_params}")
     res: pd.DataFrame | xr.Dataset | list[Path] = processor(**kwargs)
     if isinstance(res, list) and all(isinstance(r, Path) for r in res):
         logging.info("output %s %s", metric, print_paths(res))
@@ -171,11 +171,13 @@ def process(metric: str, **kwargs) -> list[Path]:
         data_metric = res.metric.unique()[0]
         admin = int(res.attrs["admin"])
         assert admin in [1, 2, 3], f"Invalid administrative level {admin=}"
-        if data_metric != metric:
+        if not data_metric.startswith(metric):
             raise ValueError(
-                f"Metric returned by processor {data_metric=} differs from requested {metric=}"
+                f"Metric returned by processor {data_metric=} is not in the class of {metric=}"
             )
-        outfile = get_path("output", iso3, source) / f"{iso3}-{admin}-{metric}.parquet"
+        outfile = (
+            get_path("output", iso3, source) / f"{iso3}-{admin}-{data_metric}.parquet"
+        )
         res.to_parquet(outfile, index=False)
         logging.info("output %s %s", metric, print_path(outfile))
         return [outfile]
