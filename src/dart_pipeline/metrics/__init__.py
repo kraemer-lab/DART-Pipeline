@@ -50,7 +50,10 @@ class SourceInfo(TypedDict, total=False):
 
 
 def register_metrics(source: str, **kwargs: Unpack[SourceInfo]):
-    METRICS[source] = kwargs
+    if source in METRICS:
+        METRICS[source]["metrics"].update(kwargs.get("metrics", {}))
+    else:
+        METRICS[source] = kwargs
 
 
 def register_fetch(metric: str):
