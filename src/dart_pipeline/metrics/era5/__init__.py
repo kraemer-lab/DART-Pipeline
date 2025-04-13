@@ -92,7 +92,7 @@ METRICS: dict[str, MetricInfo] = {
         "unit": "unitless",
     },
     # actually depends on potential_evapotranspiration which depends on 2m_temperature.daily_{min,mean,max}
-    "spie": {
+    "spei": {
         "description": "Standardised precipitation-evaporation index",
         "depends": ["total_precipitation", "2m_temperature"],
         "unit": "unitless",
@@ -107,7 +107,7 @@ METRICS: dict[str, MetricInfo] = {
         "depends": ["total_precipitation"],
         "unit": "unitless",
     },
-    "bc_spie": {
+    "bc_spei": {
         "description": "Bias-corrected standardised precipitation-evaporation index",
         "depends": ["total_precipitation", "2m_temperature"],
         "unit": "unitless",
@@ -121,6 +121,11 @@ METRICS: dict[str, MetricInfo] = {
         "description": "Fitted gamma distribution from historical data for SPI",
         "unit": "unitless",
         "depends": ["total_precipitation"],
+    },
+    "spei.gamma": {
+        "description": "Fitted gamma distribution from historical data for SPEI",
+        "unit": "unitless",
+        "depends": ["2m_temperature", "total_precipitation"],
     },
 }
 
