@@ -6,6 +6,7 @@ standardised precipitation-evaporation index
 import functools
 from typing import Literal
 
+import xclim
 import scipy.stats
 import numpy as np
 import xarray as xr
@@ -87,7 +88,7 @@ def precipitation_weekly_dataset(iso3: str, ystart: int, yend: int) -> xr.Datase
 
 
 def fit_gamma_distribution(ds: xr.Dataset, window: int, dimension: str) -> xr.Dataset:
-    ds_ma = ds.rolling(time=window, center=False).mean()
+    ds_ma = ds.rolling(time=window, center=False).mean().dropna()
     # Nat log of moving averages
     ds_In = np.log(ds_ma)
     ds_In = ds_In.where(np.isinf(ds_In) == False)  # noqa: E712 comparison with False
@@ -106,6 +107,35 @@ def fit_gamma_distribution(ds: xr.Dataset, window: int, dimension: str) -> xr.Da
     alpha = (1 / (4 * A)) * (1 + (1 + ((4 * A) / 3)) ** 0.5)
     beta = ds_mu / alpha
     return xr.Dataset({"alpha": alpha, "beta": beta})
+
+
+def balance_weekly_dataset(iso3: str, ystart: int, yend: int) -> xr.Dataset:
+    """
+    Returns weekly dataset of potential evapotranspiration for a iso3 code for
+    a closed, inclusive range of years.
+
+    The returned dataset has the following variables:
+    - pevt: potential evapotranspiration
+    """
+    temp = temperature_daily_dataset(iso3, ystart, yend).rename({"valid_time": "time"})
+    pevt = (
+        xclim.indicators.atmos.potential_evapotranspiration(
+            tasmin=temp.mn2t24, tasmax=temp.mx2t24, tas=temp.t2m
+        )
+        # closed and label MUST be identical with that obtained from
+        # precipitation_weekly_dataset, which in turn must be aligned
+        # with geoglue.cds.weekly_reduce
+        .resample(time="W-MON", closed="left", label="left")
+        .sum()
+    )
+
+    # Resample precipitation to weekly sum
+    ds_precip = precipitation_weekly_dataset(iso3, ystart, yend).rename(
+        {"valid_time": "time"}
+    )
+    # TODO: check alignment of datasets
+    balance_hist = (ds_precip.tp - pevt).rename("balance")
+    return balance_hist.rename({"time": "valid_time"})
 
 
 def standardized_precipitation(
