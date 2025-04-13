@@ -19,6 +19,7 @@ import pandas as pd
 import py7zr
 import pycountry
 import requests
+import xarray as xr
 
 from .constants import (
     COMPRESSED_FILE_EXTS,
@@ -33,6 +34,13 @@ pd.set_option("display.max_columns", None)
 pd.set_option("display.max_rows", None)
 pd.set_option("display.max_colwidth", 40)
 pd.set_option("display.width", 228)  # sierra
+
+
+def raise_on_missing_variables(ds: xr.Dataset, required_vars: list[str]):
+    "Raises a ValueError if required variables are missing"
+    vars = set(ds.variables) - set(ds.coords)
+    if not set(required_vars) <= set(vars):
+        raise ValueError("Required variables missing in dataset: {required_vars}")
 
 
 def get_admin_from_dataframe(df: pd.DataFrame) -> int:
