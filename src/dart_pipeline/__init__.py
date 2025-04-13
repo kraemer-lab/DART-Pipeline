@@ -15,7 +15,7 @@ from .metrics import (
 )
 from .paths import get_path
 
-LOG_FORMAT = "%(asctime)s %(levelname)s %(message)s"
+LOG_FORMAT = "%(asctime)s %(levelname)s [%(name)s] %(message)s"
 
 USAGE = f"""[DART] – [D]engue [A]dvanced [R]eadiness [T]ools pipeline
 
