@@ -4,7 +4,6 @@ Standardised precipitation index (SPI)
 
 import re
 import logging
-from pathlib import Path
 
 import xarray as xr
 import pandas as pd
@@ -19,15 +18,29 @@ from ...paths import get_path
 from ...util import iso3_admin_unpack
 from ...metrics import register_process, find_metric
 
-from .util import fit_gamma_distribution
+from .util import fit_gamma_distribution, precipitation_weekly_dataset
 from . import get_dataset_pool, get_population
 
 
 @register_process("era5.spi.gamma")
-def gamma_spi(iso3: str, reference: Path, window: int = 6) -> xr.Dataset:
-    ref = xr.open_dataset(reference)
-    # perform weekly resampling
-    ref = ref.resample(time="7D").sum()
+def gamma_spi(iso3: str, date: str, window: int = 6) -> xr.Dataset:
+    """Calculates gamma parameter for SPI for a date range"""
+    try:
+        ystart, yend = date.split("-")
+        ystart = int(ystart)
+        yend = int(yend)
+    except ValueError:
+        raise ValueError(
+            "For era5.spi.gamma, specify date as a year range, e.g. 2000-2020"
+        )
+        raise
+    if ystart >= yend:
+        raise ValueError("For era5.spi.gamma, year end must be greater than year start")
+    if yend - ystart < 20:
+        raise ValueError(
+            "For era5.spi.gamma, historical dataset must span at least 20 years"
+        )
+    ref = precipitation_weekly_dataset(iso3, ystart, yend, window - 1)
     tdim = [d for d in list(ref.coords) if d.endswith("time")]
     if len(tdim) > 1:
         raise ValueError(
@@ -36,7 +49,7 @@ def gamma_spi(iso3: str, reference: Path, window: int = 6) -> xr.Dataset:
     if len(tdim) == 0:
         raise ValueError("No time dimension detected in reference dataset")
     ds = fit_gamma_distribution(ref.tp, window=window, dimension=tdim[0])
-    ds.attrs["DART_history"] = f"gamma_spi({iso3!r}, {reference=}, {window=})"
+    ds.attrs["DART_history"] = f"gamma_spi({iso3!r}, {ystart=}, {yend=}, {window=})"
     ds.attrs["ISO3"] = iso3
     ds.attrs["metric"] = "era5.spi.gamma"
     return ds
