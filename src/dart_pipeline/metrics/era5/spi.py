@@ -24,7 +24,18 @@ from . import get_dataset_pool, get_population
 
 @register_process("era5.spi.gamma")
 def gamma_spi(iso3: str, date: str, window: int = 6) -> xr.Dataset:
-    """Calculates gamma parameter for SPI for a date range"""
+    """Calculates gamma parameter for SPI for a date range
+
+    Parameters
+    ----------
+    iso3
+        Country ISO3 code
+    date
+        Specify year range here for which to calculate gamma distribution
+        e.g. 2000-2020
+    window
+        Length of the time window used to measure SPI in weeks (default=6 weeks)
+    """
     try:
         ystart, yend = date.split("-")
         ystart = int(ystart)
@@ -40,7 +51,7 @@ def gamma_spi(iso3: str, date: str, window: int = 6) -> xr.Dataset:
         raise ValueError(
             "For era5.spi.gamma, historical dataset must span at least 20 years"
         )
-    ref = precipitation_weekly_dataset(iso3, ystart, yend, window - 1)
+    ref = precipitation_weekly_dataset(iso3, ystart, yend)
     tdim = [d for d in list(ref.coords) if d.endswith("time")]
     if len(tdim) > 1:
         raise ValueError(
