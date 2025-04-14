@@ -10,20 +10,58 @@ import scipy.stats
 import numpy as np
 import xarray as xr
 from geoglue.util import find_unique_time_coord
+from geoglue.cds import CdsDataset
 
 from . import get_dataset_pool
 
 
-def precipitation_weekly_dataset(
-    iso3: str, ystart: int, yend: int, window: int
-) -> xr.Dataset:
+def temperature_stat_daily(cds: CdsDataset) -> xr.Dataset:
+    "Daily statistics for temperature from CdsDataset"
+    return xr.Dataset(
+        {
+            "t2m": cds.instant.t2m.resample(valid_time="D").mean("valid_time"),
+            "mn2t24": cds.instant.t2m.resample(valid_time="D").min("valid_time"),
+            "mx2t24": cds.instant.t2m.resample(valid_time="D").max("valid_time"),
+        },
+    )
+
+
+def temperature_daily_dataset(iso3: str, ystart: int, yend: int) -> xr.Dataset:
+    """
+    Returns weekly dataset of temperature for a iso3 code for a
+    closed, inclusive range of years.
+
+    The returned dataset has the following variables:
+    - t2m: weekly mean of the daily mean temperature
+    - mx2t24: weekly mean of the daily maximum temperature
+    - mn2t24: weekly mean of the daily minimum temperature
+    """
+    pool = get_dataset_pool(iso3)
+    avail_years = set(pool.years)
+    required_years = set(range(ystart, yend + 1))
+    if not required_years <= avail_years:
+        raise ValueError(
+            f"Required years not available in DatasetPool for {iso3!r}:\n"
+            f"\t{required_years - avail_years}\n"
+            "\tUse `dart-pipeline get era5 VNM <year>` to download these"
+        )
+
+    cds0 = pool[ystart]
+    ds = temperature_stat_daily(cds0)
+    for year in range(ystart + 1, yend + 1):
+        cdsy = pool[year]
+        ds_y = temperature_stat_daily(cdsy)
+        ds = xr.concat([ds, ds_y], dim="valid_time")
+    return ds
+
+
+def precipitation_weekly_dataset(iso3: str, ystart: int, yend: int) -> xr.Dataset:
     """
     Returns weekly dataset of precipitation for a iso3 code for a
     closed, inclusive range of years.
 
-    `window` specifies an integer number of offset weeks that are included
-    before the beginning of the dataset. This is to allow rolling means to have
-    non-NA values when using windowed means.
+    The returned dataset has the following variables:
+    - tp: weekly sum of the total daily precipitation
     """
     pool = get_dataset_pool(iso3)
     avail_years = set(pool.years)
@@ -38,8 +76,7 @@ def precipitation_weekly_dataset(
         )
     ds = pool.weekly_reduce(ystart, "accum")
     variables = set(ds.variables) - set(ds.coords)
-    # drop variables other than 'tp'
-    to_drop = variables - {"tp"}
+    to_drop = variables - {"tp"}  # drop variables other than 'tp'
     ds = ds.drop_vars(to_drop)
     tdim = find_unique_time_coord(ds)
     for year in range(ystart + 1, yend + 1):
@@ -62,8 +99,8 @@ def fit_gamma_distribution(ds: xr.Dataset, window: int, dimension: str) -> xr.Da
     # Summation of Natural log of moving averages
     ds_sum = ds_In.sum(dimension)
 
-    # Computing essentials for gamma distribution
-    n = ds_In[window - 1 :, :, :].count(dimension)  # size of dataset
+    # size of the dataset independently of the location of time position
+    n = len(ds_In[dimension]) - (window - 1)
 
     A = np.log(ds_mu) - (ds_sum / n)
     alpha = (1 / (4 * A)) * (1 + (1 + ((4 * A) / 3)) ** 0.5)
