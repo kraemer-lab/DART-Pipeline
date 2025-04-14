@@ -9,6 +9,44 @@ from typing import Literal
 import scipy.stats
 import numpy as np
 import xarray as xr
+from geoglue.util import find_unique_time_coord
+
+from . import get_dataset_pool
+
+
+def precipitation_weekly_dataset(
+    iso3: str, ystart: int, yend: int, window: int
+) -> xr.Dataset:
+    """
+    Returns weekly dataset of precipitation for a iso3 code for a
+    closed, inclusive range of years.
+
+    `window` specifies an integer number of offset weeks that are included
+    before the beginning of the dataset. This is to allow rolling means to have
+    non-NA values when using windowed means.
+    """
+    pool = get_dataset_pool(iso3)
+    avail_years = set(pool.years)
+    required_years = set(
+        range(ystart - 1, yend + 1)
+    )  # one extra year required for windowed data
+    if not required_years <= avail_years:
+        raise ValueError(
+            f"Required years not available in DatasetPool for {iso3!r}:\n"
+            f"\t{required_years - avail_years}\n"
+            "\tUse `dart-pipeline get era5 VNM <year>` to download these"
+        )
+    ds = pool.weekly_reduce(ystart, "accum")
+    variables = set(ds.variables) - set(ds.coords)
+    # drop variables other than 'tp'
+    to_drop = variables - {"tp"}
+    ds = ds.drop_vars(to_drop)
+    tdim = find_unique_time_coord(ds)
+    for year in range(ystart + 1, yend + 1):
+        ds = xr.concat(
+            [ds, pool.weekly_reduce(year, "accum").drop_vars(to_drop)], dim=tdim
+        )
+    return ds
 
 
 def fit_gamma_distribution(ds: xr.Dataset, window: int, dimension: str) -> xr.Dataset:
