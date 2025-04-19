@@ -151,9 +151,9 @@ DERIVED_METRICS_SEPARATE_IMPL = ["spi", "spie"] + [
 ]
 
 
-def get_dataset_pool(iso3: str) -> DatasetPool:
+def get_dataset_pool(iso3: str, data_path: Path | None = None) -> DatasetPool:
     return ReanalysisSingleLevels(
-        iso3, VARIABLES, path=get_path("sources", iso3, "era5")
+        iso3, VARIABLES, path=data_path or get_path("sources", iso3, "era5")
     ).get_dataset_pool()
 
 
