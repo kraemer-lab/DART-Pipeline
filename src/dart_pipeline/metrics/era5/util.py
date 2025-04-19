@@ -5,6 +5,7 @@ standardised precipitation-evaporation index
 
 import functools
 from typing import Literal
+from pathlib import Path
 
 import xclim
 import scipy.stats
@@ -27,7 +28,9 @@ def temperature_stat_daily(cds: CdsDataset) -> xr.Dataset:
     )
 
 
-def temperature_daily_dataset(iso3: str, ystart: int, yend: int) -> xr.Dataset:
+def temperature_daily_dataset(
+    iso3: str, ystart: int, yend: int, data_path: Path | None = None
+) -> xr.Dataset:
     """
     Returns weekly dataset of temperature for a iso3 code for a
     closed, inclusive range of years.
@@ -37,7 +40,7 @@ def temperature_daily_dataset(iso3: str, ystart: int, yend: int) -> xr.Dataset:
     - mx2t24: weekly mean of the daily maximum temperature
     - mn2t24: weekly mean of the daily minimum temperature
     """
-    pool = get_dataset_pool(iso3)
+    pool = get_dataset_pool(iso3, data_path)
     avail_years = set(pool.years)
     required_years = set(range(ystart, yend + 1))
     if not required_years <= avail_years:
@@ -56,7 +59,9 @@ def temperature_daily_dataset(iso3: str, ystart: int, yend: int) -> xr.Dataset:
     return ds
 
 
-def precipitation_weekly_dataset(iso3: str, ystart: int, yend: int) -> xr.Dataset:
+def precipitation_weekly_dataset(
+    iso3: str, ystart: int, yend: int, data_path: Path | None = None
+) -> xr.Dataset:
     """
     Returns weekly dataset of precipitation for a iso3 code for a
     closed, inclusive range of years.
@@ -64,7 +69,7 @@ def precipitation_weekly_dataset(iso3: str, ystart: int, yend: int) -> xr.Datase
     The returned dataset has the following variables:
     - tp: weekly sum of the total daily precipitation
     """
-    pool = get_dataset_pool(iso3)
+    pool = get_dataset_pool(iso3, data_path)
     avail_years = set(pool.years)
     required_years = set(
         range(ystart - 1, yend + 1)
@@ -87,8 +92,10 @@ def precipitation_weekly_dataset(iso3: str, ystart: int, yend: int) -> xr.Datase
     return ds
 
 
-def fit_gamma_distribution(ds: xr.Dataset, window: int, dimension: str) -> xr.Dataset:
-    ds_ma = ds.rolling(time=window, center=False).mean().dropna()
+def fit_gamma_distribution(
+    ds: xr.Dataset | xr.DataArray, window: int, dimension: str
+) -> xr.Dataset:
+    ds_ma = ds.rolling({dimension: window}, center=False).mean().dropna(dimension)
     # Nat log of moving averages
     ds_In = np.log(ds_ma)
     ds_In = ds_In.where(np.isinf(ds_In) == False)  # noqa: E712 comparison with False
@@ -109,7 +116,9 @@ def fit_gamma_distribution(ds: xr.Dataset, window: int, dimension: str) -> xr.Da
     return xr.Dataset({"alpha": alpha, "beta": beta})
 
 
-def balance_weekly_dataset(iso3: str, ystart: int, yend: int) -> xr.Dataset:
+def balance_weekly_dataarray(
+    iso3: str, ystart: int, yend: int, data_path: Path | None = None
+) -> xr.DataArray:
     """
     Returns weekly dataset of potential evapotranspiration for a iso3 code for
     a closed, inclusive range of years.
@@ -117,7 +126,9 @@ def balance_weekly_dataset(iso3: str, ystart: int, yend: int) -> xr.Dataset:
     The returned dataset has the following variables:
     - pevt: potential evapotranspiration
     """
-    temp = temperature_daily_dataset(iso3, ystart, yend).rename({"valid_time": "time"})
+    temp = temperature_daily_dataset(iso3, ystart, yend, data_path).rename(
+        {"valid_time": "time"}
+    )
     pevt = (
         xclim.indicators.atmos.potential_evapotranspiration(
             tasmin=temp.mn2t24, tasmax=temp.mx2t24, tas=temp.t2m
@@ -130,7 +141,7 @@ def balance_weekly_dataset(iso3: str, ystart: int, yend: int) -> xr.Dataset:
     )
 
     # Resample precipitation to weekly sum
-    ds_precip = precipitation_weekly_dataset(iso3, ystart, yend).rename(
+    ds_precip = precipitation_weekly_dataset(iso3, ystart, yend, data_path).rename(
         {"valid_time": "time"}
     )
     # TODO: check alignment of datasets
