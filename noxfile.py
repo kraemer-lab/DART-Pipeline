@@ -16,7 +16,7 @@ def lint(session):
 def tests(session):
     session.env.update({"UV_PROJECT_ENVIRONMENT": session.virtualenv.location})
     session.run("uv", "sync", "--all-extras")
-    session.run("uv", "run", "pytest", "--cov")
+    session.run("uv", "run", "pytest", "-n", "auto", "-vv", "--cov")
 
 
 @nox.session(python="3.10", default=False)
