@@ -39,5 +39,5 @@ def get_path(section: Literal["sources", "output", "scratch"], *args) -> Path:
     args = list(args)
     last = args.pop() if args and "." in args[-1] else None
     if not (path := Path(root, section, *args)).exists():
-        path.mkdir(parents=True)
+        path.mkdir(parents=True, exist_ok=True)
     return path / last if last else path
