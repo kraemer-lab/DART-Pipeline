@@ -19,7 +19,7 @@ def tests(session):
     session.run("uv", "run", "pytest", "--cov")
 
 
-@nox.session(python="3.10")
+@nox.session(python="3.10", default=False)
 def docs(session):
     session.env.update({"UV_PROJECT_ENVIRONMENT": session.virtualenv.location})
     session.run("uv", "sync", "--all-extras")
