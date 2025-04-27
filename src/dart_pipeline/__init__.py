@@ -31,9 +31,10 @@ ingestion into a database. It has the following subcommands
 
      [get]    Gets data from a particular source. Sources may need
             additional parameters to be set.
-    [show]    Shows data for a particular metric
     [list]    Lists sources and processors of the data
+    [plot]    Plot metric data file in the terminal
  [process]    Processes data downloaded by a particular source
+    [show]    Shows data for a particular metric
 
 To see detailed help on any of these, run
     uv run dart-pipeline <subcommand> --help
