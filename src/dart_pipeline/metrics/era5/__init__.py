@@ -144,7 +144,6 @@ foregoing.""",
 STATS = ["min", "mean", "max", "sum"]
 VARIABLES = sorted(set(sum([METRICS[m].get("depends", [m]) for m in METRICS], [])))
 
-print(f"{VARIABLES=}")
 INSTANT_METRICS = [m for m in METRICS if m not in ACCUM_METRICS]
 DERIVED_METRICS_SEPARATE_IMPL = ["spi", "spie"] + [
     m for m in ACCUM_METRICS if m.startswith("bc_")
