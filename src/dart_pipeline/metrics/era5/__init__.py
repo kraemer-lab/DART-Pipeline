@@ -1,9 +1,8 @@
 import os
 import logging
-import multiprocessing
 from typing import Literal
 from pathlib import Path
-from functools import cache, partial
+from functools import cache
 
 import xarray as xr
 
@@ -160,7 +159,7 @@ def get_dataset_pool(iso3: str, data_path: Path | None = None) -> DatasetPool:
 def get_resampled_paths(iso3: str, year: int) -> dict[str, Path]:
     return {
         stat: get_path(
-            "scratch", "era5", iso3, f"{iso3}-{year}-era5.daily_{stat}.resampled.nc"
+            "scratch", iso3, "era5", f"{iso3}-{year}-era5.daily_{stat}.resampled.nc"
         )
         for stat in ["mean", "min", "max", "sum"]
     }
@@ -180,8 +179,8 @@ def metric_path(iso3: str, admin: int, year: int, metric: str, statistic: str) -
     assert statistic in STATS
     return get_path(
         "output",
-        "era5",
         iso3,
+        "era5",
         f"{iso3}-{admin}-{year}-era5.{metric}.daily_{statistic}.parquet",
     )
 
@@ -192,14 +191,12 @@ def get_population(iso3: str, year: int) -> MemoryRaster:
 
 
 def population_weighted_aggregation(
-    metric_statistic: tuple[str, str],
+    metric: str,
+    statistic: str,
     iso3: str,
     admin: int,
     year: int,
 ) -> Path:
-    logger = multiprocessing.get_logger()
-    metric, statistic = metric_statistic
-    logger.info(f"Population aggregation for {metric=} with {statistic=}")
     unit = METRICS[metric].get("unit")
     resampled_paths = get_resampled_paths(iso3, year)
     country = Country(iso3)
@@ -313,8 +310,7 @@ def era5_process(iso3: str, date: str, overwrite: bool = False) -> list[Path]:
     ]
 
     os.environ["TQDM_DISABLE"] = "1"
-    print(metric_statistic_combinations)
-    multiprocessing.log_to_stderr(logging.INFO)
+    logging.info("Metric statistic combinations %r", metric_statistic_combinations)
 
     already_existing_metrics = [
         (m, s)
@@ -334,18 +330,11 @@ def era5_process(iso3: str, date: str, overwrite: bool = False) -> list[Path]:
         logging.warning(
             f"Skipping calculations for existing metrics {iso3}-{admin} {year=} {already_existing_metrics!r}"
         )
-    if metric_statistic_combinations:
-        with multiprocessing.Pool() as p:
-            generated_paths = list(
-                p.map(
-                    partial(
-                        population_weighted_aggregation,
-                        iso3=iso3,
-                        admin=admin,
-                        year=year,
-                    ),
-                    metric_statistic_combinations,
-                )
-            )
+    for metric, statistic in metric_statistic_combinations:
+        path = population_weighted_aggregation(metric, statistic, iso3, admin, year)
+        logging.info(
+            f"Population aggregation for {metric=} with {statistic=} written to {path}"
+        )
+
     del os.environ["TQDM_DISABLE"]
     return paths + generated_paths
