@@ -5,6 +5,8 @@ import logging
 import argparse
 import importlib
 
+import pandas as pd
+
 from .metrics import (
     get,
     process as process_metric,
@@ -14,6 +16,7 @@ from .metrics import (
     show_path,
 )
 from .paths import get_path
+from .plots import plot_metric_data_console
 
 LOG_FORMAT = "%(asctime)s %(levelname)s [%(name)s] %(message)s"
 
@@ -130,6 +133,14 @@ def main():
     show_parser = subparsers.add_parser("show", help="Show metric data")
     show_parser.add_argument("metric", help="Metric to process")
 
+    plot_parser = subparsers.add_parser(
+        "plot", help="Plot a metric file at the terminal"
+    )
+    plot_parser.add_argument("file", help="File to plot")
+    plot_parser.add_argument(
+        "--size", help="Figure size as a tuple of integers, e.g. 8,16"
+    )
+
     args, unknownargs = parser.parse_known_args()
     kwargs = parse_params(unknownargs)
 
@@ -164,6 +175,15 @@ def main():
                     show_path(ms[0])
                 case _:
                     print("\n".join(map(str, ms)))
+        case "plot":
+            df = pd.read_parquet(args.file)
+            if args.size:
+                x, y = args.size.split(",")
+                x, y = int(x), int(y)
+                figsize = x, y
+            else:
+                figsize = None
+            plot_metric_data_console(df, figsize)
         case _:
             print(USAGE.replace("[", "\033[1m").replace("]", "\033[0m"))
 
