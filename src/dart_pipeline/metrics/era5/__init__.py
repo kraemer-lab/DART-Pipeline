@@ -228,7 +228,7 @@ def era5_fetch(iso3: str, date: str) -> CdsPath | None:
     iso3 = iso3.upper()
     year = int(date)
     data = ReanalysisSingleLevels(
-        iso3, VARIABLES, path=get_path("sources", "era5", iso3)
+        iso3, VARIABLES, path=get_path("sources", iso3, "era5")
     )
     return data.get(year)
 
@@ -255,7 +255,7 @@ def era5_process(iso3: str, date: str, overwrite: bool = False) -> list[Path]:
     year = int(date)
     iso3, admin = iso3_admin_unpack(iso3)
     paths = {
-        stat: get_path("scratch", "era5", iso3, f"{iso3}-{year}-era5.daily_{stat}.nc")
+        stat: get_path("scratch", iso3, "era5", f"{iso3}-{year}-era5.daily_{stat}.nc")
         for stat in ["mean", "min", "max", "sum"]
     }
     # after cdo resampling
