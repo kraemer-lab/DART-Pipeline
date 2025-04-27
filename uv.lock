@@ -523,6 +523,7 @@ dependencies = [
     { name = "pandas" },
     { name = "py7zr" },
     { name = "pycountry" },
+    { name = "pyplotsixel" },
     { name = "pyquadkey2" },
     { name = "rasterio" },
     { name = "requests" },
@@ -562,6 +563,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.2" },
     { name = "py7zr", specifier = "==0.20.6" },
     { name = "pycountry", specifier = "==24.6.1" },
+    { name = "pyplotsixel", specifier = ">=0.2.1" },
     { name = "pyquadkey2", specifier = ">0.3.0" },
     { name = "rasterio", specifier = "==1.*" },
     { name = "requests", specifier = ">=2" },
@@ -1655,6 +1657,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/8c/d5/e5aeee5387091148a
 wheels = [
     { url = "https://files.pythonhosted.org/packages/be/ec/2eb3cd785efd67806c46c13a17339708ddc346cbb684eade7a6e6f79536a/pyparsing-3.2.0-py3-none-any.whl", hash = "sha256:93d9577b88da0bbea8cc8334ee8b918ed014968fd2ec383e868fb8afb1ccef84", size = 106921, upload_time = "2024-10-13T10:01:13.682Z" },
 ]
+
+[[package]]
+name = "pyplotsixel"
+version = "0.2.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/30/21/49d1f4767c4bffa73b13bd75e06ad0639c31e63c935b6c8a2292811aee2e/pyplotsixel-0.2.1.tar.gz", hash = "sha256:df6e26b24328a7bfa9bee3ca0041783f1a254c8c0a3fc79a50335b8b96db35ef", size = 2956, upload_time = "2024-10-10T23:48:10.502Z" }
 
 [[package]]
 name = "pyppmd"
