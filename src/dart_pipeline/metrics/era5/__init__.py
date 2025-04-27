@@ -199,7 +199,13 @@ def population_weighted_aggregation(
 ) -> Path:
     unit = METRICS[metric].get("unit")
     resampled_paths = get_resampled_paths(iso3, year)
+    logging.info(
+        f"Population weighted aggregation [{iso3}-{admin}] {year=} {metric=} {statistic=}"
+    )
     country = Country(iso3)
+    logging.info(
+        "Making DatasetZonalStatistics(xr.open_dataset({resampled_paths[statistic]!r}, Country({iso3!r}).admin({admin}), weights=get_population({iso3!r}, year))"
+    )
     ds = DatasetZonalStatistics(
         xr.open_dataset(resampled_paths[statistic]),
         country.admin(admin),
@@ -210,13 +216,16 @@ def population_weighted_aggregation(
         if metric not in ACCUM_METRICS
         else "area_weighted_sum"
     )
+    variable = VARIABLE_MAPPINGS.get(metric, metric)
+    logging.info(f"Performing zonal_stats({variable!r}, {operation=})")
     df = ds.zonal_stats(
-        VARIABLE_MAPPINGS.get(metric, metric),
+        variable,
         operation,
         const_cols={"ISO3": iso3, "metric": f"era5.{metric}.{statistic}", "unit": unit},
     )
     outfile = metric_path(iso3, admin, year, metric, statistic)
     df.to_parquet(outfile)
+    logging.info(f"Output [{iso3}-{admin}] {year=} {metric=} {statistic=} -> {outfile}")
     return outfile
 
 
@@ -291,7 +300,9 @@ def era5_process(iso3: str, date: str, overwrite: bool = False) -> list[Path]:
 
     for stat in ("min", "max", "mean", "sum"):
         resampling = "remapdis" if stat == "sum" else "remapbil"
-        logging.info(f"Resampling using CDO for {stat=} using {resampling=}")
+        logging.info(
+            f"Resampling using CDO for {stat=} using {resampling=}: {paths[stat]} -> {resampled_paths[stat]}"
+        )
         resample(
             resampling, paths[stat], get_population(iso3, year), resampled_paths[stat]
         )
@@ -331,10 +342,7 @@ def era5_process(iso3: str, date: str, overwrite: bool = False) -> list[Path]:
             f"Skipping calculations for existing metrics {iso3}-{admin} {year=} {already_existing_metrics!r}"
         )
     for metric, statistic in metric_statistic_combinations:
-        path = population_weighted_aggregation(metric, statistic, iso3, admin, year)
-        logging.info(
-            f"Population aggregation for {metric=} with {statistic=} written to {path}"
-        )
+        population_weighted_aggregation(metric, statistic, iso3, admin, year)
 
     del os.environ["TQDM_DISABLE"]
     return paths + generated_paths
