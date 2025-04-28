@@ -35,9 +35,13 @@ def gather_metrics() -> list[str]:
 
 
 class MetricInfo(TypedDict, total=False):
+    url: str
     description: str
     depends: list[str]
     unit: str
+    citation: str
+    license: str
+    license_text: str
     range: tuple[int, int] | tuple[float, float]
     statistics: list[str]
 
@@ -63,7 +67,7 @@ def register_fetch(metric: str):
         )
     if "." in metric:
         source, metric = metric.split(".")[:2]
-        if metric in METRICS[source]["metrics"]:
+        if metric not in METRICS[source]["metrics"]:
             raise ValueError("Metric must be registered using register_metrics()")
 
     def decorator(func):
@@ -153,6 +157,10 @@ def print_path(p: Path) -> str:
 
 def print_paths(ps: list[Path]) -> str:
     return " ".join(map(print_path, ps))
+
+
+def blockfmt(s: str, indent: int) -> str:
+    return textwrap.indent(textwrap.dedent(s).strip(), " " * indent)
 
 
 def process(metric: str, **kwargs) -> list[Path]:
@@ -262,10 +270,10 @@ def print_metrics(filter_by: str | None = None):
         print()
         source = METRICS[s]
         print(f"\033[36m\033[1m{s}\033[0m - \033[36m{source['description']}\033[0m")
-        urls = source.get("url", "Not available")
-        if isinstance(urls, str):
-            urls = [urls]
-        print("\n".join(f"  URL: {u}" for u in urls))
+        if urls := source.get("url"):
+            if isinstance(urls, str):
+                urls = [urls]
+            print("\n".join(f"  URL: {u}" for u in urls))
         if not source.get("redistribution_allowed", True):
             print("  \033[2mRedistribution not allowed\033[0m")
         if source.get("auth_url"):
@@ -290,5 +298,15 @@ def print_metrics(filter_by: str | None = None):
             metric = source["metrics"][m_name]
             print(f"  \033[1m{s}.{m_name}\033[0m")
             print(f"    {metric['description']} [{metric['unit']}]")
+            if metric.get("url"):
+                print("    URL:", metric["url"])
+            if metric.get("license"):
+                print("    License:", metric["license"])
+            if metric.get("license_text"):
+                print("    License:")
+                print(blockfmt(metric["license_text"], 6))
+            if metric.get("citation"):
+                print("    Citation:")
+                print(blockfmt(metric["citation"], 6))
             if metric.get("resolution"):
                 print("    Resolution:", metric["resolution"])
