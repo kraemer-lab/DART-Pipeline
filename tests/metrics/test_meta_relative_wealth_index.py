@@ -33,22 +33,8 @@ def test_meta_pop_density_data():
         assert meta_pop_density_data("VNM") == URLCollection(
             "https://data.humdata.org",
             files=[
-                f"{dataset}/b60dab07-0a27-47f3-894d-02e9fbee6473/download/vnm_children_under_five_2020_csv.zip",
-                f"{dataset}/a2ca47a3-b7d7-4a39-a605-161d4790c6f9/download/vnm_children_under_five_2020_geotiff.zip",
-                f"{dataset}/77edfcc3-d037-4233-9b16-7ebb684b4752/download/vnm_elderly_60_plus_2020_csv.zip",
-                f"{dataset}/61b6a396-ffcc-4710-a453-174914822164/download/vnm_elderly_60_plus_2020_geotiff.zip",
-                f"{dataset}/e0d42fbb-2436-4f3e-afd1-83d1ac6314b2/download/vnm_men_2020_csv.zip",
-                f"{dataset}/76990cd9-a2dc-44e6-809c-492698b090c0/download/vnm_men_2020_geotiff.zip",
-                f"{dataset}/0bd525fa-3f63-447b-9afa-3d5075657ce4/download/vnm_women_2020_csv.zip",
-                f"{dataset}/5bd99468-ea44-4a50-b64b-54343b182842/download/vnm_women_2020_geotiff.zip",
-                f"{dataset}/5727eb4e-ce2a-4250-a9a0-2603d889ff02/download/vnm_women_of_reproductive_age_15_49_2020_csv.zip",
-                f"{dataset}/855e27d7-d191-440d-936a-ecedfded238d/download/vnm_women_of_reproductive_age_15_49_2020_geotiff.zip",
-                f"{dataset}/aa6dd9dd-eecd-4f3d-b6b2-fa0f0b5faa70/download/vnm_youth_15_24_2020_csv.zip",
-                f"{dataset}/e36dce9f-ea1d-4933-8a37-dc5838df11f0/download/vnm_youth_15_24_2020_geotiff.zip",
-                f"{dataset}/fade8620-0935-4d26-b0c6-15515dd4bf8b/download/vnm_general_2020_geotiff.zip",
                 f"{dataset}/0fbf4055-7091-4041-a7ea-25f057debd7c/download/vnm_general_2020_csv.zip",
             ],
-            relative_path="VNM",
         )
 
 
@@ -80,8 +66,7 @@ def test_get_admin_region():
 
 @mock.patch("dart_pipeline.metrics.meta_relative_wealth_index.get_path")
 @mock.patch("dart_pipeline.metrics.meta_relative_wealth_index.get_country_name")
-@mock.patch("dart_pipeline.metrics.meta_relative_wealth_index.plot_gadm_macro_heatmap")
-def test_process_gadm_rwi(mock_plot, mock_get_country, mock_get_path):
+def test_process_gadm_rwi(mock_get_country, mock_get_path):
     mock_get_path.return_value = "mock_rwi.csv"
     mock_get_country.return_value = "Mockland"
 
@@ -115,14 +100,13 @@ def test_process_gadm_rwi(mock_plot, mock_get_country, mock_get_path):
         #     side_effect=lambda func, axis: rwi.apply(func, axis=axis),
         # ),
     ):
-        output_rwi = process_gadm_rwi("VNM", 1, plots=False)
+        output_rwi = process_gadm_rwi("VNM", 1)
 
-    assert "iso3" in output_rwi.columns
+    assert "ISO3" in output_rwi.columns
     assert "value" in output_rwi.columns
     assert "unit" in output_rwi.columns
-    assert output_rwi.iloc[0]["admin_level_1"] == "Region 1"
+    assert output_rwi.iloc[0]["GID_1"] == "region_1"
     assert output_rwi.iloc[0]["value"] == 0.2
-    assert not mock_plot.called
 
 
 @mock.patch("dart_pipeline.metrics.meta_relative_wealth_index.get_path")
@@ -174,14 +158,14 @@ def test_process_gadm_popdensity_rwi(mock_pd_read, mock_gpd_read):
                 "latitude": [10.0],
                 "longitude": [106.0],
                 "quadkey": ["1234"],
-                "pop_2023": [1000],
+                "pop_2020": [1000],
             }
         ),
     ]
 
-    df = process_gadm_popdensity_rwi("VNM", "2023", "2", plots=False)
+    df = process_gadm_popdensity_rwi("VNM", 2)
 
     assert isinstance(df, pd.DataFrame)
-    assert "iso3" in df.columns
+    assert "ISO3" in df.columns
     assert "value" in df.columns
     assert not df.empty
