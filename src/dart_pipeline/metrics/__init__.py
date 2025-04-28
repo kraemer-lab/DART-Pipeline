@@ -66,12 +66,13 @@ def register_fetch(metric: str):
             "Metric first part (before .) refers to a metric source that must be registered using register_metrics()"
         )
     if "." in metric:
-        source, metric = metric.split(".")[:2]
-        if metric not in METRICS[source]["metrics"]:
+        source, metric_part = metric.split(".")[:2]
+        if metric_part not in METRICS[source]["metrics"]:
             raise ValueError("Metric must be registered using register_metrics()")
 
     def decorator(func):
         FETCHERS[metric] = func
+        return func
 
     return decorator
 
@@ -93,6 +94,7 @@ def register_process(metric: str):
 
     def decorator(func):
         PROCESSORS[metric] = func
+        return func
 
     return decorator
 
