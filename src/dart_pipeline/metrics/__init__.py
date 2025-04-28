@@ -108,7 +108,6 @@ def get(
     """Get files for a source."""
     if metric not in FETCHERS:
         abort("metric not found:", metric)
-    source = metric.split(".")[0]
     link_getter = FETCHERS[metric]
     non_default_params = {
         p.name
@@ -118,35 +117,35 @@ def get(
     if missing_params := non_default_params - set(kwargs):
         abort(metric, f"missing required parameters {missing_params}")
 
-    path = get_path("sources", source)
+    iso3 = kwargs.get("iso3")
+    if iso3 is None:
+        raise ValueError("No ISO3 code found")
+    iso3 = iso3.split("-")[0]  # split out admin part
+    path = get_path("sources", iso3)
     links = FETCHERS[metric](**kwargs)
-    source_fmt = f"\033[1m{source}\033[0m"
     links = links if isinstance(links, list) else [links]
-    if isinstance(links[0], DataFile):
-        logging.info(f"GET {source_fmt} fetches data directly, nothing to do")
-        return
-    if not links[0]:
-        logging.info(f"GET {source_fmt} downloads data directly, nothing to do")
+    if isinstance(links[0], DataFile) or not links[0]:
+        logging.info(f"Metric {metric} downloads data directly, nothing to do")
         return
     if isinstance(links[0], URLCollection):
         links = cast(list[URLCollection], links)
         for coll in links:
+            logging.info("Fetching %s [%s]: %r", metric, iso3, coll)
+            coll.relative_path = metric.replace(".", "/")
             if not coll.missing_files(path) and not update:
-                logging.info(f"skip {source_fmt} {coll}")
                 # unpack files
                 for file in coll.files:
                     to_unpack = path / coll.relative_path / Path(file).name
                     unpack_file(to_unpack, same_folder=True)
-                    logging.info(f"unpacked {to_unpack}")
-            msg = f"GET {source_fmt} {coll}"
+                    logging.info("Unpacked %s", to_unpack)
             success = download_files(coll, path, auth=None, unpack=True)
             n_ok = sum(success)
             if n_ok == len(success):
-                logging.info(f"{msg}")
+                logging.info("Fetch %s [%s] OK", metric, iso3)
             elif n_ok > 0:
-                logging.warning(f"partial {msg} [{n_ok}/{len(success)} OK]")
+                logging.warning(f"Fetch partial {metric} [{n_ok}/{len(success)} OK]")
             else:
-                logging.error(msg)
+                logging.error("Fetch %s [%s] failed", metric, iso3)
     if not skip_process and metric in PROCESSORS and metric not in SKIP_AUTO_PROCESS:
         process(metric, **kwargs)
 
@@ -167,10 +166,14 @@ def blockfmt(s: str, indent: int) -> str:
 
 def process(metric: str, **kwargs) -> list[Path]:
     """Process a data source according to inputs from the command line."""
-    logging.info("processing %s %s", metric, logfmt(kwargs))
+    logging.info("Processing %s %s", metric, logfmt(kwargs))
     source = metric.split(".")[0]
-    if source not in PROCESSORS:
-        abort("source not found:", source)
+    if source not in METRICS:
+        raise ValueError(
+            "Metric first part (before .) refers to a metric source that must be registered using register_metrics()"
+        )
+    if metric not in PROCESSORS:
+        abort("metric not found:", metric)
     processor = PROCESSORS[metric]
     non_default_params = {
         p.name
