@@ -66,7 +66,12 @@ def logfmt(d: dict) -> str:
 
 def iso3_admin_unpack(iso3_admin: str) -> tuple[str, int]:
     "Unpacks iso3-admin_level with verification"
-    iso3, admin = iso3_admin.split("-")
+    try:
+        iso3, admin = iso3_admin.split("-")
+    except ValueError:
+        raise ValueError(
+            "ISO3 and admin code should be specified concatenated with a hyphen, e.g. VNM-3, PER-2"
+        )
     iso3 = iso3.upper()
     if iso3 not in VALID_ISO3:
         raise LookupError(f"Not a valid ISO3 code {iso3=}")
