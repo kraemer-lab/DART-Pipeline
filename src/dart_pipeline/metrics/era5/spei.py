@@ -69,11 +69,9 @@ def process_spei(iso3: str, date: str) -> pd.DataFrame:
     if re_matches is None:
         raise ValueError("No window option found in gamma parameters file")
     window = int(re_matches.groups()[0])
-    logging.info("using era5.spei.gamma window=%d", window)
-    # TODO: check how to apply window so that the first week is handled correctly
-    #       balance_weekly_dataarray() should return 5 weeks prior to the first
-    #       week starting on the first Monday of the year
-    ds = balance_weekly_dataarray(iso3, year, year)
+    logging.info("Using era5.spei.gamma window=%d", window)
+
+    ds = balance_weekly_dataarray(iso3, year, year, window=window)
     ds_ma = (
         ds.rolling(valid_time=window, center=False)
         .mean(dim="valid_time")

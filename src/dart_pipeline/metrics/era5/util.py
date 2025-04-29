@@ -1,9 +1,10 @@
 """
-Methods to calculate standardised precipitation index and
+Common methods to calculate standardised precipitation index and
 standardised precipitation-evaporation index
 """
 
 import functools
+import datetime
 import warnings
 from typing import Literal
 from pathlib import Path
@@ -14,7 +15,7 @@ import numpy as np
 import xarray as xr
 from geoglue.country import Country
 from geoglue.util import find_unique_time_coord
-from geoglue.cds import CdsDataset
+from geoglue.cds import CdsDataset, get_first_monday
 
 from . import get_dataset_pool
 
@@ -27,7 +28,9 @@ def norminv(data):
     return scipy.stats.norm.ppf(data, loc=0, scale=1)
 
 
-def assert_data_available_for_weekly_reduce(iso3: str, ystart: int, yend: int) -> None:
+def assert_data_available_for_weekly_reduce(
+    iso3: str, ystart: int, yend: int, data_path: Path | None = None
+) -> None:
     "Asserts that sufficient data is available for weekly_reduce() call"
     timezone_offset = Country(iso3).timezone_offset
     negative_longitude = "-" in timezone_offset
@@ -39,7 +42,7 @@ def assert_data_available_for_weekly_reduce(iso3: str, ystart: int, yend: int) -
         yend += 1  # time shifting requires data from succeeding year
     else:
         ystart -= 1  # time shifting requires data from preceding year
-    pool = get_dataset_pool(iso3)
+    pool = get_dataset_pool(iso3, data_path)
     if missing := set(range(ystart, yend + 1)) - set(pool.years):
         raise FileNotFoundError(f"""Missing data for {iso3} for years: {missing}
 For methods requiring weekly aggregations, we require a year before and
@@ -76,8 +79,48 @@ def temperature_stat_daily(cds: CdsDataset) -> xr.Dataset:
     )
 
 
+def get_date_range_for_years(
+    ystart: int, yend: int, window: int = 0, align_weeks: bool = False
+) -> tuple[datetime.date, datetime.date]:
+    """Gets date range in years corresponding to a time window
+
+    Parameters
+    ----------
+    ystart
+        First year to include
+    yend
+        Last year to include
+    window
+        Window of days to include at the beginning of the time period. This is to
+        ensure that rolling means with a positive window do not return NA values
+        at the start of the period
+    align_weeks
+        Whether to align start and end dates with Mondays and Sundays (last day
+        of week), respectively. Off by default. If set to True, `window` *must*
+        be a multiple of 7.
+
+    Returns
+    -------
+    Tuple of start and end dates
+    """
+    if align_weeks and window % 7 != 0:
+        raise ValueError("When align_weeks=True, window must be a multiple of 7")
+    if not align_weeks:
+        return datetime.date(ystart, 1, 1) - datetime.timedelta(
+            days=window
+        ), datetime.date(yend, 12, 31)
+    return get_first_monday(ystart) - datetime.timedelta(days=window), get_first_monday(
+        yend + 1
+    ) - datetime.timedelta(days=1)
+
+
 def temperature_daily_dataset(
-    iso3: str, ystart: int, yend: int, data_path: Path | None = None
+    iso3: str,
+    ystart: int,
+    yend: int,
+    window: int = 0,
+    align_weeks: bool = False,
+    data_path: Path | None = None,
 ) -> xr.Dataset:
     """
     Returns weekly dataset of temperature for a iso3 code for a
@@ -89,26 +132,19 @@ def temperature_daily_dataset(
     - mn2t24: weekly mean of the daily minimum temperature
     """
     pool = get_dataset_pool(iso3, data_path)
-    avail_years = set(pool.years)
-    required_years = set(range(ystart, yend + 1))
-    if not required_years <= avail_years:
-        raise ValueError(
-            f"Required years not available in DatasetPool for {iso3!r}:\n"
-            f"\t{required_years - avail_years}\n"
-            "\tUse `dart-pipeline get era5 VNM <year>` to download these"
-        )
-
-    cds0 = pool[ystart]
+    assert_data_available_for_weekly_reduce(iso3, ystart, yend, data_path)
+    cds0 = pool[ystart - 1]
     ds = temperature_stat_daily(cds0)
-    for year in range(ystart + 1, yend + 1):
+    for year in range(ystart, yend + 1):
         cdsy = pool[year]
         ds_y = temperature_stat_daily(cdsy)
         ds = xr.concat([ds, ds_y], dim="valid_time")
-    return ds
+    start_date, end_date = get_date_range_for_years(ystart, yend, window, align_weeks)
+    return ds.sel(valid_time=slice(start_date.isoformat(), end_date.isoformat()))
 
 
 def precipitation_weekly_dataset(
-    iso3: str, ystart: int, yend: int, data_path: Path | None = None
+    iso3: str, ystart: int, yend: int, window: int = 1, data_path: Path | None = None
 ) -> xr.Dataset:
     """
     Returns weekly dataset of precipitation for a iso3 code for a
@@ -128,7 +164,9 @@ def precipitation_weekly_dataset(
             f"\t{required_years - avail_years}\n"
             "\tUse `dart-pipeline get era5 VNM <year>` to download these"
         )
-    ds = pool.weekly_reduce(ystart, "accum")
+    # Create the initial dataset with a window to enable rolling means
+    # to return a non-NA value for the first week of the year
+    ds = pool.weekly_reduce(ystart, "accum", window=window - 1)
     variables = set(ds.variables) - set(ds.coords)
     to_drop = variables - {"tp"}  # drop variables other than 'tp'
     ds = ds.drop_vars(to_drop)
@@ -165,7 +203,7 @@ def fit_gamma_distribution(
 
 
 def balance_weekly_dataarray(
-    iso3: str, ystart: int, yend: int, data_path: Path | None = None
+    iso3: str, ystart: int, yend: int, window: int = 1, data_path: Path | None = None
 ) -> xr.DataArray:
     """
     Returns weekly dataset of potential evapotranspiration for a iso3 code for
@@ -174,9 +212,14 @@ def balance_weekly_dataarray(
     The returned dataset has the following variables:
     * balance: difference between total precipitation and potential evapotranspiration
     """
-    temp = temperature_daily_dataset(iso3, ystart, yend, data_path).rename(
-        {"valid_time": "time"}
-    )
+    temp = temperature_daily_dataset(
+        iso3,
+        ystart,
+        yend,
+        window=7 * (window - 1),
+        align_weeks=True,
+        data_path=data_path,
+    ).rename({"valid_time": "time"})
     pevt = (
         xclim.indicators.atmos.potential_evapotranspiration(
             tasmin=temp.mn2t24, tasmax=temp.mx2t24, tas=temp.t2m
@@ -189,10 +232,11 @@ def balance_weekly_dataarray(
     )
 
     # Resample precipitation to weekly sum
-    ds_precip = precipitation_weekly_dataset(iso3, ystart, yend, data_path).rename(
-        {"valid_time": "time"}
-    )
-    # TODO: check alignment of datasets
+    ds_precip = precipitation_weekly_dataset(
+        iso3, ystart, yend, window=window, data_path=data_path
+    ).rename({"valid_time": "time"})
+    assert ds_precip.time.min() == pevt.time.min()
+    assert ds_precip.time.max() == pevt.time.max()
     balance = (ds_precip.tp - pevt).rename("balance")
     return balance.rename({"time": "valid_time"})
 
