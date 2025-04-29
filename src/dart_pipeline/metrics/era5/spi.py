@@ -70,7 +70,7 @@ def process_spi(iso3: str, date: str) -> pd.DataFrame:
     if re_matches is None:
         raise ValueError("No window option found in gamma parameters file")
     window = int(re_matches.groups()[0])
-    logging.info("using era5.spi.gamma window=%d", window)
+    logging.info("Using era5.spi.gamma window=%d", window)
     ds = pool.weekly_reduce(year, "accum", window=window - 1)
     ds_ma = (
         ds.rolling(valid_time=window, center=False)
