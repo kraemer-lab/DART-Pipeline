@@ -150,7 +150,7 @@ def balance_weekly_dataarray(
 
 
 def standardized_precipitation(
-    var: Literal["spi", "spie", "bc_spi", "bc_spie"],
+    var: Literal["spi", "spei", "spi_corrected", "spei_corrected"],
     ds: xr.Dataset,
     ds_ref: xr.Dataset,
     window: int,
@@ -168,7 +168,7 @@ def standardized_precipitation(
     ds
        Data we want to adjust. Depending upon the choice of ``var``, certain
        columns must be present. If var="SPI", ds and ds_ref must contain tp
-       (total_precipitation) if var="SPIE ds and ds_ref must contain the
+       (total_precipitation) if var="SPEI" ds and ds_ref must contain the
        product of precipitation - potential evapotranspiration
     ds_ref
        The historical dataset that we will use to obtain the gamma parameters
@@ -179,22 +179,22 @@ def standardized_precipitation(
     var
        The variable name to be adjusted ('tp' for precipitation,
        'tp_corrected' for corrected precipitation) 'balance' for measuring
-       SPIE
+       SPEI
 
     ds and ds_ref must contain the same variable (tp for measuring SPI and
-    precipitation - potential evapotranspiration if for SPIE)
+    precipitation - potential evapotranspiration if for SPEI)
 
     Returns
     -------
-    The standardized precipitation index (SPI) or SPIE for the given variable.
+    The standardized precipitation index (SPI) or SPEI for the given variable.
     """
-    tp = "tp" if not var.startswith("bc_") else "bc_tp"
+    tp = "tp" if not var.endswith("_corrected") else "tp_corrected"
     match var.removeprefix("bc_"):
         case "spi":
             params = fit_gamma_distribution(
                 ds_ref[tp], window=window, dimension=dimension
             )
-        case "spie":
+        case "spei":
             params = fit_gamma_distribution(ds_ref, window=window, dimension=dimension)
     ds_ma = ds.rolling(time=window, center=False).mean(dim=dimension)
 
@@ -206,8 +206,8 @@ def standardized_precipitation(
     norminv = functools.partial(scipy.stats.norm.ppf, loc=0, scale=1)
     norm_spi = xr.apply_ufunc(norminv, gamma)
 
-    match var.removeprefix("bc_"):
+    match var.removesuffix("_corrected"):
         case "spi":
             return norm_spi[tp].rename(var)
-        case "spie":
+        case "spei":
             return norm_spi.rename(var)
