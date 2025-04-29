@@ -62,6 +62,9 @@ Files will be downloaded into the sources path and process functions will write
 to the output path and a scratch path for intermediate files.
 """
 
+# Convert warnings into log messages
+logging.captureWarnings(True)
+
 for metric in gather_metrics():
     importlib.import_module(f"dart_pipeline.metrics.{metric}")
 
