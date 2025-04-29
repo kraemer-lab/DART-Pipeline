@@ -19,6 +19,7 @@ from ...metrics import register_process, find_metric
 
 from .util import (
     fit_gamma_distribution,
+    parse_year_range,
     precipitation_weekly_dataset,
     gamma_func,
     norminv,
@@ -40,21 +41,7 @@ def gamma_spi(iso3: str, date: str, window: int = 6) -> xr.Dataset:
     window
         Length of the time window used to measure SPI in weeks (default=6 weeks)
     """
-    try:
-        ystart, yend = date.split("-")
-        ystart = int(ystart)
-        yend = int(yend)
-    except ValueError:
-        raise ValueError(
-            "For era5.spi.gamma, specify date as a year range, e.g. 2000-2020"
-        )
-        raise
-    if ystart >= yend:
-        raise ValueError("For era5.spi.gamma, year end must be greater than year start")
-    if yend - ystart < 20:
-        raise ValueError(
-            "For era5.spi.gamma, historical dataset must span at least 20 years"
-        )
+    ystart, yend = parse_year_range(date, warn_duration_less_than_years=15)
     ref = precipitation_weekly_dataset(iso3, ystart, yend)
     tdim = [d for d in list(ref.coords) if d.endswith("time")]
     if len(tdim) > 1:

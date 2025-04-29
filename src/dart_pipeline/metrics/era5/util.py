@@ -4,6 +4,7 @@ standardised precipitation-evaporation index
 """
 
 import functools
+import warnings
 from typing import Literal
 from pathlib import Path
 
@@ -23,6 +24,22 @@ def gamma_func(data, a, scale):
 
 def norminv(data):
     return scipy.stats.norm.ppf(data, loc=0, scale=1)
+
+
+def parse_year_range(date: str, warn_duration_less_than_years: int) -> tuple[int, int]:
+    try:
+        ystart, yend = date.split("-")
+        ystart = int(ystart)
+        yend = int(yend)
+    except ValueError:
+        raise ValueError("Specify date as a year range, e.g. 2000-2020")
+    if ystart >= yend:
+        raise ValueError(f"Year end {yend} must be greater than year start {ystart}")
+    if yend - ystart < warn_duration_less_than_years:
+        warnings.warn(
+            f"Using dataset spanning <{warn_duration_less_than_years} years for parameter estimation is not recommended"
+        )
+    return ystart, yend
 
 
 def temperature_stat_daily(cds: CdsDataset) -> xr.Dataset:
@@ -132,7 +149,7 @@ def balance_weekly_dataarray(
     a closed, inclusive range of years.
 
     The returned dataset has the following variables:
-    - pevt: potential evapotranspiration
+    * balance: difference between total precipitation and potential evapotranspiration
     """
     temp = temperature_daily_dataset(iso3, ystart, yend, data_path).rename(
         {"valid_time": "time"}
@@ -153,8 +170,8 @@ def balance_weekly_dataarray(
         {"valid_time": "time"}
     )
     # TODO: check alignment of datasets
-    balance_hist = (ds_precip.tp - pevt).rename("balance")
-    return balance_hist.rename({"time": "valid_time"})
+    balance = (ds_precip.tp - pevt).rename("balance")
+    return balance.rename({"time": "valid_time"})
 
 
 def standardized_precipitation(
