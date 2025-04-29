@@ -17,6 +17,14 @@ from geoglue.cds import CdsDataset
 from . import get_dataset_pool
 
 
+def gamma_func(data, a, scale):
+    return scipy.stats.gamma.cdf(data, a=a, scale=scale)
+
+
+def norminv(data):
+    return scipy.stats.norm.ppf(data, loc=0, scale=1)
+
+
 def temperature_stat_daily(cds: CdsDataset) -> xr.Dataset:
     "Daily statistics for temperature from CdsDataset"
     return xr.Dataset(
