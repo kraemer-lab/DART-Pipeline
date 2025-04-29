@@ -1,10 +1,10 @@
-import os
 import logging
 from typing import Literal
 from pathlib import Path
 from functools import cache
 
 import xarray as xr
+from tqdm import tqdm
 
 from geoglue import MemoryRaster, Country
 from geoglue.cds import ReanalysisSingleLevels, CdsPath, CdsDataset, DatasetPool
@@ -26,11 +26,11 @@ ACCUM_METRICS = [
     "hydrological_balance",
     "total_precipitation",
     "spi",
-    "spie",
-    "bc_spi",
-    "bc_spie",
-    "bc_hydrological_balance",
-    "bc_total_precipitation",
+    "spei",
+    "spi_corrected",
+    "spei_corrected",
+    "hydrological_balance_corrected",
+    "total_precipitation_corrected",
     "surface_solar_radiation_downwards",
 ]
 
@@ -96,22 +96,22 @@ METRICS: dict[str, MetricInfo] = {
         "depends": ["total_precipitation", "2m_temperature"],
         "unit": "unitless",
     },
-    "bc_total_precipitation": {
+    "total_precipitation_corrected": {
         "description": "Bias-corrected total precipitation",
         "depends": ["total_precipitation"],
         "unit": "m",
     },
-    "bc_spi": {
+    "spi_corrected": {
         "description": "Bias-corrected standardised precipitation",
         "depends": ["total_precipitation"],
         "unit": "unitless",
     },
-    "bc_spei": {
+    "spei_corrected": {
         "description": "Bias-corrected standardised precipitation-evaporation index",
         "depends": ["total_precipitation", "2m_temperature"],
         "unit": "unitless",
     },
-    "bc_hydrological_balance": {
+    "hydrological_balance_corrected": {
         "description": "Bias-corrected hydrological balance",
         "depends": depends_hydrological_balance,
         "unit": "m",
@@ -144,8 +144,8 @@ STATS = ["min", "mean", "max", "sum"]
 VARIABLES = sorted(set(sum([METRICS[m].get("depends", [m]) for m in METRICS], [])))
 
 INSTANT_METRICS = [m for m in METRICS if m not in ACCUM_METRICS]
-DERIVED_METRICS_SEPARATE_IMPL = ["spi", "spie"] + [
-    m for m in ACCUM_METRICS if m.startswith("bc_")
+DERIVED_METRICS_SEPARATE_IMPL = ["spi", "spei"] + [
+    m for m in ACCUM_METRICS if m.endswith("_corrected")
 ]
 
 
@@ -320,7 +320,6 @@ def era5_process(iso3: str, date: str, overwrite: bool = False) -> list[Path]:
         if m not in DERIVED_METRICS_SEPARATE_IMPL
     ]
 
-    os.environ["TQDM_DISABLE"] = "1"
     logging.info("Metric statistic combinations %r", metric_statistic_combinations)
 
     already_existing_metrics = [
@@ -341,8 +340,9 @@ def era5_process(iso3: str, date: str, overwrite: bool = False) -> list[Path]:
         logging.warning(
             f"Skipping calculations for existing metrics {iso3}-{admin} {year=} {already_existing_metrics!r}"
         )
-    for metric, statistic in metric_statistic_combinations:
+    for metric, statistic in tqdm(
+        metric_statistic_combinations, desc="Computing metrics"
+    ):
         population_weighted_aggregation(metric, statistic, iso3, admin, year)
 
-    del os.environ["TQDM_DISABLE"]
     return paths + generated_paths
