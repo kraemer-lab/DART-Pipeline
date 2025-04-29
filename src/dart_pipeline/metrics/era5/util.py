@@ -12,6 +12,7 @@ import xclim
 import scipy.stats
 import numpy as np
 import xarray as xr
+from geoglue.country import Country
 from geoglue.util import find_unique_time_coord
 from geoglue.cds import CdsDataset
 
@@ -24,6 +25,28 @@ def gamma_func(data, a, scale):
 
 def norminv(data):
     return scipy.stats.norm.ppf(data, loc=0, scale=1)
+
+
+def assert_data_available_for_weekly_reduce(iso3: str, ystart: int, yend: int) -> None:
+    "Asserts that sufficient data is available for weekly_reduce() call"
+    timezone_offset = Country(iso3).timezone_offset
+    negative_longitude = "-" in timezone_offset
+
+    # Always get one year around requested range as weeks may overlap contiguous years
+    ystart -= 1
+    yend += 1
+    if negative_longitude:
+        yend += 1  # time shifting requires data from succeeding year
+    else:
+        ystart -= 1  # time shifting requires data from preceding year
+    pool = get_dataset_pool(iso3)
+    if missing := set(range(ystart, yend + 1)) - set(pool.years):
+        raise FileNotFoundError(f"""Missing data for {iso3} for years: {missing}
+For methods requiring weekly aggregations, we require a year before and
+after the end of the requested period as weeks do not overlap 1:1 with years.
+Timezone offsets may require an extra year on either end, depending upon
+whether the timezone is negative (extra year required at end of period), or
+positive (extra year required at beginning of period).""")
 
 
 def parse_year_range(date: str, warn_duration_less_than_years: int) -> tuple[int, int]:

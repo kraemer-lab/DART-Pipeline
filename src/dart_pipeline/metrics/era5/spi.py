@@ -21,6 +21,7 @@ from .util import (
     fit_gamma_distribution,
     parse_year_range,
     precipitation_weekly_dataset,
+    assert_data_available_for_weekly_reduce,
     gamma_func,
     norminv,
 )
@@ -42,6 +43,7 @@ def gamma_spi(iso3: str, date: str, window: int = 6) -> xr.Dataset:
         Length of the time window used to measure SPI in weeks (default=6 weeks)
     """
     ystart, yend = parse_year_range(date, warn_duration_less_than_years=15)
+    assert_data_available_for_weekly_reduce(iso3, ystart, yend)
     ref = precipitation_weekly_dataset(iso3, ystart, yend)
     tdim = [d for d in list(ref.coords) if d.endswith("time")]
     if len(tdim) > 1:
