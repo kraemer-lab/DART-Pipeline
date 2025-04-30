@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from datetime import date
+from typing import Literal
 import logging
 import re
 
@@ -16,57 +17,43 @@ LONGITUDE_LABEL = "Longitude [degrees_east]"
 LATITUDE_LABEL = "Latitude [degrees_north]"
 
 
-def plot_metric_data_console(file: str | Path, figsize: tuple[int, int] | None = None):
-    print(file)
-    matplotlib.use("module://pyplotsixel")
-    fig, ax = plt.subplots(1, 1, figsize=figsize)
-    df = pd.read_parquet(file)
-    if "admin" in df.attrs:
-        alevel = int(df.attrs["admin"])
-    else:
-        alevel = max(i for i in (1, 2, 3) if f"GID_{i}" in df.columns)
-    iso3 = df.ISO3.unique()[0]
-    metric = df.metric.unique()[0]
-    geometry = Country(iso3, backend="gadm").admin(alevel)
-
-    # select the first date
-    first_date_df = df[df["date"] == df.date.iloc[0]]
-    ax.set_title(metric)
-    ax.set_xlabel(LONGITUDE_LABEL)
-    ax.set_ylabel(LATITUDE_LABEL)
-
-    gpd.GeoDataFrame(first_date_df.merge(geometry)).plot(
-        "value", figsize=figsize, ax=ax, legend=True
-    )
-    plt.show()
-    plt.close()
-
-
-def plot_metric_data_png(file: str | Path, figsize: tuple[int, int] | None = None):  # type: ignore
-    file: Path = Path(file)
+def plot_metric_data(
+    filename: str | Path,
+    figsize: tuple[int, int] | None = None,
+    format: Literal["console", "png"] = "console",
+):
+    if format == "console":
+        print(filename)
+        matplotlib.use("module://pyplotsixel")
+    file: Path = Path(filename)
     _, ax = plt.subplots(1, 1, figsize=figsize)
-    outfile = file.parent / (file.stem + ".png")
     df = pd.read_parquet(file)
-
     if "admin" in df.attrs:
         alevel = int(df.attrs["admin"])
     else:
         alevel = max(i for i in (1, 2, 3) if f"GID_{i}" in df.columns)
     iso3 = df.ISO3.unique()[0]
     metric = df.metric.unique()[0]
+    unit = df.unit.unique()[0]
     geometry = Country(iso3, backend="gadm").admin(alevel)
+    first_date = df.date.iloc[0]
 
     # select the first date
-    first_date_df = df[df["date"] == df.date.iloc[0]]
-    ax.set_title(metric)
+    first_date_df = df[df["date"] == first_date]
+    ax.set_title(f"{metric} [{unit}]\ndate = {first_date}")
     ax.set_xlabel(LONGITUDE_LABEL)
     ax.set_ylabel(LATITUDE_LABEL)
 
     gpd.GeoDataFrame(first_date_df.merge(geometry)).plot(
         "value", figsize=figsize, ax=ax, legend=True
     )
-    plt.savefig(outfile)
-    logging.info("Saved plot to %s", outfile)
+    if format == "console":
+        plt.show()
+    else:
+        outfile = file.parent / (file.stem + f".{format}")
+        plt.savefig(outfile)
+        logging.info("Saved plot to %s", outfile)
+    plt.close()
 
 
 def plot_heatmap(data, title, colourbar_label, path, extent=None, log_plot=False):
