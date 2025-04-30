@@ -37,7 +37,6 @@ into which data will be downloaded.
 """
 
 from .types import URLCollection
-from .util import get_country_name
 
 
 def gadm_data(iso3: str) -> URLCollection:
@@ -55,36 +54,6 @@ def gadm_data(iso3: str) -> URLCollection:
             f"json/gadm41_{iso3}_1.json.zip",
             f"json/gadm41_{iso3}_2.json.zip",
             f"json/gadm41_{iso3}_3.json.zip",
-        ],
-        relative_path=iso3,
-    )
-
-
-def worldpop_pop_count_data(iso3: str) -> URLCollection:
-    """
-    WorldPop population count
-
-    All available WorldPop datasets are detailed here:
-    https://www.worldpop.org/rest/data
-
-    This function will get population data in GeoTIFF format (as files
-    with the .tif extension) along with metadata files. A zipped file (with the
-    .7z extension) will also be downloaded; this will contain the same GeoTIFF
-    files along with .tfw and .tif.aux.xml files. Most users will not find
-    these files useful and so unzipping the .7z file is usually unnecessary.
-    """
-    # When iso3='VNM' the required output is country='Viet_Nam'. Hence the
-    # common name ('Vietnam') is not correct
-    country = get_country_name(iso3, common_name=False)
-    # When country='Viet Nam', replace the space with an underscore
-    country = country.replace(" ", "_")
-    return URLCollection(
-        "https://data.worldpop.org",
-        [
-            f"GIS/Population/Individual_countries/{iso3}/{country}_100m_Population/{iso3}_ppp_v2b_2020_UNadj.tif",
-            # first download is tif file, which is selected when only-one flag is set,
-            # otherwise zip file is downloaded
-            f"GIS/Population/Individual_countries/{iso3}/{country}_100m_Population.7z",
         ],
         relative_path=iso3,
     )
