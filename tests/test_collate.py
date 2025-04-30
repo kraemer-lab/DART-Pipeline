@@ -5,7 +5,6 @@ Tests for collate functions in collate.py
 from dart_pipeline.types import URLCollection
 from dart_pipeline.collate import (
     gadm_data,
-    worldpop_pop_count_data,
     worldpop_pop_density_data,
 )
 
@@ -20,17 +19,6 @@ def test_gadm_data():
             "json/gadm41_VNM_1.json.zip",
             "json/gadm41_VNM_2.json.zip",
             "json/gadm41_VNM_3.json.zip",
-        ],
-        relative_path="VNM",
-    )
-
-
-def test_worldpop_pop_count_data():
-    assert worldpop_pop_count_data("VNM") == URLCollection(
-        "https://data.worldpop.org",
-        [
-            "GIS/Population/Individual_countries/VNM/Viet_Nam_100m_Population/VNM_ppp_v2b_2020_UNadj.tif",
-            "GIS/Population/Individual_countries/VNM/Viet_Nam_100m_Population.7z",
         ],
         relative_path="VNM",
     )
