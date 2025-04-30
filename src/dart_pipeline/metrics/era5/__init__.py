@@ -50,7 +50,7 @@ METRICS: dict[str, MetricInfo] = {
     "2m_temperature": {
         "description": "2 meters air temperature",
         "unit": "K",
-        "range": (-50, 50),
+        "range": (225, 325),
     },
     "surface_solar_radiation_downwards": {
         "description": "Accumulated solar radiation downwards",
