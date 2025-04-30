@@ -1,5 +1,6 @@
 """Plot data."""
 
+from pathlib import Path
 from datetime import date
 import logging
 import re
@@ -11,20 +12,61 @@ from geoglue.country import Country
 import geopandas as gpd
 import numpy as np
 
+LONGITUDE_LABEL = "Longitude [degrees_east]"
+LATITUDE_LABEL = "Latitude [degrees_north]"
 
-def plot_metric_data_console(df: pd.DataFrame, figsize: tuple[int, int] | None = None):
+
+def plot_metric_data_console(file: str | Path, figsize: tuple[int, int] | None = None):
+    print(file)
     matplotlib.use("module://pyplotsixel")
+    fig, ax = plt.subplots(1, 1, figsize=figsize)
+    df = pd.read_parquet(file)
     if "admin" in df.attrs:
         alevel = int(df.attrs["admin"])
     else:
         alevel = max(i for i in (1, 2, 3) if f"GID_{i}" in df.columns)
     iso3 = df.ISO3.unique()[0]
+    metric = df.metric.unique()[0]
     geometry = Country(iso3, backend="gadm").admin(alevel)
 
     # select the first date
     first_date_df = df[df["date"] == df.date.iloc[0]]
-    gpd.GeoDataFrame(first_date_df.merge(geometry)).plot("value", figsize=figsize)
+    ax.set_title(metric)
+    ax.set_xlabel(LONGITUDE_LABEL)
+    ax.set_ylabel(LATITUDE_LABEL)
+
+    gpd.GeoDataFrame(first_date_df.merge(geometry)).plot(
+        "value", figsize=figsize, ax=ax, legend=True
+    )
     plt.show()
+    plt.close()
+
+
+def plot_metric_data_png(file: str | Path, figsize: tuple[int, int] | None = None):  # type: ignore
+    file: Path = Path(file)
+    _, ax = plt.subplots(1, 1, figsize=figsize)
+    outfile = file.parent / (file.stem + ".png")
+    df = pd.read_parquet(file)
+
+    if "admin" in df.attrs:
+        alevel = int(df.attrs["admin"])
+    else:
+        alevel = max(i for i in (1, 2, 3) if f"GID_{i}" in df.columns)
+    iso3 = df.ISO3.unique()[0]
+    metric = df.metric.unique()[0]
+    geometry = Country(iso3, backend="gadm").admin(alevel)
+
+    # select the first date
+    first_date_df = df[df["date"] == df.date.iloc[0]]
+    ax.set_title(metric)
+    ax.set_xlabel(LONGITUDE_LABEL)
+    ax.set_ylabel(LATITUDE_LABEL)
+
+    gpd.GeoDataFrame(first_date_df.merge(geometry)).plot(
+        "value", figsize=figsize, ax=ax, legend=True
+    )
+    plt.savefig(outfile)
+    logging.info("Saved plot to %s", outfile)
 
 
 def plot_heatmap(data, title, colourbar_label, path, extent=None, log_plot=False):
