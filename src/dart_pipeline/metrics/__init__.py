@@ -127,7 +127,6 @@ def get(
     links = links if isinstance(links, list) else [links]
     if isinstance(links[0], DataFile) or not links[0]:
         logging.info(f"Metric {metric} downloads data directly, nothing to do")
-        return
     if isinstance(links[0], URLCollection):
         links = cast(list[URLCollection], links)
         for coll in links:
@@ -165,6 +164,16 @@ def blockfmt(s: str, indent: int) -> str:
     return textwrap.indent(textwrap.dedent(s).strip(), " " * indent)
 
 
+def determine_date_signifier(s: pd.Series) -> str:
+    "Determine date signifier in output file from a date timeseries"
+    tstr = sorted(set(s.astype(str)))
+    years = [x.split("-")[0] for x in tstr]
+    if len(years) == 1:  # one year only:
+        return years[0]
+    else:
+        return f"{min(tstr)}_{max(tstr)}"
+
+
 def process(metric: str, **kwargs) -> list[Path]:
     """Process a data source according to inputs from the command line."""
     logging.info("Processing %s %s", metric, logfmt(kwargs))
@@ -197,8 +206,10 @@ def process(metric: str, **kwargs) -> list[Path]:
             raise ValueError(
                 f"Metric returned by processor {data_metric=} is not in the class of {metric=}"
             )
+        date_signifier = determine_date_signifier(res.date)
         outfile = (
-            get_path("output", iso3, source) / f"{iso3}-{admin}-{data_metric}.parquet"
+            get_path("output", iso3, source)
+            / f"{iso3}-{admin}-{date_signifier}-{data_metric}.parquet"
         )
         res.to_parquet(outfile, index=False)
         logging.info("output %s %s", metric, print_path(outfile))
