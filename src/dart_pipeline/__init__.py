@@ -18,7 +18,7 @@ from .metrics import (
     show_path,
 )
 from .paths import get_path
-from .plots import plot_metric_data_console, plot_metric_data_png
+from .plots import plot_metric_data
 
 LOG_FORMAT = "%(asctime)s %(levelname)s [%(name)s] %(message)s"
 
@@ -147,7 +147,13 @@ def main():
     plot_parser.add_argument(
         "--size", help="Figure size as a tuple of integers, e.g. 8,16"
     )
-    plot_parser.add_argument("--png", help="Output file as a png", action="store_true")
+    plot_parser.add_argument(
+        "-f",
+        "--format",
+        help="Output file format",
+        default="console",
+        choices=["png", "console"],
+    )
     validate_parser = subparsers.add_parser(
         "validate", help="Validates metric data file"
     )
@@ -198,12 +204,8 @@ def main():
             else:
                 figsize = None
 
-            if args.png:
-                func = plot_metric_data_png
-            else:
-                func = plot_metric_data_console
             for file in args.files:
-                func(file, figsize)
+                plot_metric_data(file, figsize, args.format)
         case "validate":
             for file in args.files:
                 df = pd.read_parquet(file)
