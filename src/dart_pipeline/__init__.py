@@ -4,12 +4,14 @@ import os
 import logging
 import argparse
 import importlib
+from pathlib import Path
 
 import pandas as pd
 
 from .metrics import (
     get,
     process as process_metric,
+    validate_metric,
     print_metrics,
     gather_metrics,
     find_metrics,
@@ -35,6 +37,7 @@ ingestion into a database. It has the following subcommands
     [plot]    Plot metric data file in the terminal
  [process]    Processes data downloaded by a particular source
     [show]    Shows data for a particular metric
+[validate]    Validates metric data files
 
 To see detailed help on any of these, run
     uv run dart-pipeline <subcommand> --help
@@ -144,6 +147,13 @@ def main():
     plot_parser.add_argument(
         "--size", help="Figure size as a tuple of integers, e.g. 8,16"
     )
+    validate_parser = subparsers.add_parser(
+        "validate", help="Validates metric data file"
+    )
+    validate_parser.add_argument("files", nargs="+", help="File to validate")
+    validate_parser.add_argument(
+        "-s", "--success", help="Show successful validations", action="store_true"
+    )
 
     args, unknownargs = parser.parse_known_args()
     kwargs = parse_params(unknownargs)
@@ -188,6 +198,21 @@ def main():
             else:
                 figsize = None
             plot_metric_data_console(df, figsize)
+        case "validate":
+            for file in args.files:
+                df = pd.read_parquet(file)
+                basename = Path(file).name
+                errors = validate_metric(df)
+                if errors:
+                    N = len(df)
+                    for count, err in errors:
+                        print(
+                            f"{basename:70s}[\033[31m{count:7d}, {count / N:6.2%}\033[0m] {err}"
+                        )
+                elif args.success:
+                    print(f"{basename:70s}[\033[32mSUCCESS, 100.00%\033[0m]")
+                else:
+                    pass
         case _:
             print(USAGE.replace("[", "\033[1m").replace("]", "\033[0m"))
 

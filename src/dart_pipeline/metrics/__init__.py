@@ -1,3 +1,4 @@
+import re
 import json
 import inspect
 import logging
@@ -258,6 +259,46 @@ def find_metric(
             return json.loads(m.read_text())
         case _:
             return m
+
+
+def validate_metric(df: pd.DataFrame) -> list[tuple[int, str]]:
+    "Returns list of errors where validation failed for a particular metric file"
+
+    errors = []
+    metrics = list(df.metric.unique())
+    if len(metrics) > 1:
+        raise ValueError(
+            f"validate_metric() does not support multiple metrics: {metrics}"
+        )
+    metric_name = metrics[0]
+    source, _, metric = metric_name.partition(".")
+
+    # remove aggregations
+    metric = re.sub(r"(\w+)\..*(mean|min|max|sum)", r"\1", metric)
+    if source not in METRICS:
+        raise ValueError(f"Source not found: {source}")
+    if metric not in METRICS[source]["metrics"]:
+        raise ValueError(f"Metric {metric!r} not found in {source=}")
+
+    # If NA entries present, return number of NA entries
+    na_entries = df[pd.isna(df.value)]
+    if not na_entries.empty:
+        errors.append((len(na_entries), "NA entries"))
+    metric_range = METRICS[source]["metrics"][metric].get("range")
+    if metric_range is None:
+        return errors
+    low, high = metric_range
+    df = df[~pd.isna(df.value)]
+    out_of_range = df[(df.value < low) | (df.value > high)]
+    if not out_of_range.empty:
+        alow, ahigh = df.value.min(), df.value.max()
+        errors.append(
+            (
+                len(out_of_range),
+                f"out of range {low} -- {high}, actual range {alow:.4f} -- {ahigh:.4f}",
+            )
+        )
+    return errors
 
 
 def print_metrics(filter_by: str | None = None):
