@@ -38,15 +38,34 @@ uv run dart-pipeline
 
 ## Previewing output
 
-By default, dart-pipeline stores outputs in `~/.local/share/dart-pipeline`.
-There is a [`preview.sh`](bin/preview.sh) script supplied that allows you to
-preview images in the terminal by supplying an ISO3 code: `./bin/preview.sh
-ISO3`. Note that this script does not generate the plots, you will have to call
-`uv run dart-pipeline plot` on the output parquet files to generate those.
+Plots can be generated for metrics by running the `uv run dart-pipeline plot`
+command, with the `--format=png` parameter:
 
-The preview script requires a few dependencies such as
+```shell
+uv run dart-pipeline plot --format=png --size 6,9 ~/.local/share/dart-pipeline/output/VNM/worldpop/VNM-2-2020-worldpop.pop_count.parquet
+```
+
+Files can be previewed in the file manager. By default, dart-pipeline stores
+outputs in `~/.local/share/dart-pipeline/output/ISO3`.
+
+There is a [`preview.sh`](bin/preview.sh) script supplied that allows you to
+preview previously generated plots in the terminal with a fuzzy file search by
+supplying an ISO3 code: `./bin/preview.sh ISO3`. The preview script requires a
+few dependencies such as [fzf](https://github.com/junegunn/fzf)
 [`chafa`](https://hpjansson.org/chafa/) or `imgcat`, an image viewer for the
-terminal. A **sixel capable terminal** is also required to preview plots in the
+terminal:
+
+```shell
+brew install chafa fzf       # macOS
+sudo apt install chafa fzf   # Debian/Ubuntu
+sudo dnf install chafa fzf   # Fedora
+
+# Windows (winget)
+winget install -e --id junegunn.fzf
+winget install -e --id hpjansson.Chafa
+```
+
+A **sixel capable terminal** is also required to preview plots in the
 terminal. Some terminals integrated into common editors support sixel and the
 iTerm image protocol, such as Visual Studio Code. Alternatively you can use the
 file manager to preview plots.

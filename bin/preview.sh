@@ -5,18 +5,30 @@
 # Depends: bat    -- to display files syntax coloured
 # Depends: imgcat -- optional, to display images in iTerm2
 
-ISO3="$1"
-DATA_PATH="${2:-$HOME/.local/share/dart-pipeline}"
-FZF_PREVIEW="$(dirname "$0")/fzf-preview.sh"
-
-echo "$FZF_PREVIEW"
-
-if [ -z "$ISO3" ]; then
+if [ -z "$1" ]; then
     cat << EOF
-usage: preview.sh ISO3 [DATA_PATH]
+usage: preview.sh ISO3 [DATA_PATH] [FZF_ARGS]
 
 ISO3 - Country ISO 3166-1 alpha-3 code
 DATA_PATH - Data path to preview files in (default=~/.local/share/dart-pipeline)
+FZF_ARGS - Passed to fzf, e.g. --preview-window=up to shift the preview window
+EOF
+    exit 2
+fi
+
+
+ISO3="$1"
+shift
+DATA_PATH="${DART_DATA_PATH:-$HOME/.local/share/dart-pipeline}"
+FZF_PREVIEW="$(dirname "$0")/fzf-preview.sh"
+
+if [ -z "$ISO3" ]; then
+    cat << EOF
+usage: preview.sh ISO3 [FZF_ARGS]
+
+ISO3 - Country ISO 3166-1 alpha-3 code
+DATA_PATH - Data path to preview files in (default=~/.local/share/dart-pipeline)
+FZF_ARGS - Passed to fzf, e.g. --preview-window=up to shift the preview window
 EOF
     exit 2
 fi
@@ -28,4 +40,4 @@ if [ ! -d "$OUTPUT_DIR" ]; then
     exit 1
 fi
 
-find "$OUTPUT_DIR" -name '*.png' | sed "s|$OUTPUT_DIR/||g" | fzf --preview="$FZF_PREVIEW $OUTPUT_DIR/{}"
+find "$OUTPUT_DIR" -name '*.png' | sed "s|$OUTPUT_DIR/||g" | fzf --preview="$FZF_PREVIEW $OUTPUT_DIR/{}" $@
