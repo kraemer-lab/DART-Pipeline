@@ -46,7 +46,10 @@ uv run dart-pipeline plot --format=png --size 6,9 ~/.local/share/dart-pipeline/o
 ```
 
 Files can be previewed in the file manager. By default, dart-pipeline stores
-outputs in `~/.local/share/dart-pipeline/output/ISO3`.
+outputs in `~/.local/share/dart-pipeline/output/ISO3`. The plot parameter
+can also take wildcards to plot multiple data files at once.
+
+### Previewing plots in terminal [optional]
 
 There is a [`preview.sh`](bin/preview.sh) script supplied that allows you to
 preview previously generated plots in the terminal with a fuzzy file search by
