@@ -223,6 +223,9 @@ def population_weighted_aggregation(
         operation,
         const_cols={"ISO3": iso3, "metric": f"era5.{metric}.{statistic}", "unit": unit},
     )
+    # clamp relative_humidity to 100%
+    if "relative_humidity" in metric:
+        df["value"] = df.value.clip(0, 100)
     outfile = metric_path(iso3, admin, year, metric, statistic)
     df.to_parquet(outfile)
     logging.info(f"Output [{iso3}-{admin}] {year=} {metric=} {statistic=} -> {outfile}")
