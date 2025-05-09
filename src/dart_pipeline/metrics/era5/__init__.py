@@ -7,7 +7,7 @@ import xarray as xr
 from tqdm import tqdm
 
 from geoglue import MemoryRaster, Country
-from geoglue.cds import ReanalysisSingleLevels, CdsPath, CdsDataset, DatasetPool
+from geoglue.cds import ReanalysisSingleLevels, CdsPath, CdsDataset
 from geoglue.resample import resample
 from geoglue.zonal_stats import DatasetZonalStatistics
 
@@ -15,118 +15,22 @@ from ...metrics import (
     register_metrics,
     register_fetch,
     register_process,
-    MetricInfo,
 )
 from ...util import iso3_admin_unpack
 from ...paths import get_path
 
 from .derived import compute_derived_metric
+from .util import get_dataset_pool
+from .list_metrics import (
+    VARIABLE_MAPPINGS,
+    METRICS,
+    ACCUM_METRICS,
+    INSTANT_METRICS,
+    DERIVED_METRICS_SEPARATE_IMPL,
+    VARIABLES,
+)
 
-ACCUM_METRICS = [
-    "hydrological_balance",
-    "total_precipitation",
-    "spi",
-    "spei",
-    "spi_corrected",
-    "spei_corrected",
-    "hydrological_balance_corrected",
-    "total_precipitation_corrected",
-    "surface_solar_radiation_downwards",
-]
-
-VARIABLE_MAPPINGS = {
-    "2m_temperature": "t2m",
-    "surface_solar_radiation_downwards": "ssrd",
-    "2m_dewpoint_temperature": "d2m",
-    "surface_pressure": "sp",
-    "evaporation": "e",
-    "total_precipitation": "tp",
-    "10m_u_component_of_wind": "u10",
-    "10m_v_component_of_wind": "v10",
-}
-
-depends_hydrological_balance = ["total_precipitation", "evaporation"]
-METRICS: dict[str, MetricInfo] = {
-    "2m_temperature": {
-        "description": "2 meters air temperature",
-        "unit": "K",
-        "range": (225, 325),
-    },
-    "surface_solar_radiation_downwards": {
-        "description": "Accumulated solar radiation downwards",
-        "unit": "J/m^2",
-        "range": (0, 1e9),
-    },
-    "total_precipitation": {
-        "description": "Total precipitation",
-        "unit": "m",
-        "range": (0, 1200),
-    },
-    "wind_speed": {
-        "description": "Wind speed",
-        "depends": ["10m_u_component_of_wind", "10m_v_component_of_wind"],
-        "range": (0, 110),
-        "unit": "m/s",
-    },
-    "relative_humidity": {
-        "description": "Relative humidity",
-        "depends": ["2m_temperature", "2m_dewpoint_temperature", "surface_pressure"],
-        "range": (0, 100),
-        "unit": "percentage",
-    },
-    "specific_humidity": {
-        "description": "Specific humidity",
-        "depends": ["2m_temperature", "2m_dewpoint_temperature", "surface_pressure"],
-        "range": (0, 30),
-        "unit": "g/kg",
-    },
-    "hydrological_balance": {
-        "description": "Hydrological balance",
-        "depends": depends_hydrological_balance,
-        "unit": "m",
-    },
-    "spi": {
-        "description": "Standardised precipitation",
-        "depends": ["total_precipitation"],
-        "unit": "unitless",
-    },
-    # actually depends on potential_evapotranspiration which depends on 2m_temperature.daily_{min,mean,max}
-    "spei": {
-        "description": "Standardised precipitation-evaporation index",
-        "depends": ["total_precipitation", "2m_temperature"],
-        "unit": "unitless",
-    },
-    "total_precipitation_corrected": {
-        "description": "Bias-corrected total precipitation",
-        "depends": ["total_precipitation"],
-        "unit": "m",
-    },
-    "spi_corrected": {
-        "description": "Bias-corrected standardised precipitation",
-        "depends": ["total_precipitation"],
-        "unit": "unitless",
-    },
-    "spei_corrected": {
-        "description": "Bias-corrected standardised precipitation-evaporation index",
-        "depends": ["total_precipitation", "2m_temperature"],
-        "unit": "unitless",
-    },
-    "hydrological_balance_corrected": {
-        "description": "Bias-corrected hydrological balance",
-        "depends": depends_hydrological_balance,
-        "unit": "m",
-    },
-    "spi.gamma": {
-        "description": "Fitted gamma distribution from historical data for SPI",
-        "unit": "unitless",
-        "depends": ["total_precipitation"],
-    },
-    "spei.gamma": {
-        "description": "Fitted gamma distribution from historical data for SPEI",
-        "unit": "unitless",
-        "depends": ["2m_temperature", "total_precipitation"],
-    },
-}
+STATS = ["min", "mean", "max", "sum"]
 
 register_metrics(
     "era5",
@@ -139,20 +43,6 @@ foregoing.""",
     auth_url="https://cds.climate.copernicus.eu/how-to-api",
     metrics=METRICS,
 )
-
-STATS = ["min", "mean", "max", "sum"]
-VARIABLES = sorted(set(sum([METRICS[m].get("depends", [m]) for m in METRICS], [])))
-
-INSTANT_METRICS = [m for m in METRICS if m not in ACCUM_METRICS]
-DERIVED_METRICS_SEPARATE_IMPL = ["spi", "spei"] + [
-    m for m in ACCUM_METRICS if m.endswith("_corrected")
-]
-
-
-def get_dataset_pool(iso3: str, data_path: Path | None = None) -> DatasetPool:
-    return ReanalysisSingleLevels(
-        iso3, VARIABLES, path=data_path or get_path("sources", iso3, "era5")
-    ).get_dataset_pool()
 
 
 @cache
