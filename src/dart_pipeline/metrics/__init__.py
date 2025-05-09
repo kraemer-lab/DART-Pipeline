@@ -10,7 +10,7 @@ import xarray as xr
 import pandas as pd
 
 from ..paths import get_path
-from ..util import abort, unpack_file, download_files, logfmt
+from ..util import abort, unpack_file, download_files, logfmt, determine_netcdf_filename
 from ..types import DataFile, URLCollection
 
 METRICS = {}
@@ -215,9 +215,11 @@ def process(metric: str, **kwargs) -> list[Path]:
         logging.info("output %s %s", metric, print_path(outfile))
         return [outfile]
     elif isinstance(res, xr.Dataset):
-        iso3 = res.attrs["ISO3"]
-        metric = res.attrs["metric"]
-        outfile = get_path("output", iso3, source) / f"{iso3}-{metric}.nc"
+        iso3 = res.attrs.get("ISO3", kwargs["iso3"])
+        metric = res.attrs.get("metric", metric)
+        outfile = get_path("output", iso3, source) / determine_netcdf_filename(
+            metric, **kwargs
+        )
         res.to_netcdf(outfile)
         logging.info("output %s %s", metric, print_path(outfile))
         return [outfile]
