@@ -20,7 +20,11 @@ from ...util import iso3_admin_unpack
 from ...paths import get_path
 
 from .derived import compute_derived_metric
-from .util import get_dataset_pool
+from .util import (
+    get_dataset_pool,
+    precipitation_weekly_dataset,
+    temperature_daily_dataset,
+)
 from .list_metrics import (
     VARIABLE_MAPPINGS,
     METRICS,
@@ -239,3 +243,19 @@ def era5_process(iso3: str, date: str, overwrite: bool = False) -> list[Path]:
         population_weighted_aggregation(metric, statistic, iso3, admin, year)
 
     return paths + generated_paths
+
+
+@register_process("era5.prep_bias_correct")
+def prep_bias_correct(iso3: str, date: str, profile: str) -> xr.Dataset:
+    try:
+        ystart, yend = date.split("-")
+        ystart, yend = int(ystart), int(yend)
+    except ValueError:
+        raise ValueError("Date must be specified as a year range, e.g. 2000-2020")
+    match profile:
+        case "precipitation":
+            return precipitation_weekly_dataset(iso3, ystart, yend)
+        case "forecast":
+            return temperature_daily_dataset(iso3, ystart, yend)
+        case _:
+            raise ValueError(f"Unknown prep_bias_correct {profile=}")
