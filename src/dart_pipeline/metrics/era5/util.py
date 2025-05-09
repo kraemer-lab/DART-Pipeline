@@ -15,9 +15,21 @@ import numpy as np
 import xarray as xr
 from geoglue.country import Country
 from geoglue.util import find_unique_time_coord
-from geoglue.cds import CdsDataset, get_first_monday
+from geoglue.cds import (
+    CdsDataset,
+    get_first_monday,
+    ReanalysisSingleLevels,
+    DatasetPool,
+)
 
-from . import get_dataset_pool
+from ...paths import get_path
+from .list_metrics import VARIABLES
+
+
+def get_dataset_pool(iso3: str, data_path: Path | None = None) -> DatasetPool:
+    return ReanalysisSingleLevels(
+        iso3, VARIABLES, path=data_path or get_path("sources", iso3, "era5")
+    ).get_dataset_pool()
 
 
 def gamma_func(data, a, scale):
@@ -123,8 +135,9 @@ def temperature_daily_dataset(
     data_path: Path | None = None,
 ) -> xr.Dataset:
     """
-    Returns weekly dataset of temperature for a iso3 code for a
-    closed, inclusive range of years.
+    Returns daily dataset of temperature for a iso3 code for a closed,
+    inclusive range of years, aligned with weeks beginning on Monday, such that
+    resampling with W-MON returns values representing full weeks.
 
     The returned dataset has the following variables:
     - t2m: weekly mean of the daily mean temperature
