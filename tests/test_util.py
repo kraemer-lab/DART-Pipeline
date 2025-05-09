@@ -8,10 +8,26 @@ import pandas as pd
 
 from dart_pipeline.util import (
     download_file,
+    determine_netcdf_filename,
     days_in_year,
     get_country_name,
     use_range,
 )
+
+
+@pytest.mark.parametrize(
+    "kwargs,expected",
+    [
+        ({"iso3": "VNM"}, "VNM-era5.a_b.nc"),
+        ({"iso3": "VNM", "date": "2020-2023"}, "VNM-2020-2023-era5.a_b.nc"),
+        (
+            {"iso3": "VNM", "date": "2020", "param1": "hello", "param2": "there"},
+            "VNM-2020-era5.a_b.hello.there.nc",
+        ),
+    ],
+)
+def test_determine_netcdf_filename(kwargs, expected):
+    assert determine_netcdf_filename("era5.a_b", **kwargs) == expected
 
 
 def test_download_file():

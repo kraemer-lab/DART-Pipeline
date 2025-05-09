@@ -36,6 +36,25 @@ pd.set_option("display.max_colwidth", 40)
 pd.set_option("display.width", 228)  # sierra
 
 
+def determine_netcdf_filename(metric: str, **kwargs) -> str:
+    """Determines output netcdf file for a processor that returns xr.Dataset
+
+    kwargs is expected to have `iso3`, and *may* have `date`. The output filename is determined as follows:
+
+        ISO3-DATE-metric-KWARG_VALUES.nc
+
+    where KWARG_VALUES is a hyphen delimited list of values in the rest of kwargs
+    """
+    iso3 = kwargs.pop("iso3")
+    out = iso3
+    if "date" in kwargs:
+        out += "-" + kwargs.pop("date")
+    out += "-" + metric
+    if kwargs:
+        out += "." + ".".join(kwargs.values())
+    return out + ".nc"
+
+
 def raise_on_missing_variables(ds: xr.Dataset, required_vars: list[str]):
     "Raises a ValueError if required variables are missing"
     vars = set(ds.variables) - set(ds.coords)
