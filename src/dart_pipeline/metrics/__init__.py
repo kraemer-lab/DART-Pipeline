@@ -147,14 +147,12 @@ def get(
     if missing_params := non_default_params - set(kwargs):
         abort(metric, f"missing required parameters {missing_params}")
 
-    iso3 = kwargs.get("iso3")
-    if iso3 is None:
-        raise ValueError("No ISO3 code found")
+    iso3 = kwargs.get("iso3", "WLD")  # assume entire world if no iso3 code found
     iso3 = iso3.split("-")[0]  # split out admin part
     path = get_path("sources", iso3)
     links = FETCHERS[metric](**kwargs)
     links = links if isinstance(links, list) else [links]
-    if isinstance(links[0], DataFile) or not links[0]:
+    if isinstance(links[0], (DataFile, Path)) or not links[0]:
         logging.info(f"Metric {metric} downloads data directly, nothing to do")
     if isinstance(links[0], URLCollection):
         links = cast(list[URLCollection], links)
