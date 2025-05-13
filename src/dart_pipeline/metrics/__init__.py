@@ -45,6 +45,7 @@ class MetricInfo(TypedDict, total=False):
     license_text: str
     range: tuple[int, int] | tuple[float, float]
     statistics: list[str]
+    part_of: str
 
 
 class SourceInfo(TypedDict, total=False):
@@ -353,10 +354,23 @@ def print_metrics(filter_by: str | None = None):
         matched_metrics = [
             ".".join(m.split(".")[1:]) for m in filtered_metrics if m.split(".")[0] == s
         ]
+        if any(source["metrics"][m].get("part_of") for m in matched_metrics):
+            print(
+                "  Note:\n"
+                + textwrap.indent(
+                    """For metrics with a 'part_of' attribute, the metric is calculated by
+invoking dart-pipeline (get|process) on the 'part_of' value rather than the
+metric value. This is usually done for efficiency reasons when it is faster
+to process multiple metrics at once.\n""",
+                    prefix="    ",
+                )
+            )
         for m_name in matched_metrics:
             metric = source["metrics"][m_name]
             print(f"  \033[1m{s}.{m_name}\033[0m")
             print(f"    {metric['description']} [{metric['unit']}]")
+            if part_of := metric.get("part_of"):
+                print("    \033[3mpart of\033[0m:", part_of)
             if metric.get("url"):
                 print("    URL:", metric["url"])
             if metric.get("license"):
