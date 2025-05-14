@@ -13,6 +13,7 @@ from .metrics import (
     process as process_metric,
     validate_metric,
     print_metrics,
+    print_metrics_rst,
     gather_metrics,
     find_metrics,
     show_path,
@@ -109,6 +110,9 @@ def main():
     subparsers = parser.add_subparsers(dest="command")
     list_parser = subparsers.add_parser("list", help="List sources and processes")
     list_parser.add_argument("-k", help="Filter metrics by expression", dest="filter")
+    list_parser.add_argument(
+        "--rst", help="Output in reStructuredText format", action="store_true"
+    )
     get_parser = subparsers.add_parser(
         "get",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -177,7 +181,10 @@ def main():
 
     match args.command:
         case "list":
-            print_metrics(args.filter)
+            if args.rst:
+                print_metrics_rst(args.filter)
+            else:
+                print_metrics(args.filter)
         case "get":
             get(
                 args.metric,
