@@ -29,7 +29,7 @@ from ..metrics import register_metrics, register_fetch, register_process
 
 register_metrics(
     "meta",
-    description="Indicators from Meta such as relative wealth index",
+    description="Sociodemographic indicators from Meta",
     metrics={
         "pop_density": {
             "url": "https://dataforgood.facebook.com/dfg/docs/high-resolution-population-density-maps-demographic-estimates-documentation",
