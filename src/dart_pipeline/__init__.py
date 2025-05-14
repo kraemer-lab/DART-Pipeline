@@ -45,18 +45,25 @@ To see detailed help on any of these, run
 
 [EXAMPLES]
 
-To get geospatial GADM data for Vietnam:
-    uv run dart-pipeline get gadm VNM
+To get population count data for Vietnam:
+    uv run dart-pipeline get worldpop.pop_count VNM-2 2020
+
+Note that the country code is suffixed with the administrative level,
+here admin2 (district level). Aggregating to admin1 and admin3 are also
+supported.
 
 By default, data will be processed if a processor with the same name
 exists, otherwise you can run the process subcommand:
-    uv run dart-pipeline process gadm VNM
+    uv run dart-pipeline process worldpop.pop_count VNM-2 2020
 
 To find out if a processor or a getter requires parameters, run without
 parameters:
-    uv run dart-pipeline process gadm
-    ❗ geospatial/gadm missing required parameters {"iso3", "admin_level"}
+    $ uv run dart-pipeline process worldpop.pop_count
+    2025-05-14 17:09:23,362 INFO [root] Processing worldpop.pop_count
+    ❗worldpop.pop_count missing required parameters {'date', 'iso3'}
 
+Only the iso3 and date parameters can be passed positionally. For any
+other parameters, use ``param=value``.
 [PATHS]
 
        Default sources path = {get_path("sources")}
