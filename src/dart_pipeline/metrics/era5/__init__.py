@@ -24,6 +24,7 @@ from .util import (
     get_dataset_pool,
     precipitation_weekly_dataset,
     temperature_daily_dataset,
+    add_bias_corrected_tp,
 )
 from .list_metrics import (
     VARIABLE_MAPPINGS,
@@ -174,7 +175,10 @@ def era5_process(iso3: str, date: str, overwrite: bool = False) -> list[Path]:
     derived_metrics = [
         m
         for m in METRICS
-        if METRICS[m].get("depends") and m not in DERIVED_METRICS_SEPARATE_IMPL
+        if METRICS[m].get("depends")
+        and m not in DERIVED_METRICS_SEPARATE_IMPL
+        and m != "hydrological_balance_corrected"
+        # ^^^ handle separately as we will calculate this at the daily level
     ]
     for metric in derived_metrics:
         if metric in ACCUM_METRICS:
@@ -190,7 +194,21 @@ def era5_process(iso3: str, date: str, overwrite: bool = False) -> list[Path]:
     logging.info("Calculating daily statistics (mean, sum)")
     daily_agg = ds.daily()  # mean and sum
     daily_agg.instant.to_netcdf(paths["mean"])
-    daily_agg.accum.to_netcdf(paths["sum"])
+
+    # Read in possible tp_corrected file here and add to accum dataset
+    # If no tp_corrected file is found, add_bias_corrected_tp() returns
+    # the daily accumulated dataset unaltered.
+    # Note that tp_corrected for a year will require the corresponding files
+    # for previous and succeeding years depending on shift_hours
+    accum = add_bias_corrected_tp(
+        daily_agg.accum, iso3, year, shift_hours=pool.shift_hours
+    )
+    is_bias_corrected: bool = "tp_corrected" in accum.variables
+    if is_bias_corrected:
+        accum["hydrological_balance_corrected"] = accum.tp_corrected + accum.e
+    accum.to_netcdf(paths["sum"])
+
+    # read in
     logging.info("Calculating daily statistics (min, max)")
     ds.daily_max().to_netcdf(paths["max"])
     ds.daily_min().to_netcdf(paths["min"])
@@ -216,6 +234,13 @@ def era5_process(iso3: str, date: str, overwrite: bool = False) -> list[Path]:
         for m, s in metric_statistic_combinations
         if m not in DERIVED_METRICS_SEPARATE_IMPL
     ]
+    # remove corrected metrics if no bias correction available
+    if not is_bias_corrected:
+        metric_statistic_combinations = [
+            (m, s)
+            for m, s in metric_statistic_combinations
+            if not m.endswith("_corrected")
+        ]
 
     logging.info("Metric statistic combinations %r", metric_statistic_combinations)
 

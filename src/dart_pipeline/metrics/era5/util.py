@@ -3,6 +3,7 @@ Common methods to calculate standardised precipitation index and
 standardised precipitation-evaporation index
 """
 
+import logging
 import functools
 import datetime
 import warnings
@@ -38,6 +39,52 @@ def gamma_func(data, a, scale):
 
 def norminv(data):
     return scipy.stats.norm.ppf(data, loc=0, scale=1)
+
+
+def tp_corrected_path(iso3: str, year: int) -> Path:
+    return get_path(
+        "sources", iso3, "era5", f"{iso3}-{year}-era5.accum.tp_corrected.nc"
+    )
+
+
+def get_tp_corrected(
+    iso3: str, year: int, shift_hours: int, dim: str = "valid_time"
+) -> xr.DataArray | None:
+    if shift_hours < -12 or shift_hours > 12:
+        raise ValueError(
+            f"shift_hours should be an int between -12 and 12, got {shift_hours=}"
+        )
+
+    # accum variables should have 1 subtracted from timeshift
+    # https://confluence.ecmwf.int/display/CKB/ERA5+family+post-processed+daily+statistics+documentation
+    shift = shift_hours - 1
+    if shift == 0:
+        return xr.open_dataarray(tp_corrected_path(iso3, year))
+    if shift > 0:
+        da1 = xr.open_dataarray(tp_corrected_path(iso3, year - 1))
+        da2 = xr.open_dataarray(tp_corrected_path(iso3, year))
+        da1 = da1.isel(**{dim: slice(-shift, None)})  # type: ignore
+        da = xr.concat([da1, da2], dim=dim)
+        da = da.isel(**{dim: slice(None, -shift)})  # type: ignore
+    else:
+        da1 = xr.open_dataarray(tp_corrected_path(iso3, year))
+        da2 = xr.open_dataarray(tp_corrected_path(iso3, year + 1))
+        da2 = da2.isel(**{dim: slice(None, abs(shift))})  # type: ignore
+        da = xr.concat([da1, da2], dim=dim)
+        da = da.isel(**{dim: slice(abs(shift), None)})  # type: ignore
+    return da
+
+
+def add_bias_corrected_tp(
+    accum: xr.Dataset, iso3: str, year: int, shift_hours: int
+) -> xr.Dataset:
+    try:
+        tp_corrected = get_tp_corrected(iso3, year, shift_hours)
+    except FileNotFoundError:
+        logging.info(f"No tp_corrected file found for {iso3}-{year} {shift_hours=}")
+        return accum
+    accum["tp_corrected"] = tp_corrected
+    return accum
 
 
 def assert_data_available_for_weekly_reduce(

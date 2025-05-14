@@ -21,6 +21,7 @@ VARIABLE_MAPPINGS = {
     "surface_pressure": "sp",
     "evaporation": "e",
     "total_precipitation": "tp",
+    "total_precipitation_corrected": "tp_corrected",
     "10m_u_component_of_wind": "u10",
     "10m_v_component_of_wind": "v10",
 }
@@ -87,7 +88,6 @@ METRICS: dict[str, MetricInfo] = {
     },
     "total_precipitation_corrected": {
         "description": "Bias-corrected total precipitation",
-        "depends": ["total_precipitation"],
         "unit": "m",
         "part_of": "era5",
     },
@@ -135,4 +135,4 @@ DERIVED_METRICS_SEPARATE_IMPL = [
     "spi.gamma",
     "spei.gamma",
     "prep_bias_correct",
-] + [m for m in ACCUM_METRICS if m.endswith("_corrected")]
+]
