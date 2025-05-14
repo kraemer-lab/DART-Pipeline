@@ -41,9 +41,8 @@ def wind_speed(ds: xr.Dataset) -> xr.DataArray:
 
 
 @derived_metric()
-def hydrological_balance(ds: xr.Dataset, bias_corrected=False) -> xr.DataArray:
-    tp_col = "tp_corrected" if bias_corrected else "tp"
-    return ds[tp_col] + ds.e
+def hydrological_balance(ds: xr.Dataset) -> xr.DataArray:
+    return ds.tp + ds.e
 
 
 def compute_derived_metric(metric: str, ds: xr.Dataset, **kwargs):
