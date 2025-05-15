@@ -21,6 +21,7 @@ from .util import (
     fit_gamma_distribution,
     parse_year_range,
     precipitation_weekly_dataset,
+    corrected_precipitation_weekly_dataset,
     assert_data_available_for_weekly_reduce,
     gamma_func,
     norminv,
@@ -28,23 +29,36 @@ from .util import (
 from . import get_dataset_pool, get_population
 
 
-@register_process("era5.spi.gamma")
-def gamma_spi(iso3: str, date: str, window: int = 6) -> xr.Dataset:
+def gamma_spi(
+    iso3: str, date: str, window: int = 6, bias_correct: bool = False
+) -> xr.Dataset:
     """Calculates gamma parameter for SPI for a date range
 
     Parameters
     ----------
-    iso3
+    iso3 : str
         Country ISO3 code
-    date
+    date : str
         Specify year range here for which to calculate gamma distribution
         e.g. 2000-2020
-    window
+    window : int
         Length of the time window used to measure SPI in weeks (default=6 weeks)
+    bias_correct : bool
+        Whether to use bias corrected total precipitation (default=False)
+
+    Returns
+    -------
+    xr.Dataset
+        Dataset with ``alpha`` and ``beta`` gamma parameters
     """
     ystart, yend = parse_year_range(date, warn_duration_less_than_years=15)
     assert_data_available_for_weekly_reduce(iso3, ystart, yend)
-    ref = precipitation_weekly_dataset(iso3, ystart, yend)
+    precipitation_weekly_func = (
+        corrected_precipitation_weekly_dataset
+        if bias_correct
+        else precipitation_weekly_dataset
+    )
+    ref = precipitation_weekly_func(iso3, ystart, yend, window=window)
     tdim = [d for d in list(ref.coords) if d.endswith("time")]
     if len(tdim) > 1:
         raise ValueError(
@@ -53,10 +67,24 @@ def gamma_spi(iso3: str, date: str, window: int = 6) -> xr.Dataset:
     if len(tdim) == 0:
         raise ValueError("No time dimension detected in reference dataset")
     ds = fit_gamma_distribution(ref.tp, window=window, dimension=tdim[0])
-    ds.attrs["DART_history"] = f"gamma_spi({iso3!r}, {ystart=}, {yend=}, {window=})"
+    ds.attrs["DART_history"] = (
+        f"gamma_spi({iso3!r}, {ystart=}, {yend=}, {window=}, {bias_correct=})"
+    )
     ds.attrs["ISO3"] = iso3
     ds.attrs["metric"] = "era5.spi.gamma"
     return ds
+
+
+@register_process("era5.spi.gamma")
+def gamma_spi_uncorrected(iso3: str, date: str, window: int = 6) -> xr.Dataset:
+    "Calculates gamma parameter for SPI for a date range"
+    return gamma_spi(iso3, date, window, bias_correct=False)
+
+
+@register_process("era5.spi_corrected.gamma")
+def gamma_spi_corrected(iso3: str, date: str, window: int = 6) -> xr.Dataset:
+    "Calculates gamma parameter for SPI with corrected precipitation for a date range"
+    return gamma_spi(iso3, date, window, bias_correct=True)
 
 
 @register_process("era5.spi")
@@ -103,6 +131,57 @@ def process_spi(iso3: str, date: str) -> pd.DataFrame:
             const_cols={
                 "ISO3": iso3,
                 "metric": "era5.spi.weekly_sum",
+                "unit": "unitless",
+            },
+        )
+        df.attrs["admin"] = admin
+        return df
+
+
+@register_process("era5.spi_corrected")
+def process_spi_corrected(iso3: str, date: str) -> pd.DataFrame:
+    year = int(date)
+    iso3, admin = iso3_admin_unpack(iso3)
+
+    gamma_params: xr.Dataset = find_metric("era5.spi_corrected.gamma", iso3)
+    re_matches = re.match(r".*window=(\d+)", gamma_params.attrs["DART_history"])
+    if re_matches is None:
+        raise ValueError("No window option found in gamma parameters file")
+    window = int(re_matches.groups()[0])
+    logging.info("Using era5.spi_corrected.gamma window=%d", window)
+
+    ds = corrected_precipitation_weekly_dataset(iso3, year, year, window=window)
+    ds_ma = (
+        ds.rolling(valid_time=window, center=False)
+        .mean(dim="valid_time")
+        .dropna(dim="valid_time")
+    )
+
+    gamma = xr.apply_ufunc(gamma_func, ds_ma, gamma_params.alpha, gamma_params.beta)
+    norm_spi_corrected = xr.apply_ufunc(norminv, gamma)
+    spi_corrected = norm_spi_corrected.rename({"tp_corrected": "spi_corrected"})
+    set_lonlat_attrs(spi_corrected)
+
+    # resample to weights
+    spi_corrected_path = get_path(
+        "scratch", iso3, "era5", f"{iso3}-{year}-era5.spi_corrected.weekly_sum.nc"
+    )
+    spi_corrected.to_netcdf(spi_corrected_path)
+
+    with resampled_dataset(
+        "remapdis", spi_corrected_path, get_population(iso3, year)
+    ) as resampled_ds:
+        ds = DatasetZonalStatistics(
+            resampled_ds,
+            Country(iso3).admin(admin),
+            weights=get_population(iso3, year),
+        )
+        df = ds.zonal_stats(
+            "spi_corrected",
+            operation="area_weighted_sum",
+            const_cols={
+                "ISO3": iso3,
+                "metric": "era5.spi_corrected.weekly_sum",
                 "unit": "unitless",
             },
         )
