@@ -49,7 +49,7 @@ def tp_corrected_path(iso3: str, year: int) -> Path:
 
 def get_tp_corrected(
     iso3: str, year: int, shift_hours: int, dim: str = "valid_time"
-) -> xr.DataArray | None:
+) -> xr.DataArray:
     if shift_hours < -12 or shift_hours > 12:
         raise ValueError(
             f"shift_hours should be an int between -12 and 12, got {shift_hours=}"
@@ -238,6 +238,38 @@ def precipitation_weekly_dataset(
     return ds
 
 
+def corrected_precipitation_weekly_dataset(
+    iso3: str, ystart: int, yend: int, window: int = 1, data_path: Path | None = None
+) -> xr.Dataset:
+    """
+    Returns weekly dataset of bias corrected precipitation for a iso3 code for a
+    closed, inclusive range of years.
+
+    The returned dataset has the following variables:
+    - tp_corrected: weekly sum of the total daily precipitation
+    """
+    # We only need to construct the dataset pool to get the timeshift
+    shift_hours = get_dataset_pool(iso3, data_path).shift_hours
+    da = get_tp_corrected(iso3, ystart, shift_hours=shift_hours)
+
+    # Create daily dataset from all years
+    # We go up to yend + 1 to bring in some days from the succeeding year
+    # for cases when Sundays are not 31 December (end of week aligns
+    # with end of year)
+    for y in range(ystart + 1, yend + 2):
+        da_y = get_tp_corrected(iso3, y, shift_hours=shift_hours)
+        da = xr.concat([da, da_y], dim="valid_time")
+
+    # Crop to start timeseries on Mondays, with appropriate offset if window > 1
+    start_date, end_date = get_date_range_for_years(
+        ystart, yend, 7 * (window - 1), align_weeks=True
+    )
+    ds = xr.Dataset({"tp_corrected": da}).sel(
+        valid_time=slice(start_date.isoformat(), end_date.isoformat())
+    )
+    return ds.resample(valid_time="W-MON").sum()
+
+
 def fit_gamma_distribution(
     ds: xr.Dataset | xr.DataArray, window: int, dimension: str
 ) -> xr.Dataset:
@@ -263,7 +295,12 @@ def fit_gamma_distribution(
 
 
 def balance_weekly_dataarray(
-    iso3: str, ystart: int, yend: int, window: int = 1, data_path: Path | None = None
+    iso3: str,
+    ystart: int,
+    yend: int,
+    window: int = 1,
+    data_path: Path | None = None,
+    bias_correct: bool = False,
 ) -> xr.DataArray:
     """
     Returns weekly dataset of potential evapotranspiration for a iso3 code for
@@ -292,7 +329,12 @@ def balance_weekly_dataarray(
     )
 
     # Resample precipitation to weekly sum
-    ds_precip = precipitation_weekly_dataset(
+    precipitation_weekly_func = (
+        corrected_precipitation_weekly_dataset
+        if bias_correct
+        else precipitation_weekly_dataset
+    )
+    ds_precip = precipitation_weekly_func(
         iso3, ystart, yend, window=window, data_path=data_path
     ).rename({"valid_time": "time"})
     assert ds_precip.time.min() == pevt.time.min()
