@@ -513,6 +513,7 @@ dependencies = [
     { name = "beautifulsoup4" },
     { name = "cdsapi" },
     { name = "contextily" },
+    { name = "ecmwf-opendata" },
     { name = "geoglue" },
     { name = "geopandas" },
     { name = "lxml" },
@@ -552,6 +553,7 @@ requires-dist = [
     { name = "beautifulsoup4", specifier = "==4.*" },
     { name = "cdsapi", specifier = "==0.7.5" },
     { name = "contextily", specifier = "==1.6.0" },
+    { name = "ecmwf-opendata", specifier = ">=0.3.19" },
     { name = "freezegun", marker = "extra == 'test'", specifier = "==0.3.4" },
     { name = "geoglue", git = "https://github.com/kraemer-lab/geoglue" },
     { name = "geopandas", specifier = ">1" },
@@ -651,6 +653,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/c5/c8/e89130c0ca9f622b7349c60ab7e39db84f54ac1085a7fce50c6e625d6d27/eccodes-2.40.1-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:e5fccf3f8058609c1c59c8c59be4f5975074ff3fc3cfee2a7b89f0b222419cc7", size = 7406437, upload-time = "2025-03-17T10:05:09.318Z" },
     { url = "https://files.pythonhosted.org/packages/e7/a5/36d4e865fcd484e44df63d9591a655533c54aefa981861bba3359f98f98d/eccodes-2.40.1-cp313-cp313-win_amd64.whl", hash = "sha256:0f4eaed3ea766ce6b1c3e0594fdd364e8bce21c29022725903de67e21dbf4777", size = 6224298, upload-time = "2025-03-16T13:58:24.374Z" },
     { url = "https://files.pythonhosted.org/packages/26/74/c3683ec85d70dd063a79ff4612c5ea4f0c37c39a5aa7a7340c17e767fdbd/eccodes-2.40.1-py3-none-any.whl", hash = "sha256:5a0ae2653e88fee740e53a13c91066682eca1b885bf33bf1547ac8e25e82845e", size = 43563, upload-time = "2025-03-17T10:09:49.328Z" },
+]
+
+[[package]]
+name = "ecmwf-opendata"
+version = "0.3.19"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "multiurl" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b8/4a/689e17773fb66cf323394dd82670cdaf402f86dfc655f6597a4b843c0c3b/ecmwf_opendata-0.3.19.tar.gz", hash = "sha256:90ab69d07e2d73a6ddd1789050aeeef1d6f44fe568ef4ab61a41c676fe840ce8", size = 26163, upload-time = "2025-02-26T13:25:24.902Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4e/2c/2079f54572b83d0c1fe5a8f7d67bd1438280380a8fec101adcf261c1f1f9/ecmwf_opendata-0.3.19-py3-none-any.whl", hash = "sha256:513364162fa53beed513e0fa140c33326e66778bd19b4b71c10c8ce70339edd8", size = 20067, upload-time = "2025-02-26T13:25:22.872Z" },
 ]
 
 [[package]]

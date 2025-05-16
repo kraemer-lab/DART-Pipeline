@@ -8,6 +8,7 @@ dependencies = [
     "beautifulsoup4==4.*",
     "cdsapi==0.7.5",
     "contextily==1.6.0",
+    "ecmwf-opendata>=0.3.19",
     "geoglue",
     "geopandas>1",
     "lxml>4",
