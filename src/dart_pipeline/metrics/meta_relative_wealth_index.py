@@ -10,7 +10,6 @@ Originally adapted by Prathyush Sambaturu.
 
 import functools
 import multiprocessing
-import datetime
 import logging
 from typing import Final
 
@@ -35,11 +34,11 @@ register_metrics(
             "url": "https://dataforgood.facebook.com/dfg/docs/high-resolution-population-density-maps-demographic-estimates-documentation",
             "description": "Meta population density",
             "unit": "unitless",
-            "citation": f"""
+            "citation": """
             Facebook Connectivity Lab and Center for International Earth Science
             Information Network - CIESIN – Columbia University. 2016.
             High Resolution Settlement Layer (HRSL). Source imagery for
-            HRSL © 2016 DigitalGlobe. Accessed {datetime.datetime.now().date()}""",
+            HRSL © 2016 DigitalGlobe. Accessed YYYY-MM-DD""",
         },
         "relative_wealth_index": {
             "url": "https://dataforgood.facebook.com/dfg/tools/relative-wealth-index",
