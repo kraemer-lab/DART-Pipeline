@@ -119,6 +119,16 @@ METRICS: dict[str, MetricInfo] = {
         "unit": "unitless",
         "depends": ["2m_temperature", "total_precipitation"],
     },
+    "spi_corrected.gamma": {
+        "description": "Fitted gamma distribution from historical data for SPI with corrected precipitation",
+        "unit": "unitless",
+        "depends": ["total_precipitation"],
+    },
+    "spei_corrected.gamma": {
+        "description": "Fitted gamma distribution from historical data for SPEI with corrected precipitation",
+        "unit": "unitless",
+        "depends": ["2m_temperature", "total_precipitation"],
+    },
     "prep_bias_correct": {
         "description": "Virtual metric to prepare aggregated data for bias correction module",
         "unit": "various",
