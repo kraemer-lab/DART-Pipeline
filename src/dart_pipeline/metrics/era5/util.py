@@ -267,7 +267,7 @@ def corrected_precipitation_weekly_dataset(
     ds = xr.Dataset({"tp_corrected": da}).sel(
         valid_time=slice(start_date.isoformat(), end_date.isoformat())
     )
-    return ds.resample(valid_time="W-MON").sum()
+    return ds.resample(valid_time="W-MON", closed="left", label="left").sum()
 
 
 def fit_gamma_distribution(
