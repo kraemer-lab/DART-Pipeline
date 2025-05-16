@@ -58,7 +58,7 @@ meta.pop_density
       Facebook Connectivity Lab and Center for International Earth Science
       Information Network - CIESIN – Columbia University. 2016.
       High Resolution Settlement Layer (HRSL). Source imagery for
-      HRSL © 2016 DigitalGlobe. Accessed 2025-05-14
+      HRSL © 2016 DigitalGlobe. Accessed YYYY-MM-DD
 
 meta.relative_wealth_index
     Relative wealth index [unitless]
@@ -139,6 +139,14 @@ era5.spi.gamma
 
 era5.spei.gamma
     Fitted gamma distribution from historical data for SPEI [unitless]
+
+
+era5.spi_corrected.gamma
+    Fitted gamma distribution from historical data for SPI with corrected precipitation [unitless]
+
+
+era5.spei_corrected.gamma
+    Fitted gamma distribution from historical data for SPEI with corrected precipitation [unitless]
 
 
 era5.prep_bias_correct
