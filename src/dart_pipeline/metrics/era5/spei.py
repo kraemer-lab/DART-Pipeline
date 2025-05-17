@@ -29,6 +29,8 @@ from .util import (
     assert_data_available_for_weekly_reduce,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def gamma_spei(
     iso3: str,
@@ -100,7 +102,7 @@ def process_spei(iso3: str, date: str, bias_correct: bool = False) -> pd.DataFra
     if re_matches is None:
         raise ValueError("No window option found in gamma parameters file")
     window = int(re_matches.groups()[0])
-    logging.info("Using era5.spei.gamma window=%d", window)
+    logger.info("Using era5.spei.gamma window=%d", window)
 
     ds = balance_weekly_dataarray(
         iso3, year, year, window=window, bias_correct=bias_correct

@@ -35,6 +35,8 @@ from .list_metrics import (
     VARIABLES,
 )
 
+logger = logging.getLogger(__name__)
+
 STATS = ["min", "mean", "max", "sum"]
 
 register_metrics(
@@ -94,11 +96,11 @@ def population_weighted_aggregation(
 ) -> Path:
     unit = METRICS[metric].get("unit")
     resampled_paths = get_resampled_paths(iso3, year)
-    logging.info(
+    logger.info(
         f"Population weighted aggregation [{iso3}-{admin}] {year=} {metric=} {statistic=}"
     )
     country = Country(iso3)
-    logging.info(
+    logger.info(
         "Making DatasetZonalStatistics(xr.open_dataset({resampled_paths[statistic]!r}, Country({iso3!r}).admin({admin}), weights=get_population({iso3!r}, year))"
     )
     ds = DatasetZonalStatistics(
@@ -112,7 +114,7 @@ def population_weighted_aggregation(
         else "area_weighted_sum"
     )
     variable = VARIABLE_MAPPINGS.get(metric, metric)
-    logging.info(f"Performing zonal_stats({variable!r}, {operation=})")
+    logger.info(f"Performing zonal_stats({variable!r}, {operation=})")
     df = ds.zonal_stats(
         variable,
         operation,
@@ -123,7 +125,7 @@ def population_weighted_aggregation(
         df["value"] = df.value.clip(0, 100)
     outfile = metric_path(iso3, admin, year, metric, statistic)
     df.to_parquet(outfile)
-    logging.info(f"Output [{iso3}-{admin}] {year=} {metric=} {statistic=} -> {outfile}")
+    logger.info(f"Output [{iso3}-{admin}] {year=} {metric=} {statistic=} -> {outfile}")
     return outfile
 
 
@@ -155,7 +157,7 @@ def era5_process(iso3: str, date: str, overwrite: bool = False) -> list[Path]:
     -------
     List of generated or pre-existing data files in parquet format
     """
-    logging.info("Processing era5")
+    logger.info("Processing era5")
     year = int(date)
     iso3, admin = iso3_admin_unpack(iso3)
     paths = {
@@ -191,7 +193,7 @@ def era5_process(iso3: str, date: str, overwrite: bool = False) -> list[Path]:
         accum=ds.accum.drop_vars(collect_variables_to_drop("accum")),
     )
 
-    logging.info("Calculating daily statistics (mean, sum)")
+    logger.info("Calculating daily statistics (mean, sum)")
     daily_agg = ds.daily()  # mean and sum
     daily_agg.instant.to_netcdf(paths["mean"])
 
@@ -209,13 +211,13 @@ def era5_process(iso3: str, date: str, overwrite: bool = False) -> list[Path]:
     accum.to_netcdf(paths["sum"])
 
     # read in
-    logging.info("Calculating daily statistics (min, max)")
+    logger.info("Calculating daily statistics (min, max)")
     ds.daily_max().to_netcdf(paths["max"])
     ds.daily_min().to_netcdf(paths["min"])
 
     for stat in ("min", "max", "mean", "sum"):
         resampling = "remapdis" if stat == "sum" else "remapbil"
-        logging.info(
+        logger.info(
             f"Resampling using CDO for {stat=} using {resampling=}: {paths[stat]} -> {resampled_paths[stat]}"
         )
         resample(
@@ -242,7 +244,7 @@ def era5_process(iso3: str, date: str, overwrite: bool = False) -> list[Path]:
             if not m.endswith("_corrected")
         ]
 
-    logging.info("Metric statistic combinations %r", metric_statistic_combinations)
+    logger.info("Metric statistic combinations %r", metric_statistic_combinations)
 
     already_existing_metrics = [
         (m, s)
@@ -259,7 +261,7 @@ def era5_process(iso3: str, date: str, overwrite: bool = False) -> list[Path]:
             for m, s in metric_statistic_combinations
             if (m, s) not in already_existing_metrics
         ]
-        logging.warning(
+        logger.warning(
             f"Skipping calculations for existing metrics {iso3}-{admin} {year=} {already_existing_metrics!r}"
         )
     for metric, statistic in tqdm(

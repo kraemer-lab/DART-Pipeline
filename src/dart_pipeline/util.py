@@ -27,6 +27,8 @@ from .constants import (
 from .types import Credentials, URLCollection
 from .paths import get_path
 
+logger = logging.getLogger(__name__)
+
 VALID_ISO3 = [c.alpha_3 for c in pycountry.countries]
 
 # Pandas display options
@@ -220,11 +222,11 @@ def download_file(
                 out.write(bits)
         # Unpack file
         if unpack and any(str(path).endswith(ext) for ext in COMPRESSED_FILE_EXTS):
-            logging.info(f"Unpacking downloaded file {path}")
+            logger.info(f"Unpacking downloaded file {path}")
             unpack_file(path, same_folder=not unpack_create_folder)
         return True
     else:
-        logging.error(f"Failed to fetch {url}, status={r.status_code}")
+        logger.error(f"Failed to fetch {url}, status={r.status_code}")
         return False
 
 
@@ -249,8 +251,8 @@ def download_files(
 def unpack_file(path: Path | str, same_folder: bool = False):
     """Unpack a zipped file."""
     path = Path(path)
-    logging.info("unpacking:%s", path)
-    logging.info("same_folder:%s", same_folder)
+    logger.info("unpacking:%s", path)
+    logger.info("same_folder:%s", same_folder)
     match path.suffix:
         case ".7z":
             with py7zr.SevenZipFile(path, mode="r") as archive:
@@ -272,7 +274,7 @@ def unpack_file(path: Path | str, same_folder: bool = False):
                     file = str(path.name).replace(".gz", "")
                     extract_path = path.parent / Path(folder) / Path(file)
                     extract_path.parent.mkdir(parents=True, exist_ok=True)
-                logging.info("extract_path:%s", extract_path)
+                logger.info("extract_path:%s", extract_path)
                 try:
                     with open(extract_path, "wb") as f_out:
                         shutil.copyfileobj(f_in, f_out)

@@ -19,6 +19,8 @@ from ..plots import plot_timeseries
 from ..paths import get_path
 from ..types import DataFile
 
+logger = logging.getLogger(__name__)
+
 PERU_REGIONS = [
     "AMAZONAS",
     "ANCASH",
@@ -98,9 +100,9 @@ def process_dengueperu(
     """Process data from the Ministerio de Salud - Peru."""
     if not admin_level:
         admin_level = "0"
-        logging.info("admin_level:None (defaulting to %s)", admin_level)
+        logger.info("admin_level:None (defaulting to %s)", admin_level)
     elif admin_level in ["0", "1"]:
-        logging.info("admin_level:%s", admin_level)
+        logger.info("admin_level:%s", admin_level)
     else:
         raise ValueError(f"Invalid admin level: {admin_level}")
 
@@ -126,7 +128,7 @@ def process_dengueperu(
 
     # Import the raw data
     for filepath in filepaths:
-        logging.info("importing:%s", filepath)
+        logger.info("importing:%s", filepath)
         df = pd.read_excel(filepath)
 
         # Rename the headings
@@ -144,7 +146,7 @@ def process_dengueperu(
         # Get the name of the administrative divisions
         filename = filepath.name
         name = filename.removesuffix(".xlsx").split("_")[-1].capitalize()
-        logging.info("processing:%s", name)
+        logger.info("processing:%s", name)
         # Add to the output data frame
         df["admin_level_0"] = "Peru"
         if admin_level == "1":

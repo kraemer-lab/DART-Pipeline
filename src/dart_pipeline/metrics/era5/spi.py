@@ -28,6 +28,8 @@ from .util import (
 )
 from . import get_dataset_pool, get_population
 
+logger = logging.getLogger(__name__)
+
 
 def gamma_spi(
     iso3: str, date: str, window: int = 6, bias_correct: bool = False
@@ -98,7 +100,7 @@ def process_spi(iso3: str, date: str) -> pd.DataFrame:
     if re_matches is None:
         raise ValueError("No window option found in gamma parameters file")
     window = int(re_matches.groups()[0])
-    logging.info("Using era5.spi.gamma window=%d", window)
+    logger.info("Using era5.spi.gamma window=%d", window)
     ds = pool.weekly_reduce(year, "accum", window=window - 1)
     ds_ma = (
         ds.rolling(valid_time=window, center=False)
@@ -148,7 +150,7 @@ def process_spi_corrected(iso3: str, date: str) -> pd.DataFrame:
     if re_matches is None:
         raise ValueError("No window option found in gamma parameters file")
     window = int(re_matches.groups()[0])
-    logging.info("Using era5.spi_corrected.gamma window=%d", window)
+    logger.info("Using era5.spi_corrected.gamma window=%d", window)
 
     ds = corrected_precipitation_weekly_dataset(iso3, year, year, window=window)
     ds_ma = (

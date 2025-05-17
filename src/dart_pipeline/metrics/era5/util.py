@@ -26,6 +26,8 @@ from geoglue.cds import (
 from ...paths import get_path
 from .list_metrics import VARIABLES
 
+logger = logging.getLogger(__name__)
+
 
 def get_dataset_pool(iso3: str, data_path: Path | None = None) -> DatasetPool:
     return ReanalysisSingleLevels(
@@ -81,7 +83,7 @@ def add_bias_corrected_tp(
     try:
         tp_corrected = get_tp_corrected(iso3, year, shift_hours)
     except FileNotFoundError:
-        logging.info(f"No tp_corrected file found for {iso3}-{year} {shift_hours=}")
+        logger.info(f"No tp_corrected file found for {iso3}-{year} {shift_hours=}")
         return accum
     accum["tp_corrected"] = tp_corrected
     return accum

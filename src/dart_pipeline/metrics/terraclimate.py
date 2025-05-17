@@ -12,6 +12,7 @@ from ..types import PartialDate, URLCollection
 from ..util import use_range
 from ..paths import get_path
 
+logger = logging.getLogger(__name__)
 
 TERRACLIMATE_METRICS = [
     "aet",  # water_evaporation_amount_mm
@@ -58,10 +59,10 @@ def process_terraclimate(partial_date: str, iso3: str, admin_level: str):
     files for which the `netCDF4` library is needed.
     """
     pdate = PartialDate.from_string(partial_date)
-    logging.info("partial_date:%s", pdate)
+    logger.info("partial_date:%s", pdate)
     iso3 = iso3.upper()
-    logging.info("iso3:%s", iso3)
-    logging.info("admin_level:%s", admin_level)
+    logger.info("iso3:%s", iso3)
+    logger.info("admin_level:%s", admin_level)
 
     # Initialise output data frame
     columns = [
@@ -92,7 +93,7 @@ def process_terraclimate(partial_date: str, iso3: str, admin_level: str):
         else:
             filename = f"TerraClimate_{metric}_{pdate.year}.nc"
         path = get_path("sources", "global", "terraclimate", filename)
-        logging.info("importing:%s", path)
+        logger.info("importing:%s", path)
         ds = nc.Dataset(path)
 
         # Extract the variables
