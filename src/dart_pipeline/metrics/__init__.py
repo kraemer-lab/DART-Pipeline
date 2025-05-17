@@ -13,6 +13,8 @@ from ..paths import get_path
 from ..util import abort, unpack_file, download_files, logfmt, determine_netcdf_filename
 from ..types import DataFile, URLCollection
 
+logger = logging.getLogger(__name__)
+
 METRICS = {}
 FETCHERS = {}
 PROCESSORS = {}
@@ -153,26 +155,26 @@ def get(
     links = FETCHERS[metric](**kwargs)
     links = links if isinstance(links, list) else [links]
     if isinstance(links[0], (DataFile, Path)) or not links[0]:
-        logging.info(f"Metric {metric} downloads data directly, nothing to do")
+        logger.info(f"Metric {metric} downloads data directly, nothing to do")
     if isinstance(links[0], URLCollection):
         links = cast(list[URLCollection], links)
         for coll in links:
-            logging.info("Fetching %s [%s]: %r", metric, iso3, coll)
+            logger.info("Fetching %s [%s]: %r", metric, iso3, coll)
             coll.relative_path = metric.replace(".", "/")
             if not coll.missing_files(path) and not update:
                 # unpack files
                 for file in coll.files:
                     to_unpack = path / coll.relative_path / Path(file).name
                     unpack_file(to_unpack, same_folder=True)
-                    logging.info("Unpacked %s", to_unpack)
+                    logger.info("Unpacked %s", to_unpack)
             success = download_files(coll, path, auth=None, unpack=True)
             n_ok = sum(success)
             if n_ok == len(success):
-                logging.info("Fetch %s [%s] OK", metric, iso3)
+                logger.info("Fetch %s [%s] OK", metric, iso3)
             elif n_ok > 0:
-                logging.warning(f"Fetch partial {metric} [{n_ok}/{len(success)} OK]")
+                logger.warning(f"Fetch partial {metric} [{n_ok}/{len(success)} OK]")
             else:
-                logging.error("Fetch %s [%s] failed", metric, iso3)
+                logger.error("Fetch %s [%s] failed", metric, iso3)
     if not skip_process and metric in PROCESSORS and metric not in SKIP_AUTO_PROCESS:
         process(metric, **kwargs)
 
@@ -203,7 +205,7 @@ def determine_date_signifier(s: pd.Series) -> str:
 
 def process(metric: str, **kwargs) -> list[Path]:
     """Process a data source according to inputs from the command line."""
-    logging.info("Processing %s %s", metric, logfmt(kwargs))
+    logger.info("Processing %s %s", metric, logfmt(kwargs))
     source = metric.split(".")[0]
     if source not in METRICS:
         raise ValueError(
@@ -221,7 +223,7 @@ def process(metric: str, **kwargs) -> list[Path]:
         abort(metric, f"missing required parameters {missing_params}")
     res: pd.DataFrame | xr.Dataset | list[Path] = processor(**kwargs)
     if isinstance(res, list) and all(isinstance(r, Path) for r in res):
-        logging.info("output %s %s", metric, print_paths(res))
+        logger.info("output %s %s", metric, print_paths(res))
         return res  # nothing to do, processor has already written data
     assert not isinstance(res, list)
     if isinstance(res, pd.DataFrame):
@@ -239,7 +241,7 @@ def process(metric: str, **kwargs) -> list[Path]:
             / f"{iso3}-{admin}-{date_signifier}-{data_metric}.parquet"
         )
         res.to_parquet(outfile, index=False)
-        logging.info("output %s %s", metric, print_path(outfile))
+        logger.info("output %s %s", metric, print_path(outfile))
         return [outfile]
     elif isinstance(res, xr.Dataset):
         iso3 = res.attrs.get("ISO3", kwargs["iso3"])
@@ -248,7 +250,7 @@ def process(metric: str, **kwargs) -> list[Path]:
             metric, **kwargs
         )
         res.to_netcdf(outfile)
-        logging.info("output %s %s", metric, print_path(outfile))
+        logger.info("output %s %s", metric, print_path(outfile))
         return [outfile]
     else:
         raise ValueError(f"Unsupported result type {res=}")

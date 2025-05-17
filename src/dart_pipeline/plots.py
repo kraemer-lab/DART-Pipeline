@@ -16,6 +16,8 @@ import numpy as np
 LONGITUDE_LABEL = "Longitude [degrees_east]"
 LATITUDE_LABEL = "Latitude [degrees_north]"
 
+logger = logging.getLogger(__name__)
+
 
 def plot_metric_data(
     filename: str | Path,
@@ -52,7 +54,7 @@ def plot_metric_data(
     else:
         outfile = file.parent / (file.stem + f".{format}")
         plt.savefig(outfile)
-        logging.info("Saved plot to %s", outfile)
+        logger.info("Saved plot to %s", outfile)
     plt.close()
 
 
@@ -77,7 +79,7 @@ def plot_heatmap(data, title, colourbar_label, path, extent=None, log_plot=False
     title = title.strip()
     # Export
     path.parent.mkdir(parents=True, exist_ok=True)
-    logging.info("exporting:%s", path)
+    logger.info("exporting:%s", path)
     plt.savefig(path)
     plt.close()
 
@@ -106,7 +108,7 @@ def plot_gadm_micro_heatmap(
     title = title.strip()
     # Export
     path.parent.mkdir(parents=True, exist_ok=True)
-    logging.info("exporting:%s", path)
+    logger.info("exporting:%s", path)
     plt.savefig(path)
     plt.close()
 
@@ -147,7 +149,7 @@ def plot_gadm_macro_heatmap(
     title = title.strip()
     # Export
     path.parent.mkdir(parents=True, exist_ok=True)
-    logging.info("exporting:%s", path)
+    logger.info("exporting:%s", path)
     plt.savefig(path)
     plt.close()
 
@@ -172,7 +174,7 @@ def plot_timeseries(df, title, path):
     plt.tight_layout()
     # Export
     path.parent.mkdir(parents=True, exist_ok=True)
-    logging.info("exporting:%s", path)
+    logger.info("exporting:%s", path)
     plt.savefig(path)
     plt.close()
 

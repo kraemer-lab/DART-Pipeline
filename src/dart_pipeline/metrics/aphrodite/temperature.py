@@ -14,6 +14,8 @@ from ...types import PartialDate
 from ...constants import OUTPUT_COLUMNS
 from ...paths import get_path
 
+logger = logging.getLogger(__name__)
+
 # No data in APHRODITE data
 # See APHRO_MA_025deg_V1901.ctl and others
 NO_DATA = -99.90
@@ -32,14 +34,14 @@ def process_gadm_aphroditetemperature(
     partial date.
     """
     pdate = PartialDate.from_string(partial_date)
-    logging.info("iso3:%s", iso3)
-    logging.info("admin_level:%s", admin_level)
-    logging.info("partial_date:%s", pdate)
-    logging.info("scope:%s", pdate.scope)
+    logger.info("iso3:%s", iso3)
+    logger.info("admin_level:%s", admin_level)
+    logger.info("partial_date:%s", pdate)
+    logger.info("scope:%s", pdate.scope)
 
     # Import shape file
     path = get_shapefile(iso3, admin_level)
-    logging.info("importing:%s", path)
+    logger.info("importing:%s", path)
     gdf = gpd.read_file(path)
 
     # Initialise output data frame
@@ -98,7 +100,7 @@ def process_gadm_aphroditetemperature(
             f"APHRO_MA_{product}_{res}_{version}.{year}{ext}",
         )
         # Read binary data
-        logging.info("importing:%s", path)
+        logger.info("importing:%s", path)
         with open(path, "rb") as f:
             # Initialise arrays
             temp_data = np.zeros((nday, ny, nx))

@@ -26,6 +26,8 @@ from ..util import get_country_name
 from ..paths import get_path
 from ..metrics import register_metrics, register_fetch, register_process
 
+logger = logging.getLogger(__name__)
+
 register_metrics(
     "meta",
     description="Sociodemographic indicators from Meta",
@@ -71,7 +73,7 @@ def meta_pop_density_data(iso3: str) -> URLCollection:
         f"{country.lower().replace(' ', '-')}-high-resolution-population-"
         "density-maps-demographic-estimates"
     )
-    logging.info("Collecting links for meta.pop_density [%s]: %s", iso3, url)
+    logger.info("Collecting links for meta.pop_density [%s]: %s", iso3, url)
     if (response := requests.get(url)).status_code == 200:
         # Search for a URL in the HTML content
         soup = BeautifulSoup(response.text, "html.parser")
@@ -196,7 +198,7 @@ def process_gadm_popdensity_rwi(iso3: str, admin_level=2) -> pd.DataFrame:
     admin_geoid = f"GID_{admin_level}"
     polygons = dict(zip(shapefile[admin_geoid], shapefile["geometry"]))
 
-    logging.info(
+    logger.info(
         "Reading meta.relative_wealth_index [%s] %r",
         iso3,
         path := get_path(
@@ -213,7 +215,7 @@ def process_gadm_popdensity_rwi(iso3: str, admin_level=2) -> pd.DataFrame:
     rwi = rwi[rwi["geo_id"] != "null"]
     rwi["quadkey"] = rwi.apply(lambda x: get_quadkey(x, zoom_level), axis=1)
 
-    logging.info(
+    logger.info(
         "Reading meta.pop_density [%s] %r",
         iso3,
         path := get_path(
@@ -255,13 +257,13 @@ def process_gadm_popdensity_rwi(iso3: str, admin_level=2) -> pd.DataFrame:
 def process_rwi_point_estimate(iso3: str) -> float:
     """Process Relative Wealth Index data only."""
     iso3 = iso3.upper()
-    logging.info("iso3:%s", iso3)
+    logger.info("iso3:%s", iso3)
     country = get_country_name(iso3)
-    logging.info("country:%s", country)
+    logger.info("country:%s", country)
 
     # Import the Relative Wealth Index data
     path = get_path("sources", "meta", f"{iso3.lower()}_relative_wealth_index.csv")
-    logging.info("importing:%s", path)
+    logger.info("importing:%s", path)
     rwi = pd.read_csv(path)
 
     # Convert to GeoDataFrame
@@ -285,7 +287,7 @@ def process_gadm_rwi(iso3: str, admin_level: int):
     polygons = dict(zip(gdf[admin_geoid], gdf["geometry"]))
 
     # Import the Relative Wealth Index data
-    logging.info(
+    logger.info(
         "Reading %r",
         path := get_path(
             "sources", iso3, "meta", f"{iso3.lower()}_relative_wealth_index.csv"

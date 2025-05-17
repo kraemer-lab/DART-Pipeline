@@ -26,6 +26,9 @@ from ..util import use_range, daterange
 from ..types import PartialDate, URLCollection
 
 
+logger = logging.getLogger(__name__)
+
+
 def chirps_rainfall_data(partial_date: str) -> list[URLCollection]:
     """
     CHIRPS Rainfall Estimates from Rain Gauge, Satellite Observations.
@@ -65,7 +68,7 @@ def chirps_rainfall_data(partial_date: str) -> list[URLCollection]:
             path = f"global_monthly/{pdate.year}"
             urls.append(URLCollection(base, files, relative_path=path))
         else:
-            logging.warning(
+            logger.warning(
                 "Monthly data is only available from "
                 + f"{chirps_first_year}-01 onwards"
             )
@@ -130,15 +133,15 @@ def process_gadm_chirps_rainfall(
     Station.
     """
     pdate = PartialDate.from_string(partial_date)
-    logging.info("iso3:%s", iso3)
-    logging.info("admin_level:%s", admin_level)
-    logging.info("partial_date:%s", pdate)
-    logging.info("scope:%s", pdate.scope)
-    logging.info("plots:%s", plots)
+    logger.info("iso3:%s", iso3)
+    logger.info("admin_level:%s", admin_level)
+    logger.info("partial_date:%s", pdate)
+    logger.info("scope:%s", pdate.scope)
+    logger.info("plots:%s", plots)
 
     # Import the GeoTIFF file
     file = get_chirps_rainfall_data_path(pdate)
-    logging.info("importing:%s", file)
+    logger.info("importing:%s", file)
     src = rasterio.open(file)
 
     # Create a bounding box from raster bounds
@@ -207,8 +210,8 @@ def process_gadm_chirps_rainfall(
         else:
             # No rainfall data for this region
             region_total = 0
-        logging.info("region:%s", title)
-        logging.info("region_total:%s", region_total)
+        logger.info("region:%s", title)
+        logger.info("region_total:%s", region_total)
         # Add the result to the output data frame
         output.loc[i, "rainfall"] = region_total
 
@@ -239,7 +242,7 @@ def process_gadm_chirps_rainfall(
             title = title.strip()
             # Export
             path = get_path("output", iso3, "chirps", f"{pdate}-{title}.png")
-            logging.info("exporting:%s", path)
+            logger.info("exporting:%s", path)
             plt.savefig(path)
             plt.close()
 
@@ -255,13 +258,13 @@ def process_chirps_rainfall(partial_date: str, plots=False) -> pd.DataFrame:
     """
     base = "global", "chirps"
     pdate = PartialDate.from_string(partial_date)
-    logging.info("partial_date:%s", pdate)
-    logging.info("scope:%s", pdate.scope)
-    logging.info("plots:%s", plots)
+    logger.info("partial_date:%s", pdate)
+    logger.info("scope:%s", pdate.scope)
+    logger.info("plots:%s", plots)
 
     # Import the GeoTIFF file
     file = get_chirps_rainfall_data_path(pdate)
-    logging.info("importing:%s", file)
+    logger.info("importing:%s", file)
     src = rasterio.open(file)
 
     # Initialise the data frame that will store the output data for each region

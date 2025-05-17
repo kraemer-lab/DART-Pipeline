@@ -19,6 +19,8 @@ from ...constants import OUTPUT_COLUMNS
 # See APHRO_MA_025deg_V1901.ctl and others
 NO_DATA = -99.90
 
+logger = logging.getLogger(__name__)
+
 
 def process_gadm_aphroditeprecipitation(
     iso3: str,
@@ -34,11 +36,11 @@ def process_gadm_aphroditeprecipitation(
     partial date.
     """
     pdate = PartialDate.from_string(partial_date)
-    logging.info("iso3:%s", iso3)
-    logging.info("admin_level:%s", admin_level)
-    logging.info("partial_date:%s", pdate)
-    logging.info("scope:%s", pdate.scope)
-    logging.info("plots:%s", plots)
+    logger.info("iso3:%s", iso3)
+    logger.info("admin_level:%s", admin_level)
+    logger.info("partial_date:%s", pdate)
+    logger.info("scope:%s", pdate.scope)
+    logger.info("plots:%s", plots)
 
     # Import shape file
     gdf = Country(iso3).admin(int(admin_level))
