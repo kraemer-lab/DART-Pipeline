@@ -251,7 +251,7 @@ def process(metric: str, **kwargs) -> list[Path]:
         logging.info("output %s %s", metric, print_path(outfile))
         return [outfile]
     else:
-        raise ValueError("Unsupported result type {res=}")
+        raise ValueError(f"Unsupported result type {res=}")
 
 
 def find_metrics(
