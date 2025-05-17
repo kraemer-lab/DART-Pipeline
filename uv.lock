@@ -532,13 +532,9 @@ dependencies = [
     { name = "xclim" },
 ]
 
-[package.optional-dependencies]
-test = [
-    { name = "freezegun" },
-]
-
 [package.dev-dependencies]
 dev = [
+    { name = "freezegun" },
     { name = "myst-parser" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -554,7 +550,6 @@ requires-dist = [
     { name = "cdsapi", specifier = "==0.7.5" },
     { name = "contextily", specifier = "==1.6.0" },
     { name = "ecmwf-opendata", specifier = ">=0.3.19" },
-    { name = "freezegun", marker = "extra == 'test'", specifier = "==0.3.4" },
     { name = "geoglue", git = "https://github.com/kraemer-lab/geoglue" },
     { name = "geopandas", specifier = ">1" },
     { name = "lxml", specifier = ">4" },
@@ -572,10 +567,10 @@ requires-dist = [
     { name = "shapely", specifier = ">2.0.5" },
     { name = "xclim", specifier = ">=0.56.0" },
 ]
-provides-extras = ["test"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "freezegun", specifier = ">=1.5" },
     { name = "myst-parser", specifier = ">=4.0.0" },
     { name = "pytest", specifier = ">=8.3.2" },
     { name = "pytest-cov", specifier = ">=6.0.0" },
@@ -806,15 +801,14 @@ wheels = [
 
 [[package]]
 name = "freezegun"
-version = "0.3.4"
+version = "1.5.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "python-dateutil" },
-    { name = "six" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f8/3a/b05189bd13b2bdf724d8e486ff245e1cbec21d54d6d0da54db59feeff0f9/freezegun-0.3.4.tar.gz", hash = "sha256:8d5eb5656c324125cce80e2e9ae572af6da997b7065b3bb6599c20f1b28dcf46", size = 42043, upload-time = "2015-06-24T01:44:22.364Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2c/ef/722b8d71ddf4d48f25f6d78aa2533d505bf3eec000a7cacb8ccc8de61f2f/freezegun-1.5.1.tar.gz", hash = "sha256:b29dedfcda6d5e8e083ce71b2b542753ad48cfec44037b3fc79702e2980a89e9", size = 33697, upload-time = "2024-05-11T17:32:53.911Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ed/ac/64b9d6b80a2c425428971b8333c05667b1f43126ea84e679676c14e1e160/freezegun-0.3.4-py2.py3-none-any.whl", hash = "sha256:d15d5daa22260891955d436899f94c8b80525daa895aec74c0afa5a25ac0230e", size = 5315, upload-time = "2015-06-24T01:44:25.686Z" },
+    { url = "https://files.pythonhosted.org/packages/51/0b/0d7fee5919bccc1fdc1c2a7528b98f65c6f69b223a3fd8f809918c142c36/freezegun-1.5.1-py3-none-any.whl", hash = "sha256:bf111d7138a8abe55ab48a71755673dbaa4ab87f4cff5634a4442dfec34c15f1", size = 17569, upload-time = "2024-05-11T17:32:51.715Z" },
 ]
 
 [[package]]
