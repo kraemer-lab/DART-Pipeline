@@ -823,7 +823,7 @@ wheels = [
 [[package]]
 name = "geoglue"
 version = "0.1.0"
-source = { git = "https://github.com/kraemer-lab/geoglue#04807f6f16c8ea150fde4094d356a45ab9ef75e0" }
+source = { git = "https://github.com/kraemer-lab/geoglue#405d9e8ef40b4b16d45c7da0f45d92739c82ed54" }
 dependencies = [
     { name = "cdo" },
     { name = "cdsapi" },
