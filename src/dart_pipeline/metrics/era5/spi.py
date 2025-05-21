@@ -8,13 +8,12 @@ import logging
 import xarray as xr
 import pandas as pd
 
-from geoglue.country import Country
+from geoglue.region import get_worldpop_1km, gadm
 from geoglue.resample import resampled_dataset
 from geoglue.util import set_lonlat_attrs
-from geoglue.zonal_stats import DatasetZonalStatistics
 
 from ...paths import get_path
-from ...util import iso3_admin_unpack
+from ...util import iso3_admin_unpack, zonal_stats
 from ...metrics import register_process, find_metric
 
 from .util import (
@@ -26,7 +25,7 @@ from .util import (
     gamma_func,
     norminv,
 )
-from . import get_dataset_pool, get_population
+from . import get_dataset_pool
 
 logger = logging.getLogger(__name__)
 
@@ -119,25 +118,16 @@ def process_spi(iso3: str, date: str) -> pd.DataFrame:
     )
     spi.to_netcdf(spi_path)
 
-    with resampled_dataset(
-        "remapdis", spi_path, get_population(iso3, year)
-    ) as resampled_ds:
-        ds = DatasetZonalStatistics(
-            resampled_ds,
-            Country(iso3).admin(admin),
-            weights=get_population(iso3, year),
-        )
-        df = ds.zonal_stats(
-            "spi",
+    population = get_worldpop_1km(iso3, year)
+    with resampled_dataset("remapdis", spi_path, population) as resampled_ds:
+        return zonal_stats(
+            "era5.spi.weekly_sum",
+            "1",
+            resampled_ds.spi,
+            gadm(iso3, admin),
             operation="area_weighted_sum",
-            const_cols={
-                "ISO3": iso3,
-                "metric": "era5.spi.weekly_sum",
-                "unit": "unitless",
-            },
+            weights=population,
         )
-        df.attrs["admin"] = admin
-        return df
 
 
 @register_process("era5.spi_corrected")
@@ -170,22 +160,13 @@ def process_spi_corrected(iso3: str, date: str) -> pd.DataFrame:
     )
     spi_corrected.to_netcdf(spi_corrected_path)
 
-    with resampled_dataset(
-        "remapdis", spi_corrected_path, get_population(iso3, year)
-    ) as resampled_ds:
-        ds = DatasetZonalStatistics(
-            resampled_ds,
-            Country(iso3).admin(admin),
-            weights=get_population(iso3, year),
-        )
-        df = ds.zonal_stats(
-            "spi_corrected",
+    population = get_worldpop_1km(iso3, year)
+    with resampled_dataset("remapdis", spi_corrected_path, population) as resampled_ds:
+        return zonal_stats(
+            "era5.spi_corrected.weekly_sum",
+            "1",
+            resampled_ds.spi_corrected,
+            gadm(iso3, admin),
             operation="area_weighted_sum",
-            const_cols={
-                "ISO3": iso3,
-                "metric": "era5.spi_corrected.weekly_sum",
-                "unit": "unitless",
-            },
+            weights=population,
         )
-        df.attrs["admin"] = admin
-        return df

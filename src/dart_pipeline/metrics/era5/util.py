@@ -14,8 +14,8 @@ import xclim
 import scipy.stats
 import numpy as np
 import xarray as xr
-from geoglue.country import Country
 from geoglue.util import find_unique_time_coord
+from geoglue.region import gadm
 from geoglue.cds import (
     CdsDataset,
     get_first_monday,
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 def get_dataset_pool(iso3: str, data_path: Path | None = None) -> DatasetPool:
     return ReanalysisSingleLevels(
-        iso3, VARIABLES, path=data_path or get_path("sources", iso3, "era5")
+        gadm(iso3, 1), VARIABLES, path=data_path or get_path("sources", iso3, "era5")
     ).get_dataset_pool()
 
 
@@ -93,7 +93,8 @@ def assert_data_available_for_weekly_reduce(
     iso3: str, ystart: int, yend: int, data_path: Path | None = None
 ) -> None:
     "Asserts that sufficient data is available for weekly_reduce() call"
-    timezone_offset = Country(iso3).timezone_offset
+    region = gadm(iso3, 1, data_path=data_path)
+    timezone_offset = region["tz"]
     negative_longitude = "-" in timezone_offset
 
     # Always get one year around requested range as weeks may overlap contiguous years

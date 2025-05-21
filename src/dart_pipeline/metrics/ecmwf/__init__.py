@@ -5,7 +5,7 @@ from pathlib import Path
 from datetime import datetime, date
 
 import ecmwf.opendata
-from geoglue import Country
+from geoglue.region import gadm
 
 from ...paths import get_path
 from ...metrics import register_metrics, register_fetch, MetricInfo
@@ -104,7 +104,8 @@ def get_forecast_open_data(
         logger.info("Downloaded forecast in: %s", output_path)
     else:
         logger.info("Using already retrieved forecast file: %s", output_path)
-    extents = Country(iso3).bounds
+    region = gadm(iso3, 1)
+    extents = region["bounds"]
     sel_kwargs = {
         "latitude": slice(extents.north, extents.south),
         "longitude": slice(extents.west, extents.east),

@@ -1,13 +1,12 @@
 """Module for processing ."""
 
 from datetime import date, datetime, timedelta
-from typing import Literal
 import logging
 
 import numpy as np
 import pandas as pd
 import shapely.geometry
-from geoglue import Country
+from geoglue.region import gadm, read_region
 
 from ...plots import plot_gadm_scatter
 from ...types import PartialDate
@@ -24,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 def process_gadm_aphroditeprecipitation(
     iso3: str,
-    admin_level: Literal["0", "1", "2", "3"],
+    admin_level: int,
     partial_date: str,
     resolution=["025deg", "050deg"],
     plots=False,
@@ -43,10 +42,10 @@ def process_gadm_aphroditeprecipitation(
     logger.info("plots:%s", plots)
 
     # Import shape file
-    gdf = Country(iso3).admin(int(admin_level))
+    gdf = read_region(gadm(iso3, admin_level))
 
     # Initialise output data frame
-    output = pd.DataFrame(columns=OUTPUT_COLUMNS)
+    output = pd.DataFrame(columns=OUTPUT_COLUMNS)  # type: ignore
 
     version = "V1901"
     year = pdate.year

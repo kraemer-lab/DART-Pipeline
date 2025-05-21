@@ -7,13 +7,12 @@ import logging
 import xarray as xr
 import pandas as pd
 
-from geoglue.country import Country
+from geoglue.region import gadm, get_worldpop_1km
 from geoglue.resample import resampled_dataset
 from geoglue.util import find_unique_time_coord, set_lonlat_attrs
-from geoglue.zonal_stats import DatasetZonalStatistics
 
 from ...paths import get_path
-from ...util import iso3_admin_unpack
+from ...util import iso3_admin_unpack, zonal_stats
 from ...metrics import register_process, find_metric
 
 from .util import (
@@ -21,7 +20,6 @@ from .util import (
     gamma_func,
     norminv,
 )
-from . import get_population
 
 from .util import (
     balance_weekly_dataarray,
@@ -124,25 +122,16 @@ def process_spei(iso3: str, date: str, bias_correct: bool = False) -> pd.DataFra
     )
     spei.to_netcdf(spei_path)
 
-    with resampled_dataset(
-        "remapdis", spei_path, get_population(iso3, year)
-    ) as resampled_ds:
-        ds = DatasetZonalStatistics(
-            resampled_ds,
-            Country(iso3).admin(admin),
-            weights=get_population(iso3, year),
-        )
-        df = ds.zonal_stats(
-            "spei",
+    population = get_worldpop_1km(iso3, year)
+    with resampled_dataset("remapdis", spei_path, population) as resampled_ds:
+        return zonal_stats(
+            f"era5.{spei_name}.weekly_sum",
+            "1",
+            resampled_ds.spei,
+            gadm(iso3, admin),
             operation="area_weighted_sum",
-            const_cols={
-                "ISO3": iso3,
-                "metric": "era5.spei.weekly_sum",
-                "unit": "unitless",
-            },
+            weights=population,
         )
-        df.attrs["admin"] = admin
-        return df
 
 
 @register_process("era5.spei.gamma")

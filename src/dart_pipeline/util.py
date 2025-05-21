@@ -20,6 +20,10 @@ import py7zr
 import pycountry
 import requests
 import xarray as xr
+import geoglue.util
+import geoglue.region
+import geoglue.zonal_stats
+from geoglue.memoryraster import MemoryRaster
 
 from .constants import (
     COMPRESSED_FILE_EXTS,
@@ -36,6 +40,68 @@ pd.set_option("display.max_columns", None)
 pd.set_option("display.max_rows", None)
 pd.set_option("display.max_colwidth", 40)
 pd.set_option("display.width", 228)  # sierra
+
+
+def zonal_stats(
+    metric: str,
+    unit: str,
+    da: xr.DataArray,
+    region: geoglue.region.Region,
+    operation: str = "mean(coverage_weight=area_spherical_km2)",
+    weights: MemoryRaster | None = None,
+    include_cols: list[str] | None = None,
+    fix_array: bool = False,
+) -> pd.DataFrame:
+    """Return zonal statistics for a particular DataArray.
+
+    This is a wrapper around geoglue.zonal_stats to add metadata attributes
+    such as metric, unit and region name to the dataframe.
+
+    Parameters
+    ----------
+    metric : str
+        Name of metric
+    unit : str
+        Unit of metric in udunits terminology. Unitless metrics should
+        be assigned a unit of "1"
+    da : xr.DataArray
+        xarray DataArray to perform zonal statistics on. Must have
+        'latitude', 'longitude' and a time coordinate
+    region : geoglue.region.Region
+        Region for which to calculate zonal statistics
+    operation : str
+        Zonal statistics operation. For a full list of operations, see
+        https://isciences.github.io/exactextract/operations.html. Default
+        operation is to calculate the mean with a spherical area coverage weight.
+    weights : MemoryRaster | None
+        Optional, if specified, uses the specified raster to perform weighted
+        zonal statistics.
+    include_cols : list[str] | None
+        Optional, if specified, only includes these columns. If not specified,
+        returns all columns except the geometry column
+    fix_array : bool
+        Whether to perform pre-processing steps, such as sorting longitude, latitude
+        and setting CF-compliant attributes. These should not be required
+        when processing downloaded weather data which should already be in
+        compliant format. Optional, default=False
+
+    Returns
+    -------
+    pd.DataFrame
+        The DataFrame specified by the geometry in the `region` parameter, one
+        additional column, `value` containing the zonal statistic for the corresponding geometry.
+    """
+    if fix_array:
+        da = geoglue.util.sort_lonlat(da)  # type: ignore
+        geoglue.util.set_lonlat_attrs(da)  # type: ignore
+    geom = geoglue.region.read_region(region)
+    df = geoglue.zonal_stats.zonal_stats(
+        da, geom, operation, weights, include_cols=include_cols
+    )
+    df["region"] = region["name"]
+    df["unit"] = unit
+    df["metric"] = metric
+    return df
 
 
 def determine_netcdf_filename(metric: str, **kwargs) -> str:

@@ -18,8 +18,9 @@ from shapely.geometry import Point
 import requests
 import geopandas as gpd
 import pandas as pd
-from geoglue import Country
 from bs4 import BeautifulSoup
+
+from geoglue.region import gadm, read_region
 
 from ..types import URLCollection
 from ..util import get_country_name
@@ -192,7 +193,7 @@ def process_gadm_popdensity_rwi(iso3: str, admin_level=2) -> pd.DataFrame:
     # Population density only available for 2020
     year: Final[int] = 2020
 
-    shapefile = Country(iso3).admin(admin_level)
+    shapefile = read_region(gadm(iso3, admin_level))
     # Get the polygons from the shape file and create a dictionary mapping the
     # region IDs to their polygon geometries
     admin_geoid = f"GID_{admin_level}"
@@ -282,7 +283,7 @@ def process_gadm_rwi(iso3: str, admin_level: int):
 
     # Create a dictionary of polygons where the key is the ID of the polygon
     # and the value is its geometry
-    gdf = Country(iso3).admin(admin_level)
+    gdf = read_region(gadm(iso3, admin_level))
     admin_geoid = f"GID_{admin_level}"
     polygons = dict(zip(gdf[admin_geoid], gdf["geometry"]))
 

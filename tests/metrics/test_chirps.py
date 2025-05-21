@@ -133,6 +133,7 @@ def test_process_gadm_chirps_rainfall(
 
     # Mock GeoDataFrame and region data
     mock_gdf = MagicMock(spec=gpd.GeoDataFrame)
+    mock_gdf.total_bounds = 8, 102, 24, 110
     region_geometry = Polygon([(-180, -90), (0, -90), (0, 0), (-180, 0)])
     mock_region = MagicMock()
     mock_region.geometry = region_geometry
@@ -166,7 +167,7 @@ def test_process_gadm_chirps_rainfall(
     pd.testing.assert_frame_equal(output, expected_df)
 
     # Verify the interaction with GeoDataFrame and rasterio
-    assert mock_gdf.to_crs.call_count == 2
+    assert mock_gdf.to_crs.call_count == 1
 
 
 @patch("dart_pipeline.paths.get_path")
