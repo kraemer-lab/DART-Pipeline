@@ -3,7 +3,7 @@
 from typing import Literal
 
 import pandas as pd
-from geoglue import Country
+from geoglue.region import get_worldpop_1km, gadm, read_region
 
 from ..util import iso3_admin_unpack
 from ..metrics import register_metrics, register_fetch, register_process
@@ -43,7 +43,7 @@ def worldpop_pop_count_fetch(iso3: str, date: str) -> Literal[False]:
         iso3, _ = iso3.split("-")
     year = int(date)
     # use geoglue to do this
-    _ = Country(iso3).population_raster(year)
+    _ = get_worldpop_1km(iso3, year)
 
     return False  # ensures that dart-pipeline get skips processing
 
@@ -52,15 +52,14 @@ def worldpop_pop_count_fetch(iso3: str, date: str) -> Literal[False]:
 def worldpop_pop_count_process(iso3: str, date: str) -> pd.DataFrame:
     iso3, admin = iso3_admin_unpack(iso3)
     year = int(date)
-    country = Country(iso3)
-    population = country.population_raster(year)
-    geom = country.admin(admin)
+    population = get_worldpop_1km(iso3, year)
+    geom = read_region(gadm(iso3, admin))
     include_cols = [c for c in geom.columns if c != "geometry"]
     df = population.zonal_stats(geom, "sum", include_cols=include_cols).rename(
         columns={"sum": "value", "GID_0": "ISO3"}
     )
+    df["region"] = f"{iso3}-{admin}"
     df["metric"] = "worldpop.pop_count"
-    df["unit"] = "unitless"
+    df["unit"] = "1"
     df["date"] = year
-    df.attrs["admin"] = admin
     return df

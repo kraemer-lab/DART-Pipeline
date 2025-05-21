@@ -6,17 +6,16 @@ from functools import cache
 import xarray as xr
 from tqdm import tqdm
 
-from geoglue import MemoryRaster, Country
+from geoglue.region import gadm, get_worldpop_1km
 from geoglue.cds import ReanalysisSingleLevels, CdsPath, CdsDataset
 from geoglue.resample import resample
-from geoglue.zonal_stats import DatasetZonalStatistics
 
 from ...metrics import (
     register_metrics,
     register_fetch,
     register_process,
 )
-from ...util import iso3_admin_unpack
+from ...util import iso3_admin_unpack, zonal_stats
 from ...paths import get_path
 
 from .derived import compute_derived_metric
@@ -82,11 +81,6 @@ def metric_path(iso3: str, admin: int, year: int, metric: str, statistic: str) -
     )
 
 
-@cache
-def get_population(iso3: str, year: int) -> MemoryRaster:
-    return Country(iso3).population_raster(year)
-
-
 def population_weighted_aggregation(
     metric: str,
     statistic: str,
@@ -99,26 +93,20 @@ def population_weighted_aggregation(
     logger.info(
         f"Population weighted aggregation [{iso3}-{admin}] {year=} {metric=} {statistic=}"
     )
-    country = Country(iso3)
-    logger.info(
-        "Making DatasetZonalStatistics(xr.open_dataset({resampled_paths[statistic]!r}, Country({iso3!r}).admin({admin}), weights=get_population({iso3!r}, year))"
-    )
-    ds = DatasetZonalStatistics(
-        xr.open_dataset(resampled_paths[statistic]),
-        country.admin(admin),
-        weights=get_population(iso3, year),
-    )
     operation = (
         "mean(coverage_weight=area_spherical_km2)"
         if metric not in ACCUM_METRICS
         else "area_weighted_sum"
     )
     variable = VARIABLE_MAPPINGS.get(metric, metric)
-    logger.info(f"Performing zonal_stats({variable!r}, {operation=})")
-    df = ds.zonal_stats(
-        variable,
-        operation,
-        const_cols={"ISO3": iso3, "metric": f"era5.{metric}.{statistic}", "unit": unit},
+    ds = xr.open_dataset(resampled_paths[statistic])
+    df = zonal_stats(
+        metric,
+        unit or "1",
+        ds[variable],
+        gadm(iso3, admin),
+        operation=operation,
+        weights=get_worldpop_1km(iso3, year),
     )
     # clamp relative_humidity to 100%
     if "relative_humidity" in metric:
@@ -134,7 +122,7 @@ def era5_fetch(iso3: str, date: str) -> CdsPath | None:
     iso3 = iso3.upper()
     year = int(date)
     data = ReanalysisSingleLevels(
-        iso3, VARIABLES, path=get_path("sources", iso3, "era5")
+        gadm(iso3, 1), VARIABLES, path=get_path("sources", iso3, "era5")
     )
     return data.get(year)
 
@@ -221,7 +209,7 @@ def era5_process(iso3: str, date: str, overwrite: bool = False) -> list[Path]:
             f"Resampling using CDO for {stat=} using {resampling=}: {paths[stat]} -> {resampled_paths[stat]}"
         )
         resample(
-            resampling, paths[stat], get_population(iso3, year), resampled_paths[stat]
+            resampling, paths[stat], get_worldpop_1km(iso3, year), resampled_paths[stat]
         )
 
     metric_statistic_combinations: list[tuple[str, str]] = [

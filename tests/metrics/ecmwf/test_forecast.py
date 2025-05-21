@@ -6,12 +6,14 @@ from unittest.mock import MagicMock, patch
 import pytest
 import freezegun
 
+from geoglue.types import Bounds
+
 from dart_pipeline.metrics.ecmwf import get_forecast_open_data
 
 
 @freezegun.freeze_time("2025-01-05")
 @patch("dart_pipeline.metrics.ecmwf.forecast_path")
-@patch("geoglue.country.Country")
+@patch("geoglue.region.gadm")
 @patch("dart_pipeline.metrics.ecmwf.forecast_grib_to_netcdf")
 @patch("ecmwf.opendata.Client")
 @patch("dart_pipeline.paths.get_path")
@@ -19,7 +21,7 @@ def test_successful_forecast_download(
     mock_get_path,
     mock_client_class,
     mock_forecast_grib,
-    mock_country_class,
+    mock_gadm,
     mock_forecast_path,
 ):
     # Setup test values
@@ -30,9 +32,15 @@ def test_successful_forecast_download(
 
     mock_forecast_path.return_value.exists.return_value = False
 
-    mock_country = MagicMock()
-    mock_country.bounds = MagicMock(north=50.0, south=40.0, west=-5.0, east=10.0)
-    mock_country_class.return_value = mock_country
+    mock_gadm = MagicMock()
+    mock_gadm.return_value = {
+        "name": "FRA-1",
+        "path": "/path/to/FRA.shp",
+        "pk": "GID_1",
+        "tz": "+01:00",
+        "url": "https://gadm.org",
+        "bounds": Bounds(north=50.0, south=40.0, west=-5.0, east=10.0),
+    }
 
     mock_forecast_grib.return_value = (instant_ds, accum_ds)
 
