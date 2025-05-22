@@ -6,6 +6,8 @@ _build/
 /*.html
 *.pdf
 
+.nox/
+
 # Metadata files
 data/**/*.txt
 data/**/*.html
@@ -23,30 +25,6 @@ data/**/*.html
 *.tif
 *.tiff
 *.webp
-
-# Data files
-*.2015
-*.7z
-*.cpg
-*.csv
-*.ctl
-*.dbf
-*.f90
-*.geojson
-*.gpg
-*.gpkg
-*.grd
-*.json
-*.kmz
-*.nc
-*.nc.tgz
-*.prj
-*.shp
-*.shx
-
-# GeoTIFF files
-*.tfw
-*.tif
 
 # Sphinx files
 *.buildinfo
@@ -96,6 +74,7 @@ data/**/*.html
 *.egg*
 *.pyc
 venv
+.venv/
 __pycache__
 # syrupy
 *.ambr
@@ -159,3 +138,6 @@ credentials.json
 # Obsidian
 *.canvas
 .obsidian/
+
+# Test files
+tests/
