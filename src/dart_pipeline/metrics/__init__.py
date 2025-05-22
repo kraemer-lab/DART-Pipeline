@@ -8,6 +8,9 @@ from typing import TypedDict, Unpack, cast
 
 import xarray as xr
 import pandas as pd
+import geoglue.util
+import geoglue.zonal_stats
+from geoglue.memoryraster import MemoryRaster
 
 from ..paths import get_path
 from ..util import abort, unpack_file, download_files, logfmt, determine_netcdf_filename
@@ -105,6 +108,53 @@ def register_metrics(source: str, **kwargs: Unpack[SourceInfo]):
         METRICS[source]["metrics"].update(kwargs.get("metrics", {}))
     else:
         METRICS[source] = kwargs
+
+
+def get_cell_methods(agg: str, dim_name: str = "time") -> str:
+    "Returns CF-compliant cell_methods from temporal aggregation"
+    if agg == "weekly_sum":
+        return f"{dim_name}: sum (interval: 1 week)"
+    if agg.startswith("weekly_"):
+        raise ValueError(
+            "Weekly aggregation for instantaneous variables is only done at the 'collate' step"
+        )
+    if not agg.startswith("daily_"):
+        raise ValueError(f"Unsupported aggregation {agg=}")
+    agg_method = agg.removeprefix("daily_")
+    return f"{dim_name}: {agg_method} (interval: 1 day)"
+
+
+def get_metric_info(metric: str) -> MetricInfo:
+    "Returns metric information"
+    source, _, metric = metric.partition(".")
+    if source not in METRICS:
+        raise ValueError(f"Source {source=} not found in metric registry")
+    agg_pattern = r"\b\.(weekly|daily)_(sum|min|max|mean)\b_?"
+    match = re.search(agg_pattern, metric)
+    agg_str = match.group(0)[1:] if match else None
+    metric_stem = re.sub(agg_pattern, "", metric)
+    if metric_stem not in METRICS[source]["metrics"]:
+        raise ValueError(f"No metric {metric_stem!r} found in {source=}")
+    info = METRICS[source]["metrics"][metric_stem]
+    if agg_str:
+        info["cell_methods"] = get_cell_methods(agg_str)
+    return info
+
+
+def subset_cfattrs(info: MetricInfo) -> CFAttributes:
+    "Returns CF-compliant attribute subset of MetricInfo"
+    out: CFAttributes = {
+        "long_name": info.get("long_name", ""),
+        "standard_name": info.get("standard_name", ""),
+        "units": info.get("units", "1"),
+    }
+    if info.get("valid_min") is not None:
+        out["valid_min"] = info.get("valid_min")  # type: ignore
+    if info.get("valid_max") is not None:
+        out["valid_max"] = info.get("valid_max")  # type: ignore
+    if info.get("cell_methods"):
+        out["cell_methods"] = info.get("cell_methods", "")
+    return out
 
 
 def register_fetch(metric: str):
@@ -476,3 +526,147 @@ def print_metrics_rst(filter_by: str | None = None):
                 print(blockfmt(metric["citation"], 6))
             if metric.get("resolution"):
                 print("    :Resolution:", metric["resolution"])
+
+
+def zonal_stats(
+    metric: str,
+    da: xr.DataArray,
+    region: geoglue.region.Region,
+    operation: str = "mean(coverage_weight=area_spherical_km2)",
+    weights: MemoryRaster | None = None,
+    include_cols: list[str] | None = None,
+    fix_array: bool = False,
+) -> pd.DataFrame:
+    """Return zonal statistics for a particular DataArray as a DataFrame
+
+    This is a wrapper around geoglue.zonal_stats to add metadata attributes
+    such as metric, unit and region name to the dataframe.
+
+    Parameters
+    ----------
+    metric : str
+        Name of metric
+    da : xr.DataArray
+        xarray DataArray to perform zonal statistics on. Must have
+        'latitude', 'longitude' and a time coordinate
+    region : geoglue.region.Region
+        Region for which to calculate zonal statistics
+    operation : str
+        Zonal statistics operation. For a full list of operations, see
+        https://isciences.github.io/exactextract/operations.html. Default
+        operation is to calculate the mean with a spherical area coverage weight.
+    weights : MemoryRaster | None
+        Optional, if specified, uses the specified raster to perform weighted
+        zonal statistics.
+    include_cols : list[str] | None
+        Optional, if specified, only includes these columns. If not specified,
+        returns all columns except the geometry column
+    fix_array : bool
+        Whether to perform pre-processing steps, such as sorting longitude, latitude
+        and setting CF-compliant attributes. These should not be required
+        when processing downloaded weather data which should already be in
+        compliant format. Optional, default=False
+
+    Returns
+    -------
+    pd.DataFrame
+        The DataFrame specified by the geometry in the `region` parameter, one
+        additional column, `value` containing the zonal statistic for the corresponding geometry.
+
+    See Also
+    --------
+    zonal_stats_xarray
+        Version of this function that returns a xarray DataArray
+    """
+    if fix_array:
+        da = geoglue.util.sort_lonlat(da)  # type: ignore
+        geoglue.util.set_lonlat_attrs(da)  # type: ignore
+    geom = geoglue.region.read_region(region)
+    df = geoglue.zonal_stats.zonal_stats(
+        da, geom, operation, weights, include_cols=include_cols
+    )
+    df["region"] = region["name"]
+    units = get_metric_info(metric).get("units", "1")
+    df["unit"] = units
+    df["metric"] = metric
+    return df
+
+
+def zonal_stats_xarray(
+    metric: str,
+    da: xr.DataArray,
+    region: geoglue.region.Region,
+    operation: str = "mean(coverage_weight=area_spherical_km2)",
+    weights: MemoryRaster | None = None,
+    fix_array: bool = False,
+) -> xr.DataArray:
+    """Return zonal statistics for a particular DataArray as another xarray DataArray
+
+    This is a wrapper around geoglue.zonal_stats_xarray to add CF-compliant
+    metadata attributes derived from the metric name
+
+    Parameters
+    ----------
+    metric : str
+        Name of metric
+    unit : str
+        Unit of metric in udunits terminology. Unitless metrics should
+        be assigned a unit of "1"
+    da : xr.DataArray
+        xarray DataArray to perform zonal statistics on. Must have
+        'latitude', 'longitude' and a time coordinate
+    region : geoglue.region.Region
+        Region for which to calculate zonal statistics
+    operation : str
+        Zonal statistics operation. For a full list of operations, see
+        https://isciences.github.io/exactextract/operations.html. Default
+        operation is to calculate the mean with a spherical area coverage weight.
+    weights : MemoryRaster | None
+        Optional, if specified, uses the specified raster to perform weighted
+        zonal statistics.
+    include_cols : list[str] | None
+        Optional, if specified, only includes these columns. If not specified,
+        returns all columns except the geometry column
+    fix_array : bool
+        Whether to perform pre-processing steps, such as sorting longitude, latitude
+        and setting CF-compliant attributes. These should not be required
+        when processing downloaded weather data which should already be in
+        compliant format. Optional, default=False
+
+    Returns
+    -------
+    xr.DataArray
+        The geometry ID is specified in the ``region`` coordinate. CF-compliant
+        metadata attributes are attached:
+
+        - ``standard_name``: CF standard name, if present
+        - ``long_name``: Description of the metric
+        - ``units``: CF-compliant units according to the udunits2 package
+        - ``cell_methods``: Aggregation methods used to derive values in DataArray,
+           e.g. ``time: sum (interval: 1 week)`` to indicate a weekly summation.
+
+    See Also
+    --------
+    zonal_stats
+        Version of this function that returns a pandas DataFrame
+    """
+    if fix_array:
+        da = geoglue.util.sort_lonlat(da)  # type: ignore
+        geoglue.util.set_lonlat_attrs(da)  # type: ignore
+    geom = geoglue.region.read_region(region)
+    za = geoglue.zonal_stats.zonal_stats_xarray(
+        da, geom, operation, weights, region_col=region["pk"]
+    )
+    metric_info = get_metric_info(metric)
+    # Default short name is derived from metric name without the source
+    short_name = metric_info.get("short_name") or "_".join(metric.split(".")[1:])
+    cell_methods = metric_info.get("cell_methods", "")
+    if "min" in cell_methods:
+        name = metric_info.get("short_name_min") or ("mn" + short_name)
+    elif "max" in cell_methods:
+        name = metric_info.get("short_name_max") or ("mx" + short_name)
+    else:
+        name = short_name
+    attrs = subset_cfattrs(get_metric_info(metric))
+    za.attrs.update(attrs)
+    return za.rename(name)
