@@ -10,12 +10,8 @@ from geoglue.region import gadm, get_worldpop_1km
 from geoglue.cds import ReanalysisSingleLevels, CdsPath, CdsDataset
 from geoglue.resample import resample
 
-from ...metrics import (
-    register_metrics,
-    register_fetch,
-    register_process,
-)
-from ...util import iso3_admin_unpack, zonal_stats
+from ...metrics import register_metrics, register_fetch, register_process, zonal_stats
+from ...util import iso3_admin_unpack
 from ...paths import get_path
 
 from .derived import compute_derived_metric

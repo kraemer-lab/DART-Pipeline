@@ -13,8 +13,8 @@ from geoglue.resample import resampled_dataset
 from geoglue.util import set_lonlat_attrs
 
 from ...paths import get_path
-from ...util import iso3_admin_unpack, zonal_stats
-from ...metrics import register_process, find_metric
+from ...util import iso3_admin_unpack
+from ...metrics import register_process, find_metric, zonal_stats
 
 from .util import (
     fit_gamma_distribution,
