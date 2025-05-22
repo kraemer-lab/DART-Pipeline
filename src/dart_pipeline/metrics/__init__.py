@@ -67,15 +67,30 @@ def gather_metrics() -> list[str]:
 
 class MetricInfo(TypedDict, total=False):
     url: str
-    description: str
+    long_name: str
     depends: list[str]
-    unit: str
+    units: str
     citation: str
     license: str
     license_text: str
-    range: tuple[int, int] | tuple[float, float]
+    standard_name: str
+    short_name: str
+    short_name_max: str
+    short_name_min: str
+    valid_min: int | float
+    valid_max: int | float
     statistics: list[str]
     part_of: str
+    cell_methods: str
+
+
+class CFAttributes(TypedDict, total=False):
+    long_name: str
+    standard_name: str
+    units: str
+    valid_min: int | float
+    valid_max: int | float
+    cell_methods: str
 
 
 class SourceInfo(TypedDict, total=False):
@@ -385,23 +400,21 @@ def print_metrics(filter_by: str | None = None):
             ".".join(m.split(".")[1:]) for m in filtered_metrics if m.split(".")[0] == s
         ]
         for m_name in matched_metrics:
-            metric = source["metrics"][m_name]
+            metric: MetricInfo = source["metrics"][m_name]
             print(f"  \033[1m{s}.{m_name}\033[0m")
-            print(f"    {metric['description']} [{metric['unit']}]")
+            print(f"    {metric.get('long_name', m_name)} [{metric.get('units', '1')}]")
             if part_of := metric.get("part_of"):
                 print("    \033[3mpart of\033[0m:", part_of)
             if metric.get("url"):
-                print("    URL:", metric["url"])
+                print("    URL:", metric.get("url"))
             if metric.get("license"):
-                print("    License:", metric["license"])
+                print("    License:", metric.get("license"))
             if metric.get("license_text"):
                 print("    License:")
-                print(blockfmt(metric["license_text"], 6))
+                print(blockfmt(metric.get("license_text", ""), 6))
             if metric.get("citation"):
                 print("    Citation:")
-                print(blockfmt(metric["citation"], 6))
-            if metric.get("resolution"):
-                print("    Resolution:", metric["resolution"])
+                print(blockfmt(metric.get("citation", ""), 6))
 
 
 def print_metrics_rst(filter_by: str | None = None):
