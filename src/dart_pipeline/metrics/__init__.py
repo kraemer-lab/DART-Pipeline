@@ -528,6 +528,20 @@ def print_metrics_rst(filter_by: str | None = None):
                 print("    :Resolution:", metric["resolution"])
 
 
+def get_name_cfattrs(metric: str) -> tuple[str, CFAttributes]:
+    metric_info = get_metric_info(metric)
+    # Default short name is derived from metric name without the source
+    short_name = metric_info.get("short_name") or "_".join(metric.split(".")[1:])
+    cell_methods = metric_info.get("cell_methods", "")
+    if "min" in cell_methods:
+        name = metric_info.get("short_name_min") or ("mn" + short_name)
+    elif "max" in cell_methods:
+        name = metric_info.get("short_name_max") or ("mx" + short_name)
+    else:
+        name = short_name
+    return name, subset_cfattrs(get_metric_info(metric))
+
+
 def zonal_stats(
     metric: str,
     da: xr.DataArray,
@@ -657,16 +671,38 @@ def zonal_stats_xarray(
     za = geoglue.zonal_stats.zonal_stats_xarray(
         da, geom, operation, weights, region_col=region["pk"]
     )
-    metric_info = get_metric_info(metric)
-    # Default short name is derived from metric name without the source
-    short_name = metric_info.get("short_name") or "_".join(metric.split(".")[1:])
-    cell_methods = metric_info.get("cell_methods", "")
-    if "min" in cell_methods:
-        name = metric_info.get("short_name_min") or ("mn" + short_name)
-    elif "max" in cell_methods:
-        name = metric_info.get("short_name_max") or ("mx" + short_name)
-    else:
-        name = short_name
-    attrs = subset_cfattrs(get_metric_info(metric))
-    za.attrs.update(attrs)
+    name, cfattrs = get_name_cfattrs(metric)
+    za.attrs.update(cfattrs)
     return za.rename(name)
+
+
+def convert_parquet_netcdf(infile: Path, region_col: str) -> Path:
+    """Converts existing parquet file to netCDF
+
+    This function converts parquet to netCDF files, adding CF-compliant
+    attributes. This is useful in the transition to netCDF output format
+    for DART-Pipeline.
+    """
+    output_folder = infile.parent
+    output_name = infile.stem + ".nc"
+    if infile.suffix != ".parquet":
+        raise ValueError("Can only convert parquet file to netCDF, got %s", infile)
+    df = pd.read_parquet(infile)
+    if region_col not in df.columns:
+        raise ValueError(f"Could not find {region_col=}")
+    metric = infile.stem.split("-")[3]
+    df = df.rename(columns={region_col: "region"})
+    pivoted = df[["region", "date", "value"]].pivot(
+        index="date", columns="region", values="value"
+    )
+    name, cfattrs = get_name_cfattrs(metric)
+    da = xr.DataArray(
+        data=pivoted.values,
+        coords={"date": pivoted.index, "region": pivoted.columns},
+        dims=["date", "region"],
+    )
+    da.coords["region"].attrs["original_name"] = region_col
+    da.attrs.update(cfattrs)
+    da = da.rename(name)
+    da.to_netcdf(output_folder / output_name)
+    return output_folder / output_name
