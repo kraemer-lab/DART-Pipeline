@@ -1,7 +1,8 @@
 # DART-Pipeline
 
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Tests](https://github.com/kraemer-lab/DART-Pipeline/actions/workflows/tests.yml/badge.svg)](https://github.com/kraemer-lab/DART-Pipeline/actions/workflows/tests.yml)
+[![Docker](https://github.com/kraemer-lab/DART-Pipeline/actions/workflows/docker.yml/badge.svg)](https://github.com/kraemer-lab/DART-Pipeline/actions/workflows/docker.yml)
 [![Documentation status](https://readthedocs.org/projects/insightboard/badge/?version=latest)](https://insightboard.readthedocs.io/en/latest/?badge=latest)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
