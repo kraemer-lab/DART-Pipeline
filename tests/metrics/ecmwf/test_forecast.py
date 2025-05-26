@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import freezegun
 
-from geoglue.types import Bounds
+from geoglue.types import Bbox
 
 from dart_pipeline.metrics.ecmwf import get_forecast_open_data
 
@@ -39,7 +39,7 @@ def test_successful_forecast_download(
         "pk": "GID_1",
         "tz": "+01:00",
         "url": "https://gadm.org",
-        "bounds": Bounds(north=50.0, south=40.0, west=-5.0, east=10.0),
+        "bounds": Bbox(maxy=50.0, miny=40.0, minx=-5.0, maxx=10.0),
     }
 
     mock_forecast_grib.return_value = (instant_ds, accum_ds)
