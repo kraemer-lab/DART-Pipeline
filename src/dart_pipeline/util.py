@@ -38,6 +38,15 @@ pd.set_option("display.max_colwidth", 40)
 pd.set_option("display.width", 228)  # sierra
 
 
+def detect_region_col(df: pd.DataFrame) -> str:
+    "Detects region column from metric output dataframe"
+    if "shapeID" in df.columns:
+        return "shapeID"
+    if "GID_1" in df.columns:
+        return max(s for s in df.columns if s.startswith("GID_"))
+    raise ValueError("No region column could be detected for this dataframe")
+
+
 def determine_netcdf_filename(metric: str, **kwargs) -> str:
     """Determines output netcdf file for a processor that returns xr.Dataset
 

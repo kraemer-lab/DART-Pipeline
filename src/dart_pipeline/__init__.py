@@ -10,6 +10,7 @@ import pandas as pd
 
 from .metrics import (
     get,
+    convert_parquet_netcdf,
     process as process_metric,
     validate_metric,
     print_metrics,
@@ -18,6 +19,7 @@ from .metrics import (
     find_metrics,
     show_path,
 )
+from .util import detect_region_col
 from .paths import get_path
 from .plots import plot_metric_data
 
@@ -39,6 +41,10 @@ ingestion into a database. It has the following subcommands
  [process]    Processes data downloaded by a particular source
     [show]    Shows data for a particular metric
 [validate]    Validates metric data files
+
+File format conversions:
+
+ [convert]    Converts from parquet to netCDF files
 
 To see detailed help on any of these, run
     uv run dart-pipeline <subcommand> --help
@@ -173,6 +179,13 @@ def main():
         "-s", "--success", help="Show successful validations", action="store_true"
     )
 
+    convert_parser = subparsers.add_parser(
+        "convert", help="Converts output parquet file to netCDF"
+    )
+    convert_parser.add_argument(
+        "files", nargs="+", help="Files to convert in parquet format"
+    )
+
     args, unknownargs = parser.parse_known_args()
     kwargs = parse_params(unknownargs)
 
@@ -235,6 +248,12 @@ def main():
                     print(f"{basename:70s}[\033[32mSUCCESS, 100.00%\033[0m]")
                 else:
                     pass
+        case "convert":
+            for file in args.files:
+                if Path(file).suffix != ".parquet":
+                    continue
+                region_col = detect_region_col(pd.read_parquet(file))
+                print(convert_parquet_netcdf(Path(file), region_col))
         case _:
             print(USAGE.replace("[", "\033[1m").replace("]", "\033[0m"))
 
