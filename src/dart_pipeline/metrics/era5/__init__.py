@@ -6,11 +6,17 @@ from functools import cache
 import xarray as xr
 from tqdm import tqdm
 
+from geoglue.util import sha256
 from geoglue.region import gadm, get_worldpop_1km
 from geoglue.cds import ReanalysisSingleLevels, CdsPath, CdsDataset
 from geoglue.resample import resample
 
-from ...metrics import register_metrics, register_fetch, register_process, zonal_stats
+from ...metrics import (
+    register_metrics,
+    register_fetch,
+    register_process,
+    zonal_stats_xarray,
+)
 from ...util import iso3_admin_unpack
 from ...paths import get_path
 
@@ -73,7 +79,7 @@ def metric_path(iso3: str, admin: int, year: int, metric: str, statistic: str) -
         "output",
         iso3,
         "era5",
-        f"{iso3}-{admin}-{year}-era5.{metric}.daily_{statistic}.parquet",
+        f"{iso3}-{admin}-{year}-era5.{metric}.daily_{statistic}.nc",
     )
 
 
@@ -84,7 +90,6 @@ def population_weighted_aggregation(
     admin: int,
     year: int,
 ) -> Path:
-    unit = METRICS[metric].get("unit")
     resampled_paths = get_resampled_paths(iso3, year)
     logger.info(
         f"Population weighted aggregation [{iso3}-{admin}] {year=} {metric=} {statistic=}"
@@ -95,10 +100,10 @@ def population_weighted_aggregation(
         else "area_weighted_sum"
     )
     variable = VARIABLE_MAPPINGS.get(metric, metric)
+    resampled_checksum = sha256(resampled_paths[statistic])
     ds = xr.open_dataset(resampled_paths[statistic])
-    df = zonal_stats(
+    da = zonal_stats_xarray(
         metric,
-        unit or "1",
         ds[variable],
         gadm(iso3, admin),
         operation=operation,
@@ -106,9 +111,13 @@ def population_weighted_aggregation(
     )
     # clamp relative_humidity to 100%
     if "relative_humidity" in metric:
-        df["value"] = df.value.clip(0, 100)
+        da = da.clip(0, 100)
     outfile = metric_path(iso3, admin, year, metric, statistic)
-    df.to_parquet(outfile)
+    assert outfile.suffix == ".nc"
+    da.attrs["provenance"] = (
+        f"zonal_stats.ds={resampled_checksum}  {resampled_paths[statistic]}"
+    )
+    da.to_netcdf(outfile)
     logger.info(f"Output [{iso3}-{admin}] {year=} {metric=} {statistic=} -> {outfile}")
     return outfile
 

@@ -673,6 +673,10 @@ def zonal_stats_xarray(
     )
     name, cfattrs = get_name_cfattrs(metric)
     za.attrs.update(cfattrs)
+    za.attrs["DART_zonal_stats"] = (
+        f"zonal_stats({metric!r}, {da.name}, region, {operation=}, {weights=}"
+    )
+    za.attrs["DART_region"] = str(region)
     return za.rename(name)
 
 
