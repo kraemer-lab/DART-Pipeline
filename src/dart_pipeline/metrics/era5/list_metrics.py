@@ -167,7 +167,11 @@ INSTANT_METRICS = [m for m in METRICS if m not in ACCUM_METRICS]
 DERIVED_METRICS_SEPARATE_IMPL = [
     "spi",
     "spei",
+    "spi_corrected",
+    "spei_corrected",
     "spi.gamma",
     "spei.gamma",
+    "spi_corrected.gamma",
+    "spei_corrected.gamma",
     "prep_bias_correct",
 ]
