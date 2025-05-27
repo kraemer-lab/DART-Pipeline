@@ -6,7 +6,7 @@ import logging
 import numpy as np
 import pandas as pd
 import shapely.geometry
-from geoglue.region import gadm, read_region
+from geoglue.region import gadm
 
 from ...plots import plot_gadm_scatter
 from ...types import PartialDate
@@ -42,7 +42,7 @@ def process_gadm_aphroditeprecipitation(
     logger.info("plots:%s", plots)
 
     # Import shape file
-    gdf = read_region(gadm(iso3, admin_level))
+    gdf = gadm(iso3, admin_level).read()
 
     # Initialise output data frame
     output = pd.DataFrame(columns=OUTPUT_COLUMNS)  # type: ignore

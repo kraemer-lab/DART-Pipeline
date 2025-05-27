@@ -3,7 +3,7 @@
 from typing import Literal
 
 import pandas as pd
-from geoglue.region import get_worldpop_1km, gadm, read_region
+from geoglue.region import get_worldpop_1km, gadm
 
 from ..util import iso3_admin_unpack
 from ..metrics import register_metrics, register_fetch, register_process
@@ -53,7 +53,7 @@ def worldpop_pop_count_process(iso3: str, date: str) -> pd.DataFrame:
     iso3, admin = iso3_admin_unpack(iso3)
     year = int(date)
     population = get_worldpop_1km(iso3, year)
-    geom = read_region(gadm(iso3, admin))
+    geom = gadm(iso3, admin).read()
     include_cols = [c for c in geom.columns if c != "geometry"]
     df = population.zonal_stats(geom, "sum", include_cols=include_cols).rename(
         columns={"sum": "value", "GID_0": "ISO3"}

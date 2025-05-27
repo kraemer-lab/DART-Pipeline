@@ -94,8 +94,7 @@ def assert_data_available_for_weekly_reduce(
 ) -> None:
     "Asserts that sufficient data is available for weekly_reduce() call"
     region = gadm(iso3, 1, data_path=data_path)
-    timezone_offset = region["tz"]
-    negative_longitude = "-" in timezone_offset
+    negative_longitude = "-" in region.tz
 
     # Always get one year around requested range as weeks may overlap contiguous years
     ystart -= 1

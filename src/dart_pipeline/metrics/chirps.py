@@ -18,7 +18,7 @@ import rasterio.transform
 import shapely.geometry
 import matplotlib.pyplot as plt
 
-from geoglue.region import read_region, gadm
+from geoglue.region import gadm
 
 from ..constants import MIN_FLOAT
 from ..plots import plot_heatmap
@@ -152,7 +152,7 @@ def process_gadm_chirps_rainfall(
     )
 
     # Import shape file
-    gdf = read_region(gadm(iso3, admin_level))
+    gdf = gadm(iso3, admin_level).read()
     # Transform the shape file to match the GeoTIFF's coordinate system
     gdf = gdf.to_crs(src.crs)
     # EPSG:4326 - WGS 84: latitude/longitude coordinate system based on the

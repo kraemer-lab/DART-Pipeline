@@ -9,7 +9,7 @@ import re
 import matplotlib
 import pandas as pd
 from matplotlib import pyplot as plt
-from geoglue.region import read_region, gadm
+from geoglue.region import gadm
 import geopandas as gpd
 import numpy as np
 
@@ -37,7 +37,7 @@ def plot_metric_data(
     iso3 = df.ISO3.unique()[0]
     metric = df.metric.unique()[0]
     unit = df.unit.unique()[0]
-    geometry = read_region(gadm(iso3, alevel))
+    geometry = gadm(iso3, alevel).read()
     first_date = df.date.iloc[0]
 
     # select the first date
