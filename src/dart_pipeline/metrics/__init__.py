@@ -671,11 +671,13 @@ def zonal_stats_xarray(
     za = geoglue.zonal_stats.zonal_stats_xarray(
         da, geom, operation, weights, region_col=region.pk
     )
+    x, y = za.shape
+    call = f"zonal_stats({metric!r}, {da.name!r}, region, {operation=}, {weights=})"
+    if x == 0 or y == 0:
+        raise ValueError(f"Zero dimension DataArray created from {call}")
     name, cfattrs = get_name_cfattrs(metric)
     za.attrs.update(cfattrs)
-    za.attrs["DART_zonal_stats"] = (
-        f"zonal_stats({metric!r}, {da.name}, region, {operation=}, {weights=}"
-    )
+    za.attrs["DART_zonal_stats"] = call
     za.attrs["DART_region"] = str(region)
     return za.rename(name)
 
