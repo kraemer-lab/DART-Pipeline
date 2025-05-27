@@ -6,7 +6,7 @@ import rasterio
 import numpy as np
 import pandas as pd
 import netCDF4 as nc
-from geoglue.region import gadm, read_region
+from geoglue.region import gadm
 
 from ..types import PartialDate, URLCollection
 from ..util import use_range
@@ -75,7 +75,7 @@ def process_terraclimate(partial_date: str, iso3: str, admin_level: str):
     ]
     output = pd.DataFrame(columns=columns)
 
-    gdf = read_region(gadm(iso3, admin_level))
+    gdf = gadm(iso3, admin_level).read()
 
     # Iterate over the metrics
     for metric in TERRACLIMATE_METRICS:

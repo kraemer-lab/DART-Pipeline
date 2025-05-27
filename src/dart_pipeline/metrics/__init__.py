@@ -595,11 +595,11 @@ def zonal_stats(
     if fix_array:
         da = geoglue.util.sort_lonlat(da)  # type: ignore
         geoglue.util.set_lonlat_attrs(da)  # type: ignore
-    geom = geoglue.region.read_region(region)
+    geom = region.read()
     df = geoglue.zonal_stats.zonal_stats(
         da, geom, operation, weights, include_cols=include_cols
     )
-    df["region"] = region["name"]
+    df["region"] = region.name
     units = get_metric_info(metric).get("units", "1")
     df["unit"] = units
     df["metric"] = metric
@@ -667,9 +667,9 @@ def zonal_stats_xarray(
     if fix_array:
         da = geoglue.util.sort_lonlat(da)  # type: ignore
         geoglue.util.set_lonlat_attrs(da)  # type: ignore
-    geom = geoglue.region.read_region(region)
+    geom = region.read()
     za = geoglue.zonal_stats.zonal_stats_xarray(
-        da, geom, operation, weights, region_col=region["pk"]
+        da, geom, operation, weights, region_col=region.pk
     )
     name, cfattrs = get_name_cfattrs(metric)
     za.attrs.update(cfattrs)
