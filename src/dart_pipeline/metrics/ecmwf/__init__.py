@@ -13,7 +13,7 @@ from ...metrics import register_metrics, register_fetch, MetricInfo
 from .forecast import VARIABLES, forecast_grib_to_netcdf
 
 METRICS: dict[str, MetricInfo] = {
-    "forecast": {"description": "ECMWF open forecast data", "unit": "various"}
+    "forecast": {"long_name": "ECMWF open forecast data", "units": "various"}
 }
 
 register_metrics(
