@@ -39,7 +39,7 @@ def forecast_path(date: str | date) -> Path:
 @register_fetch("ecmwf.forecast")
 def get_forecast_open_data(
     iso3: str,
-    date: str,
+    date: str | None = None,
     start_hour: int = 0,
     step_hours: int = 6,
     overwrite: bool = False,
@@ -56,7 +56,7 @@ def get_forecast_open_data(
         ISO3 code of country
     date : str
         Date in ISO format (YYYY-MM-DD) for which to download forecast,
-        can be today or at most 4 days in the past
+        can be today or at most 4 days in the past. Default is to use today's forecast
     start_hour : int
         Starting hour (in UTC timezone) of the forecast, must be one
         of [0, 6, 12, 18]. Default is 0 UTC.
@@ -73,6 +73,7 @@ def get_forecast_open_data(
         file each for instant (named ``*.instant.nc``), and accumulative
         variables (``*.accum.nc``).
     """
+    date = date or datetime.today().date().isoformat()
     if start_hour not in VALID_START_HOURS:
         raise ValueError(
             f"start_hour must be one of {VALID_START_HOURS}, got {start_hour=}"
