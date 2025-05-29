@@ -106,7 +106,7 @@ def get_forecast_open_data(
     else:
         logger.info("Using already retrieved forecast file: %s", output_path)
     region = gadm(iso3, 1)
-    extents = region.bbox
+    extents = region.bbox.int()
     sel_kwargs = {
         "latitude": slice(extents.maxy, extents.miny),
         "longitude": slice(extents.minx, extents.maxx),
