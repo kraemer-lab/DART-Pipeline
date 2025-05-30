@@ -14,13 +14,10 @@ VARIABLES = [
     "2d",  # 2 meter dew point
     "sp",  # surfare pressure
     "tp",  # total precipitation
-    "10u",  # 10m u-component wind speed
-    "10v",  # 10m v-component wind speed
-    "ssrd",  # surface solar radiation downwards
 ]
 
-INSTANT_VARS = ["t2m", "d2m", "u10", "v10", "sp"]
-ACCUM_VARS = ["tp", "ssrd"]
+INSTANT_VARS = ["t2m", "d2m", "sp"]
+ACCUM_VARS = ["tp"]
 
 
 def forecast_grib_to_netcdf(
