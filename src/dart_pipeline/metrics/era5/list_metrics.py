@@ -39,14 +39,6 @@ METRICS: dict[str, MetricInfo] = {
         "short_name_min": "mn2t",
         "short_name_max": "mx2t",
     },
-    "surface_solar_radiation_downwards": {
-        "long_name": "Accumulated solar radiation downwards",
-        "units": "J m-2",
-        "valid_min": 0,
-        "valid_max": 1e9,
-        "part_of": "era5",
-        "short_name": "ssrd",
-    },
     "total_precipitation": {
         "long_name": "Total precipitation",
         "units": "m",
@@ -54,16 +46,6 @@ METRICS: dict[str, MetricInfo] = {
         "valid_max": 1200,
         "part_of": "era5",
         "short_name": "tp",
-    },
-    "wind_speed": {
-        "long_name": "Wind speed",
-        "depends": ["10m_u_component_of_wind", "10m_v_component_of_wind"],
-        "valid_min": 0,
-        "valid_max": 110,
-        "standard_name": "wind_speed",
-        "units": "m s-1",
-        "part_of": "era5",
-        "short_name": "ws",
     },
     "relative_humidity": {
         "long_name": "Relative humidity",
