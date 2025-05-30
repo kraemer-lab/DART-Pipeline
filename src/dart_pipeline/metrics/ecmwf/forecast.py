@@ -67,6 +67,9 @@ def forecast_grib_to_netcdf(
     # simulations do we process at once
     sims = np.arange(1, n_ensembles, 5)
 
+    if n_ensembles not in sims:
+        sims = np.append(sims, n_ensembles)
+
     # The following opens the grid data, loads all the variable and simulations
     # and transforms it into a single xarray that is then saved as a netcdf.
     # This is because xarray does not let load data from different simulations
