@@ -18,10 +18,10 @@ from geoglue.util import find_unique_time_coord
 from geoglue.region import gadm
 from geoglue.cds import (
     CdsDataset,
-    get_first_monday,
     ReanalysisSingleLevels,
     DatasetPool,
 )
+from geoglue.util import get_first_monday
 
 from ...paths import get_path
 from .list_metrics import VARIABLES
