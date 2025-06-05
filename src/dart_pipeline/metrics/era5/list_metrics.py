@@ -11,7 +11,6 @@ ACCUM_METRICS = [
     "spei_corrected",
     "hydrological_balance_corrected",
     "total_precipitation_corrected",
-    "surface_solar_radiation_downwards",
 ]
 
 VARIABLE_MAPPINGS = {
