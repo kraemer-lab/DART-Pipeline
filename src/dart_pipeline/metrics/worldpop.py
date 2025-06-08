@@ -14,12 +14,12 @@ register_metrics(
     metrics={
         "pop_count": {
             "url": "https://hub.worldpop.org/geodata/listing?id=75",
-            "description": "WorldPop population count",
-            "unit": "unitless",
+            "long_name": "WorldPop population count",
+            "units": "unitless",
             "license": "CC-BY-4.0",
             # We produce outputs at minimum admin1 resolution, unlikely
             # that any administrative area will have population greater than this
-            "range": (0, 500_000_000),
+            "valid_min": 0,
             "citation": """
              WorldPop (www.worldpop.org - School of Geography and Environmental
              Science, University of Southampton; Department of Geography and

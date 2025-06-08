@@ -35,8 +35,8 @@ register_metrics(
     metrics={
         "pop_density": {
             "url": "https://dataforgood.facebook.com/dfg/docs/high-resolution-population-density-maps-demographic-estimates-documentation",
-            "description": "Meta population density",
-            "unit": "unitless",
+            "long_name": "Meta population density",
+            "units": "1",
             "citation": """
             Facebook Connectivity Lab and Center for International Earth Science
             Information Network - CIESIN – Columbia University. 2016.
@@ -45,8 +45,8 @@ register_metrics(
         },
         "relative_wealth_index": {
             "url": "https://dataforgood.facebook.com/dfg/tools/relative-wealth-index",
-            "description": "Relative wealth index",
-            "unit": "unitless",
+            "long_name": "Relative wealth index",
+            "units": "1",
             "license": "CC-BY-NC-4.0",
             "depends": ["pop_density"],
             "citation": """
