@@ -20,7 +20,7 @@ VARIABLE_MAPPINGS = {
     "surface_pressure": "sp",
     "evaporation": "e",
     "total_precipitation": "tp",
-    "total_precipitation_corrected": "tp_corrected",
+    "total_precipitation_corrected": "tp_bc",
     "10m_u_component_of_wind": "u10",
     "10m_v_component_of_wind": "v10",
 }

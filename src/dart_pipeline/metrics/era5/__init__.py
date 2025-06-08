@@ -212,9 +212,9 @@ def era5_process(
     accum = add_bias_corrected_tp(
         daily_agg.accum, iso3, year, shift_hours=pool.shift_hours
     )
-    is_bias_corrected: bool = "tp_corrected" in accum.variables
+    is_bias_corrected: bool = "tp_bc" in accum.variables
     if is_bias_corrected:
-        accum["hydrological_balance_corrected"] = accum.tp_corrected + accum.e
+        accum["hb_bc"] = accum.tp_bc + accum.e
     accum.to_netcdf(paths["sum"])
 
     # read in

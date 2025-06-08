@@ -67,7 +67,9 @@ def gamma_spei(
         f"gamma_spei({iso3!r}, {ystart=}, {yend=}, {window=}, {bias_correct=})"
     )
     ds.attrs["ISO3"] = iso3
-    ds.attrs["metric"] = "era5.spei.gamma"
+    ds.attrs["metric"] = (
+        "era5.spei_corrected.gamma" if bias_correct else "era5.spei.gamma"
+    )
     return ds
 
 
@@ -112,7 +114,8 @@ def process_spei(iso3: str, date: str, bias_correct: bool = False) -> pd.DataFra
     )
     gamma = xr.apply_ufunc(gamma_func, ds_ma, gamma_params.alpha, gamma_params.beta)
     norm_spei = xr.apply_ufunc(norminv, gamma)
-    spei = xr.Dataset({"spei": norm_spei})
+    spei_name = "spei_bc" if bias_correct else "spei"
+    spei = xr.Dataset({spei_name: norm_spei})
     set_lonlat_attrs(spei)
 
     # resample to weights
@@ -126,7 +129,6 @@ def process_spei(iso3: str, date: str, bias_correct: bool = False) -> pd.DataFra
     with resampled_dataset("remapdis", spei_path, population) as resampled_ds:
         return zonal_stats(
             f"era5.{spei_name}.weekly_sum",
-            "1",
             resampled_ds.spei,
             gadm(iso3, admin),
             operation="area_weighted_sum",

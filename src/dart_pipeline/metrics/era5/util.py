@@ -85,7 +85,7 @@ def add_bias_corrected_tp(
     except FileNotFoundError:
         logger.info(f"No tp_corrected file found for {iso3}-{year} {shift_hours=}")
         return accum
-    accum["tp_corrected"] = tp_corrected
+    accum["tp_bc"] = tp_corrected
     return accum
 
 
@@ -248,7 +248,7 @@ def corrected_precipitation_weekly_dataset(
     closed, inclusive range of years.
 
     The returned dataset has the following variables:
-    - tp_corrected: weekly sum of the total daily precipitation
+    - tp_bc: weekly sum of the total daily precipitation
     """
     # We only need to construct the dataset pool to get the timeshift
     shift_hours = get_dataset_pool(iso3, data_path).shift_hours
@@ -266,7 +266,7 @@ def corrected_precipitation_weekly_dataset(
     start_date, end_date = get_date_range_for_years(
         ystart, yend, 7 * (window - 1), align_weeks=True
     )
-    ds = xr.Dataset({"tp_corrected": da}).sel(
+    ds = xr.Dataset({"tp_bc": da}).sel(
         valid_time=slice(start_date.isoformat(), end_date.isoformat())
     )
     return ds.resample(valid_time="W-MON", closed="left", label="left").sum()
@@ -341,7 +341,8 @@ def balance_weekly_dataarray(
     ).rename({"valid_time": "time"})
     assert ds_precip.time.min() == pevt.time.min()
     assert ds_precip.time.max() == pevt.time.max()
-    balance = (ds_precip.tp - pevt).rename("balance")
+    tp_col = "tp_bc" if bias_correct else "tp"
+    balance = (ds_precip[tp_col] - pevt).rename("balance")
     return balance.rename({"time": "valid_time"})
 
 
@@ -374,7 +375,7 @@ def standardized_precipitation(
        The dimension over which to compute the rolling mean and gamma parameters
     var
        The variable name to be adjusted ('tp' for precipitation,
-       'tp_corrected' for corrected precipitation) 'balance' for measuring
+       'tp_bc' for corrected precipitation) 'balance' for measuring
        SPEI
 
     ds and ds_ref must contain the same variable (tp for measuring SPI and
@@ -384,7 +385,7 @@ def standardized_precipitation(
     -------
     The standardized precipitation index (SPI) or SPEI for the given variable.
     """
-    tp = "tp" if not var.endswith("_corrected") else "tp_corrected"
+    tp = "tp" if not var.endswith("_corrected") else "tp_bc"
     match var.removeprefix("bc_"):
         case "spi":
             params = fit_gamma_distribution(

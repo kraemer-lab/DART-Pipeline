@@ -67,7 +67,8 @@ def gamma_spi(
         )
     if len(tdim) == 0:
         raise ValueError("No time dimension detected in reference dataset")
-    ds = fit_gamma_distribution(ref.tp, window=window, dimension=tdim[0])
+    tp_col = "tp_bc" if bias_correct else "tp"
+    ds = fit_gamma_distribution(ref[tp_col], window=window, dimension=tdim[0])
     ds.attrs["DART_history"] = (
         f"gamma_spi({iso3!r}, {ystart=}, {yend=}, {window=}, {bias_correct=})"
     )
@@ -150,7 +151,7 @@ def process_spi_corrected(iso3: str, date: str) -> pd.DataFrame:
 
     gamma = xr.apply_ufunc(gamma_func, ds_ma, gamma_params.alpha, gamma_params.beta)
     norm_spi_corrected = xr.apply_ufunc(norminv, gamma)
-    spi_corrected = norm_spi_corrected.rename({"tp_corrected": "spi_corrected"})
+    spi_corrected = norm_spi_corrected.rename({"tp_bc": "spi_bc"})
     set_lonlat_attrs(spi_corrected)
 
     # resample to weights
