@@ -300,7 +300,7 @@ def era5_process(
     return paths + generated_paths
 
 
-@register_process("era5.prep_bias_correct")
+@register_process("era5.prep_bias_correct", multiple_years=True)
 def prep_bias_correct(iso3: str, date: str, profile: str) -> xr.Dataset:
     try:
         ystart, yend = date.split("-")

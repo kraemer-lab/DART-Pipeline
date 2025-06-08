@@ -76,13 +76,13 @@ def gamma_spi(
     return ds
 
 
-@register_process("era5.spi.gamma")
+@register_process("era5.spi.gamma", multiple_years=True)
 def gamma_spi_uncorrected(iso3: str, date: str, window: int = 6) -> xr.Dataset:
     "Calculates gamma parameter for SPI for a date range"
     return gamma_spi(iso3, date, window, bias_correct=False)
 
 
-@register_process("era5.spi_corrected.gamma")
+@register_process("era5.spi_corrected.gamma", multiple_years=True)
 def gamma_spi_corrected(iso3: str, date: str, window: int = 6) -> xr.Dataset:
     "Calculates gamma parameter for SPI with corrected precipitation for a date range"
     return gamma_spi(iso3, date, window, bias_correct=True)
@@ -122,7 +122,6 @@ def process_spi(iso3: str, date: str) -> pd.DataFrame:
     with resampled_dataset("remapdis", spi_path, population) as resampled_ds:
         return zonal_stats(
             "era5.spi.weekly_sum",
-            "1",
             resampled_ds.spi,
             gadm(iso3, admin),
             operation="area_weighted_sum",
@@ -164,7 +163,6 @@ def process_spi_corrected(iso3: str, date: str) -> pd.DataFrame:
     with resampled_dataset("remapdis", spi_corrected_path, population) as resampled_ds:
         return zonal_stats(
             "era5.spi_corrected.weekly_sum",
-            "1",
             resampled_ds.spi_corrected,
             gadm(iso3, admin),
             operation="area_weighted_sum",

@@ -134,13 +134,13 @@ def process_spei(iso3: str, date: str, bias_correct: bool = False) -> pd.DataFra
         )
 
 
-@register_process("era5.spei.gamma")
+@register_process("era5.spei.gamma", multiple_years=True)
 def gamma_spei_uncorrected(iso3: str, date: str, window: int = 6) -> xr.Dataset:
     "Fit gamma parameters for SPEI with uncorrected precipitation"
     return gamma_spei(iso3, date, window, bias_correct=False)
 
 
-@register_process("era5.spei_corrected.gamma")
+@register_process("era5.spei_corrected.gamma", multiple_years=True)
 def gamma_spei_corrected(iso3: str, date: str, window: int = 6) -> xr.Dataset:
     "Fit gamma parameters for SPEI with corrected precipitation"
     return gamma_spei(iso3, date, window, bias_correct=True)

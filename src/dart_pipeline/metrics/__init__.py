@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 METRICS = {}
 FETCHERS = {}
 PROCESSORS = {}
+MULTIPLE_YEAR_PROCESSORS: dict[str, bool] = {}
 
 # Do not automatically process these metrics
 SKIP_AUTO_PROCESS = ["era5"]
@@ -174,7 +175,7 @@ def register_fetch(metric: str):
     return decorator
 
 
-def register_process(metric: str):
+def register_process(metric: str, multiple_years: bool = False):
     parts = metric.split(".")
     source = parts[0]
     if source not in METRICS:
@@ -191,6 +192,7 @@ def register_process(metric: str):
 
     def decorator(func):
         PROCESSORS[metric] = func
+        MULTIPLE_YEAR_PROCESSORS[metric] = multiple_years
         return func
 
     return decorator
