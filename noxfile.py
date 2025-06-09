@@ -2,7 +2,7 @@ import nox
 
 nox.options.default_venv_backend = "uv"
 
-PYTHON_VERSIONS = "3.10"
+PYTHON_VERSIONS = "3.11"
 
 
 @nox.session
