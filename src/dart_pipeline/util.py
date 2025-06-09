@@ -25,7 +25,6 @@ from .constants import (
     COMPRESSED_FILE_EXTS,
 )
 from .types import Credentials, URLCollection
-from .paths import get_path
 
 logger = logging.getLogger(__name__)
 
@@ -293,8 +292,3 @@ def unpack_file(path: Path | str, same_folder: bool = False):
         case _:
             extract_dir = path.parent if same_folder else path.parent / path.stem
             shutil.unpack_archive(path, str(extract_dir))
-
-
-def get_shapefile(iso3: str, admin_level: Literal["0", "1", "2", "3"]) -> Path:
-    """Get a shape file."""
-    return get_path("sources", "gadm") / iso3 / f"gadm41_{iso3}_{admin_level}.shp"
