@@ -2,8 +2,6 @@ import nox
 
 nox.options.default_venv_backend = "uv"
 
-PYTHON_VERSIONS = "3.11"
-
 
 @nox.session
 def lint(session):
@@ -12,14 +10,14 @@ def lint(session):
     session.run("ruff", "check", "tests")
 
 
-@nox.session(python=PYTHON_VERSIONS)
+@nox.session
 def tests(session):
     session.env.update({"UV_PROJECT_ENVIRONMENT": session.virtualenv.location})
     session.run("uv", "sync", "--all-extras")
     session.run("uv", "run", "pytest", "-n", "auto", "-vv", "--cov")
 
 
-@nox.session(python="3.10", default=False)
+@nox.session(default=False)
 def docs(session):
     session.env.update({"UV_PROJECT_ENVIRONMENT": session.virtualenv.location})
     session.run("uv", "sync", "--all-extras")
