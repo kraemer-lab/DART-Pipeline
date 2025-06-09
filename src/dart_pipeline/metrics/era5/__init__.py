@@ -140,8 +140,8 @@ def era5_fetch(iso3: str, date: str) -> CdsPath | None:
     return data.get(year)
 
 
-@register_process("era5")
-def era5_process(
+@register_process("era5.core")
+def era5_process_core(
     iso3: str, date: str, overwrite: bool = False, keep_resampled: bool = False
 ) -> list[Path]:
     """Processes ERA5 data for a particular year
