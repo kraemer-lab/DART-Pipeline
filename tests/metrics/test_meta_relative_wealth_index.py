@@ -130,11 +130,11 @@ def test_process_rwi(mock_get_country, mock_get_path):
     assert output_value == 0.4 / 3
 
 
-@mock.patch("geopandas.read_file")
+@mock.patch("dart_pipeline.metrics.meta_relative_wealth_index.gadm")
 @mock.patch("pandas.read_csv")
-def test_process_gadm_popdensity_rwi(mock_pd_read, mock_gpd_read):
+def test_process_gadm_popdensity_rwi(mock_pd_read, mock_gadm):
     # Mock GADM shapefile
-    mock_gpd_read.return_value = gpd.GeoDataFrame(
+    mock_gadm.return_value.read.return_value = gpd.GeoDataFrame(
         pd.DataFrame(
             {
                 "GID_0": ["GID0"],

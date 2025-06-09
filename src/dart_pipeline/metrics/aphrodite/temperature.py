@@ -4,12 +4,12 @@ from datetime import date, datetime, timedelta
 from typing import Literal
 import logging
 
-import geopandas as gpd
 import numpy as np
 import pandas as pd
 import shapely.geometry
+from geoglue.region import gadm
 
-from ...util import days_in_year, get_shapefile
+from ...util import days_in_year
 from ...types import PartialDate
 from ...constants import OUTPUT_COLUMNS
 from ...paths import get_path
@@ -40,9 +40,7 @@ def process_gadm_aphroditetemperature(
     logger.info("scope:%s", pdate.scope)
 
     # Import shape file
-    path = get_shapefile(iso3, admin_level)
-    logger.info("importing:%s", path)
-    gdf = gpd.read_file(path)
+    gdf = gadm(iso3, int(admin_level)).read()
 
     # Initialise output data frame
     output = pd.DataFrame(columns=OUTPUT_COLUMNS)

@@ -100,7 +100,7 @@ def test_chirps_rainfall_data():
 
 @patch("geopandas.read_file")
 @patch("dart_pipeline.metrics.chirps.get_chirps_rainfall_data_path")
-@patch("dart_pipeline.util.get_shapefile")
+@patch("dart_pipeline.metrics.chirps.gadm")
 @patch("rasterio.open")
 @patch("dart_pipeline.paths.get_path")
 @patch("matplotlib.pyplot.savefig")
@@ -108,7 +108,7 @@ def test_process_gadm_chirps_rainfall(
     mock_savefig,
     mock_get_path,
     mock_raster_open,
-    mock_get_shapefile,
+    mock_gadm,
     mock_get_chirps_rainfall_data_path,
     mock_read_file,
 ):
@@ -119,7 +119,6 @@ def test_process_gadm_chirps_rainfall(
 
     # Mock the file paths
     mock_get_chirps_rainfall_data_path.return_value = "mocked_file.tif"
-    mock_get_shapefile.return_value = "mocked_shapefile.shp"
     mock_get_path.return_value = "mocked_output_path"
 
     # Mock rasterio dataset and set up a test array for rainfall data
@@ -145,7 +144,9 @@ def test_process_gadm_chirps_rainfall(
     }[key]
     mock_gdf.iterrows.return_value = [(0, mock_region)]
     mock_gdf.to_crs.return_value = mock_gdf
-    mock_read_file.return_value = mock_gdf
+    mock_gadm_region = MagicMock()
+    mock_gadm_region.read.return_value = mock_gdf
+    mock_gadm.return_value = mock_gadm_region
 
     # Call the function
     output = process_gadm_chirps_rainfall(
