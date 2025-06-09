@@ -1,4 +1,3 @@
-import os
 import logging
 import functools
 import multiprocessing
@@ -86,12 +85,12 @@ def metric_path(iso3: str, admin: int, year: int, metric: str, statistic: str) -
 
 
 def population_weighted_aggregation(
-    metric_statistic: tuple[str, str],
+    metric: str,
+    statistic: str,
     iso3: str,
     admin: int,
     year: int,
 ) -> Path:
-    metric, statistic = metric_statistic
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(processName)s] %(levelname)s %(message)s",
@@ -128,6 +127,31 @@ def population_weighted_aggregation(
     da.to_netcdf(outfile)
     logger.info(f"  END {message} -> {outfile}")
     return outfile
+
+
+def _pprint_ms(
+    ms: dict[str, list[str]], existing_ms: dict[str, list[str]] | None = None
+) -> str:
+    "Pretty print metric statistic combinations"
+    if existing_ms is None:
+        return "\n\t" + "\n\t".join(
+            sum(
+                [
+                    [f"[make] era5.{metric}.daily_{stat}" for metric in ms[stat]]
+                    for stat in ms
+                ],
+                [],
+            )
+        )
+    else:
+        out = []
+        for stat in ms:
+            for metric in ms[stat]:
+                if metric in existing_ms[stat]:
+                    out.append(f"[skip] era5.{metric}.daily_{stat}")
+                else:
+                    out.append(f"[make] era5.{metric}.daily_{stat}")
+        return "\n\t" + "\n\t".join(out)
 
 
 @register_fetch("era5")
@@ -222,7 +246,68 @@ def era5_process_core(
     ds.daily_max().to_netcdf(paths["max"])
     ds.daily_min().to_netcdf(paths["min"])
 
-    for stat in ("min", "max", "mean", "sum"):
+    instant_metrics = [
+        m for m in INSTANT_METRICS if m not in DERIVED_METRICS_SEPARATE_IMPL
+    ]
+    accum_metrics = [m for m in ACCUM_METRICS if m not in DERIVED_METRICS_SEPARATE_IMPL]
+    if not is_bias_corrected:
+        instant_metrics = [m for m in instant_metrics if not m.endswith("_corrected")]
+        accum_metrics = [m for m in accum_metrics if not m.endswith("_corrected")]
+
+    metric_statistic_combinations: dict[str, list[str]] = {
+        s: instant_metrics for s in ["min", "max", "mean"]
+    }
+    metric_statistic_combinations["sum"] = accum_metrics
+
+    already_existing_metrics: dict[str, list[str]] = {
+        s: [
+            m
+            for m in metric_statistic_combinations[s]
+            if metric_path(iso3, admin, year, m, s).exists()
+        ]
+        for s in metric_statistic_combinations
+    }
+    n_already_existing_metrics: int = sum(
+        len(already_existing_metrics[s]) for s in already_existing_metrics
+    )
+
+    generated_paths = []
+    if not overwrite and n_already_existing_metrics:
+        generated_paths = sum(
+            [
+                [
+                    metric_path(iso3, admin, year, m, s)
+                    for m in already_existing_metrics[s]
+                ]
+                for s in already_existing_metrics
+            ],
+            [],
+        )
+        logger.info(
+            "Metric statistic combinations: %s",
+            _pprint_ms(metric_statistic_combinations, already_existing_metrics),
+        )
+        # filter to keep only metrics that need to be calculated
+        metric_statistic_combinations = {
+            s: [
+                m
+                for m in metric_statistic_combinations[s]
+                if m not in already_existing_metrics[s]
+            ]
+            for s in metric_statistic_combinations
+        }
+    else:
+        logger.info(
+            "Metric statistic combinations: %s",
+            _pprint_ms(metric_statistic_combinations),
+        )
+
+    for stat in metric_statistic_combinations:
+        # skip if no metrics are requested to be generated for statistic
+        metrics = metric_statistic_combinations[stat]
+        if not metrics:
+            continue
+        logger.info("Computing zonal aggregation for statistic=%s", stat)
         resampling = "remapdis" if stat == "sum" else "remapbil"
         logger.info(
             f"Resampling using CDO for {stat=} using {resampling=}: {paths[stat]} -> {resampled_paths[stat]}"
@@ -230,74 +315,24 @@ def era5_process_core(
         resample(
             resampling, paths[stat], get_worldpop_1km(iso3, year), resampled_paths[stat]
         )
-
-    metric_statistic_combinations: list[tuple[str, str]] = [
-        (metric, statistic)
-        for metric in INSTANT_METRICS
-        for statistic in ["min", "max", "mean"]
-    ] + [(metric, "sum") for metric in ACCUM_METRICS]
-
-    # remove metrics that are separately calculated and need reference datasets
-    metric_statistic_combinations = [
-        (m, s)
-        for m, s in metric_statistic_combinations
-        if m not in DERIVED_METRICS_SEPARATE_IMPL
-    ]
-    # remove corrected metrics if no bias correction available
-    if not is_bias_corrected:
-        metric_statistic_combinations = [
-            (m, s)
-            for m, s in metric_statistic_combinations
-            if not m.endswith("_corrected")
-        ]
-
-    logger.info("Metric statistic combinations %r", metric_statistic_combinations)
-
-    already_existing_metrics = [
-        (m, s)
-        for m, s in metric_statistic_combinations
-        if metric_path(iso3, admin, year, m, s).exists()
-    ]
-    paths, generated_paths = [], []
-    if not overwrite and already_existing_metrics:
-        paths = [
-            metric_path(iso3, admin, year, m, s) for m, s in already_existing_metrics
-        ]
-        metric_statistic_combinations = [
-            (m, s)
-            for m, s in metric_statistic_combinations
-            if (m, s) not in already_existing_metrics
-        ]
-        logger.warning(
-            f"skip metrics [{iso3}-{admin}, {year}] {already_existing_metrics!r}"
-        )
-
-    if metric_statistic_combinations:
         with multiprocessing.Pool() as p:
-            generated_paths = list(
+            new_paths = list(
                 p.map(
                     functools.partial(
                         population_weighted_aggregation,
+                        statistic=stat,
                         iso3=iso3,
                         admin=admin,
                         year=year,
                     ),
-                    metric_statistic_combinations,
+                    metrics,
                 )
             )
+        if not keep_resampled:
+            resampled_paths[stat].unlink()
+        generated_paths += new_paths
 
-    if not keep_resampled:
-        reclaimed_bytes = 0
-        for stat in ("min", "max", "mean", "sum"):
-            if resampled_paths[stat].exists():
-                size = os.path.getsize(resampled_paths[stat])
-                resampled_paths[stat].unlink()
-                reclaimed_bytes += size
-        logger.info(
-            f"Deleted CDO resampled files (keep_resampled=False), reclaimed {reclaimed_bytes / (1024 * 1024):.2f} MB"
-        )
-
-    return paths + generated_paths
+    return generated_paths
 
 
 @register_process("era5.prep_bias_correct", multiple_years=True)

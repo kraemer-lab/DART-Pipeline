@@ -253,7 +253,7 @@ def print_path(p: Path) -> str:
 
 
 def print_paths(ps: list[Path]) -> str:
-    return " ".join(map(print_path, ps))
+    return "\n\t" + "\n\t".join(map(print_path, ps))
 
 
 def blockfmt(s: str, indent: int) -> str:

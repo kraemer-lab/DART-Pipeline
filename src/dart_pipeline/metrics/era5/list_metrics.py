@@ -145,6 +145,7 @@ VARIABLES = sorted(set(sum([METRICS[m].get("depends", [m]) for m in METRICS], []
 
 INSTANT_METRICS = [m for m in METRICS if m not in ACCUM_METRICS]
 DERIVED_METRICS_SEPARATE_IMPL = [
+    "core",  # virtual catch-all metric
     "spi",
     "spei",
     "spi_corrected",
