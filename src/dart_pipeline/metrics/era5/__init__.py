@@ -354,6 +354,61 @@ def prep_bias_correct(iso3: str, date: str, profile: str) -> xr.Dataset:
             raise ValueError(f"Unknown prep_bias_correct {profile=}")
 
 
+def calculate_indices(
+    index: str,
+    iso3: str,
+    gamma_years: tuple[int, int],
+    index_years: tuple[int, int],
+    bias_correct: bool,
+):
+    from .spi import gamma_spi, process_spi
+    from .spei import gamma_spei, process_spei
+
+    GAMMA_FUNC = {"spi": gamma_spi, "spei": gamma_spei}
+    PROCESS_INDEX_FUNC = {"spi": process_spi, "spei": process_spei}
+    if index not in ["spi", "spei"]:
+        raise ValueError(
+            f"Unsupported {index=}, supported indices: 'spi', 'spei'. For bias correction, use 'bias_correct' parameter"
+        )
+    output_stub = index if not bias_correct else f"{index}_corrected"
+    # 1. Estimate gamma parameters
+    gamma_ystart, gamma_yend = gamma_years
+    if gamma_ystart > gamma_yend:
+        raise ValueError(
+            f"Invalid year range for gamma parameter estimation: {gamma_ystart}-{gamma_yend}"
+        )
+    logger.info(
+        f"Estimating {index.upper()} in gamma parameters for {iso3} ({gamma_ystart}-{gamma_yend}), {bias_correct=}"
+    )
+    ds = GAMMA_FUNC[index](
+        iso3, f"{gamma_ystart}-{gamma_yend}", bias_correct=bias_correct
+    )
+    ds.to_netcdf(
+        get_path(
+            "output",
+            iso3,
+            "era5",
+            f"{iso3}-{gamma_ystart}-{gamma_yend}-era5.{output_stub}.gamma.nc",
+        )
+    )
+
+    # 2. Calculate index for all years in range
+    # index_ystart and index_yend may vary from gamma_ystart, gamma_yend
+    index_ystart, index_yend = index_years
+    if index_ystart > index_yend:
+        raise ValueError(
+            f"Invalid year range for calculating indices: {gamma_ystart}-{gamma_yend}"
+        )
+    for year in range(index_ystart, index_yend + 1):
+        logger.info(f"Calculating {index.upper()} for {year}, {bias_correct=}")
+        index_year = PROCESS_INDEX_FUNC[index](
+            iso3, str(year), bias_correct=bias_correct
+        )
+        index_year.to_netcdf(
+            get_path("output", iso3, "era5", f"{iso3}-{year}-era5.{output_stub}.nc")
+        )
+
+
 @register_process("era5", multiple_years=True)
 def process_era5(
     iso3: str, date: str, overwrite: bool = False, skip_correction: bool = False
@@ -396,4 +451,22 @@ def process_era5(
         See https://dart-pipeline.readthedocs.io/en/latest/bias-correction-precipitation.html on how to generate these files
         Alternatively, pass 'skip_correction' to skip calculating bias-corrected metrics"""
         )
+    for index in ["spi", "spei"]:
+        calculate_indices(
+            index,
+            iso3,
+            gamma_years=(ystart, yend),
+            index_years=(ystart, yend),
+            bias_correct=False,
+        )
+    if not skip_correction:
+        for index in ["spi", "spei"]:
+            calculate_indices(
+                index,
+                iso3,
+                gamma_years=(ystart, yend),
+                index_years=(ystart, yend),
+                bias_correct=True,
+            )
+
     logger.info("OK, I am ready to start processing!")
