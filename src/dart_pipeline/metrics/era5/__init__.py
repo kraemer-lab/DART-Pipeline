@@ -17,6 +17,7 @@ from ...metrics import (
     register_fetch,
     register_process,
     zonal_stats_xarray,
+    print_paths,
 )
 from ...util import iso3_admin_unpack
 from ...paths import get_path
@@ -27,6 +28,8 @@ from .util import (
     precipitation_weekly_dataset,
     temperature_daily_dataset,
     add_bias_corrected_tp,
+    parse_year_range,
+    missing_tp_corrected_files,
 )
 from .list_metrics import (
     VARIABLE_MAPPINGS,
@@ -349,3 +352,48 @@ def prep_bias_correct(iso3: str, date: str, profile: str) -> xr.Dataset:
             return temperature_daily_dataset(iso3, ystart, yend)
         case _:
             raise ValueError(f"Unknown prep_bias_correct {profile=}")
+
+
+@register_process("era5", multiple_years=True)
+def process_era5(
+    iso3: str, date: str, overwrite: bool = False, skip_correction: bool = False
+) -> list[Path]:
+    """Overall era5 processor; runs core metrics and SPI and SPEI
+
+    Parameters
+    ----------
+    iso3 : str
+        Country code or region name
+    date : str
+        Range of years to calculate ERA5 metrics
+    overwrite : bool
+        Whether to overwrite existing generated files, default=False
+    skip_correction : bool
+        Whether to skip calculation of corrected metrics
+
+    Returns
+    -------
+    list[Path]
+        List of generated files
+    """
+    ystart, yend = parse_year_range(date, warn_duration_less_than_years=15)
+    pool = get_dataset_pool(iso3)
+    required_years = set(range(ystart, yend + 1))
+    present_years = set(pool.years)
+    if not required_years < present_years:
+        raise FileNotFoundError(
+            f"""Requested year range {ystart}-{yend}, but files missing for years: {", ".join(map(str, required_years - present_years))}
+    Use `uv run dart-pipeline get era5 {iso3} <year>` to download data for <year>"""
+        )
+    if not skip_correction and (
+        missing_tp_corrected := missing_tp_corrected_files(iso3, required_years)
+    ):
+        raise FileNotFoundError(
+            "Calculation for bias corrected metrics requested, but missing tp_corrected_files:"
+            + print_paths(missing_tp_corrected)
+            + """
+
+        See https://dart-pipeline.readthedocs.io/en/latest/bias-correction-precipitation.html on how to generate these files
+        Alternatively, pass 'skip_correction' to skip calculating bias-corrected metrics"""
+        )
+    logger.info("OK, I am ready to start processing!")

@@ -49,6 +49,14 @@ def tp_corrected_path(iso3: str, year: int) -> Path:
     )
 
 
+def missing_tp_corrected_files(iso3, years: set[int]) -> list[Path]:
+    out = []
+    for year in years:
+        if not (path := tp_corrected_path(iso3, year)).exists():
+            out.append(path)
+    return out
+
+
 def get_tp_corrected(
     iso3: str, year: int, shift_hours: int, dim: str = "valid_time"
 ) -> xr.DataArray:
