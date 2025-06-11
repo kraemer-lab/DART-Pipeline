@@ -370,6 +370,35 @@ def find_metric(
             return m
 
 
+def get_gamma_params(
+    iso3: str, index: str, yrange: tuple[int, int] | None = None
+) -> xr.Dataset:
+    info = "See https://dart-pipeline.readthedocs.io/en/latest/standardised_indices.html for more information"
+    root = get_path("output", iso3, "era5")
+    if yrange:
+        ystart, yend = yrange
+        output_file = root / f"{iso3}-{ystart}-{yend}-era5.{index}.gamma.nc"
+        if not output_file.exists():
+            raise FileNotFoundError(
+                f"Could not find gamma parameters at: {output_file}\n\t{info}"
+            )
+    else:
+        # find the first matching gamma parameters file
+        output_files = list(root.glob(f"{iso3}-*-era5.{index}.gamma.nc"))
+        if not output_files:
+            raise FileNotFoundError(
+                f"Could not find gamma parameters at: {root}\n\t{info}"
+            )
+        if len(output_files) > 1:
+            logger.warning(
+                f"Multiple gamma parameters found for {iso3} {index=}, selecting the first one"
+            )
+        output_file = output_files[0]
+
+    ds = xr.open_dataset(output_file)
+    return ds
+
+
 def validate_metric(df: pd.DataFrame) -> list[tuple[int, str]]:
     "Returns list of errors where validation failed for a particular metric file"
 
@@ -625,9 +654,6 @@ def zonal_stats_xarray(
     ----------
     metric : str
         Name of metric
-    unit : str
-        Unit of metric in udunits terminology. Unitless metrics should
-        be assigned a unit of "1"
     da : xr.DataArray
         xarray DataArray to perform zonal statistics on. Must have
         'latitude', 'longitude' and a time coordinate

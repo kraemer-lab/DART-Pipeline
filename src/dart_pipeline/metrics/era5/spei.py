@@ -5,7 +5,6 @@ Standardised precipitation evapotranspiration index (SPEI)
 import re
 import logging
 import xarray as xr
-import pandas as pd
 
 from geoglue.region import gadm, get_worldpop_1km
 from geoglue.resample import resampled_dataset
@@ -13,7 +12,7 @@ from geoglue.util import find_unique_time_coord, set_lonlat_attrs
 
 from ...paths import get_path
 from ...util import iso3_admin_unpack
-from ...metrics import register_process, find_metric, zonal_stats
+from ...metrics import register_process, get_gamma_params, zonal_stats_xarray
 
 from .util import (
     fit_gamma_distribution,
@@ -73,7 +72,7 @@ def gamma_spei(
     return ds
 
 
-def process_spei(iso3: str, date: str, bias_correct: bool = False) -> pd.DataFrame:
+def process_spei(iso3: str, date: str, bias_correct: bool = False) -> xr.DataArray:
     """Determines SPEI for a particular year
 
     Parameters
@@ -93,11 +92,8 @@ def process_spei(iso3: str, date: str, bias_correct: bool = False) -> pd.DataFra
     """
     year = int(date)
     iso3, admin = iso3_admin_unpack(iso3)
-
-    if bias_correct:
-        gamma_params: xr.Dataset = find_metric("era5.spei.gamma", iso3)
-    else:
-        gamma_params: xr.Dataset = find_metric("era5.spei_corrected.gamma", iso3)
+    index = "spei_corrected" if bias_correct else "spei"
+    gamma_params = get_gamma_params(iso3, index)
     re_matches = re.match(r".*window=(\d+)", gamma_params.attrs["DART_history"])
     if re_matches is None:
         raise ValueError("No window option found in gamma parameters file")
@@ -127,7 +123,7 @@ def process_spei(iso3: str, date: str, bias_correct: bool = False) -> pd.DataFra
 
     population = get_worldpop_1km(iso3, year)
     with resampled_dataset("remapdis", spei_path, population) as resampled_ds:
-        return zonal_stats(
+        return zonal_stats_xarray(
             f"era5.{spei_name}.weekly_sum",
             resampled_ds.spei,
             gadm(iso3, admin),
@@ -149,12 +145,12 @@ def gamma_spei_corrected(iso3: str, date: str, window: int = 6) -> xr.Dataset:
 
 
 @register_process("era5.spei")
-def process_spei_uncorrected(iso3: str, date: str) -> pd.DataFrame:
+def process_spei_uncorrected(iso3: str, date: str) -> xr.DataArray:
     "Processes SPEI with uncorrected precipitation"
     return process_spei(iso3, date, bias_correct=False)
 
 
 @register_process("era5.spei_corrected")
-def process_spei_corrected(iso3: str, date: str) -> pd.DataFrame:
+def process_spei_corrected(iso3: str, date: str) -> xr.DataArray:
     "Processes SPEI with uncorrected precipitation"
     return process_spei(iso3, date, bias_correct=True)

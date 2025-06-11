@@ -361,11 +361,17 @@ def calculate_indices(
     index_years: tuple[int, int],
     bias_correct: bool,
 ):
-    from .spi import gamma_spi, process_spi
-    from .spei import gamma_spei, process_spei
+    from .spi import gamma_spi, process_spi, process_spi_corrected
+    from .spei import gamma_spei, process_spei_uncorrected, process_spei_corrected
 
+    iso3, admin = iso3_admin_unpack(iso3)
     GAMMA_FUNC = {"spi": gamma_spi, "spei": gamma_spei}
-    PROCESS_INDEX_FUNC = {"spi": process_spi, "spei": process_spei}
+    PROCESS_INDEX_FUNC = {
+        ("spi", False): process_spi,
+        ("spi", True): process_spi_corrected,
+        ("spei", False): process_spei_uncorrected,
+        ("spei", True): process_spei_corrected,
+    }
     if index not in ["spi", "spei"]:
         raise ValueError(
             f"Unsupported {index=}, supported indices: 'spi', 'spei'. For bias correction, use 'bias_correct' parameter"
@@ -380,6 +386,7 @@ def calculate_indices(
     logger.info(
         f"Estimating {index.upper()} in gamma parameters for {iso3} ({gamma_ystart}-{gamma_yend}), {bias_correct=}"
     )
+
     ds = GAMMA_FUNC[index](
         iso3, f"{gamma_ystart}-{gamma_yend}", bias_correct=bias_correct
     )
@@ -401,8 +408,8 @@ def calculate_indices(
         )
     for year in range(index_ystart, index_yend + 1):
         logger.info(f"Calculating {index.upper()} for {year}, {bias_correct=}")
-        index_year = PROCESS_INDEX_FUNC[index](
-            iso3, str(year), bias_correct=bias_correct
+        index_year = PROCESS_INDEX_FUNC[index, bias_correct](
+            f"{iso3}-{admin}", str(year)
         )
         index_year.to_netcdf(
             get_path("output", iso3, "era5", f"{iso3}-{year}-era5.{output_stub}.nc")
@@ -432,6 +439,7 @@ def process_era5(
         List of generated files
     """
     ystart, yend = parse_year_range(date, warn_duration_less_than_years=15)
+    iso3, admin = iso3_admin_unpack(iso3)
     pool = get_dataset_pool(iso3)
     required_years = set(range(ystart, yend + 1))
     present_years = set(pool.years)
@@ -454,7 +462,7 @@ def process_era5(
     for index in ["spi", "spei"]:
         calculate_indices(
             index,
-            iso3,
+            f"{iso3}-{admin}",
             gamma_years=(ystart, yend),
             index_years=(ystart, yend),
             bias_correct=False,
