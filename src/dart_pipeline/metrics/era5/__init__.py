@@ -354,6 +354,28 @@ def prep_bias_correct(iso3: str, date: str, profile: str) -> xr.Dataset:
             raise ValueError(f"Unknown prep_bias_correct {profile=}")
 
 
+def _calculate_index(year: int, index: str, iso3: str, admin: int, bias_correct: bool):
+    from .spi import process_spi, process_spi_corrected
+    from .spei import process_spei_uncorrected, process_spei_corrected
+
+    assert index in ["spi", "spei"]
+    output_stub = index if not bias_correct else f"{index}_corrected"
+
+    match (index, bias_correct):
+        case ("spi", False):
+            ds = process_spi(f"{iso3}-{admin}", str(year))
+        case ("spi", True):
+            ds = process_spi_corrected(f"{iso3}-{admin}", str(year))
+        case ("spei", False):
+            ds = process_spei_uncorrected(f"{iso3}-{admin}", str(year))
+        case ("spei", True):
+            ds = process_spei_corrected(f"{iso3}-{admin}", str(year))
+
+    ds.to_netcdf(
+        get_path("output", iso3, "era5", f"{iso3}-{year}-era5.{output_stub}.nc")
+    )
+
+
 def calculate_indices(
     index: str,
     iso3: str,
@@ -361,22 +383,17 @@ def calculate_indices(
     index_years: tuple[int, int],
     bias_correct: bool,
 ):
-    from .spi import gamma_spi, process_spi, process_spi_corrected
-    from .spei import gamma_spei, process_spei_uncorrected, process_spei_corrected
+    from .spi import gamma_spi
+    from .spei import gamma_spei
 
     iso3, admin = iso3_admin_unpack(iso3)
     GAMMA_FUNC = {"spi": gamma_spi, "spei": gamma_spei}
-    PROCESS_INDEX_FUNC = {
-        ("spi", False): process_spi,
-        ("spi", True): process_spi_corrected,
-        ("spei", False): process_spei_uncorrected,
-        ("spei", True): process_spei_corrected,
-    }
     if index not in ["spi", "spei"]:
         raise ValueError(
             f"Unsupported {index=}, supported indices: 'spi', 'spei'. For bias correction, use 'bias_correct' parameter"
         )
     output_stub = index if not bias_correct else f"{index}_corrected"
+
     # 1. Estimate gamma parameters
     gamma_ystart, gamma_yend = gamma_years
     if gamma_ystart > gamma_yend:
@@ -384,7 +401,7 @@ def calculate_indices(
             f"Invalid year range for gamma parameter estimation: {gamma_ystart}-{gamma_yend}"
         )
     logger.info(
-        f"Estimating {index.upper()} in gamma parameters for {iso3} ({gamma_ystart}-{gamma_yend}), {bias_correct=}"
+        f"Estimating {index.upper()} gamma parameters for {iso3} ({gamma_ystart}-{gamma_yend}), {bias_correct=}"
     )
 
     ds = GAMMA_FUNC[index](
@@ -406,13 +423,19 @@ def calculate_indices(
         raise ValueError(
             f"Invalid year range for calculating indices: {gamma_ystart}-{gamma_yend}"
         )
-    for year in range(index_ystart, index_yend + 1):
-        logger.info(f"Calculating {index.upper()} for {year}, {bias_correct=}")
-        index_year = PROCESS_INDEX_FUNC[index, bias_correct](
-            f"{iso3}-{admin}", str(year)
-        )
-        index_year.to_netcdf(
-            get_path("output", iso3, "era5", f"{iso3}-{year}-era5.{output_stub}.nc")
+    logger.info(
+        f"Calculating {index.upper()} for {iso3}-{admin} ({index_ystart}-{index_yend}) {bias_correct=}"
+    )
+    with multiprocessing.Pool() as pool:
+        pool.map(
+            functools.partial(
+                _calculate_index,
+                index=index,
+                iso3=iso3,
+                admin=admin,
+                bias_correct=bias_correct,
+            ),
+            range(index_ystart, index_yend + 1),
         )
 
 
@@ -440,6 +463,11 @@ def process_era5(
     """
     ystart, yend = parse_year_range(date, warn_duration_less_than_years=15)
     iso3, admin = iso3_admin_unpack(iso3)
+
+    # Get population data for year range
+    logger.info(f"Retrieving population at 1km grid (Worldpop) from {ystart}-{yend}")
+    for year in range(ystart, yend + 1):
+        _ = get_worldpop_1km(iso3, year)
     pool = get_dataset_pool(iso3)
     required_years = set(range(ystart, yend + 1))
     present_years = set(pool.years)
