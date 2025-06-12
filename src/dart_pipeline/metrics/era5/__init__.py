@@ -354,12 +354,15 @@ def prep_bias_correct(iso3: str, date: str, profile: str) -> xr.Dataset:
             raise ValueError(f"Unknown prep_bias_correct {profile=}")
 
 
-def _calculate_index(year: int, index: str, iso3: str, admin: int, bias_correct: bool):
+def _calculate_index(
+    year: int, index: str, iso3: str, admin: int, bias_correct: bool
+) -> Path:
     from .spi import process_spi, process_spi_corrected
     from .spei import process_spei_uncorrected, process_spei_corrected
 
     assert index in ["spi", "spei"]
     output_stub = index if not bias_correct else f"{index}_corrected"
+    output = get_path("output", iso3, "era5", f"{iso3}-{year}-era5.{output_stub}.nc")
 
     match (index, bias_correct):
         case ("spi", False):
@@ -371,9 +374,8 @@ def _calculate_index(year: int, index: str, iso3: str, admin: int, bias_correct:
         case ("spei", True):
             ds = process_spei_corrected(f"{iso3}-{admin}", str(year))
 
-    ds.to_netcdf(
-        get_path("output", iso3, "era5", f"{iso3}-{year}-era5.{output_stub}.nc")
-    )
+    ds.to_netcdf(output)
+    return output
 
 
 def calculate_indices(
@@ -382,7 +384,7 @@ def calculate_indices(
     gamma_years: tuple[int, int],
     index_years: tuple[int, int],
     bias_correct: bool,
-):
+) -> list[Path]:
     from .spi import gamma_spi
     from .spei import gamma_spei
 
@@ -427,16 +429,19 @@ def calculate_indices(
         f"Calculating {index.upper()} for {iso3}-{admin} ({index_ystart}-{index_yend}) {bias_correct=}"
     )
     with multiprocessing.Pool() as pool:
-        pool.map(
-            functools.partial(
-                _calculate_index,
-                index=index,
-                iso3=iso3,
-                admin=admin,
-                bias_correct=bias_correct,
-            ),
-            range(index_ystart, index_yend + 1),
+        paths = list(
+            pool.map(
+                functools.partial(
+                    _calculate_index,
+                    index=index,
+                    iso3=iso3,
+                    admin=admin,
+                    bias_correct=bias_correct,
+                ),
+                range(index_ystart, index_yend + 1),
+            )
         )
+    return paths
 
 
 @register_process("era5", multiple_years=True)
@@ -487,22 +492,31 @@ def process_era5(
         See https://dart-pipeline.readthedocs.io/en/latest/bias-correction-precipitation.html on how to generate these files
         Alternatively, pass 'skip_correction' to skip calculating bias-corrected metrics"""
         )
+    paths = []
     for index in ["spi", "spei"]:
-        calculate_indices(
+        upaths = calculate_indices(
             index,
             f"{iso3}-{admin}",
             gamma_years=(ystart, yend),
             index_years=(ystart, yend),
             bias_correct=False,
         )
+        logger.info(
+            f"Generated {index.upper()} without bias correction at:{print_paths(upaths)}"
+        )
+        paths += upaths
     if not skip_correction:
         for index in ["spi", "spei"]:
-            calculate_indices(
+            upaths = calculate_indices(
                 index,
                 iso3,
                 gamma_years=(ystart, yend),
                 index_years=(ystart, yend),
                 bias_correct=True,
             )
+            logger.info(
+                f"Generated {index.upper()} with bias correction at:{print_paths(upaths)}"
+            )
+            paths += upaths
 
-    logger.info("OK, I am ready to start processing!")
+    return paths
