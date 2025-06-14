@@ -354,17 +354,45 @@ def prep_bias_correct(iso3: str, date: str, profile: str) -> xr.Dataset:
             raise ValueError(f"Unknown prep_bias_correct {profile=}")
 
 
-def _calculate_index(
-    year: int, index: str, iso3: str, admin: int, bias_correct: bool
-) -> Path:
-    from .spi import process_spi, process_spi_corrected
-    from .spei import process_spei_uncorrected, process_spei_corrected
+def run_task(task: str) -> Path:
+    """Runs task definition
 
-    assert index in ["spi", "spei"]
-    output_stub = index if not bias_correct else f"{index}_corrected"
-    output = get_path("output", iso3, "era5", f"{iso3}-{year}-era5.{output_stub}.nc")
+    VNM-2000-2020-era5.spi.gamma -- gamma parameters
+    VNM-2-2000-era5.spi -- SPI
+    """
 
-    match (index, bias_correct):
+    from .spi import process_spi, process_spi_corrected, gamma_spi
+    from .spei import process_spei_uncorrected, process_spei_corrected, gamma_spei
+
+    parts = task.split("-")
+    ystart, admin = None, None
+    ds = None
+    metric = parts.pop()
+    if not metric.startswith("era5"):
+        raise ValueError("run_task() is only defined for era5 metrics")
+    metric = metric.removeprefix("era5.")
+    year = int(parts.pop())
+    ystart_or_admin = int(parts.pop())
+    if ystart_or_admin not in [1, 2, 3]:
+        ystart = ystart_or_admin
+    else:
+        admin = ystart_or_admin
+    iso3 = parts.pop()
+    bias_correct = "corrected" in task
+    metric_stub = metric.replace("_corrected", "")
+    if "gamma" in metric:
+        output = get_path(
+            "output", iso3, "era5", f"{iso3}-{ystart}-{year}-era5.{metric}.nc"
+        )
+    else:
+        output = get_path(
+            "output", iso3, "era5", f"{iso3}-{admin}-{year}-era5.{metric}.nc"
+        )
+    match (metric_stub, bias_correct):
+        case ("spi.gamma", _):
+            ds = gamma_spi(iso3, f"{ystart}-{year}", bias_correct=bias_correct)
+        case ("spei.gamma", _):
+            ds = gamma_spei(iso3, f"{ystart}-{year}", bias_correct=bias_correct)
         case ("spi", False):
             ds = process_spi(f"{iso3}-{admin}", str(year))
         case ("spi", True):
@@ -373,81 +401,27 @@ def _calculate_index(
             ds = process_spei_uncorrected(f"{iso3}-{admin}", str(year))
         case ("spei", True):
             ds = process_spei_corrected(f"{iso3}-{admin}", str(year))
-
+    if ds is None:
+        raise RuntimeError(f"Task processing failed for {task}")
     ds.to_netcdf(output)
     return output
 
 
-def calculate_indices(
-    index: str,
-    iso3: str,
-    gamma_years: tuple[int, int],
-    index_years: tuple[int, int],
-    bias_correct: bool,
-) -> list[Path]:
-    from .spi import gamma_spi
-    from .spei import gamma_spei
+def run_tasks(task_group: str, tasks: list[str], show_paths: bool = True) -> list[Path]:
+    "Runs a list of tasks"
 
-    iso3, admin = iso3_admin_unpack(iso3)
-    GAMMA_FUNC = {"spi": gamma_spi, "spei": gamma_spei}
-    if index not in ["spi", "spei"]:
-        raise ValueError(
-            f"Unsupported {index=}, supported indices: 'spi', 'spei'. For bias correction, use 'bias_correct' parameter"
-        )
-    output_stub = index if not bias_correct else f"{index}_corrected"
-
-    # 1. Estimate gamma parameters
-    gamma_ystart, gamma_yend = gamma_years
-    if gamma_ystart > gamma_yend:
-        raise ValueError(
-            f"Invalid year range for gamma parameter estimation: {gamma_ystart}-{gamma_yend}"
-        )
-    logger.info(
-        f"Estimating {index.upper()} gamma parameters for {iso3} ({gamma_ystart}-{gamma_yend}), {bias_correct=}"
-    )
-
-    ds = GAMMA_FUNC[index](
-        iso3, f"{gamma_ystart}-{gamma_yend}", bias_correct=bias_correct
-    )
-    ds.to_netcdf(
-        get_path(
-            "output",
-            iso3,
-            "era5",
-            f"{iso3}-{gamma_ystart}-{gamma_yend}-era5.{output_stub}.gamma.nc",
-        )
-    )
-
-    # 2. Calculate index for all years in range
-    # index_ystart and index_yend may vary from gamma_ystart, gamma_yend
-    index_ystart, index_yend = index_years
-    if index_ystart > index_yend:
-        raise ValueError(
-            f"Invalid year range for calculating indices: {gamma_ystart}-{gamma_yend}"
-        )
-    logger.info(
-        f"Calculating {index.upper()} for {iso3}-{admin} ({index_ystart}-{index_yend}) {bias_correct=}"
-    )
+    logger.info("[%s]  starting tasks: %s", task_group, ", ".join(tasks))
     with multiprocessing.Pool() as pool:
-        paths = list(
-            pool.map(
-                functools.partial(
-                    _calculate_index,
-                    index=index,
-                    iso3=iso3,
-                    admin=admin,
-                    bias_correct=bias_correct,
-                ),
-                range(index_ystart, index_yend + 1),
-            )
-        )
+        paths = list(pool.map(run_task, tasks))
+    if show_paths:
+        logger.info("[%s] processed tasks: %s", task_group, ", ".join(tasks))
+    else:
+        logger.info("[%s] processed %d tasks", task_group, len(tasks))
     return paths
 
 
 @register_process("era5", multiple_years=True)
-def process_era5(
-    iso3: str, date: str, overwrite: bool = False, skip_correction: bool = False
-) -> list[Path]:
+def process_era5(iso3: str, date: str, skip_correction: bool = False) -> list[Path]:
     """Overall era5 processor; runs core metrics and SPI and SPEI
 
     Parameters
@@ -493,30 +467,31 @@ def process_era5(
         Alternatively, pass 'skip_correction' to skip calculating bias-corrected metrics"""
         )
     paths = []
-    for index in ["spi", "spei"]:
-        upaths = calculate_indices(
-            index,
-            f"{iso3}-{admin}",
-            gamma_years=(ystart, yend),
-            index_years=(ystart, yend),
-            bias_correct=False,
-        )
-        logger.info(
-            f"Generated {index.upper()} without bias correction at:{print_paths(upaths)}"
-        )
-        paths += upaths
+
+    gamma_tasks = [
+        f"{iso3}-{ystart}-{yend}-era5.{index}.gamma" for index in ["spi", "spei"]
+    ]
     if not skip_correction:
-        for index in ["spi", "spei"]:
-            upaths = calculate_indices(
-                index,
-                iso3,
-                gamma_years=(ystart, yend),
-                index_years=(ystart, yend),
-                bias_correct=True,
-            )
-            logger.info(
-                f"Generated {index.upper()} with bias correction at:{print_paths(upaths)}"
-            )
-            paths += upaths
+        gamma_tasks += [
+            f"{iso3}-{ystart}-{yend}-era5.{index}_corrected.gamma"
+            for index in ["spi", "spei"]
+        ]
+
+    # Run gamma parameter estimation first, required for SPI and SPEI index calculations later
+    paths += run_tasks("GAMMA", gamma_tasks)
+
+    index_tasks = [
+        f"{iso3}-{admin}-{year}-era5.{index}"
+        for year in range(ystart, yend + 1)
+        for index in ["spi", "spei"]
+    ]
+    if not skip_correction:
+        index_tasks += [
+            f"{iso3}-{admin}-{year}-era5.{index}_corrected"
+            for year in range(ystart, yend + 1)
+            for index in ["spi", "spei"]
+        ]
+
+    paths += run_tasks("INDEX", index_tasks)
 
     return paths
