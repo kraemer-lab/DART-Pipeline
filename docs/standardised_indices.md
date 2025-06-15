@@ -6,6 +6,19 @@ Precipitation Evaporation Index (SPEI). While the core weather processing
 (daily aggregation and zonal statistics) can be performed on a yearly basis,
 calculation of SPI and SPEI involves additional steps.
 
+```{note}
+You can run the entire historical ERA5 reanalysis weather pipeline:
+
+    uv run dart-pipeline process era5 ISO3 2000-2020
+
+after fetching data for each of the years:
+
+    uv run dart-pipeline get era5 ISO3 YEAR
+
+This page is useful if you want to separate out SPI and SPEI calculations
+or invoke them manually, e.g. after updating bias corrected data
+```
+
 ## Estimating the gamma distribution
 
 SPI and SPEI are represented as a dimensionless number, usually in the -3 to 3
