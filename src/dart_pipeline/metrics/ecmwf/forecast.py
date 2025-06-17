@@ -1,10 +1,12 @@
 """Utility functions for ecmwf.forecast"""
 
+import logging
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 import xarray as xr
-
+from tqdm import trange
 
 # This is only used to fetch data from ECMWF Open Data, once downloaded and
 # converted using forecast_grib_to_netcdf() the variables are renamed
@@ -18,6 +20,25 @@ VARIABLES = [
 
 INSTANT_VARS = ["t2m", "d2m", "sp"]
 ACCUM_VARS = ["tp"]
+
+logger = logging.getLogger(__name__)
+
+
+def cfgrib_open(
+    file: str | Path,
+    dataType: Literal["pf", "cf"],
+    sel: dict,
+    shortName: list[str] | None = None,
+) -> xr.Dataset:
+    filter_by_keys: dict[str, str | list[str]] = {"dataType": dataType}
+    if shortName:
+        filter_by_keys["shortName"] = shortName
+    return xr.open_dataset(
+        file,
+        engine="cfgrib",
+        filter_by_keys=filter_by_keys,
+        decode_timedelta=True,
+    ).sel(**sel)
 
 
 def forecast_grib_to_netcdf(
@@ -55,10 +76,10 @@ def forecast_grib_to_netcdf(
     tuple[xr.Dataset, xr.Dataset]
         Tuple of (instant, accum) xarray Datasets converted from GRIB2 file
     """
-    n_ensembles = len(
-        xr.open_dataset(file, engine="cfgrib", filter_by_keys={"dataType": "pf"}).number
-    )
-
+    logger.info("Converting from GRIB2 to netCDF: %s", file)
+    pf = cfgrib_open(file, "pf", sel_kwargs)
+    pf_temp = cfgrib_open(file, "pf", sel_kwargs, ["2t", "2d"])
+    n_ensembles = len(pf.number)
     # Number of simulations processed at once. Trying to process all the data at
     # once causes the computer to crash so this function determines how many
     # simulations do we process at once
@@ -77,33 +98,17 @@ def forecast_grib_to_netcdf(
     # Read control forecast as ensemble index 0
     inter_tot = xr.merge(
         [
-            xr.open_dataset(
-                file, engine="cfgrib", filter_by_keys={"dataType": "cf"}
-            ).sel(**sel_kwargs),
-            xr.open_dataset(
-                file,
-                engine="cfgrib",
-                filter_by_keys={"dataType": "cf", "shortName": ["2t", "2d"]},
-            ).sel(**sel_kwargs),
+            cfgrib_open(file, "cf", sel_kwargs),
+            cfgrib_open(file, "cf", sel_kwargs, ["2t", "2d"]),
         ],
         compat="override",
     )
-
-    for i in range(len(sims) - 1):
+    for i in trange(len(sims) - 1, desc="Converting simulation groups"):
         number_slice = (
             slice(sims[0], sims[1]) if i == 0 else slice(sims[i] + 1, sims[i + 1])
         )
         pf = xr.merge(
-            [
-                xr.open_dataset(
-                    file, engine="cfgrib", filter_by_keys={"dataType": "pf"}
-                ).sel(**sel_kwargs, number=number_slice),
-                xr.open_dataset(
-                    file,
-                    engine="cfgrib",
-                    filter_by_keys={"dataType": "pf", "shortName": ["2t", "2d"]},
-                ).sel(**sel_kwargs, number=number_slice),
-            ],
+            [pf.sel(number=number_slice), pf_temp.sel(number=number_slice)],
             compat="override",
         )
         inter_tot = xr.concat([inter_tot, pf], dim="number")
