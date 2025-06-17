@@ -6,7 +6,15 @@ from typing import Literal
 
 import numpy as np
 import xarray as xr
-from tqdm import trange
+from tqdm import trange, tqdm
+import geoglue.zonal_stats
+from geoglue import MemoryRaster
+from geoglue.region import get_worldpop_1km, Region
+
+
+from geoglue.resample import resampled_dataset
+
+logger = logging.getLogger(__name__)
 
 # This is only used to fetch data from ECMWF Open Data, once downloaded and
 # converted using forecast_grib_to_netcdf() the variables are renamed
@@ -39,6 +47,103 @@ def cfgrib_open(
         filter_by_keys=filter_by_keys,
         decode_timedelta=True,
     ).sel(**sel)
+
+
+def zonal_stats(
+    da: xr.DataArray,
+    region: Region,
+    weights: MemoryRaster,
+) -> xr.DataArray:
+    """Return zonal statistics for a particular DataArray as another xarray DataArray
+
+    This is a wrapper around geoglue.zonal_stats_xarray to add CF-compliant
+    metadata attributes derived from the metric name
+
+    Parameters
+    ----------
+    da : xr.DataArray
+        xarray DataArray to perform zonal statistics on. Must have
+        'latitude', 'longitude' and a time coordinate
+    region : geoglue.region.Region
+        Region for which to calculate zonal statistics
+    weights : MemoryRaster
+        Uses the specified raster to perform weighted zonal statistics
+
+    Returns
+    -------
+    xr.DataArray
+        The geometry ID is specified in the ``region`` coordinate. CF-compliant
+        metadata attributes are attached:
+
+        - ``standard_name``: CF standard name, if present
+        - ``long_name``: Description of the metric
+        - ``units``: CF-compliant units according to the udunits2 package
+        - ``cell_methods``: Aggregation methods used to derive values in DataArray,
+           e.g. ``time: sum (interval: 1 week)`` to indicate a weekly summation.
+
+    """
+    geom = region.read()
+    operation = (
+        "mean(coverage_weight=area_spherical_km2)"
+        if da.name not in ["tp", "tp_bc"]
+        else "area_weighted_sum"
+    )
+    za = xr.concat(
+        [
+            geoglue.zonal_stats.zonal_stats_xarray(
+                da.sel(number=i), geom, operation, weights, region_col=region.pk
+            ).rename(da.name)
+            # for i in trange(len(da.number))
+            for i in trange(5)
+        ],
+        dim="number",
+    )
+    x, y, z = za.shape  # (time, region, number)
+    call = f"zonal_stats(da, {region.name}, {operation=}, {weights=}"
+    if x * y * z == 0:
+        raise ValueError(f"Zero dimension DataArray created from {call}", call)
+    za.attrs = da.attrs.copy()
+    za.attrs["DART_region"] = str(region)
+    za.attrs["DART_zonal_stats"] = call
+    return za
+
+
+def forecast_zonal_stats(
+    ds: xr.Dataset, region: Region, pop_year: int, vars: list[str] | None = None
+) -> xr.Dataset:
+    ds = ds.rename({"lat": "latitude", "lon": "longitude"})
+    vars = vars or list(ds.data_vars)
+    instant_vars = [v for v in vars if v not in ["tp", "tp_bc"]]
+    accum_vars = [v for v in vars if v in ["tp", "tp_bc"]]
+    pop = get_worldpop_1km("VNM", pop_year)
+    if not (instant_vars + accum_vars):
+        raise ValueError(f"At least one variable must be passed, got {vars!r}")
+    if instant_vars:
+        with resampled_dataset("remapbil", ds[instant_vars], pop) as remapbil_ds:
+            instant_zs = xr.merge(
+                [
+                    zonal_stats(remapbil_ds[var], region, pop)
+                    for var in tqdm(instant_vars, desc="Zonal statistics (instant)")
+                ]
+            )
+    else:
+        instant_zs = None
+    if accum_vars:
+        logger.info("Performing zonal stats for %r", accum_vars)
+        with resampled_dataset("remapdis", ds[accum_vars], pop) as remapdis_ds:
+            accum_zs = xr.merge(
+                [
+                    zonal_stats(remapdis_ds[var], region, pop)
+                    for var in tqdm(accum_vars, desc="Zonal statistics (accum)")
+                ]
+            )
+    else:
+        accum_zs = None
+    if instant_zs is None:
+        return accum_zs
+    if accum_zs is None:
+        return instant_zs
+    return xr.merge([instant_zs, accum_zs])
 
 
 def forecast_grib_to_netcdf(
