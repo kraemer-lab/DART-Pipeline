@@ -7,13 +7,14 @@ import logging
 
 import xarray as xr
 
-from geoglue.region import get_worldpop_1km, gadm
+from geoglue.region import gadm
 from geoglue.resample import resampled_dataset
 from geoglue.util import set_lonlat_attrs
 
 from ...paths import get_path
 from ...util import iso3_admin_unpack
 from ...metrics import register_process, get_gamma_params, zonal_stats_xarray
+from ...metrics.worldpop import get_worldpop
 
 from .util import (
     fit_gamma_distribution,
@@ -118,7 +119,7 @@ def process_spi(iso3: str, date: str) -> xr.DataArray:
     )
     spi.to_netcdf(spi_path)
 
-    population = get_worldpop_1km(iso3, year)
+    population = get_worldpop(iso3, year)
     with resampled_dataset("remapdis", spi_path, population) as resampled_ds:
         return zonal_stats_xarray(
             "era5.spi.weekly_sum",
@@ -159,7 +160,7 @@ def process_spi_corrected(iso3: str, date: str) -> xr.DataArray:
     )
     spi_corrected.to_netcdf(spi_corrected_path)
 
-    population = get_worldpop_1km(iso3, year)
+    population = get_worldpop(iso3, year)
     with resampled_dataset("remapdis", spi_corrected_path, population) as resampled_ds:
         return zonal_stats_xarray(
             "era5.spi_corrected.weekly_sum",

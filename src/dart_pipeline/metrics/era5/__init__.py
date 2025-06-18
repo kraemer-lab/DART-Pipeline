@@ -8,7 +8,7 @@ from functools import cache
 import xarray as xr
 
 from geoglue.util import sha256
-from geoglue.region import gadm, get_worldpop_1km
+from geoglue.region import gadm
 from geoglue.cds import ReanalysisSingleLevels, CdsPath, CdsDataset
 from geoglue.resample import resample
 
@@ -19,6 +19,7 @@ from ...metrics import (
     zonal_stats_xarray,
     print_paths,
 )
+from ...metrics.worldpop import get_worldpop
 from ...util import iso3_admin_unpack
 from ...paths import get_path
 
@@ -117,7 +118,7 @@ def population_weighted_aggregation(
         ds[variable],
         gadm(iso3, admin),
         operation=operation,
-        weights=get_worldpop_1km(iso3, year),
+        weights=get_worldpop(iso3, year),
     )
     # clamp relative_humidity to 100%
     if "relative_humidity" in metric:
@@ -315,7 +316,7 @@ def era5_process_core(
             f"Resampling using CDO for {stat=} using {resampling=}: {paths[stat]} -> {resampled_paths[stat]}"
         )
         resample(
-            resampling, paths[stat], get_worldpop_1km(iso3, year), resampled_paths[stat]
+            resampling, paths[stat], get_worldpop(iso3, year), resampled_paths[stat]
         )
         with multiprocessing.Pool() as p:
             new_paths = list(
@@ -455,7 +456,7 @@ def process_era5(
     # Get population data for year range
     logger.info(f"Retrieving population at 1km grid (Worldpop) from {ystart}-{yend}")
     for year in range(ystart, yend + 1):
-        _ = get_worldpop_1km(iso3, year)
+        get_worldpop(iso3, year)
     pool = get_dataset_pool(iso3)
     required_years = set(range(ystart, yend + 1))
     present_years = set(pool.years)
