@@ -50,9 +50,7 @@ def cfgrib_open(
 
 
 def zonal_stats(
-    da: xr.DataArray,
-    region: Region,
-    weights: MemoryRaster,
+    da: xr.DataArray, region: Region, weights: MemoryRaster, sims: int | None = None
 ) -> xr.DataArray:
     """Return zonal statistics for a particular DataArray as another xarray DataArray
 
@@ -68,6 +66,9 @@ def zonal_stats(
         Region for which to calculate zonal statistics
     weights : MemoryRaster
         Uses the specified raster to perform weighted zonal statistics
+    sims : int
+        Number of simulations to perform zonal statistics for, default=None which
+        selects all simulations
 
     Returns
     -------
@@ -93,11 +94,11 @@ def zonal_stats(
             geoglue.zonal_stats.zonal_stats_xarray(
                 da.sel(number=i), geom, operation, weights, region_col=region.pk
             ).rename(da.name)
-            # for i in trange(len(da.number))
-            for i in trange(5)
+            for i in trange(sims)
         ],
         dim="number",
     )
+    za = za.assign_coords(number=range(len(za.number)))
     x, y, z = za.shape  # (time, region, number)
     call = f"zonal_stats(da, {region.name}, {operation=}, {weights=}"
     if x * y * z == 0:
@@ -109,20 +110,23 @@ def zonal_stats(
 
 
 def forecast_zonal_stats(
-    ds: xr.Dataset, region: Region, pop_year: int, vars: list[str] | None = None
+    ds: xr.Dataset, region: Region, pop_year: int, sims: int | None = None
 ) -> xr.Dataset:
     ds = ds.rename({"lat": "latitude", "lon": "longitude"})
-    vars = vars or list(ds.data_vars)
-    instant_vars = [v for v in vars if v not in ["tp", "tp_bc"]]
-    accum_vars = [v for v in vars if v in ["tp", "tp_bc"]]
+    instant_vars = [v for v in ds.data_vars if v not in ["tp", "tp_bc"]]
+    accum_vars = [v for v in ds.data_vars if v in ["tp", "tp_bc"]]
     pop = get_worldpop_1km("VNM", pop_year)
     if not (instant_vars + accum_vars):
         raise ValueError(f"At least one variable must be passed, got {vars!r}")
     if instant_vars:
         with resampled_dataset("remapbil", ds[instant_vars], pop) as remapbil_ds:
+            if remapbil_ds.t2m.isnull().any():
+                raise ValueError(
+                    "Null values found in temperature field, indicates issues with resampling"
+                )
             instant_zs = xr.merge(
                 [
-                    zonal_stats(remapbil_ds[var], region, pop)
+                    zonal_stats(remapbil_ds[var], region, pop, sims=sims)
                     for var in tqdm(instant_vars, desc="Zonal statistics (instant)")
                 ]
             )
@@ -131,9 +135,13 @@ def forecast_zonal_stats(
     if accum_vars:
         logger.info("Performing zonal stats for %r", accum_vars)
         with resampled_dataset("remapdis", ds[accum_vars], pop) as remapdis_ds:
+            if remapdis_ds.tp.isnull().any():
+                raise ValueError(
+                    "Null values found in precipitation field, indicates issues with resampling"
+                )
             accum_zs = xr.merge(
                 [
-                    zonal_stats(remapdis_ds[var], region, pop)
+                    zonal_stats(remapdis_ds[var], region, pop, sims=sims)
                     for var in tqdm(accum_vars, desc="Zonal statistics (accum)")
                 ]
             )
