@@ -119,9 +119,9 @@ def forecast_zonal_stats(
     pop = get_worldpop("VNM", pop_year)
     raster_bbox = Bbox.from_xarray(ds)
     region_overlap = raster_bbox.overlap_fraction(region.bbox)
-    if region_overlap < 0.8:
+    if region_overlap < 0.9:
         raise ValueError(
-            f"Insufficient overlap {region_overlap:.1%} between input raster and region bbox"
+            f"Insufficient overlap ({region_overlap:.1%}, expected 90%) between input raster and region bbox"
         )
     if raster_bbox < pop.bbox:
         # Crop population to region bbox if region is smaller
