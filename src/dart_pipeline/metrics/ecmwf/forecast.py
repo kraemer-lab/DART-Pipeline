@@ -9,10 +9,10 @@ import xarray as xr
 from tqdm import trange, tqdm
 import geoglue.zonal_stats
 from geoglue import MemoryRaster
-from geoglue.region import get_worldpop_1km, Region
-
-
+from geoglue.region import Region
 from geoglue.resample import resampled_dataset
+
+from ...metrics.worldpop import get_worldpop
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +115,11 @@ def forecast_zonal_stats(
     ds = ds.rename({"lat": "latitude", "lon": "longitude"})
     instant_vars = [v for v in ds.data_vars if v not in ["tp", "tp_bc"]]
     accum_vars = [v for v in ds.data_vars if v in ["tp", "tp_bc"]]
-    pop = get_worldpop_1km("VNM", pop_year)
+    pop = get_worldpop("VNM", pop_year)
+    if region.bbox < pop.bbox:
+        # Crop population to region bbox if region is smaller
+        logger.warning("Cropping larger population raster to smaller region raster")
+        pop = pop.crop(region.bbox)
     if not (instant_vars + accum_vars):
         raise ValueError(f"At least one variable must be passed, got {vars!r}")
     if instant_vars:
