@@ -1,12 +1,14 @@
 """Utility functions for ecmwf.forecast"""
 
 import logging
+import functools
+import multiprocessing
 from pathlib import Path
 from typing import Literal
 
 import numpy as np
 import xarray as xr
-from tqdm import trange, tqdm
+from tqdm import trange
 import geoglue.zonal_stats
 from geoglue import MemoryRaster
 from geoglue.types import Bbox
@@ -51,7 +53,11 @@ def cfgrib_open(
 
 
 def zonal_stats(
-    da: xr.DataArray, region: Region, weights: MemoryRaster, sims: int | None = None
+    var: str,
+    ds: xr.Dataset,
+    region: Region,
+    weights: MemoryRaster,
+    sims: int | None = None,
 ) -> xr.DataArray:
     """Return zonal statistics for a particular DataArray as another xarray DataArray
 
@@ -60,8 +66,10 @@ def zonal_stats(
 
     Parameters
     ----------
-    da : xr.DataArray
-        xarray DataArray to perform zonal statistics on. Must have
+    var : str
+        Variable in xarray.Dataset to perform zonal statistics on
+    da : xr.Dataset
+        xarray Dataset to perform zonal statistics on. Must have
         'latitude', 'longitude' and a time coordinate
     region : geoglue.region.Region
         Region for which to calculate zonal statistics
@@ -84,12 +92,15 @@ def zonal_stats(
            e.g. ``time: sum (interval: 1 week)`` to indicate a weekly summation.
 
     """
+    da = ds[var]
     geom = region.read()
     operation = (
         "mean(coverage_weight=area_spherical_km2)"
         if da.name not in ["tp", "tp_bc"]
         else "area_weighted_sum"
     )
+    n_sims: int = da.number.size
+    sims = sims or n_sims
     za = xr.concat(
         [
             geoglue.zonal_stats.zonal_stats_xarray(
@@ -114,14 +125,14 @@ def forecast_zonal_stats(
     ds: xr.Dataset, region: Region, pop_year: int, sims: int | None = None
 ) -> xr.Dataset:
     ds = ds.rename({"lat": "latitude", "lon": "longitude"})
-    instant_vars = [v for v in ds.data_vars if v not in ["tp", "tp_bc"]]
-    accum_vars = [v for v in ds.data_vars if v in ["tp", "tp_bc"]]
+    instant_vars: list[str] = [str(v) for v in ds.data_vars if v not in ["tp", "tp_bc"]]
+    accum_vars: list[str] = [str(v) for v in ds.data_vars if v in ["tp", "tp_bc"]]
     pop = get_worldpop("VNM", pop_year)
     raster_bbox = Bbox.from_xarray(ds)
     region_overlap = raster_bbox.overlap_fraction(region.bbox)
-    if region_overlap < 0.9:
+    if region_overlap < 0.80:
         raise ValueError(
-            f"Insufficient overlap ({region_overlap:.1%}, expected 90%) between input raster and region bbox"
+            f"Insufficient overlap ({region_overlap:.1%}, expected 80%) between input raster and region bbox"
         )
     if raster_bbox < pop.bbox:
         # Crop population to region bbox if region is smaller
@@ -135,6 +146,7 @@ def forecast_zonal_stats(
         raise ValueError(f"At least one variable must be passed, got {vars!r}")
     if instant_vars:
         logger.info("Performing zonal stats for %r", instant_vars)
+        print("Performing zonal stats for", instant_vars)
         assert ds.t2m.notnull().all(), "Null values found in source temperature field"
         with resampled_dataset("remapbil", ds[instant_vars], pop) as remapbil_ds:
             if remapbil_ds.t2m.isnull().any():
@@ -142,16 +154,21 @@ def forecast_zonal_stats(
                 raise ValueError(
                     f"Null values found in temperature field ({null_frac:.1%}), indicates issues with resampling"
                 )
-            instant_zs = xr.merge(
-                [
-                    zonal_stats(remapbil_ds[var], region, pop, sims=sims)
-                    for var in tqdm(instant_vars, desc="Zonal statistics (instant)")
-                ]
-            )
+            with multiprocessing.Pool() as pool:
+                instant_zs = xr.merge(
+                    pool.map(
+                        functools.partial(
+                            zonal_stats, ds=ds, region=region, weights=pop, sims=sims
+                        ),
+                        instant_vars,
+                    )
+                )
+
     else:
         instant_zs = None
     if accum_vars:
         logger.info("Performing zonal stats for %r", accum_vars)
+        print("Performing zonal stats for", accum_vars)
         assert ds.tp.notnull().all(), "Null values found in source precipitation field"
         with resampled_dataset("remapdis", ds[accum_vars], pop) as remapdis_ds:
             if remapdis_ds.tp.isnull().any():
@@ -159,12 +176,15 @@ def forecast_zonal_stats(
                 raise ValueError(
                     "Null values found in precipitation field ({null_frac:.1%}), indicates issues with resampling"
                 )
-            accum_zs = xr.merge(
-                [
-                    zonal_stats(remapdis_ds[var], region, pop, sims=sims)
-                    for var in tqdm(accum_vars, desc="Zonal statistics (accum)")
-                ]
-            )
+            with multiprocessing.Pool() as pool:
+                accum_zs = xr.merge(
+                    pool.map(
+                        functools.partial(
+                            zonal_stats, ds=ds, region=region, weights=pop, sims=sims
+                        ),
+                        accum_vars,
+                    )
+                )
     else:
         accum_zs = None
     if instant_zs is None:
