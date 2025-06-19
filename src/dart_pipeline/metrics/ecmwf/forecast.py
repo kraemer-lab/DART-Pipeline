@@ -9,6 +9,7 @@ import xarray as xr
 from tqdm import trange, tqdm
 import geoglue.zonal_stats
 from geoglue import MemoryRaster
+from geoglue.types import Bbox
 from geoglue.region import Region
 from geoglue.resample import resampled_dataset
 
@@ -116,17 +117,30 @@ def forecast_zonal_stats(
     instant_vars = [v for v in ds.data_vars if v not in ["tp", "tp_bc"]]
     accum_vars = [v for v in ds.data_vars if v in ["tp", "tp_bc"]]
     pop = get_worldpop("VNM", pop_year)
-    if region.bbox < pop.bbox:
+    raster_bbox = Bbox.from_xarray(ds)
+    region_overlap = raster_bbox.overlap_fraction(region.bbox)
+    if region_overlap < 0.8:
+        raise ValueError(
+            f"Insufficient overlap {region_overlap:.1%} between input raster and region bbox"
+        )
+    if raster_bbox < pop.bbox:
         # Crop population to region bbox if region is smaller
-        logger.warning("Cropping larger population raster to smaller region raster")
-        pop = pop.crop(region.bbox)
+        logger.warning(f"""Cropping larger population raster to smaller input raster
+    Population bounds: {pop.bbox}
+        Raster bounds: {raster_bbox}""")
+        pop = pop.crop(raster_bbox)
+        post_crop_overlap = raster_bbox.overlap_fraction(pop.bbox)
+        logger.info(f"After cropping overlap fraction is {post_crop_overlap:.1%}")
     if not (instant_vars + accum_vars):
         raise ValueError(f"At least one variable must be passed, got {vars!r}")
     if instant_vars:
+        logger.info("Performing zonal stats for %r", instant_vars)
+        assert ds.t2m.notnull().all(), "Null values found in source temperature field"
         with resampled_dataset("remapbil", ds[instant_vars], pop) as remapbil_ds:
             if remapbil_ds.t2m.isnull().any():
+                null_frac = remapbil_ds.t2m.isnull().sum() / remapbil_ds.t2m.size
                 raise ValueError(
-                    "Null values found in temperature field, indicates issues with resampling"
+                    f"Null values found in temperature field ({null_frac:.1%}), indicates issues with resampling"
                 )
             instant_zs = xr.merge(
                 [
@@ -138,10 +152,12 @@ def forecast_zonal_stats(
         instant_zs = None
     if accum_vars:
         logger.info("Performing zonal stats for %r", accum_vars)
+        assert ds.tp.notnull().all(), "Null values found in source precipitation field"
         with resampled_dataset("remapdis", ds[accum_vars], pop) as remapdis_ds:
             if remapdis_ds.tp.isnull().any():
+                null_frac = remapdis_ds.tp.isnull().sum() / remapdis_ds.tp.size
                 raise ValueError(
-                    "Null values found in precipitation field, indicates issues with resampling"
+                    "Null values found in precipitation field ({null_frac:.1%}), indicates issues with resampling"
                 )
             accum_zs = xr.merge(
                 [
