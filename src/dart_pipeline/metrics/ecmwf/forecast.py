@@ -8,8 +8,8 @@ from typing import Literal
 
 import numpy as np
 import xarray as xr
-from tqdm import trange
 import geoglue.zonal_stats
+from tqdm import trange
 from geoglue import MemoryRaster
 from geoglue.types import Bbox
 from geoglue.region import Region
@@ -106,7 +106,7 @@ def zonal_stats(
             geoglue.zonal_stats.zonal_stats_xarray(
                 da.sel(number=i), geom, operation, weights, region_col=region.pk
             ).rename(da.name)
-            for i in trange(sims)
+            for i in range(sims)
         ],
         dim="number",
     )
@@ -158,7 +158,11 @@ def forecast_zonal_stats(
                 instant_zs = xr.merge(
                     pool.map(
                         functools.partial(
-                            zonal_stats, ds=ds, region=region, weights=pop, sims=sims
+                            zonal_stats,
+                            ds=remapbil_ds,
+                            region=region,
+                            weights=pop,
+                            sims=sims,
                         ),
                         instant_vars,
                     )
@@ -180,7 +184,11 @@ def forecast_zonal_stats(
                 accum_zs = xr.merge(
                     pool.map(
                         functools.partial(
-                            zonal_stats, ds=ds, region=region, weights=pop, sims=sims
+                            zonal_stats,
+                            ds=remapdis_ds,
+                            region=region,
+                            weights=pop,
+                            sims=sims,
                         ),
                         accum_vars,
                     )
