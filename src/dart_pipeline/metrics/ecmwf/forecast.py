@@ -146,7 +146,6 @@ def forecast_zonal_stats(
         raise ValueError(f"At least one variable must be passed, got {vars!r}")
     if instant_vars:
         logger.info("Performing zonal stats for %r", instant_vars)
-        print("Performing zonal stats for", instant_vars)
         assert ds.t2m.notnull().all(), "Null values found in source temperature field"
         with resampled_dataset("remapbil", ds[instant_vars], pop) as remapbil_ds:
             if remapbil_ds.t2m.isnull().any():
@@ -172,7 +171,6 @@ def forecast_zonal_stats(
         instant_zs = None
     if accum_vars:
         logger.info("Performing zonal stats for %r", accum_vars)
-        print("Performing zonal stats for", accum_vars)
         assert ds.tp.notnull().all(), "Null values found in source precipitation field"
         with resampled_dataset("remapdis", ds[accum_vars], pop) as remapdis_ds:
             if remapdis_ds.tp.isnull().any():
