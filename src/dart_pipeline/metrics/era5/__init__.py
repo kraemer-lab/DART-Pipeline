@@ -40,6 +40,7 @@ from .list_metrics import (
     DERIVED_METRICS_SEPARATE_IMPL,
     VARIABLES,
 )
+from .collate import MetricCollection
 
 logger = logging.getLogger(__name__)
 
@@ -476,7 +477,6 @@ def process_era5(
         See https://dart-pipeline.readthedocs.io/en/latest/bias-correction-precipitation.html on how to generate these files
         Alternatively, pass 'skip_correction' to skip calculating bias-corrected metrics"""
         )
-    paths = []
 
     gamma_tasks = [
         f"{iso3}-{ystart}-{yend}-era5.{index}.gamma" for index in ["spi", "spei"]
@@ -488,7 +488,7 @@ def process_era5(
         ]
 
     # Run gamma parameter estimation first, required for SPI and SPEI index calculations later
-    paths += run_tasks("GAMMA", gamma_tasks, overwrite=overwrite)
+    run_tasks("GAMMA", gamma_tasks, overwrite=overwrite)
 
     index_tasks = [
         f"{iso3}-{admin}-{year}-era5.{index}"
@@ -502,11 +502,14 @@ def process_era5(
             for index in ["spi", "spei"]
         ]
 
-    paths += run_tasks("INDEX", index_tasks, overwrite=overwrite)
+    run_tasks("INDEX", index_tasks, overwrite=overwrite)
 
     # Run core metrics -- there is already parallelisation within each year, so
     # we don't parallelise processing further
     for year in range(ystart, yend + 1):
-        paths += era5_process_core(f"{iso3}-{admin}", str(year), overwrite=overwrite)
+        era5_process_core(f"{iso3}-{admin}", str(year), overwrite=overwrite)
 
-    return paths
+    ds = MetricCollection(iso3).collate((ystart, yend))
+    output = get_path("output", iso3, "era5", f"{iso3}-{admin}-{ystart}-{yend}-era5.nc")
+    ds.to_netcdf(output)
+    return [output]
