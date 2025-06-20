@@ -9,6 +9,7 @@ ACCUM_METRICS = [
     "spei",
     "spi_corrected",
     "spei_corrected",
+    "evaporation",
     "hydrological_balance_corrected",
     "total_precipitation_corrected",
 ]
@@ -20,7 +21,11 @@ VARIABLE_MAPPINGS = {
     "surface_pressure": "sp",
     "evaporation": "e",
     "total_precipitation": "tp",
+    "hydrological_balance": "hb",
+    "hydrological_balance_corrected": "hb_bc",
     "total_precipitation_corrected": "tp_bc",
+    "relative_humidity": "r",
+    "specific_humidity": "q",
     "10m_u_component_of_wind": "u10",
     "10m_v_component_of_wind": "v10",
 }
@@ -49,6 +54,12 @@ METRICS: dict[str, MetricInfo] = {
         "valid_max": 1200,
         "part_of": "era5.core",
         "short_name": "tp",
+    },
+    "evaporation": {
+        "long_name": "Evaporation",
+        "units": "m",
+        "part_of": "era5.core",
+        "short_name": "e",
     },
     "relative_humidity": {
         "long_name": "Relative humidity",

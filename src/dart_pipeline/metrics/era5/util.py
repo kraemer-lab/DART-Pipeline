@@ -29,6 +29,31 @@ from .list_metrics import VARIABLES
 logger = logging.getLogger(__name__)
 
 
+def pprint_ms(
+    ms: dict[str, list[str]], existing_ms: dict[str, list[str]] | None = None
+) -> str:
+    "Pretty print metric statistic combinations"
+    if existing_ms is None:
+        return "\n\t" + "\n\t".join(
+            sum(
+                [
+                    [f"[make] era5.{metric}.daily_{stat}" for metric in ms[stat]]
+                    for stat in ms
+                ],
+                [],
+            )
+        )
+    else:
+        out = []
+        for stat in ms:
+            for metric in ms[stat]:
+                if metric in existing_ms[stat]:
+                    out.append(f"[skip] era5.{metric}.daily_{stat}")
+                else:
+                    out.append(f"[make] era5.{metric}.daily_{stat}")
+        return "\n\t" + "\n\t".join(out)
+
+
 def get_dataset_pool(iso3: str, data_path: Path | None = None) -> DatasetPool:
     return ReanalysisSingleLevels(
         gadm(iso3, 1), VARIABLES, path=data_path or get_path("sources", iso3, "era5")
@@ -57,41 +82,11 @@ def missing_tp_corrected_files(iso3, years: set[int]) -> list[Path]:
     return out
 
 
-def get_tp_corrected(
-    iso3: str, year: int, shift_hours: int, dim: str = "valid_time"
-) -> xr.DataArray:
-    if shift_hours < -12 or shift_hours > 12:
-        raise ValueError(
-            f"shift_hours should be an int between -12 and 12, got {shift_hours=}"
-        )
-
-    # accum variables should have 1 subtracted from timeshift
-    # https://confluence.ecmwf.int/display/CKB/ERA5+family+post-processed+daily+statistics+documentation
-    shift = shift_hours - 1
-    if shift == 0:
-        return xr.open_dataarray(tp_corrected_path(iso3, year))
-    if shift > 0:
-        da1 = xr.open_dataarray(tp_corrected_path(iso3, year - 1))
-        da2 = xr.open_dataarray(tp_corrected_path(iso3, year))
-        da1 = da1.isel(**{dim: slice(-shift, None)})  # type: ignore
-        da = xr.concat([da1, da2], dim=dim)
-        da = da.isel(**{dim: slice(None, -shift)})  # type: ignore
-    else:
-        da1 = xr.open_dataarray(tp_corrected_path(iso3, year))
-        da2 = xr.open_dataarray(tp_corrected_path(iso3, year + 1))
-        da2 = da2.isel(**{dim: slice(None, abs(shift))})  # type: ignore
-        da = xr.concat([da1, da2], dim=dim)
-        da = da.isel(**{dim: slice(abs(shift), None)})  # type: ignore
-    return da
-
-
-def add_bias_corrected_tp(
-    accum: xr.Dataset, iso3: str, year: int, shift_hours: int
-) -> xr.Dataset:
+def add_bias_corrected_tp(accum: xr.Dataset, iso3: str, year: int) -> xr.Dataset:
     try:
-        tp_corrected = get_tp_corrected(iso3, year, shift_hours)
+        tp_corrected = xr.open_dataarray(tp_corrected_path(iso3, year))
     except FileNotFoundError:
-        logger.info(f"No tp_corrected file found for {iso3}-{year} {shift_hours=}")
+        logger.info(f"No tp_corrected file found for {iso3}-{year}")
         return accum
     accum["tp_bc"] = tp_corrected
     return accum
@@ -258,16 +253,14 @@ def corrected_precipitation_weekly_dataset(
     The returned dataset has the following variables:
     - tp_bc: weekly sum of the total daily precipitation
     """
-    # We only need to construct the dataset pool to get the timeshift
-    shift_hours = get_dataset_pool(iso3, data_path).shift_hours
-    da = get_tp_corrected(iso3, ystart, shift_hours=shift_hours)
+    da = xr.open_dataarray(tp_corrected_path(iso3, ystart))
 
     # Create daily dataset from all years
     # We go up to yend + 1 to bring in some days from the succeeding year
     # for cases when Sundays are not 31 December (end of week aligns
     # with end of year)
     for y in range(ystart + 1, yend + 2):
-        da_y = get_tp_corrected(iso3, y, shift_hours=shift_hours)
+        da_y = xr.open_dataarray(tp_corrected_path(iso3, ystart))
         da = xr.concat([da, da_y], dim="valid_time")
 
     # Crop to start timeseries on Mondays, with appropriate offset if window > 1
