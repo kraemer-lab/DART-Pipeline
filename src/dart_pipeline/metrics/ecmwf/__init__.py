@@ -4,13 +4,15 @@ import logging
 from pathlib import Path
 from datetime import datetime, date
 
+import xarray as xr
 import ecmwf.opendata
 from geoglue.region import gadm
 
 from ...paths import get_path
-from ...metrics import register_metrics, register_fetch, MetricInfo
+from ...metrics import register_metrics, register_fetch, register_process, MetricInfo
+from ...util import iso3_admin_unpack
 
-from .forecast import VARIABLES, forecast_grib_to_netcdf
+from .forecast import VARIABLES, forecast_grib_to_netcdf, forecast_zonal_stats
 
 METRICS: dict[str, MetricInfo] = {
     "forecast": {"long_name": "ECMWF open forecast data", "units": "various"}
@@ -73,6 +75,8 @@ def get_forecast_open_data(
         file each for instant (named ``*.instant.nc``), and accumulative
         variables (``*.accum.nc``).
     """
+    if "-" in iso3:
+        iso3, _ = iso3_admin_unpack(iso3)  # ignore admin
     date = date or datetime.today().date().isoformat()
     if start_hour not in VALID_START_HOURS:
         raise ValueError(
@@ -120,3 +124,26 @@ def get_forecast_open_data(
     accum.to_netcdf(accum_file)
     logger.info("Wrote %s", accum_file)
     return [instant_file, accum_file]
+
+
+@register_process("ecmwf.forecast")
+def process_forecast(iso3: str, date: str) -> list[Path]:
+    "Processes corrected forecast (run after dart-bias-correct)"
+
+    iso3, admin = iso3_admin_unpack(iso3)
+    corrected_forecast_file = get_path(
+        "sources", iso3, "ecmwf", f"{iso3}-{date}-ecmwf.forecast.corrected.nc"
+    )
+    region = gadm(iso3, admin)
+    if not corrected_forecast_file.exists():
+        raise FileNotFoundError(f"""Corrected forecast file not found at expected location:
+        {corrected_forecast_file}
+        See https://dart-pipeline.readthedocs.io/en/latest/corrected-forecast.html for information
+        on how to generate this file
+        """)
+    pop_year = int(date.split("-")[0])
+    forecast = xr.open_dataset(corrected_forecast_file, decode_timedelta=True)
+    ds = forecast_zonal_stats(forecast, region, pop_year)
+    output = get_path("output", iso3, "ecmwf", f"{iso3}-{date}-ecmwf.forecast.nc")
+    ds.to_netcdf(output)
+    return [output]

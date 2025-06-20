@@ -24,7 +24,7 @@ PROCESSORS = {}
 MULTIPLE_YEAR_PROCESSORS: dict[str, bool] = {}
 
 # Do not automatically process these metrics
-SKIP_AUTO_PROCESS = ["era5"]
+SKIP_AUTO_PROCESS = ["era5", "ecmwf.forecast"]
 
 METRICS_USAGE_COMMON_TEXT = """
 For metrics with a 'partOf' attribute, the metric is calculated by invoking
