@@ -14,6 +14,8 @@ import xclim
 import scipy.stats
 import numpy as np
 import xarray as xr
+import metpy.calc as mp
+from metpy.units import units
 from geoglue.util import find_unique_time_coord
 from geoglue.region import gadm
 from geoglue.cds import (
@@ -27,6 +29,23 @@ from ...paths import get_path
 from .list_metrics import VARIABLES
 
 logger = logging.getLogger(__name__)
+
+
+def specific_humidity(ds: xr.Dataset) -> xr.DataArray:
+    return (
+        mp.specific_humidity_from_dewpoint(ds.sp * units.pascal, ds.d2m * units.kelvin)
+        * 1000
+        * units("g/kg")
+    )
+
+
+def relative_humidity(ds: xr.Dataset) -> xr.DataArray:
+    da = (
+        mp.relative_humidity_from_dewpoint(ds.t2m * units.kelvin, ds.d2m * units.kelvin)
+        * 100
+        * units.percent
+    )
+    return da.clip(0, 100)
 
 
 def pprint_ms(
