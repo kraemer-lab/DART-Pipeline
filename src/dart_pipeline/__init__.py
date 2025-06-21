@@ -15,6 +15,7 @@ from .metrics import (
     validate_metric,
     print_metrics,
     print_metrics_rst,
+    assert_metrics_and_sources_registered,
     gather_metrics,
     find_metrics,
     show_path,
@@ -66,7 +67,7 @@ To find out if a processor or a getter requires parameters, run without
 parameters:
     $ uv run dart-pipeline process worldpop.pop_count
     2025-05-14 17:09:23,362 INFO [root] Processing worldpop.pop_count
-    ❗worldpop.pop_count missing required parameters {'date', 'iso3'}
+    ❗worldpop.pop_count missing required parameters {"date", "iso3"}
 
 Only the iso3 and date parameters can be passed positionally. For any
 other parameters, use ``param=value``.
@@ -84,6 +85,7 @@ logging.captureWarnings(True)
 
 for metric in gather_metrics():
     importlib.import_module(f"dart_pipeline.metrics.{metric}")
+assert_metrics_and_sources_registered()
 
 
 def parse_params(params: list[str]) -> dict[str, str | int]:

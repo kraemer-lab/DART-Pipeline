@@ -55,6 +55,22 @@ separately.
 """
 
 
+def assert_metrics_and_sources_registered():
+    for m in list(FETCHERS.keys()) + list(PROCESSORS.keys()):
+        parts = m.split(".")
+        source = parts[0]
+        if source not in METRICS:
+            raise ValueError(f"Source {source=} not found in metric registry")
+
+        if len(parts) > 1:
+            metric_without_source_prefix = ".".join(parts[1:])
+            if metric_without_source_prefix not in METRICS[source]["metrics"]:
+                raise ValueError(
+                    f"Metric {metric_without_source_prefix!r} must be registered as "
+                    f"part of {source=} using register_metrics()"
+                )
+
+
 def gather_metrics() -> list[str]:
     root = Path(__file__).parent
     paths = [
@@ -159,15 +175,6 @@ def subset_cfattrs(info: MetricInfo) -> CFAttributes:
 
 
 def register_fetch(metric: str):
-    if metric.split(".")[0] not in METRICS:
-        raise ValueError(
-            "Metric first part (before .) refers to a metric source that must be registered using register_metrics()"
-        )
-    if "." in metric:
-        source, metric_part = metric.split(".")[:2]
-        if metric_part not in METRICS[source]["metrics"]:
-            raise ValueError("Metric must be registered using register_metrics()")
-
     def decorator(func):
         FETCHERS[metric] = func
         return func
@@ -176,20 +183,6 @@ def register_fetch(metric: str):
 
 
 def register_process(metric: str, multiple_years: bool = False):
-    parts = metric.split(".")
-    source = parts[0]
-    if source not in METRICS:
-        raise ValueError(
-            "Metric first part (before .) refers to a metric source that must be registered using register_metrics()"
-        )
-    if len(parts) > 1:
-        metric_without_source_prefix = ".".join(parts[1:])
-        if metric_without_source_prefix not in METRICS[source]["metrics"]:
-            raise ValueError(
-                f"Metric {metric_without_source_prefix!r} must be registered as "
-                f"part of {source=} using register_metrics()"
-            )
-
     def decorator(func):
         PROCESSORS[metric] = func
         MULTIPLE_YEAR_PROCESSORS[metric] = multiple_years
