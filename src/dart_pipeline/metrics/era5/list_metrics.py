@@ -36,6 +36,10 @@ METRICS: dict[str, MetricInfo] = {
         "long_name": "Virtual metric to run all core metrics at once, indicated by part of: era5.core",
         "units": "various",
     },
+    "core_weekly": {
+        "long_name": "Virtual metric to run all core metrics at once at weekly timestep",
+        "units": "various",
+    },
     "2m_temperature": {
         "long_name": "2 meters air temperature",
         "units": "K",
