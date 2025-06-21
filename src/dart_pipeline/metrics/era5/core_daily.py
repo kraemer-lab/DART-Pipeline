@@ -8,8 +8,6 @@ from pathlib import Path
 from functools import cache
 
 import xarray as xr
-import metpy.calc as mp
-from metpy.units import units
 
 from geoglue.util import sha256, set_lonlat_attrs
 from geoglue.region import gadm
@@ -27,6 +25,8 @@ from ...paths import get_path
 from .util import (
     get_dataset_pool,
     add_bias_corrected_tp,
+    specific_humidity,
+    relative_humidity,
 )
 from .list_metrics import (
     VARIABLE_MAPPINGS,
@@ -157,20 +157,8 @@ def era5_process_core_daily(
     ds = pool[year]
 
     # calculate derived metrics
-    ds.instant["q"] = (
-        mp.specific_humidity_from_dewpoint(
-            ds.instant.sp * units.pascal, ds.instant.d2m * units.kelvin
-        )
-        * 1000
-        * units("g/kg")
-    )
-    ds.instant["r"] = (
-        mp.relative_humidity_from_dewpoint(
-            ds.instant.t2m * units.kelvin, ds.instant.d2m * units.kelvin
-        )
-        * 100
-        * units.percent
-    )
+    ds.instant["q"] = specific_humidity(ds.instant)
+    ds.instant["r"] = relative_humidity(ds.instant)
     ds.accum["hb"] = ds.accum.tp + ds.accum.e
 
     # calculate relative humidity
