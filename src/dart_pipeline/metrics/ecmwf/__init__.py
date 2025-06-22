@@ -144,6 +144,8 @@ def process_forecast(iso3: str, date: str) -> list[Path]:
     pop_year = int(date.split("-")[0])
     forecast = xr.open_dataset(corrected_forecast_file, decode_timedelta=True)
     ds = forecast_zonal_stats(forecast, region, pop_year)
-    output = get_path("output", iso3, "ecmwf", f"{iso3}-{date}-ecmwf.forecast.nc")
+    output = get_path(
+        "output", iso3, "ecmwf", f"{iso3}-{admin}-{date}-ecmwf.forecast.nc"
+    )
     ds.to_netcdf(output)
     return [output]
