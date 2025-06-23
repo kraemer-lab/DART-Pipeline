@@ -73,7 +73,9 @@ def gamma_spi(
         f"gamma_spi({iso3!r}, {ystart=}, {yend=}, {window=}, {bias_correct=})"
     )
     ds.attrs["ISO3"] = iso3
-    ds.attrs["metric"] = "era5.spi.gamma"
+    ds.attrs["metric"] = (
+        "era5.spi_corrected.gamma" if bias_correct else "era5.spi.gamma"
+    )
     return ds
 
 
@@ -140,6 +142,7 @@ def process_spi_corrected(iso3: str, date: str) -> xr.DataArray:
     if re_matches is None:
         raise ValueError("No window option found in gamma parameters file")
     window = int(re_matches.groups()[0])
+
     logger.info("Using era5.spi_corrected.gamma window=%d", window)
 
     ds = corrected_precipitation_weekly_dataset(iso3, year, year, window=window)
