@@ -16,13 +16,13 @@ from ...paths import get_path
 logger = logging.getLogger(__name__)
 
 GLOB_DAILY = "*-20*-era5.*.daily*.nc"
-GLOB_WEEKLY = "*-20*-era5.*.weekly*.nc"
+GLOB_WEEKLY = "*-20*-era5.*[._]weekly*.nc"
 
 
 class MetricCollection:
     """Represents a collection of output metrics"""
 
-    def __init__(self, region: str, data_path: Path | None = None):
+    def __init__(self, region: str, data_path: Path | None = None, weekly: bool = True):
         self.region_without_admin = region.split("-")[0]
         self.region = region
         root_path = data_path or get_path("output", self.region_without_admin, "era5")
@@ -42,16 +42,22 @@ class MetricCollection:
             columns=["region", "year", "metric", "is_daily", "path"],  # type: ignore
         )
         self.data = df[df.region == region]  # type: ignore
+        if weekly:
+            self.data = self.data[~self.data.is_daily]  # drop daily data
+        else:
+            self.data = self.data[
+                self.data.metric != "era5.core_weekly"
+            ]  # drop core_weekly data
         if self.data.empty:
             raise ValueError(
-                f"No match found for {region=}, might be missing admin level like VNM-2"
+                f"No match found for {region=}, might be missing admin level like VNM-2, or set weekly=False to get daily data"
             )
         self.min_year = self.data.year.min()
         self.max_year = self.data.year.max()
 
     def collate_metric(
         self, metric: str, yrange: tuple[int, int] | None = None
-    ) -> xr.DataArray:
+    ) -> xr.Dataset:
         if yrange is None:
             ymin, ymax = self.min_year, self.max_year
         else:
@@ -74,30 +80,28 @@ class MetricCollection:
             )
         df = df[(df.year >= ymin) & (df.year <= ymax)].sort_values("year")  # type: ignore
 
-        # concat and merge
-        da = xr.open_dataarray(df.iloc[0].path)
+        da = xr.open_dataset(df.iloc[0].path)
         time_dim = find_unique_time_coord(da)
+        da = da.rename({time_dim: "time"})
         for i in range(1, len(df)):
-            da_y = xr.open_dataarray(df.iloc[i].path)
-            da = xr.concat([da, da_y], dim=time_dim)
+            da_y = xr.open_dataset(df.iloc[i].path).rename({time_dim: "time"})
+            da = xr.concat([da, da_y], dim="time")
         if not df.iloc[0].is_daily:
-            return da  # already aggregated to weekly timestep
-        da = da.sel(
-            {time_dim: slice(str(get_first_monday(ymin)), str(get_last_sunday(ymax)))}
-        )
+            return da.astype("float32")  # already aggregated to weekly timestep
+        da = da.sel(time=slice(str(get_first_monday(ymin)), str(get_last_sunday(ymax))))
         if "sum" in metric:
             logger.info("Resampling %s to weekly timestep (sum)", metric)
-            da_w = da.resample({time_dim: "W-MON"}, closed="left", label="left").sum()
+            da_w = da.resample(time="W-MON", closed="left", label="left").sum()
             da_w.attrs["cell_methods"] = (
-                da_w.attrs["cell_methods"] + f" {time_dim}: sum (interval: 1 week)"
+                da_w.attrs["cell_methods"] + " time: sum (interval: 1 week)"
             )
         else:
             logger.info("Resampling %s to weekly timestep (mean)", metric)
-            da_w = da.resample({time_dim: "W-MON"}, closed="left", label="left").mean()
+            da_w = da.resample(time="W-MON", closed="left", label="left").mean()
             da_w.attrs["cell_methods"] = (
-                da_w.attrs["cell_methods"] + f" {time_dim}: mean (interval: 1 week)"
+                da_w.attrs["cell_methods"] + " time: mean (interval: 1 week)"
             )
-        return da_w
+        return da_w.astype("float32")
 
     def collate(self, yrange: tuple[int, int] | None = None) -> xr.Dataset:
         metrics = set(self.data.metric)

@@ -37,6 +37,10 @@ pd.set_option("display.max_colwidth", 40)
 pd.set_option("display.width", 228)  # sierra
 
 
+def msg(bold: str, *args):
+    print(f"\033[1m{bold}\033[0m", *args)
+
+
 def detect_region_col(df: pd.DataFrame) -> str:
     "Detects region column from metric output dataframe"
     if "shapeID" in df.columns:
