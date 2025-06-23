@@ -7,7 +7,7 @@ from dart_pipeline.metrics.era5.collate import MetricCollection
 
 @pytest.fixture(scope="module")
 def metric_collection():
-    return MetricCollection("VNM-2", data_path=Path("tests/data"))
+    return MetricCollection("VNM-2", data_path=Path("tests/data"), weekly=False)
 
 
 def test_metric_collection(metric_collection):
@@ -30,22 +30,27 @@ def test_metric_collection(metric_collection):
 
 
 @pytest.mark.parametrize(
-    "name,metric",
+    "name,metric,cell_methods",
     [
-        ("tp", "era5.total_precipitation.daily_sum"),
-        ("mx2t", "era5.2m_temperature.daily_max"),
-        ("t2m", "era5.2m_temperature.daily_mean"),
+        ("tp", "era5.total_precipitation.daily_sum", "time: sum (interval: 7 days)"),
+        (
+            "mx2t",
+            "era5.2m_temperature.daily_max",
+            "time: maximum within days (interval: 1 day) time: mean over days (interval: 7 days)",
+        ),
+        (
+            "t2m",
+            "era5.2m_temperature.daily_mean",
+            "time: mean within days (interval: 1 day) time: mean over days (interval: 7 days)",
+        ),
     ],
 )
-def test_collate_metric(name, metric, metric_collection):
+def test_collate_metric(name, metric, cell_methods, metric_collection):
     da = metric_collection.collate_metric(metric)
-    assert da.name == name
-    assert da.date.min() == np.datetime64("2020-01-06")
-    assert da.date.max() == np.datetime64("2020-12-21")
-    if "sum" in metric:
-        assert "date: sum (interval: 1 week)" in da.attrs["cell_methods"]
-    else:
-        assert "date: mean (interval: 1 week)" in da.attrs["cell_methods"]
+    assert name in da.data_vars
+    assert da.time.min() == np.datetime64("2020-01-06")
+    assert da.time.max() == np.datetime64("2020-12-21")
+    assert da.attrs["cell_methods"] == cell_methods
 
 
 def test_collate_metric_errors(metric_collection):
