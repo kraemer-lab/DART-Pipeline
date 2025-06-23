@@ -92,14 +92,18 @@ class MetricCollection:
         if "sum" in metric:
             logger.info("Resampling %s to weekly timestep (sum)", metric)
             da_w = da.resample(time="W-MON", closed="left", label="left").sum()
-            da_w.attrs["cell_methods"] = (
-                da_w.attrs["cell_methods"] + " time: sum (interval: 1 week)"
-            )
+            da_w.attrs["cell_methods"] = "time: sum (interval: 7 days)"
         else:
             logger.info("Resampling %s to weekly timestep (mean)", metric)
             da_w = da.resample(time="W-MON", closed="left", label="left").mean()
+            if metric.endswith("_max"):
+                agg = "maximum"
+            elif metric.endswith("_min"):
+                agg = "minimum"
+            else:
+                agg = "mean"
             da_w.attrs["cell_methods"] = (
-                da_w.attrs["cell_methods"] + " time: mean (interval: 1 week)"
+                f"time: {agg} within days (interval: 1 day) time: mean over days (interval: 7 days)"
             )
         return da_w.astype("float32")
 
