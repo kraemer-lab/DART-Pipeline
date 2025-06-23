@@ -279,7 +279,7 @@ def corrected_precipitation_weekly_dataset(
     # for cases when Sundays are not 31 December (end of week aligns
     # with end of year)
     for y in range(ystart + 1, yend + 2):
-        da_y = xr.open_dataarray(tp_corrected_path(iso3, ystart))
+        da_y = xr.open_dataarray(tp_corrected_path(iso3, y))
         da = xr.concat([da, da_y], dim="valid_time")
 
     # Crop to start timeseries on Mondays, with appropriate offset if window > 1
