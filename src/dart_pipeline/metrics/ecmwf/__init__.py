@@ -111,11 +111,7 @@ def get_forecast_open_data(
         logger.info("Using already retrieved forecast file: %s", output_path)
     region = gadm(iso3, 1)
     extents = region.bbox.int()
-    sel_kwargs = {
-        "latitude": slice(extents.maxy, extents.miny),
-        "longitude": slice(extents.minx, extents.maxx),
-    }
-    instant, accum = forecast_grib_to_netcdf(forecast_path(date), sel_kwargs)
+    instant, accum = forecast_grib_to_netcdf(forecast_path(date), extents)
     sources_path = get_path("sources", iso3, "ecmwf")
     instant_file = sources_path / f"{iso3}-{date}-ecmwf.forecast.instant.nc"
     accum_file = sources_path / f"{iso3}-{date}-ecmwf.forecast.accum.nc"
