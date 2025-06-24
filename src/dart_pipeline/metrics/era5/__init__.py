@@ -202,11 +202,11 @@ def process_era5(
     gamma_tasks = [
         f"{iso3}-{ystart}-{yend}-era5.{index}.gamma" for index in ["spi", "spei"]
     ]
-    # if not skip_correction:
-    #     gamma_tasks += [
-    #         f"{iso3}-{ystart}-{yend}-era5.{index}_corrected.gamma"
-    #         for index in ["spi", "spei"]
-    #     ]
+    if not skip_correction:
+        gamma_tasks += [
+            f"{iso3}-{ystart}-{yend}-era5.{index}_corrected.gamma"
+            for index in ["spi", "spei"]
+        ]
 
     # Run gamma parameter estimation first, required for SPI and SPEI index calculations later
     msg("==> Estimating gamma parameters:", yrange_str)
@@ -217,12 +217,12 @@ def process_era5(
         for year in range(ystart, yend + 1)
         for index in ["spi", "spei"]
     ]
-    # if not skip_correction:
-    #     index_tasks += [
-    #         f"{iso3}-{admin}-{year}-era5.{index}_corrected"
-    #         for year in range(ystart, yend + 1)
-    #         for index in ["spi", "spei"]
-    #     ]
+    if not skip_correction:
+        index_tasks += [
+            f"{iso3}-{admin}-{year}-era5.{index}_corrected"
+            for year in range(ystart, yend + 1)
+            for index in ["spi", "spei"]
+        ]
 
     msg("==> Calculating SPI and SPEI:", yrange_str)
     paths += run_tasks("INDEX", index_tasks, overwrite=overwrite)
