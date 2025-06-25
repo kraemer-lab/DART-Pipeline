@@ -117,11 +117,29 @@ def forecast_zonal_stats(
     corrected_forecast_file = get_path(
         "sources", iso3, "ecmwf", f"{iso3}-{date}-ecmwf.forecast.corrected.nc"
     )
+    corrected_forecast_instant = get_path(
+        "scratch", iso3, "ecmwf", f"{iso3}-{date}-ecmwf.forecast.corrected.instant.nc"
+    )
+    corrected_forecast_accum = get_path(
+        "scratch", iso3, "ecmwf", f"{iso3}-{date}-ecmwf.forecast.corrected.accum.nc"
+    )
+    cleanup = [corrected_forecast_instant, corrected_forecast_accum]
     pop_year = int(date.split("-")[0])
     region = gadm(iso3, admin)
-    ds = xr.open_dataset(corrected_forecast_file, decode_timedelta=True)
+    ds = xr.open_dataset(corrected_forecast_file, decode_timedelta=True).rename(
+        {"lat": "latitude", "lon": "longitude"}
+    )
     instant_vars: list[str] = [str(v) for v in ds.data_vars if v not in ["tp", "tp_bc"]]
     accum_vars: list[str] = [str(v) for v in ds.data_vars if v in ["tp", "tp_bc"]]
+
+    # write out instant and accum subsets for resampling
+    ds[instant_vars].to_netcdf(corrected_forecast_instant)
+    ds[accum_vars].to_netcdf(corrected_forecast_accum)
+    logger.info(
+        "Wrote instant and accum parts: %s, %s",
+        corrected_forecast_instant,
+        corrected_forecast_accum,
+    )
     pop = get_worldpop("VNM", pop_year)
     raster_bbox = Bbox.from_xarray(ds)
     region_overlap = raster_bbox.overlap_fraction(region.bbox)
@@ -143,12 +161,17 @@ def forecast_zonal_stats(
         "scratch", iso3, "ecmwf", f"{iso3}-{date}-ecmwf.forecast.instant_resampled.nc"
     )
     resampled_accum_path = get_path(
-        "scratch", iso3, "ecmwf", f"{iso3}-{date}-ecmwf.forecast.instant_resampled.nc"
+        "scratch", iso3, "ecmwf", f"{iso3}-{date}-ecmwf.forecast.accum_resampled.nc"
     )
     if instant_vars:
         logger.info("Performing zonal stats for %r", instant_vars)
         assert ds.t2m.notnull().all(), "Null values found in source temperature field"
-        resample("remapbil", corrected_forecast_file, pop, resampled_instant_path)
+        logger.info(
+            "Resampling instant variables using CDO [remapbil] to target grid:\n%s",
+            pop.griddes,
+        )
+        resample("remapbil", corrected_forecast_instant, pop, resampled_instant_path)
+        cleanup.append(resampled_instant_path)
         remapbil_ds = xr.open_dataset(resampled_instant_path, decode_timedelta=True)
         remapbil_ds = remapbil_ds[instant_vars]
         if remapbil_ds.t2m.isnull().any():
@@ -173,7 +196,12 @@ def forecast_zonal_stats(
     if accum_vars:
         logger.info("Performing zonal stats for %r", accum_vars)
         assert ds.tp.notnull().all(), "Null values found in source precipitation field"
-        resample("remapdis", corrected_forecast_file, pop, resampled_accum_path)
+        logger.info(
+            "Resampling accum variables using CDO [remapdis] to target grid:\n%s",
+            pop.griddes,
+        )
+        resample("remapdis", corrected_forecast_accum, pop, resampled_accum_path)
+        cleanup.append(resampled_accum_path)
         remapdis_ds = xr.open_dataset(resampled_accum_path, decode_timedelta=True)
         remapdis_ds = remapdis_ds[accum_vars]
         if remapdis_ds.tp.isnull().any():
@@ -200,6 +228,9 @@ def forecast_zonal_stats(
         return accum_zs
     if accum_zs is None:
         return instant_zs
+    for file in cleanup:
+        if file.exists():
+            file.unlink()
     return xr.merge([instant_zs, accum_zs])
 
 
