@@ -40,6 +40,7 @@ def zonal_stats(
     ds: xr.Dataset,
     region: Region,
     weights: MemoryRaster,
+    ensemble_mean: bool,
 ) -> xr.DataArray:
     """Return zonal statistics for a particular DataArray as another xarray DataArray
 
@@ -57,8 +58,9 @@ def zonal_stats(
         Region for which to calculate zonal statistics
     weights : MemoryRaster
         Uses the specified raster to perform weighted zonal statistics
-    sims : int
-        Number of simulations to perform zonal statistics for, default=None which
+    ensemble_mean : bool
+        Whether to perform ensemble mean, this speeds up zonal statistics by
+        50x (the number of simulations)
         selects all simulations
 
     Returns
@@ -81,23 +83,28 @@ def zonal_stats(
         if da.name not in ["tp", "tp_bc"]
         else "area_weighted_sum"
     )
-    # za = xr.concat(
-    #     [
-    #         geoglue.zonal_stats.zonal_stats_xarray(
-    #             da.sel(number=i), geom, operation, weights, region_col=region.pk
-    #         ).rename(da.name)
-    #         for i in range(sims)
-    #     ],
-    #     dim="number",
-    # )
-    # za = za.assign_coords(number=range(len(za.number)))
-    za = geoglue.zonal_stats.zonal_stats_xarray(
-        da.mean("number"), geom, operation, weights, region_col=region.pk
-    ).rename(da.name)
-    x, y = za.shape  # (time, region, number)
-    call = f"zonal_stats(da, {region.name}, {operation=}, {weights=}"
-    if x * y == 0:
-        raise ValueError(f"Zero dimension DataArray created from {call}", call)
+    call = f"zonal_stats(da, {region.name}, {operation=}, {weights=}, {ensemble_mean=})"
+    if ensemble_mean:
+        za = geoglue.zonal_stats.zonal_stats_xarray(
+            da.mean("number"), geom, operation, weights, region_col=region.pk
+        ).rename(da.name)
+        x, y = za.shape
+        if x * y == 0:
+            raise ValueError(f"Zero dimension DataArray created from {call}", call)
+    else:
+        za = xr.concat(
+            [
+                geoglue.zonal_stats.zonal_stats_xarray(
+                    da.sel(number=i), geom, operation, weights, region_col=region.pk
+                ).rename(da.name)
+                for i in range(da.number.size)
+            ],
+            dim="number",
+        )
+        za = za.assign_coords(number=range(len(za.number)))
+        x, y, z = za.shape
+        if x * y * z == 0:  # (time, region, number)
+            raise ValueError(f"Zero dimension DataArray created from {call}")
     za.attrs = da.attrs.copy()
     za.attrs["DART_region"] = str(region)
     za.attrs["DART_zonal_stats"] = call
@@ -105,7 +112,7 @@ def zonal_stats(
 
 
 def forecast_zonal_stats(
-    iso3: str, date: str, admin: int, sims: int | None = None
+    iso3: str, date: str, admin: int, ensemble_mean: bool = True
 ) -> xr.Dataset:
     corrected_forecast_file = get_path(
         "sources", iso3, "ecmwf", f"{iso3}-{date}-ecmwf.forecast.corrected.nc"
@@ -151,24 +158,16 @@ def forecast_zonal_stats(
             )
         instant_zs = xr.merge(
             [
-                zonal_stats(var, ds=remapbil_ds, region=region, weights=pop)
+                zonal_stats(
+                    var,
+                    ds=remapbil_ds,
+                    region=region,
+                    weights=pop,
+                    ensemble_mean=ensemble_mean,
+                )
                 for var in tqdm(instant_vars, desc="Instant variables")
             ]
         )
-        # with multiprocessing.Pool(2) as pool:
-        #     instant_zs = xr.merge(
-        #         pool.map(
-        #             functools.partial(
-        #                 zonal_stats,
-        #                 ds=remapbil_ds,
-        #                 region=region,
-        #                 weights=pop,
-        #                 sims=sims,
-        #             ),
-        #             instant_vars,
-        #         )
-        #     )
-
     else:
         instant_zs = None
     if accum_vars:
@@ -184,23 +183,17 @@ def forecast_zonal_stats(
             )
         accum_zs = xr.merge(
             [
-                zonal_stats(var, ds=remapdis_ds, region=region, weights=pop)
+                zonal_stats(
+                    var,
+                    ds=remapdis_ds,
+                    region=region,
+                    weights=pop,
+                    ensemble_mean=ensemble_mean,
+                )
                 for var in tqdm(accum_vars, desc="Accum variables")
             ]
         )
-        # with multiprocessing.Pool(4) as pool:
-        #     accum_zs = xr.merge(
-        #         pool.map(
-        #             functools.partial(
-        #                 zonal_stats,
-        #                 ds=remapdis_ds,
-        #                 region=region,
-        #                 weights=pop,
-        #                 sims=sims,
-        #             ),
-        #             accum_vars,
-        #         )
-        #     )
+
     else:
         accum_zs = None
     if instant_zs is None:
