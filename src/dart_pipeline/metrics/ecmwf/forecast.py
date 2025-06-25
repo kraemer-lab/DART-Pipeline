@@ -112,7 +112,7 @@ def forecast_zonal_stats(
     )
     pop_year = int(date.split("-")[0])
     region = gadm(iso3, admin)
-    ds = xr.open_dataset(corrected_forecast_file)
+    ds = xr.open_dataset(corrected_forecast_file, decode_timedelta=True)
     instant_vars: list[str] = [str(v) for v in ds.data_vars if v not in ["tp", "tp_bc"]]
     accum_vars: list[str] = [str(v) for v in ds.data_vars if v in ["tp", "tp_bc"]]
     pop = get_worldpop("VNM", pop_year)
