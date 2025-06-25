@@ -4,7 +4,6 @@ import logging
 from pathlib import Path
 from datetime import datetime, date
 
-import xarray as xr
 import ecmwf.opendata
 from geoglue.region import gadm
 
@@ -130,16 +129,13 @@ def process_forecast(iso3: str, date: str) -> list[Path]:
     corrected_forecast_file = get_path(
         "sources", iso3, "ecmwf", f"{iso3}-{date}-ecmwf.forecast.corrected.nc"
     )
-    region = gadm(iso3, admin)
     if not corrected_forecast_file.exists():
         raise FileNotFoundError(f"""Corrected forecast file not found at expected location:
         {corrected_forecast_file}
         See https://dart-pipeline.readthedocs.io/en/latest/corrected-forecast.html for information
         on how to generate this file
         """)
-    pop_year = int(date.split("-")[0])
-    forecast = xr.open_dataset(corrected_forecast_file, decode_timedelta=True)
-    ds = forecast_zonal_stats(forecast, region, pop_year)
+    ds = forecast_zonal_stats(iso3, date, admin)
     output = get_path(
         "output", iso3, "ecmwf", f"{iso3}-{admin}-{date}-ecmwf.forecast.nc"
     )

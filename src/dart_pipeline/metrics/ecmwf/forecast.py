@@ -1,9 +1,7 @@
 """Utility functions for ecmwf.forecast"""
 
 import logging
-import functools
 import tempfile
-import multiprocessing
 from pathlib import Path
 
 import numpy as np
@@ -11,8 +9,11 @@ import xarray as xr
 import geoglue.zonal_stats
 from geoglue import MemoryRaster
 from geoglue.types import Bbox
-from geoglue.region import Region
-from geoglue.resample import resampled_dataset
+from geoglue.region import gadm, Region
+from geoglue.resample import resample
+from tqdm import tqdm
+
+from ...paths import get_path
 
 from ...metrics.worldpop import get_worldpop
 
@@ -39,7 +40,7 @@ def zonal_stats(
     ds: xr.Dataset,
     region: Region,
     weights: MemoryRaster,
-    sims: int | None = None,
+    ensemble_mean: bool,
 ) -> xr.DataArray:
     """Return zonal statistics for a particular DataArray as another xarray DataArray
 
@@ -57,8 +58,9 @@ def zonal_stats(
         Region for which to calculate zonal statistics
     weights : MemoryRaster
         Uses the specified raster to perform weighted zonal statistics
-    sims : int
-        Number of simulations to perform zonal statistics for, default=None which
+    ensemble_mean : bool
+        Whether to perform ensemble mean, this speeds up zonal statistics by
+        50x (the number of simulations)
         selects all simulations
 
     Returns
@@ -81,22 +83,28 @@ def zonal_stats(
         if da.name not in ["tp", "tp_bc"]
         else "area_weighted_sum"
     )
-    n_sims: int = da.number.size
-    sims = sims or n_sims
-    za = xr.concat(
-        [
-            geoglue.zonal_stats.zonal_stats_xarray(
-                da.sel(number=i), geom, operation, weights, region_col=region.pk
-            ).rename(da.name)
-            for i in range(sims)
-        ],
-        dim="number",
-    )
-    za = za.assign_coords(number=range(len(za.number)))
-    x, y, z = za.shape  # (time, region, number)
-    call = f"zonal_stats(da, {region.name}, {operation=}, {weights=}"
-    if x * y * z == 0:
-        raise ValueError(f"Zero dimension DataArray created from {call}", call)
+    call = f"zonal_stats(da, {region.name}, {operation=}, {weights=}, {ensemble_mean=})"
+    if ensemble_mean:
+        za = geoglue.zonal_stats.zonal_stats_xarray(
+            da.mean("number"), geom, operation, weights, region_col=region.pk
+        ).rename(da.name)
+        x, y = za.shape
+        if x * y == 0:
+            raise ValueError(f"Zero dimension DataArray created from {call}", call)
+    else:
+        za = xr.concat(
+            [
+                geoglue.zonal_stats.zonal_stats_xarray(
+                    da.sel(number=i), geom, operation, weights, region_col=region.pk
+                ).rename(da.name)
+                for i in range(da.number.size)
+            ],
+            dim="number",
+        )
+        za = za.assign_coords(number=range(len(za.number)))
+        x, y, z = za.shape
+        if x * y * z == 0:  # (time, region, number)
+            raise ValueError(f"Zero dimension DataArray created from {call}")
     za.attrs = da.attrs.copy()
     za.attrs["DART_region"] = str(region)
     za.attrs["DART_zonal_stats"] = call
@@ -104,9 +112,14 @@ def zonal_stats(
 
 
 def forecast_zonal_stats(
-    ds: xr.Dataset, region: Region, pop_year: int, sims: int | None = None
+    iso3: str, date: str, admin: int, ensemble_mean: bool = True
 ) -> xr.Dataset:
-    ds = ds.rename({"lat": "latitude", "lon": "longitude"})
+    corrected_forecast_file = get_path(
+        "sources", iso3, "ecmwf", f"{iso3}-{date}-ecmwf.forecast.corrected.nc"
+    )
+    pop_year = int(date.split("-")[0])
+    region = gadm(iso3, admin)
+    ds = xr.open_dataset(corrected_forecast_file, decode_timedelta=True)
     instant_vars: list[str] = [str(v) for v in ds.data_vars if v not in ["tp", "tp_bc"]]
     accum_vars: list[str] = [str(v) for v in ds.data_vars if v in ["tp", "tp_bc"]]
     pop = get_worldpop("VNM", pop_year)
@@ -126,53 +139,61 @@ def forecast_zonal_stats(
         logger.info(f"After cropping overlap fraction is {post_crop_overlap:.1%}")
     if not (instant_vars + accum_vars):
         raise ValueError(f"At least one variable must be passed, got {vars!r}")
+    resampled_instant_path = get_path(
+        "scratch", iso3, "ecmwf", f"{iso3}-{date}-ecmwf.forecast.instant_resampled.nc"
+    )
+    resampled_accum_path = get_path(
+        "scratch", iso3, "ecmwf", f"{iso3}-{date}-ecmwf.forecast.instant_resampled.nc"
+    )
     if instant_vars:
         logger.info("Performing zonal stats for %r", instant_vars)
         assert ds.t2m.notnull().all(), "Null values found in source temperature field"
-        with resampled_dataset("remapbil", ds[instant_vars], pop) as remapbil_ds:
-            if remapbil_ds.t2m.isnull().any():
-                null_frac = remapbil_ds.t2m.isnull().sum() / remapbil_ds.t2m.size
-                raise ValueError(
-                    f"Null values found in temperature field ({null_frac:.1%}), indicates issues with resampling"
+        resample("remapbil", corrected_forecast_file, pop, resampled_instant_path)
+        remapbil_ds = xr.open_dataset(resampled_instant_path, decode_timedelta=True)
+        remapbil_ds = remapbil_ds[instant_vars]
+        if remapbil_ds.t2m.isnull().any():
+            null_frac = remapbil_ds.t2m.isnull().sum() / remapbil_ds.t2m.size
+            raise ValueError(
+                f"Null values found in temperature field ({null_frac:.1%}), indicates issues with resampling"
+            )
+        instant_zs = xr.merge(
+            [
+                zonal_stats(
+                    var,
+                    ds=remapbil_ds,
+                    region=region,
+                    weights=pop,
+                    ensemble_mean=ensemble_mean,
                 )
-            with multiprocessing.Pool() as pool:
-                instant_zs = xr.merge(
-                    pool.map(
-                        functools.partial(
-                            zonal_stats,
-                            ds=remapbil_ds,
-                            region=region,
-                            weights=pop,
-                            sims=sims,
-                        ),
-                        instant_vars,
-                    )
-                )
-
+                for var in tqdm(instant_vars, desc="Instant variables")
+            ]
+        )
     else:
         instant_zs = None
     if accum_vars:
         logger.info("Performing zonal stats for %r", accum_vars)
         assert ds.tp.notnull().all(), "Null values found in source precipitation field"
-        with resampled_dataset("remapdis", ds[accum_vars], pop) as remapdis_ds:
-            if remapdis_ds.tp.isnull().any():
-                null_frac = remapdis_ds.tp.isnull().sum() / remapdis_ds.tp.size
-                raise ValueError(
-                    "Null values found in precipitation field ({null_frac:.1%}), indicates issues with resampling"
+        resample("remapdis", corrected_forecast_file, pop, resampled_accum_path)
+        remapdis_ds = xr.open_dataset(resampled_accum_path, decode_timedelta=True)
+        remapdis_ds = remapdis_ds[accum_vars]
+        if remapdis_ds.tp.isnull().any():
+            null_frac = remapdis_ds.tp.isnull().sum() / remapdis_ds.tp.size
+            raise ValueError(
+                "Null values found in precipitation field ({null_frac:.1%}), indicates issues with resampling"
+            )
+        accum_zs = xr.merge(
+            [
+                zonal_stats(
+                    var,
+                    ds=remapdis_ds,
+                    region=region,
+                    weights=pop,
+                    ensemble_mean=ensemble_mean,
                 )
-            with multiprocessing.Pool() as pool:
-                accum_zs = xr.merge(
-                    pool.map(
-                        functools.partial(
-                            zonal_stats,
-                            ds=remapdis_ds,
-                            region=region,
-                            weights=pop,
-                            sims=sims,
-                        ),
-                        accum_vars,
-                    )
-                )
+                for var in tqdm(accum_vars, desc="Accum variables")
+            ]
+        )
+
     else:
         accum_zs = None
     if instant_zs is None:
