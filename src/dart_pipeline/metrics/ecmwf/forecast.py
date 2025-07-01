@@ -40,7 +40,7 @@ def zonal_stats(
     ds: xr.Dataset,
     region: Region,
     weights: MemoryRaster,
-    ensemble_mean: bool,
+    ensemble_median: bool,
 ) -> xr.DataArray:
     """Return zonal statistics for a particular DataArray as another xarray DataArray
 
@@ -58,8 +58,8 @@ def zonal_stats(
         Region for which to calculate zonal statistics
     weights : MemoryRaster
         Uses the specified raster to perform weighted zonal statistics
-    ensemble_mean : bool
-        Whether to perform ensemble mean, this speeds up zonal statistics by
+    ensemble_median : bool
+        Whether to perform ensemble median, this speeds up zonal statistics by
         50x (the number of simulations)
         selects all simulations
 
@@ -83,10 +83,12 @@ def zonal_stats(
         if da.name not in ["tp", "tp_bc"]
         else "area_weighted_sum"
     )
-    call = f"zonal_stats(da, {region.name}, {operation=}, {weights=}, {ensemble_mean=})"
-    if ensemble_mean:
+    call = (
+        f"zonal_stats(da, {region.name}, {operation=}, {weights=}, {ensemble_median=})"
+    )
+    if ensemble_median:
         za = geoglue.zonal_stats.zonal_stats_xarray(
-            da.mean("number"), geom, operation, weights, region_col=region.pk
+            da.median("number"), geom, operation, weights, region_col=region.pk
         ).rename(da.name)
         x, y = za.shape
         if x * y == 0:
@@ -112,7 +114,7 @@ def zonal_stats(
 
 
 def forecast_zonal_stats(
-    iso3: str, date: str, admin: int, ensemble_mean: bool = True
+    iso3: str, date: str, admin: int, ensemble_median: bool = True
 ) -> xr.Dataset:
     corrected_forecast_file = get_path(
         "sources", iso3, "ecmwf", f"{iso3}-{date}-ecmwf.forecast.corrected.nc"
@@ -186,7 +188,7 @@ def forecast_zonal_stats(
                     ds=remapbil_ds,
                     region=region,
                     weights=pop,
-                    ensemble_mean=ensemble_mean,
+                    ensemble_median=ensemble_median,
                 )
                 for var in tqdm(instant_vars, desc="Instant variables")
             ]
@@ -216,7 +218,7 @@ def forecast_zonal_stats(
                     ds=remapdis_ds,
                     region=region,
                     weights=pop,
-                    ensemble_mean=ensemble_mean,
+                    ensemble_median=ensemble_median,
                 )
                 for var in tqdm(accum_vars, desc="Accum variables")
             ]
