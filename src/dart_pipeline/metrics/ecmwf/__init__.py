@@ -5,6 +5,7 @@ from pathlib import Path
 from datetime import datetime, date
 
 import ecmwf.opendata
+import requests.exceptions
 from geoglue.region import gadm
 
 from ...paths import get_path
@@ -95,16 +96,24 @@ def get_forecast_open_data(
             "Retrieving forecast with step_hours=%d for %r", step_hours, VARIABLES
         )
         client = ecmwf.opendata.Client(source="ecmwf")
-        client.retrieve(
-            time=start_hour,
-            date=offset,
-            stream="enfo",  # ensemble prediction forecast
-            # perturbed and control simulation
-            type=["pf", "cf"],
-            step=list(range(0, 361, step_hours)),  # 360h = 15d, forecast model limit
-            param=VARIABLES,
-            target=str(output_path),
-        )
+        try:
+            client.retrieve(
+                time=start_hour,
+                date=offset,
+                stream="enfo",  # ensemble prediction forecast
+                # perturbed and control simulation
+                type=["pf", "cf"],
+                step=list(
+                    range(0, 361, step_hours)
+                ),  # 360h = 15d, forecast model limit
+                param=VARIABLES,
+                target=str(output_path),
+            )
+        except requests.exceptions.HTTPError:
+            logger.error(
+                "Temporary error in forecast retrieval: try after a while, or fetch yesterday's forecast instead"
+            )
+            raise
         logger.info("Downloaded forecast in: %s", output_path)
     else:
         logger.info("Using already retrieved forecast file: %s", output_path)
