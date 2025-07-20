@@ -7,12 +7,42 @@ import requests_mock
 import pandas as pd
 
 from dart_pipeline.util import (
+    detect_region_col,
     download_file,
     determine_netcdf_filename,
     days_in_year,
+    get_admin_from_dataframe,
     get_country_name,
+    iso3_admin_unpack,
     use_range,
 )
+
+
+def test_region_col():
+    df = pd.DataFrame(data=[], columns=["shapeID"])  # type: ignore
+    assert detect_region_col(df) == "shapeID"
+    df = pd.DataFrame(data=[], columns=["GID_1", "GID_2"])  # type: ignore
+    assert detect_region_col(df) == "GID_2"
+
+
+def test_get_admin_from_dataframe():
+    assert (
+        get_admin_from_dataframe(pd.DataFrame(data=[], columns=["GID_1", "GID_2"])) == 2  # type: ignore
+    )
+
+
+def test_iso3_admin_unpack():
+    assert iso3_admin_unpack("VNM-2") == ("VNM", 2)
+
+
+def test_iso3_admin_invalid_iso3():
+    with pytest.raises(LookupError):
+        iso3_admin_unpack("ABC-1")
+
+
+def test_iso3_admin_invalid_admin():
+    with pytest.raises(ValueError):
+        iso3_admin_unpack("VNM-4")
 
 
 @pytest.mark.parametrize(
