@@ -272,13 +272,14 @@ def corrected_precipitation_weekly_dataset(
     The returned dataset has the following variables:
     - tp_bc: weekly sum of the total daily precipitation
     """
-    da = xr.open_dataarray(tp_corrected_path(iso3, ystart))
+    # Need to get the previous year in case of window > 1
+    da = xr.open_dataarray(tp_corrected_path(iso3, ystart - 1))
 
     # Create daily dataset from all years
     # We go up to yend + 1 to bring in some days from the succeeding year
     # for cases when Sundays are not 31 December (end of week aligns
     # with end of year)
-    for y in range(ystart + 1, yend + 2):
+    for y in range(ystart, yend + 2):
         da_y = xr.open_dataarray(tp_corrected_path(iso3, y))
         da = xr.concat([da, da_y], dim="valid_time")
 
