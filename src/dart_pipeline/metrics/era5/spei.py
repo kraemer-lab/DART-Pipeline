@@ -126,7 +126,7 @@ def process_spei(iso3: str, date: str, bias_correct: bool = False) -> xr.DataArr
     with resampled_dataset("remapdis", spei_path, population) as resampled_ds:
         return zonal_stats_xarray(
             f"era5.{spei_name}.weekly_sum",
-            resampled_ds.spei,
+            resampled_ds.spei_bc if bias_correct else resampled_ds.spei,
             gadm(iso3, admin),
             operation="area_weighted_sum",
             weights=population,

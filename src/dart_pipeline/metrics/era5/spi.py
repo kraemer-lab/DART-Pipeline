@@ -167,7 +167,7 @@ def process_spi_corrected(iso3: str, date: str) -> xr.DataArray:
     with resampled_dataset("remapdis", spi_corrected_path, population) as resampled_ds:
         return zonal_stats_xarray(
             "era5.spi_corrected.weekly_sum",
-            resampled_ds.spi_corrected,
+            resampled_ds.spi_bc,
             gadm(iso3, admin),
             operation="area_weighted_sum",
             weights=population,
