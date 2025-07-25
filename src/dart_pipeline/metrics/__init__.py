@@ -286,34 +286,35 @@ def process(metric: str, **kwargs) -> list[Path]:
         logger.info("output %s %s", metric, print_paths(res))
         return res  # nothing to do, processor has already written data
     assert not isinstance(res, list)
-    if isinstance(res, pd.DataFrame):
-        iso3 = res.ISO3.unique()[0]
-        data_metric = res.metric.unique()[0]
-        admin = int(res.attrs["admin"])
-        assert admin in [1, 2, 3], f"Invalid administrative level {admin=}"
-        if not data_metric.startswith(metric):
-            raise ValueError(
-                f"Metric returned by processor {data_metric=} is not in the class of {metric=}"
+    match res:
+        case pd.DataFrame():
+            iso3 = res.ISO3.unique()[0]
+            data_metric = res.metric.unique()[0]
+            admin = int(res.attrs["admin"])
+            assert admin in [1, 2, 3], f"Invalid administrative level {admin=}"
+            if not data_metric.startswith(metric):
+                raise ValueError(
+                    f"Metric returned by processor {data_metric=} is not in the class of {metric=}"
+                )
+            date_signifier = determine_date_signifier(res.date)
+            outfile = (
+                get_path("output", iso3, source)
+                / f"{iso3}-{admin}-{date_signifier}-{data_metric}.parquet"
             )
-        date_signifier = determine_date_signifier(res.date)
-        outfile = (
-            get_path("output", iso3, source)
-            / f"{iso3}-{admin}-{date_signifier}-{data_metric}.parquet"
-        )
-        res.to_parquet(outfile, index=False)
-        logger.info("output %s %s", metric, print_path(outfile))
-        return [outfile]
-    elif isinstance(res, xr.Dataset):
-        iso3 = res.attrs.get("ISO3", kwargs["iso3"])
-        metric = res.attrs.get("metric", metric)
-        outfile = get_path("output", iso3, source) / determine_netcdf_filename(
-            metric, **kwargs
-        )
-        res.to_netcdf(outfile)
-        logger.info("output %s %s", metric, print_path(outfile))
-        return [outfile]
-    else:
-        raise ValueError(f"Unsupported result type {res=}")
+            res.to_parquet(outfile, index=False)
+            logger.info("output %s %s", metric, print_path(outfile))
+            return [outfile]
+        case xr.Dataset() | xr.DataArray():
+            iso3 = res.attrs.get("ISO3", kwargs["iso3"])
+            metric = res.attrs.get("metric", metric)
+            outfile = get_path("output", iso3, source) / determine_netcdf_filename(
+                metric, **kwargs
+            )
+            res.to_netcdf(outfile)
+            logger.info("output %s %s", metric, print_path(outfile))
+            return [outfile]
+        case _:
+            raise ValueError(f"Unsupported result type {res=}")
 
 
 def find_metrics(
