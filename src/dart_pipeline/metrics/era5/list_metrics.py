@@ -44,8 +44,8 @@ METRICS: dict[str, MetricInfo] = {
         "long_name": "2 meters air temperature",
         "units": "K",
         "standard_name": "air_temperature",
-        "valid_min": 225,
-        "valid_max": 325,
+        "valid_min": 175,  # -98.15 °C, this is slightly wider than the actual lowest
+        "valid_max": 335,  # 61.85 °C, and highest air temperatures recorded
         "part_of": "era5.core",
         "short_name": "t2m",
         "short_name_min": "mn2t",
