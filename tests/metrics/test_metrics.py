@@ -63,8 +63,8 @@ def test_subset_cfattrs():
             "mx2t",
             {
                 "long_name": "2 meters air temperature",
-                "valid_min": 225,
-                "valid_max": 325,
+                "valid_min": 175,
+                "valid_max": 335,
                 "standard_name": "air_temperature",
                 "cell_methods": "time: max (interval: 1 day)",
                 "units": "K",
@@ -76,7 +76,6 @@ def test_subset_cfattrs():
             {
                 "long_name": "Total precipitation",
                 "valid_min": 0,
-                "valid_max": 1200,
                 "standard_name": "",
                 "units": "m",
                 "cell_methods": "time: sum (interval: 1 day)",
@@ -88,7 +87,6 @@ def test_subset_cfattrs():
             {
                 "long_name": "Total precipitation",
                 "valid_min": 0,
-                "valid_max": 1200,
                 "standard_name": "",
                 "units": "m",
                 "cell_methods": "time: sum (interval: 1 week)",
