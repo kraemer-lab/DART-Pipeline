@@ -123,7 +123,12 @@ def zonal_stats(
 
 
 def weekly_mean(da: xr.DataArray) -> xr.DataArray:
-    return da.resample(valid_time="W-MON", closed="left", label="left").mean()
+    return (
+        da.resample(valid_time="1D")
+        .mean()
+        .resample(valid_time="W-MON", closed="left", label="left")
+        .mean()
+    )
 
 
 def weekly_mean_daily_max(da: xr.DataArray) -> xr.DataArray:
