@@ -255,7 +255,13 @@ Run `uv run dart-pipeline get meta.pop_density {iso3}` to fetch data""")
     rwi = rwi.rename(
         columns={"GID_0": "ISO3", "rwi_weight": "value", f"GID_{admin_level}": "region"}
     ).drop("geometry", axis=1)
-    rwi_a = xr.DataArray(pd.Series(rwi.value, index=rwi.region, name="rwi"))
+    series = (
+        rwi[["region", "value"]]
+        .set_index("region")
+        .value.rename("rwi")
+        .astype("float32")
+    )
+    rwi_a = xr.DataArray(series)
     rwi_a.attrs.update(
         {"DART_region": str(region), "long_name": "Relative wealth index", "units": "1"}
     )
