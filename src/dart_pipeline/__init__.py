@@ -1,18 +1,20 @@
 """Main code for DART Pipeline."""
 
 import os
+import sys
 import logging
 import argparse
 import importlib
 from pathlib import Path
 
 import pandas as pd
+import xarray as xr
 
 from .metrics import (
     get,
     convert_parquet_netcdf,
     process as process_metric,
-    validate_metric,
+    get_invalid_counts,
     print_metrics,
     print_metrics_rst,
     assert_metrics_and_sources_registered,
@@ -23,6 +25,7 @@ from .metrics import (
 from .util import detect_region_col
 from .paths import get_path
 from .plots import plot_metric_data
+from .types import InvalidCounts
 
 LOG_FORMAT = "%(asctime)s %(levelname)s [%(name)s] %(message)s"
 
@@ -235,19 +238,26 @@ def main():
                 plot_metric_data(file, figsize, args.format)
         case "validate":
             for file in args.files:
-                df = pd.read_parquet(file)
                 basename = Path(file).name
-                errors = validate_metric(df)
-                if errors:
-                    N = len(df)
-                    for count, err in errors:
-                        print(
-                            f"{basename:70s}[\033[31m{count:7d}, {count / N:6.2%}\033[0m] {err}"
-                        )
-                elif args.success:
-                    print(f"{basename:70s}[\033[32mSUCCESS, 100.00%\033[0m]")
-                else:
-                    pass
+                if Path(file).suffix != ".nc":
+                    print(f"error: {basename} is not a netCDF file")
+                    continue
+                ds = xr.open_dataset(file)
+                errors: dict[str, InvalidCounts] = {
+                    str(var): get_invalid_counts(ds[var]) for var in ds.data_vars
+                }
+                if not args.success:  # remove variables that are ok
+                    errors = {
+                        var: errors[var] for var in errors if not errors[var].all_ok
+                    }
+                for var in errors:
+                    print(basename, var, errors[var], sep="\t")
+                if not args.success and errors:
+                    print(
+                        "\nOnly variables failing validation are shown, to show all, pass -s or --success"
+                    )
+                    sys.exit(1)
+
         case "convert":
             for file in args.files:
                 if Path(file).suffix != ".parquet":

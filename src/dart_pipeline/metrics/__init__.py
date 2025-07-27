@@ -14,7 +14,7 @@ from geoglue.memoryraster import MemoryRaster
 
 from ..paths import get_path
 from ..util import abort, download_files, logfmt, determine_netcdf_filename
-from ..types import DataFile, URLCollection
+from ..types import DataFile, URLCollection, InvalidCounts
 
 logger = logging.getLogger(__name__)
 
@@ -386,44 +386,17 @@ def get_gamma_params(
     return ds
 
 
-def validate_metric(df: pd.DataFrame) -> list[tuple[int, str]]:
-    "Returns list of errors where validation failed for a particular metric file"
+def get_invalid_counts(da: xr.DataArray) -> InvalidCounts:
+    "Validates a xarray.DataArray according to enclosed valid_min, valid_max attributes"
 
-    errors = []
-    metrics = list(df.metric.unique())
-    if len(metrics) > 1:
-        raise ValueError(
-            f"validate_metric() does not support multiple metrics: {metrics}"
-        )
-    metric_name = metrics[0]
-    source, _, metric = metric_name.partition(".")
+    valid_min = da.attrs.get("valid_min", None)
+    valid_max = da.attrs.get("valid_max", None)
 
-    # remove aggregations
-    metric = re.sub(r"(\w+)\..*(mean|min|max|sum)", r"\1", metric)
-    if source not in METRICS:
-        raise ValueError(f"Source not found: {source}")
-    if metric not in METRICS[source]["metrics"]:
-        raise ValueError(f"Metric {metric!r} not found in {source=}")
+    below_min = (da < valid_min).sum().item() if valid_min is not None else None
+    above_max = (da > valid_max).sum().item() if valid_max is not None else None
+    nan_count = da.isnull().sum().item()
 
-    # If NA entries present, return number of NA entries
-    na_entries = df[pd.isna(df.value)]
-    if not na_entries.empty:
-        errors.append((len(na_entries), "NA entries"))
-    metric_range = METRICS[source]["metrics"][metric].get("range")
-    if metric_range is None:
-        return errors
-    low, high = metric_range
-    df = df[~pd.isna(df.value)]
-    out_of_range = df[(df.value < low) | (df.value > high)]
-    if not out_of_range.empty:
-        alow, ahigh = df.value.min(), df.value.max()
-        errors.append(
-            (
-                len(out_of_range),
-                f"out of range {low} -- {high}, actual range {alow:.4f} -- {ahigh:.4f}",
-            )
-        )
-    return errors
+    return InvalidCounts(below_min, above_max, nan_count, da.size)
 
 
 def print_metrics(filter_by: str | None = None):

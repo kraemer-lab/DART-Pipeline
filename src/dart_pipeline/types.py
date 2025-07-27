@@ -12,6 +12,17 @@ class DefaultPathProtocol(Protocol):
     def __call__(self, source: str, path: str | None | Path = None) -> Path: ...
 
 
+class InvalidCounts(NamedTuple):
+    below_min: int | None
+    above_max: int | None
+    nan_count: int
+    total: int
+
+    @property
+    def all_ok(self) -> bool:
+        return (self.below_min or 0) + (self.above_max or 0) + self.nan_count == 0
+
+
 class PartialDate(NamedTuple):
     year: int
     month: int | None = None

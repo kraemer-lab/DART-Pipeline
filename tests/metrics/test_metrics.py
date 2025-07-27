@@ -1,10 +1,27 @@
 import pytest
+import numpy as np
+import xarray as xr
+
+from dart_pipeline.types import InvalidCounts
 from dart_pipeline.metrics import (
     MetricInfo,
     get_cell_methods,
     subset_cfattrs,
     get_name_cfattrs,
+    get_invalid_counts,
 )
+
+
+def test_get_invalid_counts():
+    # Create a test DataArray
+    da = xr.DataArray(
+        data=[-10, 0, 5, 15, 25, np.nan, 10],
+        dims="x",
+        attrs={"valid_min": 0, "valid_max": 20},
+    )
+
+    result = get_invalid_counts(da)
+    assert result == InvalidCounts(below_min=1, above_max=1, nan_count=1, total=7)
 
 
 @pytest.mark.parametrize(
