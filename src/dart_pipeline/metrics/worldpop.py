@@ -6,6 +6,7 @@ from typing import Literal
 from urllib.parse import urljoin
 
 import requests
+import xarray as xr
 import pandas as pd
 from geoglue.region import gadm
 from geoglue.memoryraster import MemoryRaster
@@ -151,18 +152,22 @@ def worldpop_pop_count_fetch(iso3: str, date: str) -> Literal[False]:
 
 
 @register_process("worldpop.pop_count")
-def worldpop_pop_count_process(iso3: str, date: str) -> pd.DataFrame:
+def worldpop_pop_count_process(iso3: str, date: str) -> xr.DataArray:
     iso3, admin = iso3_admin_unpack(iso3)
     year = int(date)
     population = get_worldpop(iso3, year)
-    geom = gadm(iso3, admin).read()
+    region = gadm(iso3, admin)
+    geom = region.read()
     include_cols = [c for c in geom.columns if c != "geometry"]
     df = population.zonal_stats(geom, "sum", include_cols=include_cols).rename(
-        columns={"sum": "value", "GID_0": "ISO3"}
+        columns={"sum": "value", "GID_0": "ISO3", region.pk: "region"}
     )
-    df["region"] = f"{iso3}-{admin}"
-    df["metric"] = "worldpop.pop_count"
-    df["unit"] = "1"
-    df["date"] = year
-    df.attrs["admin"] = admin
-    return df
+    da = xr.DataArray(pd.Series(df.value, index=df.region, name="pop"))
+    da.attrs.update(
+        {
+            "long_name": "Worldpop population count",
+            "units": "1",
+            "DART_region": str(region),
+        }
+    )
+    return da.expand_dims(time=[pd.Timestamp(str(year))])
