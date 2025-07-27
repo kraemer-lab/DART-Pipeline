@@ -13,7 +13,7 @@ import geoglue.zonal_stats
 from geoglue.memoryraster import MemoryRaster
 
 from ..paths import get_path
-from ..util import abort, unpack_file, download_files, logfmt, determine_netcdf_filename
+from ..util import abort, download_files, logfmt, determine_netcdf_filename
 from ..types import DataFile, URLCollection
 
 logger = logging.getLogger(__name__)
@@ -193,7 +193,6 @@ def register_process(metric: str, multiple_years: bool = False):
 
 def get(
     metric: str,
-    update: bool = False,
     skip_process=False,
     **kwargs,
 ):
@@ -221,12 +220,6 @@ def get(
         for coll in links:
             logger.info("Fetching %s [%s]: %r", metric, iso3, coll)
             coll.relative_path = metric.replace(".", "/")
-            if not coll.missing_files(path) and not update:
-                # unpack files
-                for file in coll.files:
-                    to_unpack = path / coll.relative_path / Path(file).name
-                    unpack_file(to_unpack, same_folder=True)
-                    logger.info("Unpacked %s", to_unpack)
             success = download_files(coll, path, auth=None, unpack=True)
             n_ok = sum(success)
             if n_ok == len(success):
