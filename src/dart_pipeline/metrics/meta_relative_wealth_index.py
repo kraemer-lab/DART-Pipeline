@@ -13,6 +13,7 @@ import multiprocessing
 import logging
 from typing import Final
 
+import xarray as xr
 from pyquadkey2 import quadkey
 from shapely.geometry import Point
 import requests
@@ -177,7 +178,7 @@ def get_admin_region(lat: float, lon: float, polygons) -> str:
 
 
 @register_process("meta.relative_wealth_index")
-def process_gadm_popdensity_rwi(iso3: str, admin_level=2) -> pd.DataFrame:
+def process_gadm_popdensity_rwi(iso3: str) -> xr.DataArray:
     """
     Process population-weighted Relative Wealth Index and geospatial data.
 
@@ -190,13 +191,15 @@ def process_gadm_popdensity_rwi(iso3: str, admin_level=2) -> pd.DataFrame:
     Originally adapted by Prathyush Sambaturu.
     """
 
+    iso3, admin_level = iso3_admin_unpack(iso3)
     # Zoom level 14 is ~2.4km Bing tile
     zoom_level: Final[int] = 14
 
     # Population density only available for 2020
     year: Final[int] = 2020
 
-    shapefile = gadm(iso3, admin_level).read()
+    region = gadm(iso3, admin_level)
+    shapefile = region.read()
     population_path = get_path(
         "sources", iso3, "meta", "pop_density", f"{iso3.lower()}_general_2020.csv"
     )
@@ -249,14 +252,14 @@ Run `uv run dart-pipeline get meta.pop_density {iso3}` to fetch data""")
     # Merge the population-weight RWI data with the GADM shapefile
     rwi = shapefile.merge(geo_rwi, left_on=admin_geoid, right_on="geo_id")
 
-    rwi = rwi.rename(columns={"GID_0": "ISO3", "rwi_weight": "value"}).drop(
-        "geometry", axis=1
+    rwi = rwi.rename(
+        columns={"GID_0": "ISO3", "rwi_weight": "value", f"GID_{admin_level}": "region"}
+    ).drop("geometry", axis=1)
+    rwi_a = xr.DataArray(pd.Series(rwi.value, index=rwi.region, name="rwi"))
+    rwi_a.attrs.update(
+        {"DART_region": str(region), "long_name": "Relative wealth index", "units": "1"}
     )
-    rwi["metric"] = "meta.relative_wealth_index"
-    rwi["unit"] = "unitless"
-    rwi["date"] = 2021
-    rwi.attrs["admin"] = admin_level
-    return rwi
+    return rwi_a.expand_dims(time=[pd.Timestamp("2021")])
 
 
 def process_rwi_point_estimate(iso3: str) -> float:
