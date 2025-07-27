@@ -298,8 +298,7 @@ def process(metric: str, **kwargs) -> list[Path]:
             logger.info("output %s %s", metric, print_path(outfile))
             return [outfile]
         case xr.Dataset() | xr.DataArray():
-            iso3 = res.attrs.get("ISO3", kwargs["iso3"])
-            metric = res.attrs.get("metric", metric)
+            iso3 = kwargs["iso3"].split("-")[0]
             outfile = get_path("output", iso3, source) / determine_netcdf_filename(
                 metric, **kwargs
             )
