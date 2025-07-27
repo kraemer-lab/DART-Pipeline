@@ -51,6 +51,7 @@ def test_relative_wealth_index():
             [
                 "/dataset/76f2a2ea-ba50-40f5-b79c-db95d668b843/resource/06d29bc0-5a4c-4be0-be1a-c546a9be540c/download/vnm_relative_wealth_index.csv"
             ],
+            unpack=False,
         )
 
 

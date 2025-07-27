@@ -125,7 +125,7 @@ def fetch_relative_wealth_index(iso3: str) -> URLCollection:
         # Return the first link found
         if links:
             csvs = [link["href"] for link in links if "csv" in link["href"]]
-            return URLCollection("https://data.humdata.org", csvs)
+            return URLCollection("https://data.humdata.org", csvs, unpack=False)
         else:
             raise ValueError(f'Could not find a link containing "{target}"')
     else:
@@ -194,6 +194,13 @@ def process_gadm_popdensity_rwi(iso3: str, admin_level=2) -> pd.DataFrame:
     year: Final[int] = 2020
 
     shapefile = gadm(iso3, admin_level).read()
+    population_path = get_path(
+        "sources", iso3, "meta", "pop_density", f"{iso3.lower()}_general_2020.csv"
+    )
+    if not population_path.exists():
+        raise FileNotFoundError(f"""Population density file not found at {population_path}
+Run `uv run dart-pipeline get meta.pop_density {iso3}` to fetch data""")
+
     # Get the polygons from the shape file and create a dictionary mapping the
     # region IDs to their polygon geometries
     admin_geoid = f"GID_{admin_level}"
@@ -216,14 +223,8 @@ def process_gadm_popdensity_rwi(iso3: str, admin_level=2) -> pd.DataFrame:
     rwi = rwi[rwi["geo_id"] != "null"]
     rwi["quadkey"] = rwi.apply(lambda x: get_quadkey(x, zoom_level), axis=1)
 
-    logger.info(
-        "Reading meta.pop_density [%s] %r",
-        iso3,
-        path := get_path(
-            "sources", iso3, "meta", "pop_density", f"{iso3.lower()}_general_2020.csv"
-        ),
-    )
-    population = pd.read_csv(path)
+    logger.info("Reading meta.pop_density [%s] %r", iso3, population_path)
+    population = pd.read_csv(population_path)
     population = population.rename(
         columns={f"{iso3.lower()}_general_{year}": f"pop_{year}"}
     )
