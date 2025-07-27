@@ -3,6 +3,7 @@
 from unittest import mock
 from pathlib import Path
 
+import xarray as xr
 import geopandas as gpd
 import pandas as pd
 import shapely.geometry
@@ -38,7 +39,7 @@ def test_meta_pop_density_data():
         )
 
 
-def test_relative_wealth_index():
+def test_fetch_relative_wealth_index():
     web_snapshot = Path("tests/webarchive/relative-wealth-index.html")
     base_url = "https://data.humdata.org/dataset/relative-wealth-index"
     with requests_mock.Mocker() as m:
@@ -46,7 +47,7 @@ def test_relative_wealth_index():
             base_url,
             text=web_snapshot.read_text(),
         )
-        assert fetch_relative_wealth_index("VNM") == URLCollection(
+        assert fetch_relative_wealth_index("VNM-2") == URLCollection(
             "https://data.humdata.org",
             [
                 "/dataset/76f2a2ea-ba50-40f5-b79c-db95d668b843/resource/06d29bc0-5a4c-4be0-be1a-c546a9be540c/download/vnm_relative_wealth_index.csv"
@@ -133,8 +134,10 @@ def test_process_rwi(mock_get_country, mock_get_path):
 
 @mock.patch("dart_pipeline.metrics.meta_relative_wealth_index.gadm")
 @mock.patch("pandas.read_csv")
-def test_process_gadm_popdensity_rwi(mock_pd_read, mock_gadm):
+@mock.patch("pathlib.Path.exists")
+def test_process_gadm_popdensity_rwi(mock_path_exists, mock_pd_read, mock_gadm):
     # Mock GADM shapefile
+    mock_path_exists.return_value = True
     mock_gadm.return_value.read.return_value = gpd.GeoDataFrame(
         pd.DataFrame(
             {
@@ -164,9 +167,9 @@ def test_process_gadm_popdensity_rwi(mock_pd_read, mock_gadm):
         ),
     ]
 
-    df = process_gadm_popdensity_rwi("VNM", 2)
+    da = process_gadm_popdensity_rwi("VNM-2")
 
-    assert isinstance(df, pd.DataFrame)
-    assert "ISO3" in df.columns
-    assert "value" in df.columns
-    assert not df.empty
+    assert isinstance(da, xr.DataArray)
+    assert "DART_region" in da.attrs
+    assert da.attrs["units"] == "1"
+    assert da.attrs["long_name"] == "Relative wealth index"
