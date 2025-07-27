@@ -3,6 +3,8 @@ Common methods to calculate standardised precipitation index and
 standardised precipitation-evaporation index
 """
 
+import os
+import sys
 import logging
 import functools
 import datetime
@@ -29,6 +31,27 @@ from ...paths import get_path
 from .list_metrics import VARIABLES
 
 logger = logging.getLogger(__name__)
+
+
+def prompt_cdsapi_key():
+    if os.getenv("CDSAPI_URL") and os.getenv("CDSAPI_KEY"):
+        return
+    rc = Path(os.getenv("CDSAPI_RC", "~/.cdsapirc")).expanduser()
+    if rc.exists():
+        return
+    # Prompt user to enter cdsapi key
+    print("""Error: Climate Data Store key not found
+You can obtain a key at https://cds.climate.copernicus.eu/how-to-api
+""")
+    key = input("Enter key: ")
+    if key:
+        rc.write_text(f"""url: https://cds.climate.copernicus.eu/api
+key: {key.strip()}
+""")
+        return
+    else:
+        print("No key entered, quitting.")
+        sys.exit(1)
 
 
 def specific_humidity(ds: xr.Dataset) -> xr.DataArray:
