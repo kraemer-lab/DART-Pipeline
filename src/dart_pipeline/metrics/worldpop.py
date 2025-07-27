@@ -162,7 +162,15 @@ def worldpop_pop_count_process(iso3: str, date: str) -> xr.DataArray:
     df = population.zonal_stats(geom, "sum", include_cols=include_cols).rename(
         columns={"sum": "value", "GID_0": "ISO3", region.pk: "region"}
     )
-    da = xr.DataArray(pd.Series(df.value, index=df.region, name="pop"))
+    # print(df[["region", "value"]])
+
+    series = (
+        df[["region", "value"]]
+        .set_index("region")
+        .value.rename("pop")
+        .astype("float32")
+    )
+    da = xr.DataArray(series)
     da.attrs.update(
         {
             "long_name": "Worldpop population count",
