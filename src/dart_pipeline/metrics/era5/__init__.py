@@ -21,6 +21,7 @@ from ...paths import get_path
 
 from .util import (
     get_dataset_pool,
+    prompt_cdsapi_key,
     precipitation_weekly_dataset,
     temperature_daily_dataset,
     parse_year_range,
@@ -54,6 +55,7 @@ foregoing.""",
 def era5_fetch(iso3: str, date: str) -> CdsPath | None:
     iso3 = iso3.upper()
     year = int(date)
+    prompt_cdsapi_key()
     data = ReanalysisSingleLevels(
         gadm(iso3, 1), VARIABLES, path=get_path("sources", iso3, "era5")
     )
