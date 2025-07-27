@@ -135,7 +135,6 @@ def main():
         epilog="ISO3 code must be specified, optionally with admin level such as VNM-2",
     )
     get_parser.add_argument("metric", help="source to get files for")
-    get_parser.add_argument("--update", help="update cached files")
     get_parser.add_argument(
         "--skip-process",
         help="Skip immediate processing",
@@ -210,7 +209,6 @@ def main():
         case "get":
             get(
                 args.metric,
-                args.update,
                 skip_process=args.skip_process,
                 **kwargs,
             )
