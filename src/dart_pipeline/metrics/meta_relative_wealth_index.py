@@ -23,7 +23,7 @@ from bs4 import BeautifulSoup
 from geoglue.region import gadm
 
 from ..types import URLCollection
-from ..util import get_country_name
+from ..util import get_country_name, iso3_admin_unpack
 from ..paths import get_path
 from ..metrics import register_metrics, register_fetch, register_process
 
@@ -67,6 +67,8 @@ def meta_pop_density_data(iso3: str) -> URLCollection:
     Documentation:
     https://dataforgood.facebook.com/dfg/docs/high-resolution-population-density-maps-demographic-estimates-documentation
     """
+    if "-" in iso3:
+        iso3, _ = iso3_admin_unpack(iso3)
     country = get_country_name(iso3)
     # Main webpage
     url = (
@@ -111,6 +113,7 @@ def fetch_relative_wealth_index(iso3: str) -> URLCollection:
     Upstream URL: https://data.humdata.org/dataset/relative-wealth-index
     """
     # Validate input parameter
+    iso3, _ = iso3_admin_unpack(iso3)
     if not iso3:
         raise ValueError("No ISO3 code has been provided")
 
