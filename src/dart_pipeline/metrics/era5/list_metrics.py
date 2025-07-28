@@ -31,6 +31,15 @@ VARIABLE_MAPPINGS = {
 }
 
 depends_hydrological_balance = ["total_precipitation", "evaporation"]
+
+# List of metrics with dependencies declared as valid variables that can be passed to cdsapi.
+# If a metric is not depended upon by any other metric but has to be requested, add its name
+# to "depends" attribute, e.g.
+#
+# 'surface_solar_radiation_downwards': {
+#     'long_name': 'Surface solar radiation downwards',
+#     'depends': ['surface_solar_radiation_downwards']
+# }
 METRICS: dict[str, MetricInfo] = {
     "core": {
         "long_name": "Virtual metric to run all core metrics at once, indicated by part of: era5.core",
@@ -154,7 +163,7 @@ METRICS: dict[str, MetricInfo] = {
     },
 }
 
-VARIABLES = sorted(set(sum([METRICS[m].get("depends", [m]) for m in METRICS], [])))
+VARIABLES = sorted(set(sum([METRICS[m].get("depends", []) for m in METRICS], [])))
 
 INSTANT_METRICS = [m for m in METRICS if m not in ACCUM_METRICS]
 DERIVED_METRICS_SEPARATE_IMPL = [
