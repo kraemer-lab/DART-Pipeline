@@ -29,6 +29,13 @@ from .util import (
 
 logger = logging.getLogger(__name__)
 
+# 99% of values should be in this range
+# This is to avoid -inf propagating as NaN in zonal statistics
+# This clip is used by other Python packages such as climate_indices:
+# https://github.com/monocongo/climate_indices/blob/master/src/climate_indices/indices.py
+MIN_SPEI = -3.09
+MAX_SPEI = 3.09
+
 
 def gamma_spei(
     iso3: str,
@@ -112,7 +119,7 @@ def process_spei(iso3: str, date: str, bias_correct: bool = False) -> xr.DataArr
     gamma = xr.apply_ufunc(gamma_func, ds_ma, gamma_params.alpha, gamma_params.beta)
     norm_spei = xr.apply_ufunc(norminv, gamma)
     spei_name = "spei_bc" if bias_correct else "spei"
-    spei = xr.Dataset({spei_name: norm_spei})
+    spei = xr.Dataset({spei_name: norm_spei.clip(MIN_SPEI, MAX_SPEI)})
     set_lonlat_attrs(spei)
 
     # resample to weights
