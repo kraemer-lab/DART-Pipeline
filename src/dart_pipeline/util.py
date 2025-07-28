@@ -41,6 +41,14 @@ def msg(bold: str, *args):
     print(f"\033[1m{bold}\033[0m", *args)
 
 
+def nan_count_array(da: xr.DataArray) -> int:
+    return da.isnull().sum().item()
+
+
+def nan_count_dataset(ds: xr.Dataset) -> dict[str, int]:
+    return {str(v): nan_count_array(ds[v]) for v in ds.data_vars}
+
+
 def detect_region_col(df: pd.DataFrame) -> str:
     "Detects region column from metric output dataframe"
     if "shapeID" in df.columns:
