@@ -159,8 +159,8 @@ def process_era5(
         Country code or region name
     date : str
         Range of years to calculate ERA5 metrics
-    keep : bool
-        Whether to keep (not overwrite) existing generated files, default=False
+    overwrite : bool
+        Whether to overwrite existing generated files, default=False
     skip_correction : bool
         Whether to skip calculation of corrected metrics
 
@@ -171,7 +171,7 @@ def process_era5(
     """
     if not overwrite:
         logger.warning("""Keeping existing files, this may lead to incorrect or not updated data.
-        For final release, always run without 'keep'""")
+        For final release, always run with 'overwrite'""")
     ystart, yend = parse_year_range(date, warn_duration_less_than_years=15)
     iso3, admin = iso3_admin_unpack(iso3)
     region = gadm(iso3, admin)
