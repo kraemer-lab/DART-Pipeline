@@ -29,6 +29,13 @@ from . import get_dataset_pool
 
 logger = logging.getLogger(__name__)
 
+# 99% of values should be in this range
+# This is to avoid -inf propagating as NaN in zonal statistics
+# This clip is used by other Python packages such as climate_indices:
+# https://github.com/monocongo/climate_indices/blob/master/src/climate_indices/indices.py
+MIN_SPI = -3.09
+MAX_SPI = 3.09
+
 
 def gamma_spi(
     iso3: str, date: str, window: int = 6, bias_correct: bool = False
@@ -113,6 +120,7 @@ def process_spi(iso3: str, date: str) -> xr.DataArray:
     gamma = xr.apply_ufunc(gamma_func, ds_ma, gamma_params.alpha, gamma_params.beta)
     norm_spi = xr.apply_ufunc(norminv, gamma)
     spi = norm_spi.rename({"tp": "spi"}).drop_vars(["e", "ssrd"])
+    spi["spi"] = spi.spi.clip(MIN_SPI, MAX_SPI)
     set_lonlat_attrs(spi)
 
     # resample to weights
@@ -155,6 +163,7 @@ def process_spi_corrected(iso3: str, date: str) -> xr.DataArray:
     gamma = xr.apply_ufunc(gamma_func, ds_ma, gamma_params.alpha, gamma_params.beta)
     norm_spi_corrected = xr.apply_ufunc(norminv, gamma)
     spi_corrected = norm_spi_corrected.rename({"tp_bc": "spi_bc"})
+    spi_corrected["spi_bc"] = spi_corrected.spi_bc.clip(MIN_SPI, MAX_SPI)
     set_lonlat_attrs(spi_corrected)
 
     # resample to weights
