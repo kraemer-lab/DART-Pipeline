@@ -2,6 +2,7 @@ import logging
 import functools
 import multiprocessing
 from pathlib import Path
+from typing import Literal
 
 import xarray as xr
 
@@ -33,6 +34,7 @@ from .list_metrics import (
 )
 from .collate import MetricCollection
 from .core_weekly import era5_process_core_weekly
+from .core_daily import era5_process_core_daily
 
 logger = logging.getLogger(__name__)
 
@@ -149,7 +151,11 @@ def run_tasks(
 
 @register_process("era5", multiple_years=True)
 def process_era5(
-    iso3: str, date: str, skip_correction: bool = False, overwrite=False
+    iso3: str,
+    date: str,
+    skip_correction: bool = False,
+    temporal_resolution: Literal["weekly", "daily"] = "daily",
+    overwrite=False,
 ) -> list[Path]:
     """Overall era5 processor; runs core metrics and SPI and SPEI
 
@@ -159,11 +165,15 @@ def process_era5(
         Country code or region name
     date : str
         Range of years to calculate ERA5 metrics
-    overwrite : bool
-        Whether to overwrite existing generated files, default=False
+    temporal_resolution : Literal['weekly', 'daily']
+        Temporal resolution at which core metrics must be processed,
+        must be one of 'daily' or 'weekly'. When processing at daily
+        resolution, files are not combined as SPI and SPEI are always
+        calculated at weekly resolution
     skip_correction : bool
         Whether to skip calculation of corrected metrics
-
+    overwrite : bool
+        Whether to overwrite existing generated files, default=False
     Returns
     -------
     list[Path]
@@ -232,21 +242,37 @@ def process_era5(
     # Run core metrics -- there is already parallelisation within each year, so
     # we don't parallelise processing further
     # TODO: insert hook to run weekly agg
-    msg("==> Calculating core metrics:", yrange_str)
-    for year in trange(ystart, yend + 1, desc="era5.core_weekly"):
-        y_output = get_path(
-            "output", iso3, "era5", f"{iso3}-{admin}-{year}-era5.core_weekly.nc"
-        )
-        if overwrite or not y_output.exists():
-            y_zs = era5_process_core_weekly(f"{iso3}-{admin}", str(year))
-            y_zs.to_netcdf(y_output)
-        paths.append(y_output)
+    match temporal_resolution:
+        case "weekly":
+            msg("==> Calculating core metrics (weekly):", yrange_str)
+            for year in trange(ystart, yend + 1, desc="era5.core_weekly"):
+                y_output = get_path(
+                    "output", iso3, "era5", f"{iso3}-{admin}-{year}-era5.core_weekly.nc"
+                )
+                if overwrite or not y_output.exists():
+                    y_zs = era5_process_core_weekly(f"{iso3}-{admin}", str(year))
+                    y_zs.to_netcdf(y_output)
+                paths.append(y_output)
 
-    msg("==> Collating metrics:", yrange_str)
-    ds = MetricCollection(f"{iso3}-{admin}").collate((ystart, yend))
-    output = get_path("output", iso3, "era5", f"{iso3}-{admin}-{ystart}-{yend}-era5.nc")
-    ds.attrs["DART_region"] = (
-        f"{region.name} {region.pk} {region.tz} {region.bbox.int()}"
-    )
-    ds.to_netcdf(output)
-    return [output]
+            msg("==> Collating metrics:", yrange_str)
+            ds = MetricCollection(f"{iso3}-{admin}").collate((ystart, yend))
+            output = get_path(
+                "output", iso3, "era5", f"{iso3}-{admin}-{ystart}-{yend}-era5.nc"
+            )
+            ds.attrs["DART_region"] = (
+                f"{region.name} {region.pk} {region.tz} {region.bbox.int()}"
+            )
+            ds.to_netcdf(output)
+            return [output]
+        case "daily":
+            msg("==> Calculating core metrics (daily):", yrange_str)
+            for year in trange(ystart, yend + 1, desc="era5.core_daily"):
+                y_output = get_path(
+                    "output", iso3, "era5", f"{iso3}-{admin}-{year}-era5.core_daily.nc"
+                )
+                gen_paths = []
+                if overwrite or not y_output.exists():
+                    gen_paths = era5_process_core_daily(f"{iso3}-{admin}", str(year))
+                    # y_zs.to_netcdf(y_output)
+                paths.extend(gen_paths)
+            return paths
