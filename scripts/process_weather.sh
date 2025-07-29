@@ -28,7 +28,7 @@ fi
 if [ "$BC_ENABLE" -eq 1 ]; then
     uv run dart-pipeline process era5 "$ISO3-$ADMIN" "${START_YEAR}-${END_YEAR}" \
         temporal_resolution="$TEMPORAL_RESOLUTION" overwrite
-
+else
     uv run dart-pipeline process era5 "$ISO3-$ADMIN" "${START_YEAR}-${END_YEAR}" \
         temporal_resolution="$TEMPORAL_RESOLUTION" overwrite skip_correction
 fi
