@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Literal
 
 import xarray as xr
+import numpy as np
 
 from geoglue.region import gadm
 from geoglue.cds import ReanalysisSingleLevels, CdsPath
@@ -23,8 +24,7 @@ from ...paths import get_path
 from .util import (
     get_dataset_pool,
     prompt_cdsapi_key,
-    precipitation_weekly_dataset,
-    temperature_daily_dataset,
+    relative_humidity_from_arrays,
     parse_year_range,
     missing_tp_corrected_files,
 )
@@ -65,19 +65,46 @@ def era5_fetch(iso3: str, date: str) -> CdsPath | None:
 
 
 @register_process("era5.prep_bias_correct", multiple_years=True)
-def prep_bias_correct(iso3: str, date: str, profile: str) -> xr.Dataset:
+def prep_bias_correct(iso3: str, date: str) -> xr.Dataset:
     try:
         ystart, yend = date.split("-")
         ystart, yend = int(ystart), int(yend)
     except ValueError:
         raise ValueError("Date must be specified as a year range, e.g. 2000-2020")
-    match profile:
-        case "precipitation":
-            return precipitation_weekly_dataset(iso3, ystart, yend)
-        case "forecast":
-            return temperature_daily_dataset(iso3, ystart, yend)
-        case _:
-            raise ValueError(f"Unknown prep_bias_correct {profile=}")
+
+    pool = get_dataset_pool(iso3)
+
+    def _prep_year(year: int) -> xr.Dataset:
+        cds = pool[year]
+        print(cds.instant)
+        t2m = (
+            cds.instant.t2m.resample(valid_time="D")
+            .mean()
+            .rename({"valid_time": "time"})
+        )
+
+        # there is no d2m (dewpoint temperature), so we will create a random array
+        diff = xr.DataArray(
+            np.random.uniform(0, 10, size=t2m.shape), dims=t2m.dims, coords=t2m.coords
+        )
+        # and subtract this from t2m as dewpoint temperature is
+        # always less than air temperature
+        d2m = (t2m - diff).rename("d2m")
+        tp = cds.accum.tp.rename({"valid_time": "time"}).resample(time="D").sum()
+        r = relative_humidity_from_arrays(t2m, d2m).astype("float32")
+        r.attrs.update(
+            {
+                "standard_name": "relative_humidity",
+                "long_name": "Relative humidity",
+                "units": "percent",
+            }
+        )
+        return xr.Dataset({"t2m": t2m, "r": r, "tp": tp})
+
+    ds = _prep_year(ystart)
+    for y in range(ystart + 1, yend + 1):
+        ds = xr.concat([ds, _prep_year(y)], dim="time")
+    return ds
 
 
 def run_task(task: str, overwrite: bool = True) -> Path:
