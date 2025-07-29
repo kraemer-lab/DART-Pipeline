@@ -29,8 +29,13 @@ VARIABLES = [
     "tp",  # total precipitation
 ]
 
+# Variables to select from GRIB
 INSTANT_VARS = ["t2m", "d2m", "sp"]
 ACCUM_VARS = ["tp"]
+
+# Additional variables that should be treated as accum
+# i.e. perform cdo remapdis and area_weighted_sum
+ZONAL_STATS_ACCUM_VARS = ["tp", "tp_bc", "spi", "spi_bc", "spei", "spei_bc"]
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +85,7 @@ def zonal_stats(
     geom = region.read()
     operation = (
         "mean(coverage_weight=area_spherical_km2)"
-        if da.name not in ["tp", "tp_bc"]
+        if da.name not in ZONAL_STATS_ACCUM_VARS
         else "area_weighted_sum"
     )
     call = (
@@ -131,8 +136,12 @@ def forecast_zonal_stats(
     ds = xr.open_dataset(corrected_forecast_file, decode_timedelta=True).rename(
         {"lat": "latitude", "lon": "longitude"}
     )
-    instant_vars: list[str] = [str(v) for v in ds.data_vars if v not in ["tp", "tp_bc"]]
-    accum_vars: list[str] = [str(v) for v in ds.data_vars if v in ["tp", "tp_bc"]]
+    instant_vars: list[str] = [
+        str(v) for v in ds.data_vars if v not in ZONAL_STATS_ACCUM_VARS
+    ]
+    accum_vars: list[str] = [
+        str(v) for v in ds.data_vars if v in ZONAL_STATS_ACCUM_VARS
+    ]
 
     # write out instant and accum subsets for resampling
     ds[instant_vars].to_netcdf(corrected_forecast_instant)
