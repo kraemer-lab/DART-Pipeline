@@ -62,13 +62,17 @@ def specific_humidity(ds: xr.Dataset) -> xr.DataArray:
     )
 
 
-def relative_humidity(ds: xr.Dataset) -> xr.DataArray:
+def relative_humidity_from_arrays(t2m: xr.DataArray, d2m: xr.DataArray) -> xr.DataArray:
     da = (
-        mp.relative_humidity_from_dewpoint(ds.t2m * units.kelvin, ds.d2m * units.kelvin)
+        mp.relative_humidity_from_dewpoint(t2m * units.kelvin, d2m * units.kelvin)
         * 100
         * units.percent
     )
     return da.clip(0, 100)
+
+
+def relative_humidity(ds: xr.Dataset) -> xr.DataArray:
+    return relative_humidity_from_arrays(ds.t2m, ds.d2m)
 
 
 def pprint_ms(
