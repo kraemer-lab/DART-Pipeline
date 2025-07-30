@@ -11,4 +11,5 @@ fi
 . "$1"
 
 echo "==> Meta relative wealth index is a fixed snapshot, disregarding years"
+uv run dart-pipeline get meta.pop_density "$ISO3"
 uv run dart-pipeline get meta.relative_wealth_index "$ISO3-$ADMIN"
