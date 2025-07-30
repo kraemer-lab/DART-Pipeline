@@ -47,6 +47,7 @@ dev-dependencies = [
     "pytest-xdist>=3.6.1",
     "freezegun>=1.5",
     "ipykernel>=6.29.5",
+    "sphinxcontrib-mermaid>=1.0.0",
 ]
 
 [tool.uv.sources]
