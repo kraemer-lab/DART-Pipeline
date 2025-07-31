@@ -17,6 +17,12 @@ integration of multiple data sources are often limited to one data type or rely
 on proprietary data and software. DART Pipeline has been developed to address
 this gap and simplifies complex download, bias correction and aggregation steps.
 
+
+```{figure} pipeline.png
+
+Schematic diagram showing the data integration pipeline
+```
+
 ```{toctree}
 ---
 caption: Introduction
