@@ -8,6 +8,8 @@
 #
 set -eou pipefail
 
+BC_CLIP_PRECIP_PERCENTILE="${BC_CLIP_PRECIP_PERCENTILE:-0.99}"
+
 if [ "$#" -ne 1 ]; then
     echo "usage: $(basename "$0") config.sh"
     exit 1
@@ -49,5 +51,6 @@ echo -e "\033[1m==> Performing bias correction\033[0m"
 # shellcheck disable=SC2154
 for ((i=_fetch_start_year;i<=_fetch_end_year;i++))
 do
-  echo dart-bias-correct precipitation "$BC_PRECIP_REF" "$BC_HISTORICAL_OBS" "$ISO3-$i"
+  dart-bias-correct precipitation "$BC_PRECIP_REF" "$BC_HISTORICAL_OBS" \
+      "$ISO3-$i" --clip-precip-threshold="$BC_CLIP_PRECIP_PERCENTILE"
 done

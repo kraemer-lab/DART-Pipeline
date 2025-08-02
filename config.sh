@@ -30,6 +30,11 @@ BC_PRECIP_REF=vngp_regrid_era_full.nc
 # Historical forecast data downloaded from ECMWF MARS service
 BC_HISTORICAL_FORECAST=eefh_testv2_test_githubv1_3.nc
 
+# Percentile at which reference data is clipped for precipitation bias
+# correction. This is done to reduce the effect of outliers in bias correction
+# using quantile mapping.
+# BC_CLIP_PRECIP_PERCENTILE=0.99
+
 # Historical observations, containing the following variables
 # - t2m: 2m air temperature
 # -   r: Relative humidity

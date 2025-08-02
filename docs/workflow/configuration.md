@@ -51,6 +51,11 @@ BC_PRECIP_REF
 : Reference dataset for total precipitation, used in bias correction.
   **Example**: Dataset such as [REMOCLIC. 2016](https://search.diasjp.net/en/dataset/VnGP_010) that provides a reference precipitation dataset (for Vietnam)
 
+BC_CLIP_PRECIP_PERCENTILE
+: Percentile at which reference data is clipped for precipitation bias correction. This
+  is done to reduce the effect of outliers in bias correction using quantile mapping.
+  **Default**: 0.99
+
 BC_HISTORICAL_FORECAST
 : Historical forecast dataset from ECMWF MARS service.
   **Notes**: This is used for correcting forecast data. This data is not open-access.
