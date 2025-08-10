@@ -151,7 +151,7 @@ def forecast_zonal_stats(
         corrected_forecast_instant,
         corrected_forecast_accum,
     )
-    pop = get_worldpop("VNM", pop_year)
+    pop = get_worldpop(iso3, pop_year)
     raster_bbox = Bbox.from_xarray(ds)
     region_overlap = raster_bbox.overlap_fraction(region.bbox)
     if region_overlap < 0.80:
