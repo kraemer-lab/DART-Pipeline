@@ -152,12 +152,13 @@ def forecast_zonal_stats(
         corrected_forecast_accum,
     )
     pop = get_worldpop(iso3, pop_year)
+
+    # Check raster and population bounding boxes:
+    # If one is enclosed in the other, then crop, otherwise
+    # compute overlap fraction and show a warning if the bounding
+    # boxes have insufficient overlap
     raster_bbox = Bbox.from_xarray(ds)
-    region_overlap = raster_bbox.overlap_fraction(region.bbox)
-    if region_overlap < 0.80:
-        raise ValueError(
-            f"Insufficient overlap ({region_overlap:.1%}, expected 80%) between input raster and region bbox"
-        )
+
     if raster_bbox < pop.bbox:
         # Crop population to region bbox if region is smaller
         logger.warning(f"""Cropping larger population raster to smaller input raster
@@ -166,6 +167,18 @@ def forecast_zonal_stats(
         pop = pop.crop(raster_bbox)
         post_crop_overlap = raster_bbox.overlap_fraction(pop.bbox)
         logger.info(f"After cropping overlap fraction is {post_crop_overlap:.1%}")
+    elif pop.bbox < raster_bbox:
+        logger.warning(f"""Cropping larger climate raster to smaller population raster_bbox
+    Population bounds: {pop.bbox}
+        Raster bounds: {raster_bbox}""")
+        ds = ds.sel(latitude=pop.bbox.lat_slice, longitude=pop.bbox.lon_slice)
+    else:
+        region_overlap = raster_bbox.overlap_fraction(region.bbox)
+        if region_overlap < 0.80 and not (pop.bbox < raster_bbox):
+            raise ValueError(
+                f"Insufficient overlap ({region_overlap:.1%}, expected 80%) between input raster and region bbox"
+            )
+
     if not (instant_vars + accum_vars):
         raise ValueError(f"At least one variable must be passed, got {vars!r}")
     resampled_instant_path = get_path(
