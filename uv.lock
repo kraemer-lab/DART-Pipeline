@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.12'",
@@ -1021,7 +1021,7 @@ wheels = [
 [[package]]
 name = "geoglue"
 version = "0.1.0"
-source = { git = "https://github.com/kraemer-lab/geoglue#7cbfffb92d04ddfcb5226e173d3f0813d252b051" }
+source = { git = "https://github.com/kraemer-lab/geoglue#bea43ef43755740f034b18f7088f577d0f843145" }
 dependencies = [
     { name = "cdo" },
     { name = "cdsapi" },
