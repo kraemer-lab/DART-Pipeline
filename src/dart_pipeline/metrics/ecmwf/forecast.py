@@ -4,12 +4,12 @@ import logging
 import tempfile
 from pathlib import Path
 
+from geoglue.region import CountryAdministrativeLevel
 import numpy as np
 import xarray as xr
 import geoglue.zonal_stats
-from geoglue import MemoryRaster
+from geoglue import AdministrativeLevel, MemoryRaster
 from geoglue.types import Bbox
-from geoglue.region import gadm, Region
 from geoglue.resample import resample
 from tqdm import tqdm
 
@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 def zonal_stats(
     var: str,
     ds: xr.Dataset,
-    region: Region,
+    region: AdministrativeLevel,
     weights: MemoryRaster,
     ensemble_median: bool,
 ) -> xr.DataArray:
@@ -59,7 +59,7 @@ def zonal_stats(
     da : xr.Dataset
         xarray Dataset to perform zonal statistics on. Must have
         'latitude', 'longitude' and a time coordinate
-    region : geoglue.region.Region
+    region : geoglue.AdministrativeLevel
         Region for which to calculate zonal statistics
     weights : MemoryRaster
         Uses the specified raster to perform weighted zonal statistics
@@ -88,12 +88,13 @@ def zonal_stats(
         if da.name not in ZONAL_STATS_ACCUM_VARS
         else "area_weighted_sum"
     )
+    region_col = region.pk[region.admin]  # type: ignore
     call = (
         f"zonal_stats(da, {region.name}, {operation=}, {weights=}, {ensemble_median=})"
     )
     if ensemble_median:
         za = geoglue.zonal_stats.zonal_stats_xarray(
-            da.median("number"), geom, operation, weights, region_col=region.pk
+            da.median("number"), geom, operation, weights, region_col=region_col
         ).rename(da.name)
         x, y = za.shape
         if x * y == 0:
@@ -102,7 +103,7 @@ def zonal_stats(
         za = xr.concat(
             [
                 geoglue.zonal_stats.zonal_stats_xarray(
-                    da.sel(number=i), geom, operation, weights, region_col=region.pk
+                    da.sel(number=i), geom, operation, weights, region_col=region_col
                 ).rename(da.name)
                 for i in range(da.number.size)
             ],
@@ -119,20 +120,28 @@ def zonal_stats(
 
 
 def forecast_zonal_stats(
-    iso3: str, date: str, admin: int, ensemble_median: bool = True
+    region: CountryAdministrativeLevel, date: str, ensemble_median: bool = True
 ) -> xr.Dataset:
     corrected_forecast_file = get_path(
-        "sources", iso3, "ecmwf", f"{iso3}-{date}-ecmwf.forecast.corrected.nc"
+        "sources",
+        region.name,
+        "ecmwf",
+        f"{region.name}-{date}-ecmwf.forecast.corrected.nc",
     )
     corrected_forecast_instant = get_path(
-        "scratch", iso3, "ecmwf", f"{iso3}-{date}-ecmwf.forecast.corrected.instant.nc"
+        "scratch",
+        region.name,
+        "ecmwf",
+        f"{region.name}-{date}-ecmwf.forecast.corrected.instant.nc",
     )
     corrected_forecast_accum = get_path(
-        "scratch", iso3, "ecmwf", f"{iso3}-{date}-ecmwf.forecast.corrected.accum.nc"
+        "scratch",
+        region.name,
+        "ecmwf",
+        f"{region.name}-{date}-ecmwf.forecast.corrected.accum.nc",
     )
     cleanup = [corrected_forecast_instant, corrected_forecast_accum]
     pop_year = int(date.split("-")[0])
-    region = gadm(iso3, admin)
     ds = xr.open_dataset(corrected_forecast_file, decode_timedelta=True).rename(
         {"lat": "latitude", "lon": "longitude"}
     )
@@ -151,7 +160,7 @@ def forecast_zonal_stats(
         corrected_forecast_instant,
         corrected_forecast_accum,
     )
-    pop = get_worldpop("VNM", pop_year)
+    pop = get_worldpop(region, pop_year)
     raster_bbox = Bbox.from_xarray(ds)
     region_overlap = raster_bbox.overlap_fraction(region.bbox)
     if region_overlap < 0.80:
@@ -169,10 +178,16 @@ def forecast_zonal_stats(
     if not (instant_vars + accum_vars):
         raise ValueError(f"At least one variable must be passed, got {vars!r}")
     resampled_instant_path = get_path(
-        "scratch", iso3, "ecmwf", f"{iso3}-{date}-ecmwf.forecast.instant_resampled.nc"
+        "scratch",
+        region.name,
+        "ecmwf",
+        f"{region.name}-{date}-ecmwf.forecast.instant_resampled.nc",
     )
     resampled_accum_path = get_path(
-        "scratch", iso3, "ecmwf", f"{iso3}-{date}-ecmwf.forecast.accum_resampled.nc"
+        "scratch",
+        region.name,
+        "ecmwf",
+        f"{region.name}-{date}-ecmwf.forecast.accum_resampled.nc",
     )
     if instant_vars:
         logger.info("Performing zonal stats for %r", instant_vars)

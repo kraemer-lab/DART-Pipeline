@@ -4,10 +4,10 @@ import multiprocessing
 from pathlib import Path
 from typing import Literal
 
+from geoglue.region import AdministrativeLevel, ZonedBaseRegion
 import xarray as xr
 import numpy as np
 
-from geoglue.region import gadm
 from geoglue.cds import ReanalysisSingleLevels, CdsPath
 from tqdm import trange
 
@@ -18,7 +18,7 @@ from ...metrics import (
     print_paths,
 )
 from ...metrics.worldpop import get_worldpop
-from ...util import iso3_admin_unpack, msg
+from ...util import get_region, msg
 from ...paths import get_path
 
 from .util import (
@@ -54,25 +54,24 @@ foregoing.""",
 
 
 @register_fetch("era5")
-def era5_fetch(iso3: str, date: str) -> CdsPath | None:
-    iso3 = iso3.upper()
+def era5_fetch(region: ZonedBaseRegion, date: str) -> CdsPath | None:
     year = int(date)
     prompt_cdsapi_key()
     data = ReanalysisSingleLevels(
-        gadm(iso3, 1), VARIABLES, path=get_path("sources", iso3, "era5")
+        region, VARIABLES, path=get_path("sources", region, "era5")
     )
     return data.get(year)
 
 
 @register_process("era5.prep_bias_correct", multiple_years=True)
-def prep_bias_correct(iso3: str, date: str) -> xr.Dataset:
+def prep_bias_correct(region: ZonedBaseRegion, date: str) -> xr.Dataset:
     try:
         ystart, yend = date.split("-")
         ystart, yend = int(ystart), int(yend)
     except ValueError:
         raise ValueError("Date must be specified as a year range, e.g. 2000-2020")
 
-    pool = get_dataset_pool(iso3)
+    pool = get_dataset_pool(region)
 
     def _prep_year(year: int) -> xr.Dataset:
         cds = pool[year]
@@ -125,37 +124,49 @@ def run_task(task: str, overwrite: bool = True) -> Path:
         raise ValueError("run_task() is only defined for era5 metrics")
     metric = metric.removeprefix("era5.")
     year = int(parts.pop())
-    ystart_or_admin = int(parts.pop())
-    if ystart_or_admin not in [1, 2, 3]:
-        ystart = ystart_or_admin
+    ystart_or_adm = int(parts.pop())
+    adm = None
+    if ystart_or_adm not in [1, 2, 3]:
+        ystart = ystart_or_adm
     else:
-        admin = ystart_or_admin
-    iso3 = parts.pop()
+        adm = ystart_or_adm
+    region_name = parts.pop()
+    region = get_region(region_name)
+    if adm:  # select a specific AdministrativeLevel
+        region = region.admin(adm)
+
     bias_correct = "corrected" in task
     metric_stub = metric.replace("_corrected", "")
     if "gamma" in metric:
         output = get_path(
-            "output", iso3, "era5", f"{iso3}-{ystart}-{year}-era5.{metric}.nc"
+            "output", region, "era5", f"{region}-{ystart}-{year}-era5.{metric}.nc"
         )
     else:
         output = get_path(
-            "output", iso3, "era5", f"{iso3}-{admin}-{year}-era5.{metric}.weekly_sum.nc"
+            "output",
+            region,
+            "era5",
+            f"{region}-{admin}-{year}-era5.{metric}.weekly_sum.nc",
         )
     if not overwrite and output.exists():
         return output
     match (metric_stub, bias_correct):
         case ("spi.gamma", _):
-            ds = gamma_spi(iso3, f"{ystart}-{year}", bias_correct=bias_correct)
+            ds = gamma_spi(region, f"{ystart}-{year}", bias_correct=bias_correct)
         case ("spei.gamma", _):
-            ds = gamma_spei(iso3, f"{ystart}-{year}", bias_correct=bias_correct)
+            ds = gamma_spei(region, f"{ystart}-{year}", bias_correct=bias_correct)
         case ("spi", False):
-            ds = process_spi(f"{iso3}-{admin}", str(year))
+            assert isinstance(region, AdministrativeLevel)
+            ds = process_spi(region, str(year))
         case ("spi", True):
-            ds = process_spi_corrected(f"{iso3}-{admin}", str(year))
+            assert isinstance(region, AdministrativeLevel)
+            ds = process_spi_corrected(region, str(year))
         case ("spei", False):
-            ds = process_spei_uncorrected(f"{iso3}-{admin}", str(year))
+            assert isinstance(region, AdministrativeLevel)
+            ds = process_spei_uncorrected(region, str(year))
         case ("spei", True):
-            ds = process_spei_corrected(f"{iso3}-{admin}", str(year))
+            assert isinstance(region, AdministrativeLevel)
+            ds = process_spei_corrected(region, str(year))
     if ds is None:
         raise RuntimeError(f"Task processing failed for {task}")
     ds.to_netcdf(output)
@@ -178,7 +189,7 @@ def run_tasks(
 
 @register_process("era5", multiple_years=True)
 def process_era5(
-    iso3: str,
+    region: AdministrativeLevel,
     date: str,
     skip_correction: bool = False,
     temporal_resolution: Literal["weekly", "daily"] = "daily",
@@ -188,7 +199,7 @@ def process_era5(
 
     Parameters
     ----------
-    iso3 : str
+    region : str
         Country code or region name
     date : str
         Range of years to calculate ERA5 metrics
@@ -210,24 +221,22 @@ def process_era5(
         logger.warning("""Keeping existing files, this may lead to incorrect or not updated data.
         For final release, always run with 'overwrite'""")
     ystart, yend = parse_year_range(date, warn_duration_less_than_years=15)
-    iso3, admin = iso3_admin_unpack(iso3)
-    region = gadm(iso3, admin)
     yrange_str = f"{ystart}-{yend}"
 
     # Get population data for year range
     msg("==> Retrieving Worldpop population:", yrange_str)
     for year in range(ystart, yend + 1):
-        get_worldpop(iso3, year)
-    pool = get_dataset_pool(iso3)
+        get_worldpop(region, year)
+    pool = get_dataset_pool(region)
     required_years = set(range(ystart, yend + 1))
     present_years = set(pool.years)
     if not required_years < present_years:
         raise FileNotFoundError(
             f"""Requested year range {ystart}-{yend}, but files missing for years: {", ".join(map(str, required_years - present_years))}
-    Use `uv run dart-pipeline get era5 {iso3} <year>` to download data for <year>"""
+    Use `uv run dart-pipeline get era5 {region} <year>` to download data for <year>"""
         )
     if not skip_correction and (
-        missing_tp_corrected := missing_tp_corrected_files(iso3, required_years)
+        missing_tp_corrected := missing_tp_corrected_files(region, required_years)
     ):
         raise FileNotFoundError(
             "Calculation for bias corrected metrics requested, but missing tp_corrected_files:"
@@ -239,11 +248,11 @@ def process_era5(
         )
 
     gamma_tasks = [
-        f"{iso3}-{ystart}-{yend}-era5.{index}.gamma" for index in ["spi", "spei"]
+        f"{region}-{ystart}-{yend}-era5.{index}.gamma" for index in ["spi", "spei"]
     ]
     if not skip_correction:
         gamma_tasks += [
-            f"{iso3}-{ystart}-{yend}-era5.{index}_corrected.gamma"
+            f"{region}-{ystart}-{yend}-era5.{index}_corrected.gamma"
             for index in ["spi", "spei"]
         ]
 
@@ -252,13 +261,13 @@ def process_era5(
     paths = run_tasks("GAMMA", gamma_tasks, overwrite=overwrite)
 
     index_tasks = [
-        f"{iso3}-{admin}-{year}-era5.{index}"
+        f"{region.name}-{region.admin}-{year}-era5.{index}"
         for year in range(ystart, yend + 1)
         for index in ["spi", "spei"]
     ]
     if not skip_correction:
         index_tasks += [
-            f"{iso3}-{admin}-{year}-era5.{index}_corrected"
+            f"{region.name}-{region.admin}-{year}-era5.{index}_corrected"
             for year in range(ystart, yend + 1)
             for index in ["spi", "spei"]
         ]
@@ -274,17 +283,25 @@ def process_era5(
             msg("==> Calculating core metrics (weekly):", yrange_str)
             for year in trange(ystart, yend + 1, desc="era5.core_weekly"):
                 y_output = get_path(
-                    "output", iso3, "era5", f"{iso3}-{admin}-{year}-era5.core_weekly.nc"
+                    "output",
+                    region,
+                    "era5",
+                    f"{region.name}-{region.admin}-{year}-era5.core_weekly.nc",
                 )
                 if overwrite or not y_output.exists():
-                    y_zs = era5_process_core_weekly(f"{iso3}-{admin}", str(year))
+                    y_zs = era5_process_core_weekly(region, str(year))
                     y_zs.to_netcdf(y_output)
                 paths.append(y_output)
 
             msg("==> Collating metrics:", yrange_str)
-            ds = MetricCollection(f"{iso3}-{admin}").collate((ystart, yend))
+            ds = MetricCollection(f"{region.name}-{region.admin}").collate(
+                (ystart, yend)
+            )
             output = get_path(
-                "output", iso3, "era5", f"{iso3}-{admin}-{ystart}-{yend}-era5.nc"
+                "output",
+                region,
+                "era5",
+                f"{region.name}-{region.admin}-{ystart}-{yend}-era5.nc",
             )
             ds.attrs["DART_region"] = (
                 f"{region.name} {region.pk} {region.tz} {region.bbox.int()}"
@@ -295,11 +312,14 @@ def process_era5(
             msg("==> Calculating core metrics (daily):", yrange_str)
             for year in trange(ystart, yend + 1, desc="era5.core_daily"):
                 y_output = get_path(
-                    "output", iso3, "era5", f"{iso3}-{admin}-{year}-era5.core_daily.nc"
+                    "output",
+                    region,
+                    "era5",
+                    f"{region.name}-{region.admin}-{year}-era5.core_daily.nc",
                 )
                 gen_paths = []
                 if overwrite or not y_output.exists():
-                    gen_paths = era5_process_core_daily(f"{iso3}-{admin}", str(year))
+                    gen_paths = era5_process_core_daily(region, str(year))
                     # y_zs.to_netcdf(y_output)
                 paths.extend(gen_paths)
             return paths

@@ -6,11 +6,10 @@ from datetime import datetime, date
 
 import ecmwf.opendata
 import requests.exceptions
-from geoglue.region import gadm
+from geoglue.region import AdministrativeLevel, BaseRegion
 
 from ...paths import get_path
 from ...metrics import register_metrics, register_fetch, register_process, MetricInfo
-from ...util import iso3_admin_unpack
 
 from .forecast import VARIABLES, forecast_grib_to_netcdf, forecast_zonal_stats
 
@@ -40,7 +39,7 @@ def forecast_path(date: str | date) -> Path:
 
 @register_fetch("ecmwf.forecast")
 def get_forecast_open_data(
-    iso3: str,
+    region: BaseRegion,
     date: str | None = None,
     start_hour: int = 0,
     step_hours: int = 6,
@@ -54,8 +53,8 @@ def get_forecast_open_data(
 
     Parameters
     ----------
-    iso3 : str
-        ISO3 code of country
+    region : BaseRegion
+        Get ECMWF forecast data for region
     date : str
         Date in ISO format (YYYY-MM-DD) for which to download forecast,
         can be today or at most 4 days in the past. Default is to use today's forecast
@@ -75,8 +74,6 @@ def get_forecast_open_data(
         file each for instant (named ``*.instant.nc``), and accumulative
         variables (``*.accum.nc``).
     """
-    if "-" in iso3:
-        iso3, _ = iso3_admin_unpack(iso3)  # ignore admin
     date = date or datetime.today().date().isoformat()
     if start_hour not in VALID_START_HOURS:
         raise ValueError(
@@ -117,12 +114,11 @@ def get_forecast_open_data(
         logger.info("Downloaded forecast in: %s", output_path)
     else:
         logger.info("Using already retrieved forecast file: %s", output_path)
-    region = gadm(iso3, 1)
     extents = region.bbox.int()
     instant, accum = forecast_grib_to_netcdf(forecast_path(date), extents)
-    sources_path = get_path("sources", iso3, "ecmwf")
-    instant_file = sources_path / f"{iso3}-{date}-ecmwf.forecast.instant.nc"
-    accum_file = sources_path / f"{iso3}-{date}-ecmwf.forecast.accum.nc"
+    sources_path = get_path("sources", region.name, "ecmwf")
+    instant_file = sources_path / f"{region.name}-{date}-ecmwf.forecast.instant.nc"
+    accum_file = sources_path / f"{region.name}-{date}-ecmwf.forecast.accum.nc"
     instant.to_netcdf(instant_file)
     logger.info("Wrote %s", instant_file)
     accum.to_netcdf(accum_file)
@@ -131,12 +127,14 @@ def get_forecast_open_data(
 
 
 @register_process("ecmwf.forecast")
-def process_forecast(iso3: str, date: str) -> list[Path]:
+def process_forecast(region: AdministrativeLevel, date: str) -> list[Path]:
     "Processes corrected forecast (run after dart-bias-correct)"
 
-    iso3, admin = iso3_admin_unpack(iso3)
     corrected_forecast_file = get_path(
-        "sources", iso3, "ecmwf", f"{iso3}-{date}-ecmwf.forecast.corrected.nc"
+        "sources",
+        region.name,
+        "ecmwf",
+        f"{region.name}-{date}-ecmwf.forecast.corrected.nc",
     )
     if not corrected_forecast_file.exists():
         raise FileNotFoundError(f"""Corrected forecast file not found at expected location:
@@ -144,9 +142,12 @@ def process_forecast(iso3: str, date: str) -> list[Path]:
         See https://dart-pipeline.readthedocs.io/en/latest/corrected-forecast.html for information
         on how to generate this file
         """)
-    ds = forecast_zonal_stats(iso3, date, admin)
+    ds = forecast_zonal_stats(region, date)
     output = get_path(
-        "output", iso3, "ecmwf", f"{iso3}-{admin}-{date}-ecmwf.forecast.nc"
+        "output",
+        region.name,
+        "ecmwf",
+        f"{region.name}-{region.admin}-{date}-ecmwf.forecast.nc",
     )
     ds.to_netcdf(output)
     return [output]

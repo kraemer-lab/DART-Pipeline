@@ -10,10 +10,18 @@ import xarray as xr
 import pandas as pd
 import geoglue.util
 import geoglue.zonal_stats
+from geoglue import AdministrativeLevel
 from geoglue.memoryraster import MemoryRaster
 
 from ..paths import get_path
-from ..util import abort, download_files, logfmt, determine_netcdf_filename
+from ..util import (
+    WORLD,
+    abort,
+    download_files,
+    get_region,
+    logfmt,
+    determine_netcdf_filename,
+)
 from ..types import DataFile, URLCollection, InvalidCounts
 
 logger = logging.getLogger(__name__)
@@ -36,18 +44,18 @@ To fetch data for a particular metric, run
 
 .. code-block::
 
-   uv run dart-pipeline get metric ISO3-admin YYYY param=value
+   uv run dart-pipeline get metric REGION-admin YYYY param=value
 
 where ``param`` and ``value`` refer to optional parameters and their values
 that are passed directly to the appropriate function. The first parameter
-specifies the ISO3 code of the country and the administrative level (1, 2, or
+specifies the region code or ISO3 code of the country and the administrative level (1, 2, or
 3) to aggregate data to. The second parameter is usually the year (can also be
 the date) for which to download and process data. If a processor exists, it is
 invoked automatically, or can be manually invoked by:
 
 .. code-block::
 
-   uv run dart-pipeline process metric ISO3-admin YYYY param=value
+   uv run dart-pipeline process metric REGION-admin YYYY param=value
 
 Note that weather data from the ``era5`` source is not automatically processed
 as fetching takes a long time. For this case run the get and process steps
@@ -208,9 +216,9 @@ def get(
     if missing_params := non_default_params - set(kwargs):
         abort(metric, f"missing required parameters {missing_params}")
 
-    iso3 = kwargs.get("iso3", "WLD")  # assume entire world if no iso3 code found
-    iso3 = iso3.split("-")[0]  # split out admin part
-    path = get_path("sources", iso3)
+    region_name = kwargs.get("region")
+    region = get_region(region_name) if region_name else WORLD
+    path = get_path("sources", region)
     links = FETCHERS[metric](**kwargs)
     links = links if isinstance(links, list) else [links]
     if isinstance(links[0], (DataFile, Path)) or not links[0]:
@@ -218,16 +226,16 @@ def get(
     if isinstance(links[0], URLCollection):
         links = cast(list[URLCollection], links)
         for coll in links:
-            logger.info("Fetching %s [%s]: %r", metric, iso3, coll)
+            logger.info("Fetching %s [%s]: %r", metric, region, coll)
             coll.relative_path = metric.replace(".", "/")
             success = download_files(coll, path, auth=None, unpack=True)
             n_ok = sum(success)
             if n_ok == len(success):
-                logger.info("Fetch %s [%s] OK", metric, iso3)
+                logger.info("Fetch %s [%s] OK", metric, region)
             elif n_ok > 0:
                 logger.warning(f"Fetch partial {metric} [{n_ok}/{len(success)} OK]")
             else:
-                logger.error("Fetch %s [%s] failed", metric, iso3)
+                logger.error("Fetch %s [%s] failed", metric, region)
     if not skip_process and metric in PROCESSORS and metric not in SKIP_AUTO_PROCESS:
         process(metric, **kwargs)
 
@@ -281,7 +289,7 @@ def process(metric: str, **kwargs) -> list[Path]:
     assert not isinstance(res, list)
     match res:
         case pd.DataFrame():
-            iso3 = res.ISO3.unique()[0]
+            region = res.DART_REGION.unique()[0]
             data_metric = res.metric.unique()[0]
             admin = int(res.attrs["admin"])
             assert admin in [1, 2, 3], f"Invalid administrative level {admin=}"
@@ -291,15 +299,15 @@ def process(metric: str, **kwargs) -> list[Path]:
                 )
             date_signifier = determine_date_signifier(res.date)
             outfile = (
-                get_path("output", iso3, source)
-                / f"{iso3}-{admin}-{date_signifier}-{data_metric}.parquet"
+                get_path("output", region, source)
+                / f"{region}-{admin}-{date_signifier}-{data_metric}.parquet"
             )
             res.to_parquet(outfile, index=False)
             logger.info("output %s %s", metric, print_path(outfile))
             return [outfile]
         case xr.Dataset() | xr.DataArray():
-            iso3 = kwargs["iso3"].split("-")[0]
-            outfile = get_path("output", iso3, source) / determine_netcdf_filename(
+            region = kwargs["region"].split("-")[0]
+            outfile = get_path("output", region, source) / determine_netcdf_filename(
                 metric, **kwargs
             )
             res.to_netcdf(outfile)
@@ -310,10 +318,10 @@ def process(metric: str, **kwargs) -> list[Path]:
 
 
 def find_metrics(
-    metric: str, iso3: str | None = None, date: int | str | None = None
+    metric: str, region: str | None = None, date: int | str | None = None
 ) -> list[Path]:
     "Lists output files that match metric"
-    main = iso3 if iso3 else "global"
+    main = region if region else "global"
     source = metric.split(".")[0]
     glob = f"{main}-{date}-{metric}.*" if date else f"{main}-{metric}.*"
     return list(get_path("output", main, source).glob(glob))
@@ -335,13 +343,13 @@ def show_path(m: Path):
 
 
 def find_metric(
-    metric: str, iso3: str | None = None, date: str | None = None
+    metric: str, region: str | None = None, date: str | None = None
 ) -> pd.DataFrame | xr.Dataset | dict | Path:
     "Reads in metric if only one match found"
 
-    ms = find_metrics(metric, iso3, date)
+    ms = find_metrics(metric, region, date)
     if len(ms) > 1:
-        raise ValueError(f"No unique data file found for {metric=}, {iso3=}, {date=}")
+        raise ValueError(f"No unique data file found for {metric=}, {region=}, {date=}")
     m = ms[0]
     match m.suffix:
         case ".nc":
@@ -357,27 +365,27 @@ def find_metric(
 
 
 def get_gamma_params(
-    iso3: str, index: str, yrange: tuple[int, int] | None = None
+    region: AdministrativeLevel, index: str, yrange: tuple[int, int] | None = None
 ) -> xr.Dataset:
     info = "See https://dart-pipeline.readthedocs.io/en/latest/standardised_indices.html for more information"
-    root = get_path("output", iso3, "era5")
+    root = get_path("output", region.name, "era5")
     if yrange:
         ystart, yend = yrange
-        output_file = root / f"{iso3}-{ystart}-{yend}-era5.{index}.gamma.nc"
+        output_file = root / f"{region.name}-{ystart}-{yend}-era5.{index}.gamma.nc"
         if not output_file.exists():
             raise FileNotFoundError(
                 f"Could not find gamma parameters at: {output_file}\n\t{info}"
             )
     else:
         # find the first matching gamma parameters file
-        output_files = list(root.glob(f"{iso3}-*-era5.{index}.gamma.nc"))
+        output_files = list(root.glob(f"{region.name}-*-era5.{index}.gamma.nc"))
         if not output_files:
             raise FileNotFoundError(
                 f"Could not find gamma parameters at: {root}\n\t{info}"
             )
         if len(output_files) > 1:
             logger.warning(
-                f"Multiple gamma parameters found for {iso3} {index=}, selecting the first one"
+                f"Multiple gamma parameters found for {region} {index=}, selecting the first one"
             )
         output_file = output_files[0]
 
@@ -599,7 +607,7 @@ def zonal_stats(
 def zonal_stats_xarray(
     metric: str,
     da: xr.DataArray,
-    region: geoglue.region.Region,
+    region: geoglue.AdministrativeLevel,
     operation: str = "mean(coverage_weight=area_spherical_km2)",
     weights: MemoryRaster | None = None,
     fix_array: bool = False,
@@ -656,7 +664,7 @@ def zonal_stats_xarray(
         geoglue.util.set_lonlat_attrs(da)  # type: ignore
     geom = region.read()
     za = geoglue.zonal_stats.zonal_stats_xarray(
-        da, geom, operation, weights, region_col=region.pk
+        da, geom, operation, weights, region_col=region.pk[region.admin]
     )
     x, y = za.shape
     call = f"zonal_stats({metric!r}, {da.name!r}, region, {operation=}, {weights=})"

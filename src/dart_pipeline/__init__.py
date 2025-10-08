@@ -70,9 +70,9 @@ To find out if a processor or a getter requires parameters, run without
 parameters:
     $ uv run dart-pipeline process worldpop.pop_count
     2025-05-14 17:09:23,362 INFO [root] Processing worldpop.pop_count
-    ❗worldpop.pop_count missing required parameters {"date", "iso3"}
+    ❗worldpop.pop_count missing required parameters {"date", "region"}
 
-Only the iso3 and date parameters can be passed positionally. For any
+Only the region and date parameters can be passed positionally. For any
 other parameters, use ``param=value``.
 [PATHS]
 
@@ -98,8 +98,8 @@ def parse_params(params: list[str]) -> dict[str, str | int]:
     Including a parameter such as `data=hello` on the command line will result
     in it being parsed as a dictionary: `{'data': 'hello'}`.
 
-    The first parameter, if present, is *always* interpreted as either an iso3
-    code or a iso3 code paired with an admin level (1, 2, or 3), separated by a
+    The first parameter, if present, is *always* interpreted as either an region
+    code (which can be an ISO3 code) paired with an admin level (1, 2, or 3), separated by a
     hyphen, e.g. VNM or VNM-2.
 
     The second positional parameter, if present, is interpreted as a year or
@@ -108,8 +108,8 @@ def parse_params(params: list[str]) -> dict[str, str | int]:
     out = {}
     if not params:
         return {}
-    iso3 = params.pop(0)
-    out: dict[str, str | int | bool] = {"iso3": iso3}
+    region = params.pop(0)
+    out: dict[str, str | int | bool] = {"region": region}
     if params and "=" not in params[0]:
         out["date"] = params.pop(0)
     for param in params:
@@ -135,7 +135,7 @@ def main():
         "get",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         help="Get files for a metric or source",
-        epilog="ISO3 code must be specified, optionally with admin level such as VNM-2",
+        epilog="Region (or ISO3) code must be specified, optionally with admin level such as VNM-2",
     )
     get_parser.add_argument("metric", help="source to get files for")
     get_parser.add_argument(
@@ -150,7 +150,7 @@ def main():
         help="Process a source",
         usage="dart-pipeline process [-h] source [**kwargs]",
         description="Process a source with optional keyword arguments.",
-        epilog="""ISO3 code must be specified, optionally with admin level such as VNM-2
+        epilog="""Region (or ISO3) code must be specified, optionally with admin level such as VNM-2
 
         Boolean flags:
           plots              plots will be created

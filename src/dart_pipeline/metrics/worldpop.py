@@ -8,12 +8,12 @@ from urllib.parse import urljoin
 import requests
 import xarray as xr
 import pandas as pd
-from geoglue.region import gadm
 from geoglue.memoryraster import MemoryRaster
+from geoglue.region import BaseCountry, CountryAdministrativeLevel
 from functools import cache
 
 from ..paths import get_path
-from ..util import iso3_admin_unpack, download_file
+from ..util import VALID_ISO3, download_file
 from ..metrics import register_metrics, register_fetch, register_process
 
 WORLDPOP_ROOT = "https://data.worldpop.org/GIS/Population/"
@@ -55,15 +55,17 @@ register_metrics(
 
 
 @cache
-def get_worldpop(iso3: str, year: int, dataset: str | None = None) -> MemoryRaster:
+def get_worldpop(
+    region: BaseCountry, year: int, dataset: str | None = None
+) -> MemoryRaster:
     """
     Downloads and returns WorldPop population raster (1km resolution)
     for a particular year and WorldPop dataset.
 
     Parameters
     ----------
-    iso3 : str
-        ISO3 code of country
+    region : geoglue.region.BaseRegion
+        Region for which to download population data
     year : int
         Year for which to download data
     dataset : str | None
@@ -99,6 +101,11 @@ def get_worldpop(iso3: str, year: int, dataset: str | None = None) -> MemoryRast
     MemoryRaster
         MemoryRaster representing the population data
     """
+    if (iso3 := region.name.upper()) not in VALID_ISO3:
+        raise ValueError(f"Not a valid country ISO3 code: {iso3}")
+
+    iso3 = region.name.upper()
+    iso3_lower = iso3.lower()
     if dataset is None:
         if 2000 <= year <= 2020:
             dataset = "default"
@@ -120,7 +127,7 @@ def get_worldpop(iso3: str, year: int, dataset: str | None = None) -> MemoryRast
             f"get_worldpop(): dataset 'future' selected for {year=}, consider using actual data using dataset='default'"
         )
 
-    path_population = get_path("sources", iso3, "worldpop")
+    path_population = get_path("sources", region.name, "worldpop")
     template = (
         string.Template(WORLDPOP_DATASETS[dataset])
         if dataset in WORLDPOP_DATASETS
@@ -128,7 +135,7 @@ def get_worldpop(iso3: str, year: int, dataset: str | None = None) -> MemoryRast
     )
     assert set(template.get_identifiers()) <= {"iso3", "iso3_lower", "year"}
     url_fragment = template.substitute(
-        {"iso3": iso3.upper(), "iso3_lower": iso3.lower(), "year": year}
+        {"iso3": iso3, "iso3_lower": iso3_lower, "year": year}
     )
     path_population.mkdir(parents=True, exist_ok=True)
     url = urljoin(WORLDPOP_ROOT, url_fragment)
@@ -140,23 +147,21 @@ def get_worldpop(iso3: str, year: int, dataset: str | None = None) -> MemoryRast
 
 
 @register_fetch("worldpop.pop_count")
-def worldpop_pop_count_fetch(iso3: str, date: str) -> Literal[False]:
+def worldpop_pop_count_fetch(region: BaseCountry, date: str) -> Literal[False]:
     "Fetch worldpop count data"
 
-    if "-" in iso3:
-        iso3, _ = iso3.split("-")
     year = int(date)
-    _ = get_worldpop(iso3, year)
+    _ = get_worldpop(region, year)
 
     return False  # ensures that dart-pipeline get skips processing
 
 
 @register_process("worldpop.pop_count")
-def worldpop_pop_count_process(iso3: str, date: str) -> xr.DataArray:
-    iso3, admin = iso3_admin_unpack(iso3)
+def worldpop_pop_count_process(
+    region: CountryAdministrativeLevel, date: str
+) -> xr.DataArray:
     year = int(date)
-    population = get_worldpop(iso3, year)
-    region = gadm(iso3, admin)
+    population = get_worldpop(region, year)
     geom = region.read()
     include_cols = [c for c in geom.columns if c != "geometry"]
     df = population.zonal_stats(geom, "sum", include_cols=include_cols).rename(

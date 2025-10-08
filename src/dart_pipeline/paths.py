@@ -7,8 +7,12 @@ from typing import Literal
 
 if platform.system() == "Windows":
     DATA_HOME = Path(os.getenv("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
+    CONFIG_HOME = DATA_HOME
 else:
     DATA_HOME = Path(os.getenv("XDG_DATA_HOME", Path.home() / ".local" / "share"))
+    CONFIG_HOME = Path(os.getenv("XDG_CONFIG_HOME", Path.home() / ".config"))
+
+CONFIG_REGION = CONFIG_HOME / "regions.toml"
 
 
 def get_path(section: Literal["sources", "output", "scratch"], *args) -> Path:

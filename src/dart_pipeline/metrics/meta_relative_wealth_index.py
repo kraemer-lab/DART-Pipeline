@@ -8,8 +8,6 @@ ted-relative-wealth-index
 Originally adapted by Prathyush Sambaturu.
 """
 
-import functools
-import multiprocessing
 import logging
 from typing import Final
 
@@ -17,14 +15,13 @@ import xarray as xr
 from pyquadkey2 import quadkey
 from shapely.geometry import Point
 import requests
-import geopandas as gpd
 import pandas as pd
 from bs4 import BeautifulSoup
 
-from geoglue.region import gadm
+from geoglue.region import BaseCountry, CountryAdministrativeLevel
 
 from ..types import URLCollection
-from ..util import get_country_name, iso3_admin_unpack
+from ..util import get_country_name
 from ..paths import get_path
 from ..metrics import register_metrics, register_fetch, register_process
 
@@ -61,28 +58,27 @@ register_metrics(
 
 
 @register_fetch("meta.pop_density")
-def meta_pop_density_data(iso3: str) -> URLCollection:
+def meta_pop_density_data(region: BaseCountry) -> URLCollection:
     """
     Download Population Density Maps from Data for Good at Meta.
 
     Documentation:
     https://dataforgood.facebook.com/dfg/docs/high-resolution-population-density-maps-demographic-estimates-documentation
     """
-    if "-" in iso3:
-        iso3, _ = iso3_admin_unpack(iso3)
-    country = get_country_name(iso3)
+    assert region.iso3 is not None
+    country_name = get_country_name(region.iso3)
     # Main webpage
     url = (
         "https://data.humdata.org/dataset/"
-        f"{country.lower().replace(' ', '-')}-high-resolution-population-"
+        f"{country_name.lower().replace(' ', '-')}-high-resolution-population-"
         "density-maps-demographic-estimates"
     )
-    logger.info("Collecting links for meta.pop_density [%s]: %s", iso3, url)
+    logger.info("Collecting links for meta.pop_density [%s]: %s", region.iso3, url)
     if (response := requests.get(url)).status_code == 200:
         # Search for a URL in the HTML content
         soup = BeautifulSoup(response.text, "html.parser")
         # Find all anchor tags (<a>) with href attribute containing the ISO3
-        target = iso3.lower()
+        target = region.iso3.lower()
         if links := soup.find_all("a", href=lambda href: href and target in href):  # type: ignore
             return URLCollection(
                 "https://data.humdata.org",
@@ -101,7 +97,7 @@ def meta_pop_density_data(iso3: str) -> URLCollection:
 
 
 @register_fetch("meta.relative_wealth_index")
-def fetch_relative_wealth_index(iso3: str) -> URLCollection:
+def fetch_relative_wealth_index(region: BaseCountry) -> URLCollection:
     """This dataset contains the relative wealth index, which is the relative
     standard of living, obtained from connectivity data, satellite imagery and
     other sources. Cite the following if using this dataset:
@@ -114,9 +110,7 @@ def fetch_relative_wealth_index(iso3: str) -> URLCollection:
     Upstream URL: https://data.humdata.org/dataset/relative-wealth-index
     """
     # Validate input parameter
-    iso3, _ = iso3_admin_unpack(iso3)
-    if not iso3:
-        raise ValueError("No ISO3 code has been provided")
+    assert region.iso3 is not None
 
     # Search the webpage for the link(s) to the dataset(s)
     url = "https://data.humdata.org/dataset/relative-wealth-index"
@@ -124,7 +118,7 @@ def fetch_relative_wealth_index(iso3: str) -> URLCollection:
         # Search for a URL in the HTML content
         soup = BeautifulSoup(r.text, "html.parser")
         # Find all anchor tags (<a>) with href attribute containing the ISO3
-        target = iso3.lower()
+        target = region.iso3.lower()
         links = soup.find_all("a", href=lambda href: href and target in href)  # type: ignore
         # Return the first link found
         if links:
@@ -178,7 +172,7 @@ def get_admin_region(lat: float, lon: float, polygons) -> str:
 
 
 @register_process("meta.relative_wealth_index")
-def process_gadm_popdensity_rwi(iso3: str) -> xr.DataArray:
+def process_popdensity_rwi(region: CountryAdministrativeLevel) -> xr.DataArray:
     """
     Process population-weighted Relative Wealth Index and geospatial data.
 
@@ -190,49 +184,53 @@ def process_gadm_popdensity_rwi(iso3: str) -> xr.DataArray:
 
     Originally adapted by Prathyush Sambaturu.
     """
-
-    iso3, admin_level = iso3_admin_unpack(iso3)
+    assert region.iso3 is not None
     # Zoom level 14 is ~2.4km Bing tile
     zoom_level: Final[int] = 14
 
     # Population density only available for 2020
     year: Final[int] = 2020
 
-    region = gadm(iso3, admin_level)
     shapefile = region.read()
     population_path = get_path(
-        "sources", iso3, "meta", "pop_density", f"{iso3.lower()}_general_2020.csv"
+        "sources",
+        region.name,
+        "meta",
+        "pop_density",
+        f"{region.name.lower()}_general_2020.csv",
     )
+    print("POPULATION PATH", population_path)
     if not population_path.exists():
         raise FileNotFoundError(f"""Population density file not found at {population_path}
-Run `uv run dart-pipeline get meta.pop_density {iso3}` to fetch data""")
+Run `uv run dart-pipeline get meta.pop_density {region.iso3}` to fetch data""")
 
     # Get the polygons from the shape file and create a dictionary mapping the
     # region IDs to their polygon geometries
-    admin_geoid = f"GID_{admin_level}"
+    admin_geoid = region.pk
     polygons = dict(zip(shapefile[admin_geoid], shapefile["geometry"]))
 
     logger.info(
         "Reading meta.relative_wealth_index [%s] %r",
-        iso3,
+        region.name,
         path := get_path(
             "sources",
-            iso3,
+            region.name,
             "meta",
             "relative_wealth_index",
-            f"{iso3.lower()}_relative_wealth_index.csv",
+            f"{region.name.lower()}_relative_wealth_index.csv",
         ),
     )
+    print("RWI PATH", path)
     rwi = pd.read_csv(path)
     # Assign each RWI value to an administrative region
-    rwi["geo_id"] = rwi.apply(lambda x: get_geo_id(x, polygons), axis=1)
+    rwi["geo_id"] = rwi.apply(get_geo_id, axis=1, args=(polygons,))
     rwi = rwi[rwi["geo_id"] != "null"]
-    rwi["quadkey"] = rwi.apply(lambda x: get_quadkey(x, zoom_level), axis=1)
+    rwi["quadkey"] = rwi.apply(get_quadkey, axis=1, args=(zoom_level,))
 
-    logger.info("Reading meta.pop_density [%s] %r", iso3, population_path)
+    logger.info("Reading meta.pop_density [%s] %r", region.name, population_path)
     population = pd.read_csv(population_path)
     population = population.rename(
-        columns={f"{iso3.lower()}_general_{year}": f"pop_{year}"}
+        columns={f"{region.name.lower()}_general_{year}": f"pop_{year}"}
     )
     # Aggregates the data by Bing tiles at zoom level 14
     population["quadkey"] = population.apply(
@@ -253,7 +251,7 @@ Run `uv run dart-pipeline get meta.pop_density {iso3}` to fetch data""")
     rwi = shapefile.merge(geo_rwi, left_on=admin_geoid, right_on="geo_id")
 
     rwi = rwi.rename(
-        columns={"GID_0": "ISO3", "rwi_weight": "value", f"GID_{admin_level}": "region"}
+        columns={"GID_0": "ISO3", "rwi_weight": "value", region.pk: "region"}
     ).drop("geometry", axis=1)
     series = (
         rwi[["region", "value"]]
@@ -266,75 +264,3 @@ Run `uv run dart-pipeline get meta.pop_density {iso3}` to fetch data""")
         {"DART_region": str(region), "long_name": "Relative wealth index", "units": "1"}
     )
     return rwi_a.expand_dims(time=[pd.Timestamp("2021")])
-
-
-def process_rwi_point_estimate(iso3: str) -> float:
-    """Process Relative Wealth Index data only."""
-    iso3 = iso3.upper()
-    logger.info("iso3:%s", iso3)
-    country = get_country_name(iso3)
-    logger.info("country:%s", country)
-
-    # Import the Relative Wealth Index data
-    path = get_path("sources", "meta", f"{iso3.lower()}_relative_wealth_index.csv")
-    logger.info("importing:%s", path)
-    rwi = pd.read_csv(path)
-
-    # Convert to GeoDataFrame
-    gdf = gpd.GeoDataFrame(
-        rwi,
-        geometry=gpd.points_from_xy(rwi["longitude"], rwi["latitude"]),
-        crs="EPSG:4326",  # WGS 84
-    )
-
-    return gdf.rwi.mean()
-
-
-def process_gadm_rwi(iso3: str, admin_level: int):
-    """Process Relative Wealth Index and geospatial data."""
-    iso3 = iso3.upper()
-
-    # Create a dictionary of polygons where the key is the ID of the polygon
-    # and the value is its geometry
-    gdf = gadm(iso3, admin_level).read()
-    admin_geoid = f"GID_{admin_level}"
-    polygons = dict(zip(gdf[admin_geoid], gdf["geometry"]))
-
-    # Import the Relative Wealth Index data
-    logger.info(
-        "Reading %r",
-        path := get_path(
-            "sources", iso3, "meta", f"{iso3.lower()}_relative_wealth_index.csv"
-        ),
-    )
-    rwi = pd.read_csv(path)
-
-    # Assign each latitude and longitude to an admin region
-    with multiprocessing.Pool() as p:
-        geo_id = p.map(
-            functools.partial(get_geo_id, polygons=polygons), rwi.to_dict("records")
-        )
-    rwi["geo_id"] = geo_id
-    rwi = rwi[rwi["geo_id"] != "null"]
-
-    # Get the mean RWI value for each region
-    rwi = rwi.groupby("geo_id")["rwi"].mean().reset_index()
-
-    # Dynamically choose which columns need to be added to the data
-    region_columns = ["COUNTRY", "NAME_1", "NAME_2", "NAME_3"]
-    admin_columns = region_columns[: int(admin_level) + 1]
-    # Merge with the shapefile to get the region names
-    rwi = rwi.merge(
-        gdf[[admin_geoid] + admin_columns],
-        left_on="geo_id",
-        right_on=admin_geoid,
-        how="left",
-    )
-
-    # Rename the columns
-    rwi = rwi.rename(columns={"rwi": "value"})
-    rwi["ISO3"] = iso3
-    rwi["date"] = 2021
-    rwi["metric"] = "meta.relative_wealth_index.unweighted"
-    rwi["unit"] = "unitless"
-    return rwi
