@@ -78,6 +78,7 @@ def gather_metrics() -> list[str]:
         .replace(".py", "")
         .replace("__init__", "")
         .replace("/", ".")
+        .replace("\\", ".")
         .removesuffix(".")
         for p in root.rglob("*.py")
     ]
