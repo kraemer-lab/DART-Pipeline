@@ -20,7 +20,6 @@ import py7zr
 import pycountry
 import requests
 import xarray as xr
-import geoglue
 import geoglue.region
 import geoglue.types
 
@@ -46,7 +45,7 @@ WORLD = geoglue.region.BaseRegion(
 )
 
 
-def get_region(region: str) -> geoglue.Region:
+def get_region(region: str) -> geoglue.region.Region:
     return geoglue.get_region(region, CONFIG_REGION)
 
 
