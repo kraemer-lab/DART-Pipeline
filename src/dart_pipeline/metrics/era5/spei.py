@@ -6,12 +6,11 @@ import re
 import logging
 import xarray as xr
 
-from geoglue.region import gadm
+from geoglue.region import ZonedBaseRegion, AdministrativeLevel
 from geoglue.resample import resampled_dataset
 from geoglue.util import find_unique_time_coord, set_lonlat_attrs
 
 from ...paths import get_path
-from ...util import iso3_admin_unpack
 from ...metrics import register_process, get_gamma_params, zonal_stats_xarray
 from ...metrics.worldpop import get_worldpop
 
@@ -38,7 +37,7 @@ MAX_SPEI = 3.09
 
 
 def gamma_spei(
-    iso3: str,
+    region: ZonedBaseRegion,
     date: str,
     window: int = 6,
     bias_correct: bool = False,
@@ -47,8 +46,8 @@ def gamma_spei(
 
     Parameters
     ----------
-    iso3 : str
-        Country ISO3 code
+    region : Region
+        Gamma parameters for SPEI
     date : str
         Specify year range here for which to calculate gamma distribution
         e.g. 2000-2020
@@ -64,29 +63,31 @@ def gamma_spei(
         Dataset with ``alpha`` and ``beta`` gamma parameters
     """
     ystart, yend = parse_year_range(date, warn_duration_less_than_years=15)
-    assert_data_available_for_weekly_reduce(iso3, ystart, yend)
+    assert_data_available_for_weekly_reduce(region, ystart, yend)
     balance_hist = balance_weekly_dataarray(
-        iso3, ystart, yend, bias_correct=bias_correct
+        region, ystart, yend, bias_correct=bias_correct
     )
     tdim = find_unique_time_coord(balance_hist)
     ds = fit_gamma_distribution(balance_hist, window=window, dimension=tdim)
     ds.attrs["DART_history"] = (
-        f"gamma_spei({iso3!r}, {ystart=}, {yend=}, {window=}, {bias_correct=})"
+        f"gamma_spei({region.name!r}, {ystart=}, {yend=}, {window=}, {bias_correct=})"
     )
-    ds.attrs["ISO3"] = iso3
+    ds.attrs["DART_region"] = str(region)
     ds.attrs["metric"] = (
         "era5.spei_corrected.gamma" if bias_correct else "era5.spei.gamma"
     )
     return ds
 
 
-def process_spei(iso3: str, date: str, bias_correct: bool = False) -> xr.DataArray:
+def process_spei(
+    region: AdministrativeLevel, date: str, bias_correct: bool = False
+) -> xr.DataArray:
     """Determines SPEI for a particular year
 
     Parameters
     ----------
-    iso3 : str
-        ISO3 code of the country
+    region : AdministrativeLevel
+        Administrative level for which to process SPEI
     date : str
         Year for which to determine SPEI
     bias_correct : bool
@@ -99,9 +100,8 @@ def process_spei(iso3: str, date: str, bias_correct: bool = False) -> xr.DataArr
         Zonal aggregated SPEI
     """
     year = int(date)
-    iso3, admin = iso3_admin_unpack(iso3)
     index = "spei_corrected" if bias_correct else "spei"
-    gamma_params = get_gamma_params(iso3, index)
+    gamma_params = get_gamma_params(region, index)
     re_matches = re.match(r".*window=(\d+)", gamma_params.attrs["DART_history"])
     if re_matches is None:
         raise ValueError("No window option found in gamma parameters file")
@@ -109,7 +109,7 @@ def process_spei(iso3: str, date: str, bias_correct: bool = False) -> xr.DataArr
     logger.info("Using era5.spei.gamma window=%d", window)
 
     ds = balance_weekly_dataarray(
-        iso3, year, year, window=window, bias_correct=bias_correct
+        region, year, year, window=window, bias_correct=bias_correct
     )
     ds_ma = (
         ds.rolling(valid_time=window, center=False)
@@ -125,40 +125,47 @@ def process_spei(iso3: str, date: str, bias_correct: bool = False) -> xr.DataArr
     # resample to weights
     spei_name = "spei_corrected" if bias_correct else "spei"
     spei_path = get_path(
-        "scratch", iso3, "era5", f"{iso3}-{year}-era5.{spei_name}.weekly_sum.nc"
+        "scratch",
+        region.name,
+        "era5",
+        f"{region.name}-{year}-era5.{spei_name}.weekly_sum.nc",
     )
     spei.to_netcdf(spei_path)
 
-    population = get_worldpop(iso3, year)
+    population = get_worldpop(region, year)
     with resampled_dataset("remapdis", spei_path, population) as resampled_ds:
         return zonal_stats_xarray(
             f"era5.{spei_name}.weekly_sum",
             resampled_ds.spei_bc if bias_correct else resampled_ds.spei,
-            gadm(iso3, admin),
+            region,
             operation="area_weighted_sum",
             weights=population,
         )
 
 
 @register_process("era5.spei.gamma", multiple_years=True)
-def gamma_spei_uncorrected(iso3: str, date: str, window: int = 6) -> xr.Dataset:
+def gamma_spei_uncorrected(
+    region: ZonedBaseRegion, date: str, window: int = 6
+) -> xr.Dataset:
     "Fit gamma parameters for SPEI with uncorrected precipitation"
-    return gamma_spei(iso3, date, window, bias_correct=False)
+    return gamma_spei(region, date, window, bias_correct=False)
 
 
 @register_process("era5.spei_corrected.gamma", multiple_years=True)
-def gamma_spei_corrected(iso3: str, date: str, window: int = 6) -> xr.Dataset:
+def gamma_spei_corrected(
+    region: ZonedBaseRegion, date: str, window: int = 6
+) -> xr.Dataset:
     "Fit gamma parameters for SPEI with corrected precipitation"
-    return gamma_spei(iso3, date, window, bias_correct=True)
+    return gamma_spei(region, date, window, bias_correct=True)
 
 
 @register_process("era5.spei")
-def process_spei_uncorrected(iso3: str, date: str) -> xr.DataArray:
+def process_spei_uncorrected(region: AdministrativeLevel, date: str) -> xr.DataArray:
     "Processes SPEI with uncorrected precipitation"
-    return process_spei(iso3, date, bias_correct=False)
+    return process_spei(region, date, bias_correct=False)
 
 
 @register_process("era5.spei_corrected")
-def process_spei_corrected(iso3: str, date: str) -> xr.DataArray:
+def process_spei_corrected(region: AdministrativeLevel, date: str) -> xr.DataArray:
     "Processes SPEI with uncorrected precipitation"
-    return process_spei(iso3, date, bias_correct=True)
+    return process_spei(region, date, bias_correct=True)

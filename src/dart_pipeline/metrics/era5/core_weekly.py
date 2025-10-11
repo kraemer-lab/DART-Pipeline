@@ -9,14 +9,13 @@ import xarray as xr
 import pandas as pd
 
 import geoglue.zonal_stats
+from geoglue import AdministrativeLevel
 from geoglue.util import get_first_monday
-from geoglue.region import gadm
 from geoglue.resample import resampled_dataset
 
 from ...metrics import register_process, CFAttributes
 from ...paths import get_path
 from ...metrics.worldpop import get_worldpop
-from ...util import iso3_admin_unpack
 
 from .list_metrics import METRICS
 from .util import get_dataset_pool, specific_humidity, relative_humidity
@@ -64,13 +63,13 @@ def get_cfattrs(var: str, time_col: str = "time") -> CFAttributes | None:
     return out_attrs
 
 
-def get_weekly_tp_corrected(iso3: str, year: int) -> xr.DataArray:
+def get_weekly_tp_corrected(region: str, year: int) -> xr.DataArray:
     path = get_path(
-        "sources", iso3, "era5", f"{iso3}-{year}-era5.accum.tp_corrected.nc"
+        "sources", region, "era5", f"{region}-{year}-era5.accum.tp_corrected.nc"
     )
     # need next year path to get the last Sunday
     path_next_year = get_path(
-        "sources", iso3, "era5", f"{iso3}-{year + 1}-era5.accum.tp_corrected.nc"
+        "sources", region, "era5", f"{region}-{year + 1}-era5.accum.tp_corrected.nc"
     )
     if path.exists() and path_next_year.exists():
         start_date = get_first_monday(year)
@@ -95,14 +94,11 @@ def get_weekly_tp_corrected(iso3: str, year: int) -> xr.DataArray:
 
 # TODO: add cfattrs
 def zonal_stats(
-    var: str,
-    ds: xr.Dataset,
-    region: geoglue.region.Region,
+    var: str, ds: xr.Dataset, region: geoglue.AdministrativeLevel
 ) -> xr.DataArray:
     geom = region.read()
-    iso3, _ = iso3_admin_unpack(region.name.split(":")[1])
     year = pd.to_datetime(ds.valid_time.min().values).year
-    weights = get_worldpop(iso3, year)
+    weights = get_worldpop(region, year)
     operation = (
         "area_weighted_sum"
         if var in ["tp", "tp_bc", "hb", "hb_bc"]
@@ -149,10 +145,9 @@ def weekly_mean_daily_min(da: xr.DataArray) -> xr.DataArray:
     )
 
 
-def prepare_weekly_data(iso3: str, year: int) -> xr.Dataset:
+def prepare_weekly_data(region: AdministrativeLevel, year: int) -> xr.Dataset:
     accum_vars = ["e", "tp"]
-    iso3 = iso3.upper()
-    pool = get_dataset_pool(iso3)
+    pool = get_dataset_pool(region)
     h = xr.concat(
         [
             pool[year].instant[["t2m", "d2m", "sp"]],
@@ -180,11 +175,11 @@ def prepare_weekly_data(iso3: str, year: int) -> xr.Dataset:
     accum = pool.weekly_reduce(year, "accum")[accum_vars]
     ds = xr.merge([t2m, mx2t24, mn2t24, q, mxq24, mnq24, r, mxr24, mnr24, accum])
     try:
-        tp_bc = get_weekly_tp_corrected(iso3, year)
+        tp_bc = get_weekly_tp_corrected(region.name, year)
         ds = xr.merge([ds, tp_bc])
     except FileNotFoundError:
         logger.warning(
-            f"tp_corrected file not found, not adding tp_bc for ({iso3}, {year})"
+            f"tp_corrected file not found, not adding tp_bc for ({region.name}, {year})"
         )
 
     # Calculate derived metrics
@@ -195,13 +190,13 @@ def prepare_weekly_data(iso3: str, year: int) -> xr.Dataset:
 
 
 @register_process("era5.core_weekly")
-def era5_process_core_weekly(iso3: str, date: str) -> xr.Dataset:
+def era5_process_core_weekly(region: AdministrativeLevel, date: str) -> xr.Dataset:
     """Processes ERA5 data for a particular year, weekly timesteps
 
     Parameters
     ----------
-    iso3 : str
-        Country ISO 3166-2 alpha-3 code
+    region : AdministrativeLevel
+        Administrative level to process
     date : str
         Year for which to process ERA5 data
 
@@ -210,11 +205,9 @@ def era5_process_core_weekly(iso3: str, date: str) -> xr.Dataset:
     List of generated or pre-existing data files in parquet format
     """
     year = int(date)
-    iso3, admin = iso3_admin_unpack(iso3)
-    logger.info(f"Processing {iso3}-{admin}-{year}-era5.core [weekly]")
-    ds = prepare_weekly_data(iso3, year)
-    weights = get_worldpop(iso3, year)
-    region = gadm(iso3, admin)
+    logger.info(f"Processing {region.name}-{region.admin}-{year}-era5.core [weekly]")
+    ds = prepare_weekly_data(region, year)
+    weights = get_worldpop(region, year)
     fmt_region = " ".join([region.name, region.pk, region.tz])
     instant_vars = [
         "mn2t24",

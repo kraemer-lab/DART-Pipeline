@@ -20,10 +20,14 @@ import py7zr
 import pycountry
 import requests
 import xarray as xr
+import geoglue.region
+import geoglue.types
+
 
 from .constants import (
     COMPRESSED_FILE_EXTS,
 )
+from .paths import CONFIG_REGION
 from .types import Credentials, URLCollection
 
 logger = logging.getLogger(__name__)
@@ -35,6 +39,14 @@ pd.set_option("display.max_columns", None)
 pd.set_option("display.max_rows", None)
 pd.set_option("display.max_colwidth", 40)
 pd.set_option("display.width", 228)  # sierra
+
+WORLD = geoglue.region.BaseRegion(
+    "WLD", "http://world", geoglue.types.Bbox(-90, -180, 90, 180), iso3=None
+)
+
+
+def get_region(region: str) -> geoglue.region.Region:
+    return geoglue.get_region(region, CONFIG_REGION)
 
 
 def msg(bold: str, *args):
@@ -103,23 +115,6 @@ def logfmt(d: dict) -> str:
             v = str(v)
         parts.append(f"{k}={v}")
     return " ".join(parts)
-
-
-def iso3_admin_unpack(iso3_admin: str) -> tuple[str, int]:
-    "Unpacks iso3-admin_level with verification"
-    try:
-        iso3, admin = iso3_admin.split("-")
-    except ValueError:
-        raise ValueError(
-            "ISO3 and admin code should be specified concatenated with a hyphen, e.g. VNM-2, PER-1"
-        )
-    iso3 = iso3.upper()
-    if iso3 not in VALID_ISO3:
-        raise LookupError(f"Not a valid ISO3 code {iso3=}")
-    admin = int(admin)
-    if admin not in [1, 2, 3]:
-        raise ValueError("Not a valid admin level, must be one of 1, 2, 3")
-    return iso3, admin
 
 
 def abort(bold_text: str, rest: str):

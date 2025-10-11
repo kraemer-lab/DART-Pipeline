@@ -6,9 +6,14 @@ from unittest.mock import MagicMock, patch
 import pytest
 import freezegun
 
+from geoglue.region import BaseCountry
 from geoglue.types import Bbox
 
 from dart_pipeline.metrics.ecmwf import get_forecast_open_data
+
+FRA = BaseCountry(
+    "FRA", "https://gadm.org", Bbox(minx=-6, miny=41, maxx=10, maxy=52), "FRA"
+)
 
 
 @freezegun.freeze_time("2025-01-05")
@@ -25,7 +30,6 @@ def test_successful_forecast_download(
     mock_forecast_path,
 ):
     # Setup test values
-    iso3 = "FRA"
     date = "2025-01-03"
     instant_ds = MagicMock()
     accum_ds = MagicMock()
@@ -47,7 +51,7 @@ def test_successful_forecast_download(
     sources_path = Path("/mock/sources")
     mock_get_path.return_value = sources_path
 
-    result = get_forecast_open_data(iso3, date)
+    result = get_forecast_open_data(FRA, date)
 
     # Check result is a list of 2 files
     assert len(result) == 2
@@ -65,20 +69,20 @@ def test_successful_forecast_download(
 @pytest.mark.parametrize("invalid_hour", [-1, 5, 24])
 def test_invalid_start_hour(invalid_hour):
     with pytest.raises(ValueError, match="start_hour must be one of"):
-        get_forecast_open_data("FRA", "2025-01-05", start_hour=invalid_hour)
+        get_forecast_open_data(FRA, "2025-01-05", start_hour=invalid_hour)
 
 
 @pytest.mark.parametrize("invalid_step", [0, 5, 7, 10])
 def test_invalid_step_hours(invalid_step):
     with pytest.raises(ValueError, match="must be a multiple of 6"):
-        get_forecast_open_data("FRA", "2025-01-05", step_hours=invalid_step)
+        get_forecast_open_data(FRA, "2025-01-05", step_hours=invalid_step)
 
 
 @freezegun.freeze_time("2025-01-05")
 def test_future_date():
     future_date = "2025-01-06"
     with pytest.raises(ValueError, match="Can't fetch a forecast from the future"):
-        get_forecast_open_data("FRA", future_date)
+        get_forecast_open_data(FRA, future_date)
 
 
 @freezegun.freeze_time("2025-01-05")
@@ -87,4 +91,4 @@ def test_too_old_date():
     with pytest.raises(
         ValueError, match="Can't fetch a forecast more than 4 days in the past"
     ):
-        get_forecast_open_data("FRA", old_date)
+        get_forecast_open_data(FRA, old_date)

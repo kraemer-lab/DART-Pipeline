@@ -7,10 +7,10 @@ from typing import Literal
 from pathlib import Path
 from functools import cache
 
+from geoglue import AdministrativeLevel
 import xarray as xr
 
 from geoglue.util import sha256, set_lonlat_attrs
-from geoglue.region import gadm
 from geoglue.cds import CdsDataset
 from geoglue.resample import resample
 
@@ -19,7 +19,6 @@ from ...metrics import (
     zonal_stats_xarray,
 )
 from ...metrics.worldpop import get_worldpop
-from ...util import iso3_admin_unpack
 from ...paths import get_path
 
 from .util import (
@@ -43,10 +42,13 @@ STATS = ["min", "mean", "max", "sum"]
 
 
 @cache
-def get_resampled_paths_daily(iso3: str, year: int) -> dict[str, Path]:
+def get_resampled_paths_daily(region_name: str, year: int) -> dict[str, Path]:
     return {
         stat: get_path(
-            "scratch", iso3, "era5", f"{iso3}-{year}-era5.daily_{stat}.resampled.nc"
+            "scratch",
+            region_name,
+            "era5",
+            f"{region_name}-{year}-era5.daily_{stat}.resampled.nc",
         )
         for stat in ["mean", "min", "max", "sum"]
     }
@@ -55,16 +57,15 @@ def get_resampled_paths_daily(iso3: str, year: int) -> dict[str, Path]:
 def population_weighted_aggregation_daily(
     metric: str,
     statistic: str,
-    iso3: str,
-    admin: int,
+    region: AdministrativeLevel,
     year: int,
 ) -> Path:
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(processName)s] %(levelname)s %(message)s",
     )
-    resampled_paths = get_resampled_paths_daily(iso3, year)
-    message = f"zonal stats [{iso3}-{admin}, {year}] era5.{metric}.daily_{statistic}"
+    resampled_paths = get_resampled_paths_daily(region.name, year)
+    message = f"zonal stats [{region.name}-{region.admin}, {year}] era5.{metric}.daily_{statistic}"
 
     logger = logging.getLogger(__name__)
     logger.info(f"START {message}")
@@ -80,14 +81,14 @@ def population_weighted_aggregation_daily(
     da = zonal_stats_xarray(
         f"era5.{metric}.daily_{statistic}",
         ds[variable],
-        gadm(iso3, admin),
+        region,
         operation=operation,
-        weights=get_worldpop(iso3, year),
+        weights=get_worldpop(region, year),
     )
     # clamp relative_humidity to 100%
     if "relative_humidity" in metric:
         da = da.clip(0, 100)
-    outfile = metric_path_daily(iso3, admin, year, metric, statistic)
+    outfile = metric_path_daily(region.name, region.admin, year, metric, statistic)
     assert outfile.suffix == ".nc"
     da.attrs["provenance"] = (
         f"zonal_stats.ds={resampled_checksum} {resampled_paths[statistic]}\n{provenance}"
@@ -108,27 +109,30 @@ def collect_variables_to_drop(kind: Literal["instant", "accum"]) -> list[str]:
 
 
 def metric_path_daily(
-    iso3: str, admin: int, year: int, metric: str, statistic: str
+    region_name: str, admin: int, year: int, metric: str, statistic: str
 ) -> Path:
     assert statistic in STATS
     return get_path(
         "output",
-        iso3,
+        region_name,
         "era5",
-        f"{iso3}-{admin}-{year}-era5.{metric}.daily_{statistic}.nc",
+        f"{region_name}-{admin}-{year}-era5.{metric}.daily_{statistic}.nc",
     )
 
 
 @register_process("era5.core")
 def era5_process_core_daily(
-    iso3: str, date: str, overwrite: bool = True, keep_resampled: bool = False
+    region: AdministrativeLevel,
+    date: str,
+    overwrite: bool = True,
+    keep_resampled: bool = False,
 ) -> list[Path]:
     """Processes ERA5 data for a particular year
 
     Parameters
     ----------
-    iso3 : str
-        Country ISO 3166-2 alpha-3 code
+    region : AdministrativeLevel
+        Administrative level to process
     date : str
         Year for which to process ERA5 data
     overwrite : bool
@@ -143,17 +147,17 @@ def era5_process_core_daily(
     List of generated or pre-existing data files in parquet format
     """
     year = int(date)
-    iso3, admin = iso3_admin_unpack(iso3)
-    logger.info(f"Processing {iso3}-{admin}-{year}-era5.core")
+    logger.info(f"Processing {region.name}-{region.admin}-{year}-era5.core")
     paths = {
-        stat: get_path("scratch", iso3, "era5", f"{iso3}-{year}-era5.daily_{stat}.nc")
+        stat: get_path(
+            "scratch", region.name, "era5", f"{region.name}-{year}-era5.daily_{stat}.nc"
+        )
         for stat in ["mean", "min", "max", "sum"]
     }
     # after cdo resampling
-    resampled_paths = get_resampled_paths_daily(iso3, year)
+    resampled_paths = get_resampled_paths_daily(region.name, year)
 
-    iso3 = iso3.upper()
-    pool = get_dataset_pool(iso3)
+    pool = get_dataset_pool(region)
     ds = pool[year]
 
     # calculate derived metrics
@@ -177,7 +181,7 @@ def era5_process_core_daily(
     # the daily accumulated dataset unaltered.
     # Note that tp_corrected for a year will require the corresponding files
     # for previous and succeeding years depending on shift_hours
-    accum = add_bias_corrected_tp(daily_agg.accum, iso3, year)
+    accum = add_bias_corrected_tp(daily_agg.accum, region.name, year)
     is_bias_corrected: bool = "tp_bc" in accum.variables
     if is_bias_corrected:
         accum["hb_bc"] = accum.tp_bc + accum.e
@@ -206,7 +210,7 @@ def era5_process_core_daily(
         s: [
             m
             for m in metric_statistic_combinations[s]
-            if metric_path_daily(iso3, admin, year, m, s).exists()
+            if metric_path_daily(region.name, region.admin, year, m, s).exists()
         ]
         for s in metric_statistic_combinations
     }
@@ -219,7 +223,7 @@ def era5_process_core_daily(
         generated_paths = sum(
             [
                 [
-                    metric_path_daily(iso3, admin, year, m, s)
+                    metric_path_daily(region.name, region.admin, year, m, s)
                     for m in already_existing_metrics[s]
                 ]
                 for s in already_existing_metrics
@@ -256,7 +260,7 @@ def era5_process_core_daily(
             f"Resampling using CDO for {stat=} using {resampling=}: {paths[stat]} -> {resampled_paths[stat]}"
         )
         resample(
-            resampling, paths[stat], get_worldpop(iso3, year), resampled_paths[stat]
+            resampling, paths[stat], get_worldpop(region, year), resampled_paths[stat]
         )
         with multiprocessing.Pool() as p:
             new_paths = list(
@@ -264,8 +268,7 @@ def era5_process_core_daily(
                     functools.partial(
                         population_weighted_aggregation_daily,
                         statistic=stat,
-                        iso3=iso3,
-                        admin=admin,
+                        region=region,
                         year=year,
                     ),
                     metrics,

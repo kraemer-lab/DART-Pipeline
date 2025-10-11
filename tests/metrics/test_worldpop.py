@@ -2,9 +2,18 @@ import warnings
 from unittest.mock import patch, MagicMock
 
 from geoglue import MemoryRaster
+from geoglue.region import BaseCountry
+from geoglue.types import Bbox
 import pytest
 
 from dart_pipeline.metrics.worldpop import get_worldpop
+
+NGA = BaseCountry(
+    "NGA", "http://gadm.org", Bbox(minx=2, miny=4, maxx=15, maxy=14), "NGA"
+)
+GBR = BaseCountry(
+    "GBR", "http://gadm.org", Bbox(minx=-9, miny=49, maxx=2, maxy=61), "GBR"
+)
 
 
 @pytest.fixture
@@ -50,7 +59,7 @@ def test_get_worldpop_success(year, dataset, expected_url, mock_path, mock_raste
         ) as mock_download,
         patch("geoglue.MemoryRaster.read", return_value=mock_raster),
     ):
-        get_worldpop("GBR", year, dataset)
+        get_worldpop(GBR, year, dataset)
         mock_download.assert_called_once()
         called_url = mock_download.call_args[0][0]
         assert (
@@ -66,7 +75,7 @@ def test_get_worldpop_future_warns_on_past_year(mock_raster, mock_path):
         warnings.catch_warnings(record=True) as w,
     ):
         warnings.simplefilter("always")
-        get_worldpop("ETH", 2015, "future")
+        get_worldpop(NGA, 2015, "future")
         assert any(
             "consider using actual data using dataset='default'" in str(warn.message)
             for warn in w
@@ -75,7 +84,7 @@ def test_get_worldpop_future_warns_on_past_year(mock_raster, mock_path):
 
 def test_get_worldpop_dataset_none_and_year_invalid():
     with pytest.raises(ValueError, match="No pre-defined dataset found for"):
-        get_worldpop("NGA", 2040, None)
+        get_worldpop(NGA, 2040, None)
 
 
 def test_get_worldpop_invalid_year_range():
@@ -83,4 +92,4 @@ def test_get_worldpop_invalid_year_range():
         ValueError,
         match="Worldpop population data for dataset='default' is only available",
     ):
-        get_worldpop("NGA", 1990, "default")
+        get_worldpop(NGA, 1990, "default")

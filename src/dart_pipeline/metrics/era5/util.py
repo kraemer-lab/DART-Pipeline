@@ -19,13 +19,13 @@ import xarray as xr
 import metpy.calc as mp
 from metpy.units import units
 from geoglue.util import find_unique_time_coord
-from geoglue.region import gadm
 from geoglue.cds import (
     CdsDataset,
     ReanalysisSingleLevels,
     DatasetPool,
 )
 from geoglue.util import get_first_monday
+from geoglue.region import ZonedBaseRegion
 
 from ...paths import get_path
 from .list_metrics import VARIABLES
@@ -100,9 +100,11 @@ def pprint_ms(
         return "\n\t" + "\n\t".join(out)
 
 
-def get_dataset_pool(iso3: str, data_path: Path | None = None) -> DatasetPool:
+def get_dataset_pool(
+    region: ZonedBaseRegion, data_path: Path | None = None
+) -> DatasetPool:
     return ReanalysisSingleLevels(
-        gadm(iso3, 1), VARIABLES, path=data_path or get_path("sources", iso3, "era5")
+        region, VARIABLES, path=data_path or get_path("sources", region.name, "era5")
     ).get_dataset_pool()
 
 
@@ -114,9 +116,9 @@ def norminv(data):
     return scipy.stats.norm.ppf(data, loc=0, scale=1)
 
 
-def tp_corrected_path(iso3: str, year: int) -> Path:
+def tp_corrected_path(region: str, year: int) -> Path:
     return get_path(
-        "sources", iso3, "era5", f"{iso3}-{year}-era5.accum.tp_corrected.nc"
+        "sources", region, "era5", f"{region}-{year}-era5.accum.tp_corrected.nc"
     )
 
 
@@ -128,21 +130,20 @@ def missing_tp_corrected_files(iso3, years: set[int]) -> list[Path]:
     return out
 
 
-def add_bias_corrected_tp(accum: xr.Dataset, iso3: str, year: int) -> xr.Dataset:
+def add_bias_corrected_tp(accum: xr.Dataset, region_name: str, year: int) -> xr.Dataset:
     try:
-        tp_corrected = xr.open_dataarray(tp_corrected_path(iso3, year))
+        tp_corrected = xr.open_dataarray(tp_corrected_path(region_name, year))
     except FileNotFoundError:
-        logger.info(f"No tp_corrected file found for {iso3}-{year}")
+        logger.info(f"No tp_corrected file found for {region_name}-{year}")
         return accum
     accum["tp_bc"] = tp_corrected
     return accum
 
 
 def assert_data_available_for_weekly_reduce(
-    iso3: str, ystart: int, yend: int, data_path: Path | None = None
+    region: ZonedBaseRegion, ystart: int, yend: int, data_path: Path | None = None
 ) -> None:
     "Asserts that sufficient data is available for weekly_reduce() call"
-    region = gadm(iso3, 1, data_path=data_path)
     negative_longitude = "-" in region.tz
 
     # Always get one year around requested range as weeks may overlap contiguous years
@@ -152,9 +153,9 @@ def assert_data_available_for_weekly_reduce(
         yend += 1  # time shifting requires data from succeeding year
     else:
         ystart -= 1  # time shifting requires data from preceding year
-    pool = get_dataset_pool(iso3, data_path)
+    pool = get_dataset_pool(region, data_path)
     if missing := set(range(ystart, yend + 1)) - set(pool.years):
-        raise FileNotFoundError(f"""Missing data for {iso3} for years: {missing}
+        raise FileNotFoundError(f"""Missing data for {region.name} for years: {missing}
 For methods requiring weekly aggregations, we require a year before and
 after the end of the requested period as weeks do not overlap 1:1 with years.
 Timezone offsets may require an extra year on either end, depending upon
@@ -225,7 +226,7 @@ def get_date_range_for_years(
 
 
 def temperature_daily_dataset(
-    iso3: str,
+    region: ZonedBaseRegion,
     ystart: int,
     yend: int,
     window: int = 0,
@@ -242,8 +243,8 @@ def temperature_daily_dataset(
     - mx2t24: weekly mean of the daily maximum temperature
     - mn2t24: weekly mean of the daily minimum temperature
     """
-    pool = get_dataset_pool(iso3, data_path)
-    assert_data_available_for_weekly_reduce(iso3, ystart, yend, data_path)
+    pool = get_dataset_pool(region, data_path)
+    assert_data_available_for_weekly_reduce(region, ystart, yend, data_path)
     cds0 = pool[ystart - 1]
     ds = temperature_stat_daily(cds0)
     for year in range(ystart, yend + 1):
@@ -255,7 +256,11 @@ def temperature_daily_dataset(
 
 
 def precipitation_weekly_dataset(
-    iso3: str, ystart: int, yend: int, window: int = 1, data_path: Path | None = None
+    region: ZonedBaseRegion,
+    ystart: int,
+    yend: int,
+    window: int = 1,
+    data_path: Path | None = None,
 ) -> xr.Dataset:
     """
     Returns weekly dataset of precipitation for a iso3 code for a
@@ -264,14 +269,14 @@ def precipitation_weekly_dataset(
     The returned dataset has the following variables:
     - tp: weekly sum of the total daily precipitation
     """
-    pool = get_dataset_pool(iso3, data_path)
+    pool = get_dataset_pool(region, data_path)
     avail_years = set(pool.years)
     required_years = set(
         range(ystart - 1, yend + 1)
     )  # one extra year required for windowed data
     if not required_years <= avail_years:
         raise ValueError(
-            f"Required years not available in DatasetPool for {iso3!r}:\n"
+            f"Required years not available in DatasetPool for {region.name!r}:\n"
             f"\t{required_years - avail_years}\n"
             "\tUse `dart-pipeline get era5 VNM <year>` to download these"
         )
@@ -290,7 +295,11 @@ def precipitation_weekly_dataset(
 
 
 def corrected_precipitation_weekly_dataset(
-    iso3: str, ystart: int, yend: int, window: int = 1, data_path: Path | None = None
+    region: ZonedBaseRegion,
+    ystart: int,
+    yend: int,
+    window: int = 1,
+    data_path: Path | None = None,
 ) -> xr.Dataset:
     """
     Returns weekly dataset of bias corrected precipitation for a iso3 code for a
@@ -300,14 +309,14 @@ def corrected_precipitation_weekly_dataset(
     - tp_bc: weekly sum of the total daily precipitation
     """
     # Need to get the previous year in case of window > 1
-    da = xr.open_dataarray(tp_corrected_path(iso3, ystart - 1))
+    da = xr.open_dataarray(tp_corrected_path(region.name, ystart - 1))
 
     # Create daily dataset from all years
     # We go up to yend + 1 to bring in some days from the succeeding year
     # for cases when Sundays are not 31 December (end of week aligns
     # with end of year)
     for y in range(ystart, yend + 2):
-        da_y = xr.open_dataarray(tp_corrected_path(iso3, y))
+        da_y = xr.open_dataarray(tp_corrected_path(region.name, y))
         da = xr.concat([da, da_y], dim="valid_time")
 
     # Crop to start timeseries on Mondays, with appropriate offset if window > 1
@@ -345,7 +354,7 @@ def fit_gamma_distribution(
 
 
 def balance_weekly_dataarray(
-    iso3: str,
+    region: ZonedBaseRegion,
     ystart: int,
     yend: int,
     window: int = 1,
@@ -360,7 +369,7 @@ def balance_weekly_dataarray(
     * balance: difference between total precipitation and potential evapotranspiration
     """
     temp = temperature_daily_dataset(
-        iso3,
+        region,
         ystart,
         yend,
         window=7 * (window - 1),
@@ -385,7 +394,7 @@ def balance_weekly_dataarray(
         else precipitation_weekly_dataset
     )
     ds_precip = precipitation_weekly_func(
-        iso3, ystart, yend, window=window, data_path=data_path
+        region, ystart, yend, window=window, data_path=data_path
     ).rename({"valid_time": "time"})
     assert ds_precip.time.min() == pevt.time.min()
     assert ds_precip.time.max() == pevt.time.max()
@@ -451,7 +460,8 @@ def standardized_precipitation(
     norminv = functools.partial(scipy.stats.norm.ppf, loc=0, scale=1)
     norm_spi = xr.apply_ufunc(norminv, gamma)
 
-    match var.removesuffix("_corrected"):
+    var_without_suffix: Literal["spi", "spei"] = var.removesuffix("_corrected")  # type: ignore
+    match var_without_suffix:
         case "spi":
             return norm_spi[tp].rename(var)
         case "spei":
