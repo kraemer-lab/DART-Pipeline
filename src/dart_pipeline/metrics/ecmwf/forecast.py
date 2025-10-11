@@ -88,13 +88,12 @@ def zonal_stats(
         if da.name not in ZONAL_STATS_ACCUM_VARS
         else "area_weighted_sum"
     )
-    region_col = region.pk[region.admin]  # type: ignore
     call = (
         f"zonal_stats(da, {region.name}, {operation=}, {weights=}, {ensemble_median=})"
     )
     if ensemble_median:
         za = geoglue.zonal_stats.zonal_stats_xarray(
-            da.median("number"), geom, operation, weights, region_col=region_col
+            da.median("number"), geom, operation, weights, region_col=region.pk
         ).rename(da.name)
         x, y = za.shape
         if x * y == 0:
@@ -103,7 +102,7 @@ def zonal_stats(
         za = xr.concat(
             [
                 geoglue.zonal_stats.zonal_stats_xarray(
-                    da.sel(number=i), geom, operation, weights, region_col=region_col
+                    da.sel(number=i), geom, operation, weights, region_col=region.pk
                 ).rename(da.name)
                 for i in range(da.number.size)
             ],

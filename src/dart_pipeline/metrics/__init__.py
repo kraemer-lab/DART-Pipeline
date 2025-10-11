@@ -6,11 +6,11 @@ import textwrap
 from pathlib import Path
 from typing import TypedDict, Unpack, cast
 
+from geoglue.region import ZonedBaseRegion
 import xarray as xr
 import pandas as pd
 import geoglue.util
 import geoglue.zonal_stats
-from geoglue import AdministrativeLevel
 from geoglue.memoryraster import MemoryRaster
 
 from ..paths import get_path
@@ -366,7 +366,7 @@ def find_metric(
 
 
 def get_gamma_params(
-    region: AdministrativeLevel, index: str, yrange: tuple[int, int] | None = None
+    region: ZonedBaseRegion, index: str, yrange: tuple[int, int] | None = None
 ) -> xr.Dataset:
     info = "See https://dart-pipeline.readthedocs.io/en/latest/standardised_indices.html for more information"
     root = get_path("output", region.name, "era5")
@@ -386,7 +386,7 @@ def get_gamma_params(
             )
         if len(output_files) > 1:
             logger.warning(
-                f"Multiple gamma parameters found for {region} {index=}, selecting the first one"
+                f"Multiple gamma parameters found for {region.name} {index=}, selecting the first one"
             )
         output_file = output_files[0]
 
@@ -625,8 +625,8 @@ def zonal_stats_xarray(
     da : xr.DataArray
         xarray DataArray to perform zonal statistics on. Must have
         'latitude', 'longitude' and a time coordinate
-    region : geoglue.region.Region
-        Region for which to calculate zonal statistics
+    region : geoglue.AdministrativeLevel
+        Administrative level for which to calculate zonal statistics
     operation : str
         Zonal statistics operation. For a full list of operations, see
         https://isciences.github.io/exactextract/operations.html. Default
@@ -665,7 +665,7 @@ def zonal_stats_xarray(
         geoglue.util.set_lonlat_attrs(da)  # type: ignore
     geom = region.read()
     za = geoglue.zonal_stats.zonal_stats_xarray(
-        da, geom, operation, weights, region_col=region.pk[region.admin]
+        da, geom, operation, weights, region_col=region.pk
     )
     x, y = za.shape
     call = f"zonal_stats({metric!r}, {da.name!r}, region, {operation=}, {weights=})"

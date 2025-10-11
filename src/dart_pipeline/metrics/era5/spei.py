@@ -86,8 +86,8 @@ def process_spei(
 
     Parameters
     ----------
-    region : Region
-        Region for which to process SPEI
+    region : AdministrativeLevel
+        Administrative level for which to process SPEI
     date : str
         Year for which to determine SPEI
     bias_correct : bool

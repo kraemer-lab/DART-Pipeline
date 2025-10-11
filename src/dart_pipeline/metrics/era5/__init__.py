@@ -199,8 +199,8 @@ def process_era5(
 
     Parameters
     ----------
-    region : str
-        Country code or region name
+    region : AdministrativeLevel
+        Administrative region to process
     date : str
         Range of years to calculate ERA5 metrics
     temporal_resolution : Literal['weekly', 'daily']

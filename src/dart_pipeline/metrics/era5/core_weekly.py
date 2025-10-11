@@ -196,7 +196,7 @@ def era5_process_core_weekly(region: AdministrativeLevel, date: str) -> xr.Datas
     Parameters
     ----------
     region : AdministrativeLevel
-        Country ISO 3166-2 alpha-3 code
+        Administrative level to process
     date : str
         Year for which to process ERA5 data
 

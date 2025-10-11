@@ -131,8 +131,8 @@ def era5_process_core_daily(
 
     Parameters
     ----------
-    region : str
-        Country ISO 3166-2 alpha-3 code or region code
+    region : AdministrativeLevel
+        Administrative level to process
     date : str
         Year for which to process ERA5 data
     overwrite : bool

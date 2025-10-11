@@ -44,7 +44,7 @@ def gamma_spi(
 
     Parameters
     ----------
-    region : BaseRegion
+    region : ZonedBaseRegion
         Region over which to obtain SPI
     date : str
         Specify year range here for which to calculate gamma distribution

@@ -13,7 +13,7 @@ from geoglue.region import BaseCountry, CountryAdministrativeLevel
 from functools import cache
 
 from ..paths import get_path
-from ..util import VALID_ISO3, download_file
+from ..util import download_file
 from ..metrics import register_metrics, register_fetch, register_process
 
 WORLDPOP_ROOT = "https://data.worldpop.org/GIS/Population/"
@@ -64,12 +64,12 @@ def get_worldpop(
 
     Parameters
     ----------
-    region : geoglue.region.BaseRegion
-        Region for which to download population data
+    region : geoglue.region.BaseCountry
+        Country for which to download population data. Sub-regions of a country
+        are not currently supported
     year : int
         Year for which to download data
     dataset : str | None
-
         Dataset or template string to expand, default=None. Currently there are two
         pre-defined datasets, 'default' and 'future'. Alternatively, one
         may supply a template URL fragment that will be expanded and fetched.
@@ -101,9 +101,6 @@ def get_worldpop(
     MemoryRaster
         MemoryRaster representing the population data
     """
-    if (iso3 := region.name.upper()) not in VALID_ISO3:
-        raise ValueError(f"Not a valid country ISO3 code: {iso3}")
-
     iso3 = region.name.upper()
     iso3_lower = iso3.lower()
     if dataset is None:
@@ -165,7 +162,7 @@ def worldpop_pop_count_process(
     geom = region.read()
     include_cols = [c for c in geom.columns if c != "geometry"]
     df = population.zonal_stats(geom, "sum", include_cols=include_cols).rename(
-        columns={"sum": "value", "GID_0": "ISO3", region.pk: "region"}
+        columns={"sum": "value", region.pk: "region"}
     )
     # print(df[["region", "value"]])
 
