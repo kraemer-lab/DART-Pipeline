@@ -58,4 +58,5 @@ maxdepth: 1
 reference/metrics
 reference/schema
 reference/storage_conventions
+reference/custom_metrics
 ```
