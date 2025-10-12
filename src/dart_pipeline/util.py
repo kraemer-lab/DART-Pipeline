@@ -73,14 +73,17 @@ def detect_region_col(df: pd.DataFrame) -> str:
 def determine_netcdf_filename(metric: str, **kwargs) -> str:
     """Determines output netcdf file for a processor that returns xr.Dataset
 
-    kwargs is expected to have `iso3`, and *may* have `date`. The output filename is determined as follows:
+    kwargs is expected to have `region`, and *may* have `date`. The output filename is determined as follows:
 
         ISO3-DATE-metric-KWARG_VALUES.nc
 
     where KWARG_VALUES is a hyphen delimited list of values in the rest of kwargs
     """
-    iso3 = kwargs.pop("iso3")
-    out = iso3
+    region = kwargs.pop("region")
+    if isinstance(region, geoglue.region.AdministrativeLevel):
+        out = f"{region.name}-{region.admin}"
+    else:
+        out = region.name
     if "date" in kwargs:
         out += "-" + kwargs.pop("date")
     out += "-" + metric
@@ -94,15 +97,6 @@ def raise_on_missing_variables(ds: xr.Dataset, required_vars: list[str]):
     vars = set(ds.variables) - set(ds.coords)
     if not set(required_vars) <= set(vars):
         raise ValueError("Required variables missing in dataset: {required_vars}")
-
-
-def get_admin_from_dataframe(df: pd.DataFrame) -> int:
-    "Gets admin level (1, 2, or 3) from data"
-
-    if df.attrs.get("admin"):
-        return df.attrs["admin"]
-    if "GID_1" in df.columns:
-        return max(i for i in (1, 2, 3) if f"GID_{i}" in df.columns)
 
 
 def logfmt(d: dict) -> str:

@@ -122,10 +122,10 @@ def tp_corrected_path(region: str, year: int) -> Path:
     )
 
 
-def missing_tp_corrected_files(iso3, years: set[int]) -> list[Path]:
+def missing_tp_corrected_files(region_name: str, years: set[int]) -> list[Path]:
     out = []
     for year in years:
-        if not (path := tp_corrected_path(iso3, year)).exists():
+        if not (path := tp_corrected_path(region_name, year)).exists():
             out.append(path)
     return out
 

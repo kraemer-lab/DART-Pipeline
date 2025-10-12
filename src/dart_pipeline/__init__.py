@@ -6,9 +6,11 @@ import logging
 import argparse
 import importlib
 from pathlib import Path
+from typing import NamedTuple
 
 import pandas as pd
 import xarray as xr
+from geoglue import Region, AdministrativeLevel, region
 
 from .metrics import (
     get,
@@ -22,7 +24,7 @@ from .metrics import (
     find_metrics,
     show_path,
 )
-from .util import detect_region_col
+from .util import detect_region_col, get_region
 from .paths import get_path
 from .plots import plot_metric_data
 from .types import InvalidCounts
@@ -91,7 +93,26 @@ for metric in gather_metrics():
 assert_metrics_and_sources_registered()
 
 
-def parse_params(params: list[str]) -> dict[str, str | int]:
+class PipelineParameters(NamedTuple):
+    region: Region | AdministrativeLevel | None
+    date: str | None
+    params: dict[str, str | int]
+
+    def as_dict(self) -> dict:
+        out = {}
+        if region:
+            out["region"] = self.region
+        if self.date:
+            # TODO: pass date as a PartialDate or a YearRange
+            out["date"] = self.date
+        out.update(self.params)
+        return out
+
+
+EmptyPipelineParameters = PipelineParameters(None, None, {})
+
+
+def parse_params(params: list[str]) -> PipelineParameters:
     """
     Parse the parameters that have been passed to the script via the CLI.
 
@@ -105,13 +126,25 @@ def parse_params(params: list[str]) -> dict[str, str | int]:
     The second positional parameter, if present, is interpreted as a year or
     partial date, such as 2020 or 2020-01 to represent January 2020.
     """
-    out = {}
     if not params:
-        return {}
-    region = params.pop(0)
-    out: dict[str, str | int | bool] = {"region": region}
+        return EmptyPipelineParameters
+    region_str = params.pop(0)
+    admin_level = None
+    date: str | None = None
+    if "-" in region_str:
+        region_name, admin_level = region_str.split("-")
+        try:
+            admin_level = int(admin_level)
+        except ValueError:
+            raise ValueError("Administrative level allowed values are: 1, 2, 3")
+        if admin_level not in [1, 2, 3]:
+            raise ValueError("Administrative level allowed values are: 1, 2, 3")
+        region = get_region(region_name).admin(admin_level)
+    else:
+        region = get_region(region_str)
     if params and "=" not in params[0]:
-        out["date"] = params.pop(0)
+        date = params.pop(0)
+    out = {}
     for param in params:
         if "=" in param:
             k, v = param.split("=")
@@ -119,7 +152,7 @@ def parse_params(params: list[str]) -> dict[str, str | int]:
             out[key] = int(v) if v.isdigit() else v
         else:  # interpret as a boolean flag
             out[param] = True
-    return out
+    return PipelineParameters(region, date, out)
 
 
 def main():
@@ -191,7 +224,7 @@ def main():
     )
 
     args, unknownargs = parser.parse_known_args()
-    kwargs = parse_params(unknownargs)
+    kwargs = parse_params(unknownargs).as_dict()
 
     match os.getenv("DART_PIPELINE_LOGLEVEL", "INFO"):
         case "DEBUG":
