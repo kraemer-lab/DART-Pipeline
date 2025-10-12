@@ -46,6 +46,7 @@ workflow/processing_data
 workflow/validation
 workflow/relative_wealth_index
 workflow/forecast
+workflow/using_custom_shapefiles
 ```
 
 ```{toctree}
