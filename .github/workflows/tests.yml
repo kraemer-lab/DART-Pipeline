@@ -28,6 +28,9 @@ jobs:
     - uses: astral-sh/setup-uv@v5
     - name: Lint and test
       run: uvx nox
+    - name: Test CLI
+      if: runner.os == 'Linux'
+      run: ./test_cli.sh
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
       with:

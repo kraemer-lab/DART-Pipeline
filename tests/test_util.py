@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+from geoglue.region import BaseCountry
+from geoglue.types import Bbox
 import pytest
 import requests_mock
 import pandas as pd
@@ -11,10 +13,11 @@ from dart_pipeline.util import (
     download_file,
     determine_netcdf_filename,
     days_in_year,
-    get_admin_from_dataframe,
     get_country_name,
     use_range,
 )
+
+VNM = BaseCountry("VNM", "https://gadm.org", Bbox(102, 8, 110, 24), "VNM")
 
 
 def test_region_col():
@@ -24,19 +27,13 @@ def test_region_col():
     assert detect_region_col(df) == "GID_2"
 
 
-def test_get_admin_from_dataframe():
-    assert (
-        get_admin_from_dataframe(pd.DataFrame(data=[], columns=["GID_1", "GID_2"])) == 2  # type: ignore
-    )
-
-
 @pytest.mark.parametrize(
     "kwargs,expected",
     [
-        ({"iso3": "VNM"}, "VNM-era5.a_b.nc"),
-        ({"iso3": "VNM", "date": "2020-2023"}, "VNM-2020-2023-era5.a_b.nc"),
+        ({"region": VNM}, "VNM-era5.a_b.nc"),
+        ({"region": VNM, "date": "2020-2023"}, "VNM-2020-2023-era5.a_b.nc"),
         (
-            {"iso3": "VNM", "date": "2020", "param1": "hello", "param2": "there"},
+            {"region": VNM, "date": "2020", "param1": "hello", "param2": "there"},
             "VNM-2020-era5.a_b.hello.there.nc",
         ),
     ],

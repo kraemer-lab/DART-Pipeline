@@ -15,10 +15,8 @@ from geoglue.memoryraster import MemoryRaster
 
 from ..paths import get_path
 from ..util import (
-    WORLD,
     abort,
     download_files,
-    get_region,
     logfmt,
     determine_netcdf_filename,
 )
@@ -217,9 +215,9 @@ def get(
     if missing_params := non_default_params - set(kwargs):
         abort(metric, f"missing required parameters {missing_params}")
 
-    region_name = kwargs.get("region")
-    region = get_region(region_name) if region_name else WORLD
-    path = get_path("sources", region)
+    region = kwargs.get("region")
+    region_name = region.name if region is not None else "WLD"
+    path = get_path("sources", region_name)
     links = FETCHERS[metric](**kwargs)
     links = links if isinstance(links, list) else [links]
     if isinstance(links[0], (DataFile, Path)) or not links[0]:
@@ -307,10 +305,10 @@ def process(metric: str, **kwargs) -> list[Path]:
             logger.info("output %s %s", metric, print_path(outfile))
             return [outfile]
         case xr.Dataset() | xr.DataArray():
-            region = kwargs["region"].split("-")[0]
-            outfile = get_path("output", region, source) / determine_netcdf_filename(
-                metric, **kwargs
-            )
+            region_name = kwargs["region"].name
+            outfile = get_path(
+                "output", region_name, source
+            ) / determine_netcdf_filename(metric, **kwargs)
             res.to_netcdf(outfile)
             logger.info("output %s %s", metric, print_path(outfile))
             return [outfile]
