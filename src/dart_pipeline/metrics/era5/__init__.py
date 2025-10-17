@@ -58,7 +58,7 @@ def era5_fetch(region: ZonedBaseRegion, date: str) -> CdsPath | None:
     year = int(date)
     prompt_cdsapi_key()
     data = ReanalysisSingleLevels(
-        region, VARIABLES, path=get_path("sources", region, "era5")
+        region, VARIABLES, path=get_path("sources", region.name, "era5")
     )
     return data.get(year)
 
@@ -117,7 +117,7 @@ def run_task(task: str, overwrite: bool = True) -> Path:
     from .spei import process_spei_uncorrected, process_spei_corrected, gamma_spei
 
     parts = task.split("-")
-    ystart, admin = None, None
+    ystart = None
     ds = None
     metric = parts.pop()
     if not metric.startswith("era5"):
@@ -130,8 +130,8 @@ def run_task(task: str, overwrite: bool = True) -> Path:
         ystart = ystart_or_adm
     else:
         adm = ystart_or_adm
-    region_name = parts.pop()
-    region = get_region(region_name)
+    _region_arg = parts.pop()
+    region = get_region(_region_arg) if isinstance(_region_arg, str) else _region_arg
     if adm:  # select a specific AdministrativeLevel
         region = region.admin(adm)
 
@@ -139,14 +139,17 @@ def run_task(task: str, overwrite: bool = True) -> Path:
     metric_stub = metric.replace("_corrected", "")
     if "gamma" in metric:
         output = get_path(
-            "output", region, "era5", f"{region}-{ystart}-{year}-era5.{metric}.nc"
+            "output",
+            region.name,
+            "era5",
+            f"{region.name}-{ystart}-{year}-era5.{metric}.nc",
         )
     else:
         output = get_path(
             "output",
-            region,
+            region.name,
             "era5",
-            f"{region}-{admin}-{year}-era5.{metric}.weekly_sum.nc",
+            f"{region.name}-{region.admin}-{year}-era5.{metric}.weekly_sum.nc",
         )
     if not overwrite and output.exists():
         return output
@@ -236,7 +239,7 @@ def process_era5(
     Use `uv run dart-pipeline get era5 {region} <year>` to download data for <year>"""
         )
     if not skip_correction and (
-        missing_tp_corrected := missing_tp_corrected_files(region, required_years)
+        missing_tp_corrected := missing_tp_corrected_files(region.name, required_years)
     ):
         raise FileNotFoundError(
             "Calculation for bias corrected metrics requested, but missing tp_corrected_files:"
@@ -248,11 +251,11 @@ def process_era5(
         )
 
     gamma_tasks = [
-        f"{region}-{ystart}-{yend}-era5.{index}.gamma" for index in ["spi", "spei"]
+        f"{region.name}-{ystart}-{yend}-era5.{index}.gamma" for index in ["spi", "spei"]
     ]
     if not skip_correction:
         gamma_tasks += [
-            f"{region}-{ystart}-{yend}-era5.{index}_corrected.gamma"
+            f"{region.name}-{ystart}-{yend}-era5.{index}_corrected.gamma"
             for index in ["spi", "spei"]
         ]
 
@@ -284,7 +287,7 @@ def process_era5(
             for year in trange(ystart, yend + 1, desc="era5.core_weekly"):
                 y_output = get_path(
                     "output",
-                    region,
+                    region.name,
                     "era5",
                     f"{region.name}-{region.admin}-{year}-era5.core_weekly.nc",
                 )
@@ -299,7 +302,7 @@ def process_era5(
             )
             output = get_path(
                 "output",
-                region,
+                region.name,
                 "era5",
                 f"{region.name}-{region.admin}-{ystart}-{yend}-era5.nc",
             )
@@ -313,7 +316,7 @@ def process_era5(
             for year in trange(ystart, yend + 1, desc="era5.core_daily"):
                 y_output = get_path(
                     "output",
-                    region,
+                    region.name,
                     "era5",
                     f"{region.name}-{region.admin}-{year}-era5.core_daily.nc",
                 )

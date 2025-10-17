@@ -288,7 +288,7 @@ def process(metric: str, **kwargs) -> list[Path]:
     assert not isinstance(res, list)
     match res:
         case pd.DataFrame():
-            region = res.DART_REGION.unique()[0]
+            _region = res.DART_REGION.unique()[0]
             data_metric = res.metric.unique()[0]
             admin = int(res.attrs["admin"])
             assert admin in [1, 2, 3], f"Invalid administrative level {admin=}"
@@ -298,8 +298,8 @@ def process(metric: str, **kwargs) -> list[Path]:
                 )
             date_signifier = determine_date_signifier(res.date)
             outfile = (
-                get_path("output", region, source)
-                / f"{region}-{admin}-{date_signifier}-{data_metric}.parquet"
+                get_path("output", _region, source)
+                / f"{_region}-{admin}-{date_signifier}-{data_metric}.parquet"
             )
             res.to_parquet(outfile, index=False)
             logger.info("output %s %s", metric, print_path(outfile))

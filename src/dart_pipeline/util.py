@@ -80,7 +80,10 @@ def determine_netcdf_filename(metric: str, **kwargs) -> str:
     where KWARG_VALUES is a hyphen delimited list of values in the rest of kwargs
     """
     region = kwargs.pop("region")
-    if isinstance(region, geoglue.region.AdministrativeLevel):
+    if isinstance(
+        region,
+        (geoglue.region.AdministrativeLevel, geoglue.region.CountryAdministrativeLevel),
+    ):
         out = f"{region.name}-{region.admin}"
     else:
         out = region.name
