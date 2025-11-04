@@ -1,7 +1,7 @@
 ---
-name: New metric
-about: Request to add a new metric
-title: "[METRIC] "
+name: New dataset
+about: Request to add a new dataset
+title: "[data] "
 labels: ''
 assignees: ''
 
@@ -11,13 +11,21 @@ assignees: ''
 - **URL**: 
 - **License**:
 - **Authentication required?** yes / no
-- **Temporal extent**:
-- **Spatial extent** (lat/lon extents or world)
-- **Format**: CSV / netCDF / GRIB
+- **Temporal extent**: 
+- **Spatial extent**: (lat/lon extents, ISO3 or WLD for world)
+- **Format**: CSV / XLSX (tabular), netCDF / GRIB (raster)
 - **Temporal Resolution (source)**: hourly / daily / weekly / monthly
-- **Temporal Resolution (output)**: ...
+- **Temporal Resolution (output)**: if different from source resolution
 - **Spatial Resolution**:
-- **Zonal aggregation method**: sum / mean / min / max (select all that apply)
-- **Derived metric?** yes / no. If yes, link to source metric issue unless they are [already implemented](https://dart-pipeline.readthedocs.io/en/latest/reference/metrics.html)
 
-- **Postprocessing required?** All DART metrics output in netCDF format (.nc). If any post-processing is required, indicate here
+For climate data, a collection of variables from one data source should be considered one metric.
+
+#### cdsapi
+
+Remove this section if not applicable
+
+```
+cdsapi request code here
+```
+
+Attach screenshot of cdsapi download info
