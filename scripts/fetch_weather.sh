@@ -41,5 +41,5 @@ done
 for ((i=_fetch_start_year;i<=_fetch_end_year;i++))
 do
   echo -e "\033[1m==> Fetching weather data for $i\033[0m"
-  echo uv run dart-pipeline get era5 "$ISO3" "$i"
+  uv run dart-pipeline get era5 "$ISO3" "$i"
 done
