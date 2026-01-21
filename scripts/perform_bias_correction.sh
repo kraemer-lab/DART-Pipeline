@@ -52,5 +52,5 @@ echo -e "\033[1m==> Performing bias correction\033[0m"
 for ((i=_fetch_start_year;i<=_fetch_end_year;i++))
 do
   dart-bias-correct precipitation "$BC_PRECIP_REF" "$BC_HISTORICAL_OBS" \
-      "$ISO3-$i" --clip-precip-threshold="$BC_CLIP_PRECIP_PERCENTILE"
+      "$ISO3-$i" --clip-precip-percentile="$BC_CLIP_PRECIP_PERCENTILE"
 done
