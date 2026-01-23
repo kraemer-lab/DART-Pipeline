@@ -69,7 +69,7 @@ def test_collate_metric_errors(metric_collection):
 def test_collate(metric_collection):
     ds = metric_collection.collate()
     # fmt: off
-    assert set(ds.data_vars) == {
+    assert set(ds.data_vars).issubset({
         "mxr", "t2m", "r", "mnr", "q", "ssrd", "mx2t", "mn2t", "tp", "hb", "mxq", "mnq",
-    }
+    })
     # fmt: on

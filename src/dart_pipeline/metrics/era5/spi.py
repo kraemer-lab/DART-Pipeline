@@ -122,7 +122,7 @@ def process_spi(region: AdministrativeLevel, date: str) -> xr.DataArray:
 
     gamma = xr.apply_ufunc(gamma_func, ds_ma, gamma_params.alpha, gamma_params.beta)
     norm_spi = xr.apply_ufunc(norminv, gamma)
-    spi = norm_spi.rename({"tp": "spi"}).drop_vars(["e", "ssrd"])
+    spi = norm_spi.rename({"tp": "spi"}).drop_vars(["e", "ssrd"], errors="ignore")
     spi["spi"] = spi.spi.clip(MIN_SPI, MAX_SPI)
     set_lonlat_attrs(spi)
 
