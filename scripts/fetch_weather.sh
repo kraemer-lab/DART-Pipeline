@@ -25,11 +25,7 @@ if [ "$_fetch_end_year" -gt "$_last_supported_year" ]; then
 fi
 
 if [ "$_fetch_end_year" -eq "$_last_supported_year" ]; then
-  cat << EOF
-Note that data for the current year will be partial. For faster downloads,
-geoglue.cds.ReanalysisSingleLevels.get_current_year() can fetch data by month.
-EOF
-  exit 1
+  echo warn: data for the current year will be partial
 fi
 
 echo -e "\033[1m==> Fetching and processing population data\033[0m"
