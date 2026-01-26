@@ -8,7 +8,8 @@ from geoglue.region import CountryAdministrativeLevel
 import numpy as np
 import xarray as xr
 import geoglue.zonal_stats
-from geoglue import AdministrativeLevel, MemoryRaster
+from geoglue import AdministrativeLevel
+from geoglue.memoryraster import MemoryRaster
 from geoglue.types import Bbox
 from geoglue.resample import resample
 from tqdm import tqdm
