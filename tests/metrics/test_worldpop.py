@@ -53,11 +53,11 @@ def mock_path(tmp_path):
 )
 def test_get_worldpop_success(year, dataset, expected_url, mock_path, mock_raster):
     with (
-        patch("dart_pipeline.paths.get_path", return_value=mock_path.parent),
+        patch("dart_pipeline.metrics.worldpop.get_path", return_value=mock_path.parent),
         patch(
             "dart_pipeline.metrics.worldpop.download_file", return_value=True
         ) as mock_download,
-        patch("geoglue.util.read_geotiff", return_value=mock_raster),
+        patch("dart_pipeline.metrics.worldpop.read_geotiff", return_value=mock_raster),
     ):
         get_worldpop(GBR, year, dataset)
         mock_download.assert_called_once()
@@ -69,9 +69,9 @@ def test_get_worldpop_success(year, dataset, expected_url, mock_path, mock_raste
 
 def test_get_worldpop_future_warns_on_past_year(mock_raster, mock_path):
     with (
-        patch("dart_pipeline.paths.get_path", return_value=mock_path.parent),
+        patch("dart_pipeline.metrics.worldpop.get_path", return_value=mock_path.parent),
         patch("dart_pipeline.metrics.worldpop.download_file", return_value=True),
-        patch("geoglue.util.read_geotiff", return_value=mock_raster),
+        patch("dart_pipeline.metrics.worldpop.read_geotiff", return_value=mock_raster),
         warnings.catch_warnings(record=True) as w,
     ):
         warnings.simplefilter("always")
