@@ -49,7 +49,7 @@ def zonal_stats(
 ) -> xr.DataArray:
     """Return zonal statistics for a particular DataArray as another xarray DataArray
 
-    This is a wrapper around geoglue.zonal_stats_xarray to add CF-compliant
+    This is a wrapper around geoglue.zonalstats.zonalstats to add CF-compliant
     metadata attributes derived from the metric name
 
     Parameters
