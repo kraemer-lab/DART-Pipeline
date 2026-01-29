@@ -10,8 +10,7 @@ from geoglue.region import ZonedBaseRegion
 import xarray as xr
 import pandas as pd
 import geoglue.util
-import geoglue.zonal_stats
-from geoglue.memoryraster import MemoryRaster
+import geoglue.zonalstats
 
 from ..paths import get_path
 from ..util import (
@@ -544,13 +543,12 @@ def zonal_stats(
     da: xr.DataArray,
     region: geoglue.region.Region,
     operation: str = "mean(coverage_weight=area_spherical_km2)",
-    weights: MemoryRaster | None = None,
-    include_cols: list[str] | None = None,
+    weights: xr.DataArray | None = None,
     fix_array: bool = False,
 ) -> pd.DataFrame:
     """Return zonal statistics for a particular DataArray as a DataFrame
 
-    This is a wrapper around geoglue.zonal_stats to add metadata attributes
+    This is a wrapper around geoglue.zonalstats.zonalstats to add metadata attributes
     such as metric, unit and region name to the dataframe.
 
     Parameters
@@ -593,13 +591,12 @@ def zonal_stats(
         da = geoglue.util.sort_lonlat(da)  # type: ignore
         geoglue.util.set_lonlat_attrs(da)  # type: ignore
     geom = region.read()
-    df = geoglue.zonal_stats.zonal_stats(
-        da, geom, operation, weights, include_cols=include_cols
-    )
-    df["region"] = region.name
+    da = geoglue.zonalstats.zonalstats(da, geom, operation, weights)
+    da["region"] = region.name
     units = get_metric_info(metric).get("units", "1")
-    df["unit"] = units
-    df["metric"] = metric
+    da["unit"] = units
+    da["metric"] = metric
+    df = da.to_dataframe()
     return df
 
 
@@ -608,12 +605,12 @@ def zonal_stats_xarray(
     da: xr.DataArray,
     region: geoglue.AdministrativeLevel,
     operation: str = "mean(coverage_weight=area_spherical_km2)",
-    weights: MemoryRaster | None = None,
+    weights: xr.DataArray | None = None,
     fix_array: bool = False,
 ) -> xr.DataArray:
     """Return zonal statistics for a particular DataArray as another xarray DataArray
 
-    This is a wrapper around geoglue.zonal_stats_xarray to add CF-compliant
+    This is a wrapper around geoglue.zonalstats.zonalstats to add CF-compliant
     metadata attributes derived from the metric name
 
     Parameters
@@ -629,7 +626,7 @@ def zonal_stats_xarray(
         Zonal statistics operation. For a full list of operations, see
         https://isciences.github.io/exactextract/operations.html. Default
         operation is to calculate the mean with a spherical area coverage weight.
-    weights : MemoryRaster | None
+    weights : xr.DataArray | None
         Optional, if specified, uses the specified raster to perform weighted
         zonal statistics.
     include_cols : list[str] | None
@@ -662,9 +659,7 @@ def zonal_stats_xarray(
         da = geoglue.util.sort_lonlat(da)  # type: ignore
         geoglue.util.set_lonlat_attrs(da)  # type: ignore
     geom = region.read()
-    za = geoglue.zonal_stats.zonal_stats_xarray(
-        da, geom, operation, weights, region_col=region.pk
-    )
+    za = geoglue.zonalstats.zonalstats(da, geom, operation, weights)
     x, y = za.shape
     call = f"zonal_stats({metric!r}, {da.name!r}, region, {operation=}, {weights=})"
     if x == 0 or y == 0:
