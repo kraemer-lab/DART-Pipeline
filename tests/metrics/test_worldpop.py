@@ -1,10 +1,10 @@
 import warnings
 from unittest.mock import patch, MagicMock
 
-from geoglue import MemoryRaster
 from geoglue.region import BaseCountry
 from geoglue.types import Bbox
 import pytest
+import xarray as xr
 
 from dart_pipeline.metrics.worldpop import get_worldpop
 
@@ -18,7 +18,7 @@ GBR = BaseCountry(
 
 @pytest.fixture
 def mock_raster():
-    return MagicMock(spec=MemoryRaster)
+    return MagicMock(spec=xr.DataArray)
 
 
 @pytest.fixture
@@ -57,7 +57,7 @@ def test_get_worldpop_success(year, dataset, expected_url, mock_path, mock_raste
         patch(
             "dart_pipeline.metrics.worldpop.download_file", return_value=True
         ) as mock_download,
-        patch("geoglue.MemoryRaster.read", return_value=mock_raster),
+        patch("geoglue.util.read_geotiff", return_value=mock_raster),
     ):
         get_worldpop(GBR, year, dataset)
         mock_download.assert_called_once()
@@ -71,7 +71,7 @@ def test_get_worldpop_future_warns_on_past_year(mock_raster, mock_path):
     with (
         patch("dart_pipeline.paths.get_path", return_value=mock_path.parent),
         patch("dart_pipeline.metrics.worldpop.download_file", return_value=True),
-        patch("geoglue.MemoryRaster.read", return_value=mock_raster),
+        patch("geoglue.util.read_geotiff", return_value=mock_raster),
         warnings.catch_warnings(record=True) as w,
     ):
         warnings.simplefilter("always")
