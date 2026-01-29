@@ -51,7 +51,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-geoglue = { git = "https://github.com/kraemer-lab/geoglue", branch = "main" }
+geoglue = { git = "https://github.com/kraemer-lab/geoglue" }
 
 [tool.coverage.run]
 omit = ["tests/*"]
