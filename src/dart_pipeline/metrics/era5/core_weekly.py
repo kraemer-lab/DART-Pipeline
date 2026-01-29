@@ -8,7 +8,8 @@ from concurrent.futures import ProcessPoolExecutor
 import xarray as xr
 import pandas as pd
 
-import geoglue.zonal_stats
+import geoglue.zonalstats
+from geoglue.memoryraster import MemoryRaster
 from geoglue import AdministrativeLevel
 from geoglue.util import get_first_monday
 from geoglue.resample import resampled_dataset
@@ -105,16 +106,14 @@ def zonal_stats(
         else "mean(coverage_weight=area_spherical_km2)"
     )
     da = (
-        geoglue.zonal_stats.zonal_stats_xarray(
-            ds[var], geom, operation, weights, region_col=region.pk
-        )
+        geoglue.zonalstats.zonalstats(ds[var], geom, operation, weights)
         .astype("float32")
         .rename({"date": "time"})
         .rename(var)
     )
     if var in ["r", "mxr24", "mnr24"]:
         da = da.clip(0, 100)
-    da.attrs = get_cfattrs(var)
+    da.assign_attrs(get_cfattrs(var))
     return da
 
 
@@ -207,7 +206,7 @@ def era5_process_core_weekly(region: AdministrativeLevel, date: str) -> xr.Datas
     year = int(date)
     logger.info(f"Processing {region.name}-{region.admin}-{year}-era5.core [weekly]")
     ds = prepare_weekly_data(region, year)
-    weights = get_worldpop(region, year)
+    weights = MemoryRaster.from_xarray(get_worldpop(region, year))
     fmt_region = " ".join([region.name, region.pk, region.tz])
     instant_vars = [
         "mn2t24",

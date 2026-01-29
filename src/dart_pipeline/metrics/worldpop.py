@@ -8,7 +8,7 @@ from urllib.parse import urljoin
 import requests
 import xarray as xr
 import pandas as pd
-from geoglue.memoryraster import MemoryRaster
+from geoglue.util import read_geotiff
 from geoglue.region import BaseCountry, CountryAdministrativeLevel
 from functools import cache
 
@@ -57,7 +57,7 @@ register_metrics(
 @cache
 def get_worldpop(
     region: BaseCountry, year: int, dataset: str | None = None
-) -> MemoryRaster:
+) -> xr.DataArray:
     """
     Downloads and returns WorldPop population raster (1km resolution)
     for a particular year and WorldPop dataset.
@@ -98,8 +98,8 @@ def get_worldpop(
 
     Returns
     -------
-    MemoryRaster
-        MemoryRaster representing the population data
+    xr.DataArray
+        xr.DataArray representing the population data
     """
     iso3 = region.name.upper()
     iso3_lower = iso3.lower()
@@ -138,7 +138,7 @@ def get_worldpop(
     url = urljoin(WORLDPOP_ROOT, url_fragment)
     output_path = path_population / url.split("/")[-1]
     if output_path.exists() or download_file(url, output_path):
-        return MemoryRaster.read(output_path)
+        return read_geotiff(output_path)
     else:
         raise requests.ConnectionError(f"Failed to download {url=}")
 
