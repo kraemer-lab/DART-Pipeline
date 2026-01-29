@@ -1,6 +1,7 @@
 import logging
 import functools
 import multiprocessing
+from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
@@ -54,13 +55,20 @@ foregoing.""",
 
 
 @register_fetch("era5")
-def era5_fetch(region: ZonedBaseRegion, date: str) -> CdsPath | None:
+def era5_fetch(region: ZonedBaseRegion, date: str) -> CdsPath | list[CdsPath] | None:
+    cur_year = datetime.now().year
     year = int(date)
     prompt_cdsapi_key()
     data = ReanalysisSingleLevels(
         region, VARIABLES, path=get_path("sources", region.name, "era5")
     )
-    return data.get(year)
+    if year == cur_year:
+        return data.get_current_year(
+            datetime.strptime(f"{year}/01/01", "%Y/%m/%d").date(),
+            datetime.today().date(),
+        )
+    else:
+        return data.get(year)
 
 
 @register_process("era5.prep_bias_correct", multiple_years=True)
