@@ -564,7 +564,7 @@ def zonal_stats(
         Zonal statistics operation. For a full list of operations, see
         https://isciences.github.io/exactextract/operations.html. Default
         operation is to calculate the mean with a spherical area coverage weight.
-    weights : MemoryRaster | None
+    weights : xr.DataArray | None
         Optional, if specified, uses the specified raster to perform weighted
         zonal statistics.
     include_cols : list[str] | None
