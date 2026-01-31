@@ -9,7 +9,6 @@ import xarray as xr
 import pandas as pd
 
 import geoglue.zonalstats
-from geoglue.memoryraster import MemoryRaster
 from geoglue import AdministrativeLevel
 from geoglue.util import get_first_monday
 from geoglue.resample import resampled_dataset
@@ -206,7 +205,7 @@ def era5_process_core_weekly(region: AdministrativeLevel, date: str) -> xr.Datas
     year = int(date)
     logger.info(f"Processing {region.name}-{region.admin}-{year}-era5.core [weekly]")
     ds = prepare_weekly_data(region, year)
-    weights = MemoryRaster.from_xarray(get_worldpop(region, year))
+    weights = get_worldpop(region, year)
     fmt_region = " ".join([region.name, region.pk, region.tz])
     instant_vars = [
         "mn2t24",
