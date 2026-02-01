@@ -9,6 +9,7 @@ import requests
 import xarray as xr
 import pandas as pd
 from geoglue.util import read_geotiff
+from geoglue.zonalstats import zonalstats
 from geoglue.region import BaseCountry, CountryAdministrativeLevel
 from functools import cache
 
@@ -160,9 +161,11 @@ def worldpop_pop_count_process(
     year = int(date)
     population = get_worldpop(region, year)
     geom = region.read()
-    include_cols = [c for c in geom.columns if c != "geometry"]
-    df = population.zonal_stats(geom, "sum", include_cols=include_cols).rename(
-        columns={"sum": "value", region.pk: "region"}
+    df = (
+        zonalstats(population, geom, "sum")
+        .to_dataframe()
+        .reset_index()
+        .rename(columns={"band_data": "value"})
     )
     # print(df[["region", "value"]])
 
