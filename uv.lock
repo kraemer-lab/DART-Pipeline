@@ -681,7 +681,7 @@ requires-dist = [
     { name = "cdsapi", specifier = "==0.7.5" },
     { name = "contextily", specifier = "==1.6.0" },
     { name = "ecmwf-opendata", specifier = ">=0.3.19" },
-    { name = "geoglue", git = "https://github.com/kraemer-lab/geoglue?branch=119-migrate-resample.py-away-from-MemoryRaster" },
+    { name = "geoglue", git = "https://github.com/kraemer-lab/geoglue?branch=main" },
     { name = "geopandas", specifier = ">1" },
     { name = "lxml", specifier = ">4" },
     { name = "matplotlib", specifier = ">=3" },
@@ -1036,7 +1036,7 @@ wheels = [
 [[package]]
 name = "geoglue"
 version = "0.1.0"
-source = { git = "https://github.com/kraemer-lab/geoglue?branch=119-migrate-resample.py-away-from-MemoryRaster#61ae4d7c6d8e45ad7d3059cd761346dabbbd9159" }
+source = { git = "https://github.com/kraemer-lab/geoglue?branch=main#09f166992e76a677f0c8aef7ce9d0b0266b6b61e" }
 dependencies = [
     { name = "cdo" },
     { name = "cdsapi" },

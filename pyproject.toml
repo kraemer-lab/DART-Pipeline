@@ -51,7 +51,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-geoglue = { git = "https://github.com/kraemer-lab/geoglue", branch = "119-migrate-resample.py-away-from-MemoryRaster" }
+geoglue = { git = "https://github.com/kraemer-lab/geoglue", branch = "main" }
 
 [tool.coverage.run]
 omit = ["tests/*"]
