@@ -7,10 +7,10 @@ from pathlib import Path
 from typing import TypedDict, Unpack, cast
 
 from geoglue.region import ZonedBaseRegion
+from geoglue.zonalstats import zonalstats
 import xarray as xr
 import pandas as pd
 import geoglue.util
-import geoglue.zonalstats
 
 from ..paths import get_path
 from ..util import (
@@ -591,7 +591,7 @@ def zonal_stats(
         da = geoglue.util.sort_lonlat(da)  # type: ignore
         geoglue.util.set_lonlat_attrs(da)  # type: ignore
     geom = region.read()
-    da = geoglue.zonalstats.zonalstats(da, geom, operation, weights)
+    da = zonalstats(da, geom, operation, weights)
     da["region"] = region.name
     units = get_metric_info(metric).get("units", "1")
     da["unit"] = units
@@ -659,7 +659,7 @@ def zonal_stats_xarray(
         da = geoglue.util.sort_lonlat(da)  # type: ignore
         geoglue.util.set_lonlat_attrs(da)  # type: ignore
     geom = region.read()
-    za = geoglue.zonalstats.zonalstats(da, geom, operation, weights)
+    za = zonalstats(da, geom, operation, weights)
     x, y = za.shape
     call = f"zonal_stats({metric!r}, {da.name!r}, region, {operation=}, {weights=})"
     if x == 0 or y == 0:
