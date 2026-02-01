@@ -681,7 +681,7 @@ requires-dist = [
     { name = "cdsapi", specifier = "==0.7.5" },
     { name = "contextily", specifier = "==1.6.0" },
     { name = "ecmwf-opendata", specifier = ">=0.3.19" },
-    { name = "geoglue", git = "https://github.com/kraemer-lab/geoglue?branch=main" },
+    { name = "geoglue", git = "https://github.com/kraemer-lab/geoglue?branch=122-fix-paths-already-exist" },
     { name = "geopandas", specifier = ">1" },
     { name = "lxml", specifier = ">4" },
     { name = "matplotlib", specifier = ">=3" },
@@ -1036,7 +1036,7 @@ wheels = [
 [[package]]
 name = "geoglue"
 version = "0.1.0"
-source = { git = "https://github.com/kraemer-lab/geoglue?branch=main#09f166992e76a677f0c8aef7ce9d0b0266b6b61e" }
+source = { git = "https://github.com/kraemer-lab/geoglue?branch=122-fix-paths-already-exist#652e82751627bb1d50fd3672b8567ddb78fb16e6" }
 dependencies = [
     { name = "cdo" },
     { name = "cdsapi" },
