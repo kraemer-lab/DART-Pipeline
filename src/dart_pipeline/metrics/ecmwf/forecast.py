@@ -7,10 +7,10 @@ from pathlib import Path
 from geoglue.region import CountryAdministrativeLevel
 import numpy as np
 import xarray as xr
-import geoglue.zonalstats
 from geoglue import AdministrativeLevel
 from geoglue.types import Bbox, CdoGriddes
 from geoglue.resample import resample
+from geoglue.zonalstats import zonalstats
 from tqdm import tqdm
 
 from ...paths import get_path
@@ -92,18 +92,14 @@ def zonal_stats(
         f"zonal_stats(da, {region.name}, {operation=}, {weights=}, {ensemble_median=})"
     )
     if ensemble_median:
-        za = geoglue.zonalstats.zonalstats(
-            da.median("number"), geom, operation, weights
-        ).rename(da.name)
+        za = zonalstats(da.median("number"), geom, operation, weights).rename(da.name)
         x, y = za.shape
         if x * y == 0:
             raise ValueError(f"Zero dimension DataArray created from {call}", call)
     else:
         za = xr.concat(
             [
-                geoglue.zonalstats.zonalstats(
-                    da.sel(number=i), geom, operation, weights
-                ).rename(da.name)
+                zonalstats(da.sel(number=i), geom, operation, weights).rename(da.name)
                 for i in range(da.number.size)
             ],
             dim="number",
