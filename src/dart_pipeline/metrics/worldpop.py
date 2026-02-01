@@ -8,7 +8,8 @@ from urllib.parse import urljoin
 import requests
 import xarray as xr
 import pandas as pd
-from geoglue.memoryraster import MemoryRaster
+from geoglue.util import read_geotiff
+from geoglue.zonalstats import zonalstats
 from geoglue.region import BaseCountry, CountryAdministrativeLevel
 from functools import cache
 
@@ -57,7 +58,7 @@ register_metrics(
 @cache
 def get_worldpop(
     region: BaseCountry, year: int, dataset: str | None = None
-) -> MemoryRaster:
+) -> xr.DataArray:
     """
     Downloads and returns WorldPop population raster (1km resolution)
     for a particular year and WorldPop dataset.
@@ -98,8 +99,8 @@ def get_worldpop(
 
     Returns
     -------
-    MemoryRaster
-        MemoryRaster representing the population data
+    xr.DataArray
+        xr.DataArray representing the population data
     """
     iso3 = region.name.upper()
     iso3_lower = iso3.lower()
@@ -138,7 +139,7 @@ def get_worldpop(
     url = urljoin(WORLDPOP_ROOT, url_fragment)
     output_path = path_population / url.split("/")[-1]
     if output_path.exists() or download_file(url, output_path):
-        return MemoryRaster.read(output_path)
+        return read_geotiff(output_path)
     else:
         raise requests.ConnectionError(f"Failed to download {url=}")
 
@@ -160,9 +161,11 @@ def worldpop_pop_count_process(
     year = int(date)
     population = get_worldpop(region, year)
     geom = region.read()
-    include_cols = [c for c in geom.columns if c != "geometry"]
-    df = population.zonal_stats(geom, "sum", include_cols=include_cols).rename(
-        columns={"sum": "value", region.pk: "region"}
+    df = (
+        zonalstats(population, geom, "sum")
+        .to_dataframe()
+        .reset_index()
+        .rename(columns={"band_data": "value"})
     )
     # print(df[["region", "value"]])
 

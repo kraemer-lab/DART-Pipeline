@@ -8,10 +8,10 @@ from concurrent.futures import ProcessPoolExecutor
 import xarray as xr
 import pandas as pd
 
-import geoglue.zonal_stats
 from geoglue import AdministrativeLevel
 from geoglue.util import get_first_monday
 from geoglue.resample import resampled_dataset
+from geoglue.zonalstats import zonalstats
 
 from ...metrics import register_process, CFAttributes
 from ...paths import get_path
@@ -93,9 +93,7 @@ def get_weekly_tp_corrected(region: str, year: int) -> xr.DataArray:
 
 
 # TODO: add cfattrs
-def zonal_stats(
-    var: str, ds: xr.Dataset, region: geoglue.AdministrativeLevel
-) -> xr.DataArray:
+def zonal_stats(var: str, ds: xr.Dataset, region: AdministrativeLevel) -> xr.DataArray:
     geom = region.read()
     year = pd.to_datetime(ds.valid_time.min().values).year
     weights = get_worldpop(region, year)
@@ -105,16 +103,14 @@ def zonal_stats(
         else "mean(coverage_weight=area_spherical_km2)"
     )
     da = (
-        geoglue.zonal_stats.zonal_stats_xarray(
-            ds[var], geom, operation, weights, region_col=region.pk
-        )
+        zonalstats(ds[var], geom, operation, weights)
         .astype("float32")
         .rename({"date": "time"})
         .rename(var)
     )
     if var in ["r", "mxr24", "mnr24"]:
         da = da.clip(0, 100)
-    da.attrs = get_cfattrs(var)
+    da.assign_attrs(get_cfattrs(var))
     return da
 
 

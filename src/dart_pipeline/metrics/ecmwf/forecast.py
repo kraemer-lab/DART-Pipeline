@@ -7,11 +7,10 @@ from pathlib import Path
 from geoglue.region import CountryAdministrativeLevel
 import numpy as np
 import xarray as xr
-import geoglue.zonal_stats
 from geoglue import AdministrativeLevel
-from geoglue.memoryraster import MemoryRaster
-from geoglue.types import Bbox
+from geoglue.types import Bbox, CdoGriddes
 from geoglue.resample import resample
+from geoglue.zonalstats import zonalstats
 from tqdm import tqdm
 
 from ...paths import get_path
@@ -45,12 +44,12 @@ def zonal_stats(
     var: str,
     ds: xr.Dataset,
     region: AdministrativeLevel,
-    weights: MemoryRaster,
+    weights: xr.DataArray,
     ensemble_median: bool,
 ) -> xr.DataArray:
     """Return zonal statistics for a particular DataArray as another xarray DataArray
 
-    This is a wrapper around geoglue.zonal_stats_xarray to add CF-compliant
+    This is a wrapper around geoglue.zonalstats.zonalstats to add CF-compliant
     metadata attributes derived from the metric name
 
     Parameters
@@ -62,7 +61,7 @@ def zonal_stats(
         'latitude', 'longitude' and a time coordinate
     region : geoglue.AdministrativeLevel
         Region for which to calculate zonal statistics
-    weights : MemoryRaster
+    weights : xr.DataArray
         Uses the specified raster to perform weighted zonal statistics
     ensemble_median : bool
         Whether to perform ensemble median, this speeds up zonal statistics by
@@ -93,18 +92,14 @@ def zonal_stats(
         f"zonal_stats(da, {region.name}, {operation=}, {weights=}, {ensemble_median=})"
     )
     if ensemble_median:
-        za = geoglue.zonal_stats.zonal_stats_xarray(
-            da.median("number"), geom, operation, weights, region_col=region.pk
-        ).rename(da.name)
+        za = zonalstats(da.median("number"), geom, operation, weights).rename(da.name)
         x, y = za.shape
         if x * y == 0:
             raise ValueError(f"Zero dimension DataArray created from {call}", call)
     else:
         za = xr.concat(
             [
-                geoglue.zonal_stats.zonal_stats_xarray(
-                    da.sel(number=i), geom, operation, weights, region_col=region.pk
-                ).rename(da.name)
+                zonalstats(da.sel(number=i), geom, operation, weights).rename(da.name)
                 for i in range(da.number.size)
             ],
             dim="number",
@@ -167,23 +162,24 @@ def forecast_zonal_stats(
     # compute overlap fraction and show a warning if the bounding
     # boxes have insufficient overlap
     raster_bbox = Bbox.from_xarray(ds)
+    pop_bbox = Bbox.from_xarray(pop)
 
-    if raster_bbox < pop.bbox:
+    if raster_bbox < pop_bbox:
         # Crop population to region bbox if region is smaller
         logger.warning(f"""Cropping larger population raster to smaller input raster
-    Population bounds: {pop.bbox}
+    Population bounds: {pop_bbox}
         Raster bounds: {raster_bbox}""")
         pop = pop.crop(raster_bbox)
-        post_crop_overlap = raster_bbox.overlap_fraction(pop.bbox)
+        post_crop_overlap = raster_bbox.overlap_fraction(pop_bbox)
         logger.info(f"After cropping overlap fraction is {post_crop_overlap:.1%}")
-    elif pop.bbox < raster_bbox:
+    elif pop_bbox < raster_bbox:
         logger.warning(f"""Cropping larger climate raster to smaller population raster_bbox
-    Population bounds: {pop.bbox}
+    Population bounds: {pop_bbox}
         Raster bounds: {raster_bbox}""")
-        ds = ds.sel(latitude=pop.bbox.lat_slice, longitude=pop.bbox.lon_slice)
+        ds = ds.sel(latitude=pop_bbox.lat_slice, longitude=pop_bbox.lon_slice)
     else:
         region_overlap = raster_bbox.overlap_fraction(region.bbox)
-        if region_overlap < 0.80 and not (pop.bbox < raster_bbox):
+        if region_overlap < 0.80 and not (pop_bbox < raster_bbox):
             raise ValueError(
                 f"Insufficient overlap ({region_overlap:.1%}, expected 80%) between input raster and region bbox"
             )
@@ -202,14 +198,17 @@ def forecast_zonal_stats(
         "ecmwf",
         f"{region.name}-{date}-ecmwf.forecast.accum_resampled.nc",
     )
+    pop_griddes = CdoGriddes.from_dataset(pop)
     if instant_vars:
         logger.info("Performing zonal stats for %r", instant_vars)
         assert ds.t2m.notnull().all(), "Null values found in source temperature field"
         logger.info(
             "Resampling instant variables using CDO [remapbil] to target grid:\n%s",
-            pop.griddes,
+            pop_griddes,
         )
-        resample("remapbil", corrected_forecast_instant, pop, resampled_instant_path)
+        resample(
+            "remapbil", corrected_forecast_instant, pop_griddes, resampled_instant_path
+        )
         cleanup.append(resampled_instant_path)
         remapbil_ds = xr.open_dataset(resampled_instant_path, decode_timedelta=True)
         remapbil_ds = remapbil_ds[instant_vars]
@@ -237,9 +236,11 @@ def forecast_zonal_stats(
         assert ds.tp.notnull().all(), "Null values found in source precipitation field"
         logger.info(
             "Resampling accum variables using CDO [remapdis] to target grid:\n%s",
-            pop.griddes,
+            pop_griddes,
         )
-        resample("remapdis", corrected_forecast_accum, pop, resampled_accum_path)
+        resample(
+            "remapdis", corrected_forecast_accum, pop_griddes, resampled_accum_path
+        )
         cleanup.append(resampled_accum_path)
         remapdis_ds = xr.open_dataset(resampled_accum_path, decode_timedelta=True)
         remapdis_ds = remapdis_ds[accum_vars]
