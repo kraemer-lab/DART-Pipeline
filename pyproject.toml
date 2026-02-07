@@ -53,6 +53,13 @@ dev = [
     "sphinxcontrib-mermaid>=1.0.0",
 ]
 
+[project.optional-dependencies]
+gui = [
+    "streamlit",
+    "tree-sitter>=0.25.2",
+    "tree-sitter-bash>=0.25.1",
+]
+
 [tool.uv.sources]
 geoglue = { git = "https://github.com/kraemer-lab/geoglue", rev = "3db42f48a519c6fe85837609c27a36033e9d753d" }
 
