@@ -22,6 +22,14 @@ def run():
     st.title("DART-Pipeline GUI")
     st.caption("-- made with [Streamlit](https://streamlit.io/)")
 
+    st.subheader("README")
+    st.write(
+        "Please read [the official documentation](https://dart-pipeline.readthedocs.io/en/latest/index.html)"
+    )
+    st.write(
+        "This GUI mimics the workflow outlined in the official doc above, provide a visual interface and thin wrapper around the scripts"
+    )
+
     st.subheader("Pipeline prerequisites")
     st.write(
         "You should have all the prerequisite Python libraries and CLI executables below for DART-Pipeline to work as expected"
