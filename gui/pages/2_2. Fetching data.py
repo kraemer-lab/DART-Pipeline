@@ -45,19 +45,38 @@ def config_has_error(fetch_start: int, fetch_end: int):
     return err_flag
 
 
-def check_pop_data(region: str, fetch_start: int, fetch_end: int):
-    st.subheader("Fetch and process population data")
-    path = get_path("sources", region, "worldpop")
+def all_data_exist(
+    region: str, fetch_start: int, fetch_end: int, type: Literal["WorldPop", "ERA5"]
+) -> Tuple[bool, set]:
+    st.subheader(f"Fetch and process `{type}` data")
+    path = get_path("sources", region, type.lower())
 
-    pop_files = os.listdir(path)
+    data_files = os.listdir(path)
 
-    wanted_years = set([year for year in range(fetch_start, fetch_end, 1)])
-    existing_years = set(
-        [int(re.search(r"vnm_p[op]p_(\d{4})_.+", file).group(1)) for file in pop_files]  # pyright: ignore[reportOptionalMemberAccess]
-    )
-    missing_years = list(wanted_years - existing_years)
+    if type == "WorldPop":
+        regex_pat = r"vnm_p[op]p_(\d{4})_.+"
+    elif type == "ERA5":
+        regex_pat = r"VNM-(\d{4})-era5.grib"
+    else:
+        raise FileNotFoundError(f"Data files not found for `{type=}`")
 
-    return missing_years
+    regex_compiled = re.compile(regex_pat)
+
+    wanted_years = {year for year in range(fetch_start, fetch_end, 1)}
+    exist_years = {
+        int(matched.group(1))
+        for file in data_files
+        if (matched := regex_compiled.search(file))
+    }
+    missing_years = wanted_years - exist_years
+    no_missing_year = len(missing_years) == 0
+
+    if no_missing_year:
+        st.write(f":green[All `{type}` data already downloaded] ✅")
+    else:
+        st.write(f"Needs to fetch `{type}` data for years: {missing_years}")
+
+    return (no_missing_year, missing_years)
 
 
 def fetch_pop_data(region: str, admin: str, year: int):
@@ -91,19 +110,24 @@ def run():
     else:
         st.write(":green[No errors found] ✅")
 
-    missing_years = check_pop_data(region, fetch_start_year, fetch_end_year)
-    missing_years = [2000]
-    no_missing_year = len(missing_years) == 0
-    if no_missing_year:
-        st.write(":green[All data already downloaded] ✅")
-    else:
-        st.write(f"Needs to fetch data for years: {missing_years}")
-
-    fetch_worldpop_btn = st.button(
-        "⬇️ Fetch missing WorldPop data",
-        key="fetch_worldpop_btn",
-        disabled=no_missing_year,
+    pop_all_exist, pop_missing = all_data_exist(
+        region, fetch_start, fetch_end, "WorldPop"
     )
+    era_all_exist, era_missing = all_data_exist(region, fetch_start, fetch_end, "ERA5")
+
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        fetch_worldpop_btn = st.button(
+            "⬇️ Fetch missing WorldPop data",
+            key="fetch_worldpop_btn",
+            disabled=pop_all_exist,
+        )
+    with col2:
+        fetch_era5_btn = st.button(
+            "⬇️ Fetch missing ERA5 data",
+            key="fetch_era5_btn",
+            disabled=era_all_exist,
+        )
 
     if fetch_worldpop_btn:
         for year in missing_years:
