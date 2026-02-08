@@ -16,12 +16,13 @@ def print_config():
     # render `config.sh` for reference
     try:
         config_pretty = st.session_state["config_pretty"]
+        _ = st.session_state["config_vars"]
         st.subheader("Provided configuration")
         st.write(config_pretty)
     except KeyError:
         st.subheader(":red[KeyError]")
         st.write(
-            "This most likely means the config file isn't loaded correctly. Please go back to the '1. Configuration' page to re-read the config file"
+            "This most likely means the config file isn't loaded correctly. Please go back to the **`1. Configuration`** page to re-read the config file"
         )
     except Exception as e:
         st.subheader(f":red-badge[{e}]")
@@ -103,13 +104,12 @@ def run():
         st.session_state["log"] = ""
 
     # config_vars: Dict[str, ASTValueNode]
+    print_config()
     config_vars = st.session_state["config_vars"]
     fetch_start = int(config_vars["START_YEAR"].value) - 1
     fetch_end = int(config_vars["END_YEAR"].value) + 1
     region = str(config_vars["ISO3"].value)
     admin = str(config_vars["ADMIN"].value)
-
-    print_config()
 
     if config_has_error(fetch_start, fetch_end):
         st.write("Please resolve the errors above before continuing")
