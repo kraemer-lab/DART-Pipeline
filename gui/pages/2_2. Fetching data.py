@@ -1,4 +1,3 @@
-import logging
 import os
 import re
 from datetime import datetime
@@ -10,7 +9,7 @@ from dart_pipeline import parse_params
 from dart_pipeline.metrics import get
 from dart_pipeline.paths import get_path
 
-current_year = last_supported_year = datetime.now().year
+last_supported_year = datetime.now().year
 
 
 def print_config():
