@@ -81,7 +81,9 @@ def all_data_exist(
 
 def fetch_missing_data(region: str, admin: str, year: int):
     kwargs = parse_params([f"{region}-{admin}", f"{year}"]).as_dict()
-    st.write(f"Fetching WorldPop data for {region}-{admin} {year}")
+
+    log_msg = f"Fetching WorldPop data for {region}-{admin} {year}\n"
+    st.session_state["log"] += log_msg
 
     # get("worldpop.pop_count", **kwargs)
 
@@ -95,6 +97,10 @@ def run():
     st.write(
         "Fetches and prepares population and weather data for a specified ISO country code and administrative level, using the provided configuration"
     )
+
+    # intialise session state
+    if "log" not in st.session_state:
+        st.session_state["log"] = ""
 
     # config_vars: Dict[str, ASTValueNode]
     config_vars = st.session_state["config_vars"]
@@ -129,13 +135,17 @@ def run():
             disabled=era_all_exist,
         )
 
+    log_height = 1
     if fetch_worldpop_btn:
         for year in pop_missing:
             fetch_missing_data(region, admin, year)
-
+        log_height = 300
     if fetch_era5_btn:
         for year in era_missing:
-            st.code(fetch_missing_data(region, admin, year), height=500)
+            fetch_missing_data(region, admin, year)
+        log_height = 300
+
+    st.code(st.session_state["log"], language="text", height=log_height)
 
 
 run()
