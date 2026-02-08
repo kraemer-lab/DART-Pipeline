@@ -80,7 +80,7 @@ def all_data_exist(
     return (no_missing_year, missing_years)
 
 
-def fetch_pop_data(region: str, admin: str, year: int):
+def fetch_missing_data(region: str, admin: str, year: int):
     kwargs = parse_params([f"{region}-{admin}", f"{year}"]).as_dict()
     st.write(f"Fetching WorldPop data for {region}-{admin} {year}")
 
@@ -131,8 +131,12 @@ def run():
         )
 
     if fetch_worldpop_btn:
-        for year in missing_years:
-            fetch_pop_data(region, admin, year)
+        for year in pop_missing:
+            fetch_missing_data(region, admin, year)
+
+    if fetch_era5_btn:
+        for year in era_missing:
+            st.code(fetch_missing_data(region, admin, year), height=500)
 
 
 run()
