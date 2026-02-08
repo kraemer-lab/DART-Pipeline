@@ -98,14 +98,14 @@ def run():
 
     # config_vars: Dict[str, ASTValueNode]
     config_vars = st.session_state["config_vars"]
-    fetch_start_year = int(config_vars["START_YEAR"].value) - 1
-    fetch_end_year = int(config_vars["END_YEAR"].value) + 1
+    fetch_start = int(config_vars["START_YEAR"].value) - 1
+    fetch_end = int(config_vars["END_YEAR"].value) + 1
     region = str(config_vars["ISO3"].value)
     admin = str(config_vars["ADMIN"].value)
 
     print_config()
 
-    if config_has_error(fetch_start_year, fetch_end_year):
+    if config_has_error(fetch_start, fetch_end):
         st.write("Please resolve the errors above before continuing")
     else:
         st.write(":green[No errors found] ✅")
