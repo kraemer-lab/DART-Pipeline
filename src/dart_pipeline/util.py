@@ -16,7 +16,6 @@ from pathlib import Path
 
 import gzip
 import pandas as pd
-import py7zr
 import pycountry
 import requests
 import xarray as xr
@@ -266,11 +265,6 @@ def unpack_file(path: Path | str, same_folder: bool = False):
     logger.info("unpacking:%s", path)
     logger.info("same_folder:%s", same_folder)
     match path.suffix:
-        case ".7z":
-            with py7zr.SevenZipFile(path, mode="r") as archive:
-                archive.extractall(
-                    path.parent if same_folder else path.parent / path.stem
-                )
         case ".f90":
             pass
         case ".gpkg":
