@@ -145,7 +145,7 @@ def print_current_config(session_state: SessionStateProxy):
     try:
         config_pretty = st.session_state["config_pretty"]
         _ = st.session_state["config_vars"]
-        st.subheader("Loaded configuration")
+        st.subheader("Pipeline configuration")
         st.write(config_pretty)
     except KeyError:
         st.subheader(":red[KeyError]")
