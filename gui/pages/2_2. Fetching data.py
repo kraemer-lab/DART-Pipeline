@@ -10,12 +10,11 @@ from dart_pipeline.metrics import get
 from dart_pipeline.paths import get_path
 from gui.utils import print_current_config
 
-last_supported_year = datetime.now().year
-
 
 def config_has_error(fetch_start: int, fetch_end: int):
     st.subheader("Config check")
 
+    last_supported_year = datetime.now().year
     err_flag = False
 
     if fetch_start > fetch_end:
