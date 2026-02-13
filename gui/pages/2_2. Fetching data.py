@@ -83,10 +83,13 @@ def run():
         "Fetches and prepares population and weather data for a specified ISO country code and administrative level, using the provided configuration"
     )
 
-    # intialise session state
+    #
+    ############# intialise session state
     if "log" not in st.session_state:
         st.session_state["log"] = ""
 
+    #
+    #############
     # config_vars: Dict[str, ASTValueNode]
     print_current_config(st.session_state)
     config_vars = st.session_state["config_vars"]
@@ -100,6 +103,8 @@ def run():
     else:
         st.write(":green[No errors found] ✅")
 
+    #
+    #############
     pop_all_exist, pop_missing = all_data_exist(
         region, fetch_start, fetch_end, "WorldPop"
     )
@@ -119,6 +124,8 @@ def run():
             disabled=era_all_exist,
         )
 
+    #
+    #############
     log_height = 1
     if fetch_worldpop_btn:
         for year in pop_missing:
