@@ -4,8 +4,10 @@ import shutil
 from typing import Dict, List
 
 import pandas as pd
+import streamlit as st
 import tree_sitter_bash as tsbash
 from pandas.io.formats.style import Styler
+from streamlit.runtime.state import SessionStateProxy
 from tree_sitter import Language, Node, Parser
 
 from .types import ASTValueNode, PreReqInfo
@@ -136,3 +138,20 @@ def assign_ast_vars(
         config_bytes[start_b:end_b] = new_val.encode("utf-8")
 
     return bytes(config_bytes)
+
+
+def print_current_config(session_state: SessionStateProxy):
+    # render `config.sh` for reference
+    try:
+        config_pretty = st.session_state["config_pretty"]
+        _ = st.session_state["config_vars"]
+        st.subheader("Loaded configuration")
+        st.write(config_pretty)
+    except KeyError:
+        st.subheader(":red[KeyError]")
+        st.write(
+            "This most likely means the config file isn't loaded correctly. Please go back to the **`1. Configuration`** page to re-read the config file"
+        )
+    except Exception as e:
+        st.subheader(f":red-badge[{e}]")
+        st.write("Uncaught exception")
