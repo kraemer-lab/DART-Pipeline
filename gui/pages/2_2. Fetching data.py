@@ -53,7 +53,7 @@ def all_data_exist(
         for file in data_files
         if (matched := regex_compiled.search(file))
     }
-    missing_years = wanted_years - exist_years
+    missing_years = set(sorted(wanted_years - exist_years))
     no_missing_year = len(missing_years) == 0
 
     if no_missing_year:
