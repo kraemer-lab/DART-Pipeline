@@ -1,35 +1,8 @@
 import os
-import subprocess
-from subprocess import Popen
 
 import streamlit as st
-from streamlit.delta_generator import DeltaGenerator
-from streamlit.runtime.state import SessionStateProxy
 
-from gui.utils import print_current_config
-
-
-def run_subproc(
-    cmd_list: list[str], st_console: DeltaGenerator, st_session_state: SessionStateProxy
-) -> Popen:
-    cmd_list = ["stdbuf", "-oL", "-eL", *cmd_list]
-    subproc = subprocess.Popen(
-        cmd_list,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-    )
-    st_session_state["bc_log"] += f"Started subprocess with pid {subproc.pid}\n"
-    st_console.code(st_session_state["bc_log"], language="bash", height=300)
-
-    for line in subproc.stdout:  # pyright: ignore[reportOptionalIterable]
-        st_session_state["bc_log"] += line
-        st_console.code(st_session_state["bc_log"], language="bash", height=300)
-
-    subproc.wait()
-
-    return subproc
+from gui.utils import print_current_config, run_subproc
 
 
 def run():
@@ -120,6 +93,7 @@ def run():
                     f"--clip-precip-percentile={BC_CLIP_PRECIP_PERCENTILE}",
                 ],
                 st_console,
+                st.session_state,
             )
 
             if subproc.returncode == 0:

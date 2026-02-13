@@ -1,12 +1,15 @@
 import importlib
 import importlib.metadata
 import shutil
+import subprocess
+from subprocess import Popen
 from typing import Dict, List
 
 import pandas as pd
 import streamlit as st
 import tree_sitter_bash as tsbash
 from pandas.io.formats.style import Styler
+from streamlit.delta_generator import DeltaGenerator
 from streamlit.runtime.state import SessionStateProxy
 from tree_sitter import Language, Node, Parser
 
@@ -155,3 +158,26 @@ def print_current_config(session_state: SessionStateProxy):
     except Exception as e:
         st.subheader(f":red-badge[{e}]")
         st.write("Uncaught exception")
+
+
+def run_subproc(
+    cmd_list: list[str], st_console: DeltaGenerator, st_session_state: SessionStateProxy
+) -> Popen:
+    cmd_list = ["stdbuf", "-oL", "-eL", *cmd_list]
+    subproc = subprocess.Popen(
+        cmd_list,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )
+    st_session_state["bc_log"] += f"Started subprocess with pid {subproc.pid}\n"
+    st_console.code(st_session_state["bc_log"], language="bash", height=300)
+
+    for line in subproc.stdout:  # pyright: ignore[reportOptionalIterable]
+        st_session_state["bc_log"] += line
+        st_console.code(st_session_state["bc_log"], language="bash", height=300)
+
+    subproc.wait()
+
+    return subproc
