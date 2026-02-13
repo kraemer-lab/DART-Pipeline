@@ -24,10 +24,11 @@ def run():
 
     st.subheader("README")
     st.write(
-        "Please read [the official documentation](https://dart-pipeline.readthedocs.io/en/latest/index.html)"
-    )
-    st.write(
-        "This GUI mimics the workflow outlined in the official doc above, provide a visual interface and thin wrapper around the scripts"
+        """
+        Please read [the official documentation](https://dart-pipeline.readthedocs.io/en/latest/index.html)\n
+        This GUI mimics the workflow outlined in the official doc above, providing a visual interface and thin wrapper around the scripts. 
+        As such, there are minimal checking and validation within this GUI, please make sure you understood how DART-Pipeline works as a CLI first
+        """
     )
 
     st.subheader("Pipeline prerequisites")
