@@ -4,29 +4,32 @@ from subprocess import Popen
 
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
+from streamlit.runtime.state import SessionStateProxy
 
 from gui.utils import print_current_config
 
 
-def run_subproc(cmd_list: list[str], st_console: DeltaGenerator) -> Popen:
+def run_subproc(
+    cmd_list: list[str], st_console: DeltaGenerator, st_session_state: SessionStateProxy
+) -> Popen:
     cmd_list = ["stdbuf", "-oL", "-eL", *cmd_list]
-    bc_proc = subprocess.Popen(
+    subproc = subprocess.Popen(
         cmd_list,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
         bufsize=1,
     )
-    st.session_state["bc_log"] += f"Start subprocess with pid {bc_proc.pid}\n"
-    st_console.code(st.session_state["bc_log"], language="bash", height=300)
+    st_session_state["bc_log"] += f"Started subprocess with pid {subproc.pid}\n"
+    st_console.code(st_session_state["bc_log"], language="bash", height=300)
 
-    for line in bc_proc.stdout:  # pyright: ignore[reportOptionalIterable]
-        st.session_state["bc_log"] += line
-        st_console.code(st.session_state["bc_log"], language="bash", height=300)
+    for line in subproc.stdout:  # pyright: ignore[reportOptionalIterable]
+        st_session_state["bc_log"] += line
+        st_console.code(st_session_state["bc_log"], language="bash", height=300)
 
-    bc_proc.wait()
+    subproc.wait()
 
-    return bc_proc
+    return subproc
 
 
 def run():
