@@ -13,7 +13,7 @@ from tree_sitter import Language, Node, Parser
 from .types import ASTValueNode, PreReqInfo
 
 prereq_py_libs = ["xarray", "rasterio", "cdsapi"]
-prereq_execs = ["dart-bias-correct", "cdo", "wget", "curl"]
+prereq_execs = ["dart-bias-correct", "cdo", "curl"]
 
 
 def check_lib(name: str) -> PreReqInfo:
