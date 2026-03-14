@@ -1,13 +1,11 @@
 import logging
+from typing import Literal
 
-import geoglue
-import geoglue.zonalstats
-import geopandas as gpd
 import xarray as xr
-from geoglue.memoryraster import MemoryRaster
-from geoglue.resample import resample
+from geoglue import AdministrativeLevel
+from geoglue.resample import resampled_dataset
 from geoglue.util import read_raster
-from rasterio.enums import Resampling
+from geoglue.zonalstats import zonalstats
 from tqdm import trange
 
 from dart_pipeline.metrics.worldpop import get_worldpop
@@ -26,8 +24,6 @@ register_metrics(
             "url": "",
             "long_name": "Daily downscaled precipitation for HCMC",
             "units": "mm",
-            # We produce outputs at minimum admin1 resolution, unlikely
-            # that any administrative area will have population greater than this
             "valid_min": 0,
         },
     },
@@ -46,35 +42,52 @@ def parse_year_range(date: str) -> tuple[int, int]:
     return ystart, yend
 
 
+def read_wrf_data() -> xr.Dataset:
+    ds_list: list[xr.Dataset | xr.DataArray] = []
+
+    ds_2000_2024 = read_raster("data/VNM/wrf/HCM_precip_2000_2024.nc")
+    ds_2025 = read_raster("data/VNM/wrf/HCM_precip_2025.nc")
+
+    ds_list.append(ds_2000_2024)
+    ds_list.append(ds_2025)
+
+    return xr.merge(ds_list)
+
+
 def process_precip(
-    region: geoglue.AdministrativeLevel,
+    region: AdministrativeLevel,
     year: int,
+    temporal_resolution: Literal["weekly", "daily"] = "daily",
 ) -> xr.DataArray:
-    geom = gpd.read_file("data/sources/VNM/HCMC/gadm41_HCMC_1.shp")
-    wrf_precip_ds = (
-        read_raster("data/sources/VNM/wrf/HCM_precip_2000_2024.nc")
-        .sel(time=str(year))
-        .clip(min=0)
-    )
+    # setup gpd for HCMC
+    geom = region.read()
+    geom = geom[geom["GID_1"] == "VNM.25_1"].reset_index(drop=True)
 
-    da = wrf_precip_ds["precip"]
+    # get WRF HCMC data
+    wrf_precip_ds = read_wrf_data().sel(time=str(year)).clip(min=0)
 
-    # Build a target raster on the SAME grid as your precip
-    pop = get_worldpop(region, year)
+    # get WorldPop data as weights
+    weights = get_worldpop(region, year)
 
-    weights = pop.resample(MemoryRaster.from_xarray(da.isel(time=0)), Resampling.sum)
+    with resampled_dataset("remapdis", wrf_precip_ds, weights) as resampled_precip:
+        logger.info("Starting zonal statistics for WRF downscaled")
+        zonal_agged_da = zonalstats(
+            resampled_precip["precip"], geom, "area_weighted_sum", weights
+        ).astype("float32")
 
-    zonal_agged_da = geoglue.zonalstats.zonalstats(
-        da, geom, "area_weighted_sum", weights
-    )
+        for dt_name in ("date", "valid_time"):
+            if (dt_name in zonal_agged_da.dims) or (dt_name in zonal_agged_da.coords):
+                zonal_agged_da = zonal_agged_da.rename({dt_name: "time"})
+                break
 
     return zonal_agged_da
 
 
 @register_process("wrf_downscale.precip")
 def wrf_downscale_precip_process(
-    region: geoglue.AdministrativeLevel,
+    region: AdministrativeLevel,
     date: str,
+    temporal_resolution: Literal["weekly", "daily"] = "daily",
 ) -> xr.Dataset:
     ystart, yend = parse_year_range(date)
     yrange_str = f"{ystart}-{yend}"
@@ -86,7 +99,7 @@ def wrf_downscale_precip_process(
 
     ds_lst: list[xr.DataArray] = []
 
-    msg("==> Calculating downscale precipitation (daily):", yrange_str)
+    msg(f"==> Calculating downscale precipitation ({temporal_resolution}):", yrange_str)
     for year in trange(ystart, yend + 1, desc="wrf_downscale.precip"):
         y_output = get_path(
             "output",
@@ -94,7 +107,9 @@ def wrf_downscale_precip_process(
             "wrf_downscale",
             f"{region.name}-{region.admin}-{year}-wrf_downscale.precip.nc",
         )
-        processed_precip = process_precip(region, year).rename("wrf_downscale.precip")
+        processed_precip = process_precip(region, year, temporal_resolution).rename(
+            "wrf_downscale.precip"
+        )
         processed_precip.to_netcdf(y_output)
         ds_lst.append(processed_precip)
 
