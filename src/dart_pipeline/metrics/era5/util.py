@@ -377,7 +377,7 @@ def balance_weekly_dataarray(
         data_path=data_path,
     ).rename({"valid_time": "time"})
     pevt = (
-        xclim.indicators.atmos.potential_evapotranspiration(
+        xclim.indicators.convert.potential_evapotranspiration(
             tasmin=temp.mn2t24, tasmax=temp.mx2t24, tas=temp.t2m
         )
         # closed and label MUST be identical with that obtained from
