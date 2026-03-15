@@ -25,7 +25,7 @@ from geoglue.cds import (
     DatasetPool,
 )
 from geoglue.util import get_first_monday
-from geoglue.region import ZonedBaseRegion
+from geoglue.region import ZonedBaseRegion, AdministrativeLevel
 
 from ...paths import get_path
 from .list_metrics import VARIABLES
