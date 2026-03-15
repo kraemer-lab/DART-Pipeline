@@ -181,12 +181,19 @@ def parse_year_range(date: str, warn_duration_less_than_years: int) -> tuple[int
 
 def temperature_stat_daily(cds: CdsDataset) -> xr.Dataset:
     "Daily statistics for temperature from CdsDataset"
+
+    t2m: xr.DataArray = cds.instant.t2m
+    t2m_da_lst = [
+        t2m.resample(valid_time="D").mean("valid_time"),
+        t2m.resample(valid_time="D").min("valid_time"),
+        t2m.resample(valid_time="D").max("valid_time"),
+    ]
+
+    for da in t2m_da_lst:
+        da.attrs["standard_name"] = "air_temperature"
+
     return xr.Dataset(
-        {
-            "t2m": cds.instant.t2m.resample(valid_time="D").mean("valid_time"),
-            "mn2t24": cds.instant.t2m.resample(valid_time="D").min("valid_time"),
-            "mx2t24": cds.instant.t2m.resample(valid_time="D").max("valid_time"),
-        },
+        {"t2m": t2m_da_lst[0], "mn2t24": t2m_da_lst[1], "mx2t24": t2m_da_lst[2]}
     )
 
 
