@@ -28,6 +28,7 @@ from .util import (
     relative_humidity_from_arrays,
     parse_year_range,
     missing_tp_corrected_files,
+    recode_region,
 )
 from .list_metrics import (
     METRICS,
@@ -317,6 +318,7 @@ def process_era5(
             ds.attrs["DART_region"] = (
                 f"{region.name} {region.pk} {region.tz} {region.bbox.int()}"
             )
+            ds = recode_region(ds, region)
             ds.to_netcdf(output)
             return [output]
         case "daily":
