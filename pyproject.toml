@@ -57,7 +57,7 @@ dev = [
 gui = ["streamlit", "tree-sitter>=0.25.2", "tree-sitter-bash>=0.25.1"]
 
 [tool.uv.sources]
-geoglue = { git = "https://github.com/kraemer-lab/geoglue", rev = "3db42f48a519c6fe85837609c27a36033e9d753d" }
+geoglue = { git = "https://github.com/kraemer-lab/geoglue", rev = "29027bbcb6c26f4fe816e4866d496af0ecb6e3b0" }
 
 [tool.coverage.run]
 omit = ["tests/*"]

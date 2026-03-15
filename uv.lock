@@ -862,7 +862,7 @@ requires-dist = [
     { name = "ecmwf-opendata", specifier = ">=0.3.19" },
     { name = "filelock", specifier = ">=3.20.3" },
     { name = "fonttools", specifier = ">=4.60.2" },
-    { name = "geoglue", git = "https://github.com/kraemer-lab/geoglue?rev=3db42f48a519c6fe85837609c27a36033e9d753d" },
+    { name = "geoglue", git = "https://github.com/kraemer-lab/geoglue?rev=29027bbcb6c26f4fe816e4866d496af0ecb6e3b0" },
     { name = "geopandas", specifier = ">=1.1.2" },
     { name = "lxml", specifier = ">4" },
     { name = "matplotlib", specifier = ">=3" },
@@ -1249,7 +1249,7 @@ wheels = [
 [[package]]
 name = "geoglue"
 version = "0.1.0"
-source = { git = "https://github.com/kraemer-lab/geoglue?rev=3db42f48a519c6fe85837609c27a36033e9d753d#3db42f48a519c6fe85837609c27a36033e9d753d" }
+source = { git = "https://github.com/kraemer-lab/geoglue?rev=29027bbcb6c26f4fe816e4866d496af0ecb6e3b0#29027bbcb6c26f4fe816e4866d496af0ecb6e3b0" }
 dependencies = [
     { name = "cdo" },
     { name = "cdsapi" },
