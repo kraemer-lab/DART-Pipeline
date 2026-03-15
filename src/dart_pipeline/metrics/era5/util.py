@@ -473,3 +473,12 @@ def standardized_precipitation(
             return norm_spi[tp].rename(var)
         case "spei":
             return norm_spi.rename(var)
+
+
+def recode_region(
+    ds: xr.Dataset | xr.DataArray, region: AdministrativeLevel
+) -> xr.Dataset | xr.DataArray:
+    geom = region.read()
+    gid_lookup = geom.reset_index(drop=True)[region.pk].astype(str).to_numpy()
+
+    return ds.assign_coords(region=("region", gid_lookup))
