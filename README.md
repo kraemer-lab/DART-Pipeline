@@ -101,6 +101,37 @@ uv run pytest
 The project uses [pre-commit hooks](https://pre-commit.com), use
 `pre-commit install` to install hooks.
 
+### Debugging in VSCode
+
+Make sure the package is able to run as a module, i.e. `src/dart_pipeline/__main__.py` exist and should probably be:
+
+```python
+from . import main
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```
+
+Then, create a `launch.json` profile with the following configuration
+
+```json
+{
+    "name": "Debug: dart_pipeline as module",
+    "type": "debugpy",
+    "request": "launch",
+    "module": "dart_pipeline",
+    "args": [
+      // put CLI args here
+    ],
+    "env": {
+        "DART_PIPELINE_LOGLEVEL": "DEBUG"
+    },
+    // "justMyCode": true
+}
+```
+
+Now you can debug in VSCode with the "Run and debug" menu, and able to place breakpoints from the UI
+
 ## Authors and Acknowledgments
 
 - OxRSE
