@@ -290,3 +290,11 @@ def unpack_file(path: Path | str, same_folder: bool = False):
         case _:
             extract_dir = path.parent if same_folder else path.parent / path.stem
             shutil.unpack_archive(path, str(extract_dir))
+
+def recode_region(
+    ds: xr.Dataset | xr.DataArray, region: geoglue.region.AdministrativeLevel
+) -> xr.Dataset | xr.DataArray:
+    geom = region.read()
+    gid_lookup = geom.reset_index(drop=True)[region.pk].astype(str).to_numpy()
+
+    return ds.assign_coords(region=("region", gid_lookup))

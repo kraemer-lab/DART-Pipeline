@@ -473,3 +473,4 @@ def standardized_precipitation(
             return norm_spi[tp].rename(var)
         case "spei":
             return norm_spi.rename(var)
+

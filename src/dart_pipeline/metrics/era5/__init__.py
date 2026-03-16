@@ -19,7 +19,7 @@ from ...metrics import (
     print_paths,
 )
 from ...metrics.worldpop import get_worldpop
-from ...util import get_region, msg
+from ...util import get_region, msg, recode_region
 from ...paths import get_path
 
 from .util import (
@@ -317,6 +317,7 @@ def process_era5(
             ds.attrs["DART_region"] = (
                 f"{region.name} {region.pk} {region.tz} {region.bbox.int()}"
             )
+            ds = recode_region(ds, region)
             ds.to_netcdf(output)
             return [output]
         case "daily":
