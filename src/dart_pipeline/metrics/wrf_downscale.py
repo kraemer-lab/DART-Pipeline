@@ -1,6 +1,8 @@
 import logging
+from pathlib import Path
 from typing import Literal
 
+import geopandas as gpd
 import xarray as xr
 from geoglue import AdministrativeLevel
 from geoglue.resample import resampled_dataset
@@ -8,11 +10,10 @@ from geoglue.util import read_raster
 from geoglue.zonalstats import zonalstats
 from tqdm import trange
 
-from dart_pipeline.metrics.worldpop import get_worldpop
-from dart_pipeline.paths import get_path
-from dart_pipeline.util import msg
-
+from ..paths import get_path
+from ..util import msg
 from . import register_metrics, register_process
+from .worldpop import get_worldpop
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +46,8 @@ def parse_year_range(date: str) -> tuple[int, int]:
 def read_wrf_data() -> xr.Dataset:
     ds_list: list[xr.Dataset | xr.DataArray] = []
 
-    ds_2000_2024 = read_raster("data/VNM/wrf/HCM_precip_2000_2024.nc")
-    ds_2025 = read_raster("data/VNM/wrf/HCM_precip_2025.nc")
+    ds_2000_2024 = read_raster("data/sources/HCMC/wrf/HCM_precip_2000_2024.nc")
+    ds_2025 = read_raster("data/sources/HCMC/wrf/HCM_precip_2025.nc")
 
     ds_list.append(ds_2000_2024)
     ds_list.append(ds_2025)
@@ -57,22 +58,36 @@ def read_wrf_data() -> xr.Dataset:
 def process_precip(
     region: AdministrativeLevel,
     year: int,
+    wrf_precip_ds: xr.Dataset,
     temporal_resolution: Literal["weekly", "daily"] = "daily",
 ) -> xr.DataArray:
     # setup gpd for HCMC
-    geom = region.read()
-    geom = geom[geom["GID_1"] == "VNM.25_1"].reset_index(drop=True)
+    geom = gpd.read_file(
+        f"data/sources/HCMC/geoboundaries/gadm41_HCMC_{region.admin}.shp"
+    )
+    gid_lookup = (
+        geom.reset_index(drop=True)[f"GID_{region.admin}"].astype(str).to_numpy()
+    )
 
-    # get WRF HCMC data
-    wrf_precip_ds = read_wrf_data().sel(time=str(year)).clip(min=0)
-
-    # get WorldPop data as weights
+    # use WorldPop data as weights
     weights = get_worldpop(region, year)
 
-    with resampled_dataset("remapdis", wrf_precip_ds, weights) as resampled_precip:
+    # crop WorldPop data by HCMC geom extent
+    geom_bounds = geom.union_all().bounds
+    cropped_weights = weights.where(
+        (weights.latitude > geom_bounds[1])
+        & (weights.latitude < geom_bounds[3])
+        & (weights.longitude > geom_bounds[0])
+        & (weights.longitude < geom_bounds[2]),
+        drop=True,
+    ).fillna(0)
+
+    with resampled_dataset(
+        "remapdis", wrf_precip_ds, cropped_weights
+    ) as resampled_precip:
         logger.info("Starting zonal statistics for WRF downscaled")
         zonal_agged_da = zonalstats(
-            resampled_precip["precip"], geom, "area_weighted_sum", weights
+            resampled_precip["precip"], geom, "area_weighted_sum", cropped_weights
         ).astype("float32")
 
         for dt_name in ("date", "valid_time"):
@@ -80,15 +95,18 @@ def process_precip(
                 zonal_agged_da = zonal_agged_da.rename({dt_name: "time"})
                 break
 
+    zonal_agged_da = zonal_agged_da.assign_coords(region=("region", gid_lookup))
+
     return zonal_agged_da
 
 
-@register_process("wrf_downscale.precip")
+@register_process("wrf_downscale.precip", multiple_years=True)
 def wrf_downscale_precip_process(
     region: AdministrativeLevel,
     date: str,
     temporal_resolution: Literal["weekly", "daily"] = "daily",
-) -> xr.Dataset:
+    overwrite: bool = True,
+) -> list[Path]:
     ystart, yend = parse_year_range(date)
     yrange_str = f"{ystart}-{yend}"
 
@@ -97,9 +115,13 @@ def wrf_downscale_precip_process(
         get_worldpop(region, year)
     msg("==> Worldpop data retrieved")
 
+    msg("==> Retrieving WRF downscaled precipitation data")
+    wrf_precip_ds_full = read_wrf_data().clip(min=0)
+    msg("==> WRF downscaled precipitation data retrieved")
+
     ds_lst: list[xr.DataArray] = []
 
-    msg(f"==> Calculating downscale precipitation ({temporal_resolution}):", yrange_str)
+    msg(f"==> Processing downscaled precipitation ({temporal_resolution}):", yrange_str)
     for year in trange(ystart, yend + 1, desc="wrf_downscale.precip"):
         y_output = get_path(
             "output",
@@ -107,12 +129,24 @@ def wrf_downscale_precip_process(
             "wrf_downscale",
             f"{region.name}-{region.admin}-{year}-wrf_downscale.precip.nc",
         )
-        processed_precip = process_precip(region, year, temporal_resolution).rename(
-            "wrf_downscale.precip"
-        )
+        wrf_precip_ds_year = wrf_precip_ds_full.sel(time=str(year))
+        processed_precip = process_precip(
+            region, year, wrf_precip_ds_year, temporal_resolution
+        ).rename("wrf_downscale.precip")
         processed_precip.to_netcdf(y_output)
         ds_lst.append(processed_precip)
 
-    ds = xr.merge(ds_lst)
+    output = get_path(
+        "output",
+        region.name,
+        "wrf_downscale",
+        f"{region.name}-{region.admin}-{ystart}-{yend}-wrf_downscale.precip.nc",
+    )
 
-    return ds
+    ds = xr.merge(ds_lst)
+    ds.attrs["DART_region"] = (
+        f"{region.name} {region.pk} {region.tz} {region.bbox.int()}"
+    )
+    ds.to_netcdf(output)
+
+    return [output]
