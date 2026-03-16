@@ -19,7 +19,7 @@ from ...metrics import (
     print_paths,
 )
 from ...metrics.worldpop import get_worldpop
-from ...util import get_region, msg
+from ...util import get_region, msg, recode_region
 from ...paths import get_path
 
 from .util import (
@@ -28,7 +28,6 @@ from .util import (
     relative_humidity_from_arrays,
     parse_year_range,
     missing_tp_corrected_files,
-    recode_region,
 )
 from .list_metrics import (
     METRICS,
