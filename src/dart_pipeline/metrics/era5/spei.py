@@ -132,7 +132,7 @@ def process_spei(
     )
     spei.to_netcdf(spei_path)
 
-    population = get_worldpop(region, year)
+    population = get_worldpop(region, year).fillna(0)
     with resampled_dataset("remapdis", spei_path, population) as resampled_ds:
         return zonal_stats_xarray(
             f"era5.{spei_name}.weekly_sum",
