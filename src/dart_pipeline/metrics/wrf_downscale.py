@@ -64,18 +64,15 @@ def process_precip(
     temporal_resolution: Literal["weekly", "daily"] = "daily",
 ) -> xr.DataArray:
     # setup gpd for HCMC
-    geom = gpd.read_file(
-        f"data/sources/HCMC/geoboundaries/gadm41_HCMC_{region.admin}.shp"
-    )
-    gid_lookup = (
-        geom.reset_index(drop=True)[f"GID_{region.admin}"].astype(str).to_numpy()
-    )
+    geom = region.read()
+    hcmc_geom = geom[geom.GID_1 == "VNM.25_1"].reset_index(drop=True)
+    gid_lookup = hcmc_geom[f"GID_{region.admin}"].astype(str).to_numpy()
 
     # use WorldPop data as weights
     weights = get_worldpop(region, year)
 
     # crop WorldPop data by HCMC geom extent
-    geom_bounds = geom.union_all().bounds
+    geom_bounds = hcmc_geom.union_all().bounds
     cropped_weights = weights.where(
         (weights.latitude > geom_bounds[1])
         & (weights.latitude < geom_bounds[3])
@@ -89,7 +86,7 @@ def process_precip(
     ) as resampled_precip:
         logger.info("Starting zonal statistics for WRF downscaled")
         zonal_agged_da = zonalstats(
-            resampled_precip["precip"], geom, "area_weighted_sum", cropped_weights
+            resampled_precip["precip"], hcmc_geom, "area_weighted_sum", cropped_weights
         ).astype("float32")
 
         for dt_name in ("date", "valid_time"):
