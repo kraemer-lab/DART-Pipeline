@@ -43,11 +43,13 @@ def parse_year_range(date: str) -> tuple[int, int]:
     return ystart, yend
 
 
-def read_wrf_data() -> xr.Dataset:
+def read_wrf_data(region: AdministrativeLevel) -> xr.Dataset:
     ds_list: list[xr.Dataset | xr.DataArray] = []
 
-    ds_2000_2024 = read_raster("data/sources/HCMC/wrf/HCM_precip_2000_2024.nc")
-    ds_2025 = read_raster("data/sources/HCMC/wrf/HCM_precip_2025.nc")
+    parent_dir = get_path("sources", region.name, "wrf_downscale")
+
+    ds_2000_2024 = read_raster(parent_dir / "HCM_precip_2000_2024.nc")
+    ds_2025 = read_raster(parent_dir / "HCM_precip_2025.nc")
 
     ds_list.append(ds_2000_2024)
     ds_list.append(ds_2025)
@@ -116,7 +118,7 @@ def wrf_downscale_precip_process(
     msg("==> Worldpop data retrieved")
 
     msg("==> Retrieving WRF downscaled precipitation data")
-    wrf_precip_ds_full = read_wrf_data().clip(min=0)
+    wrf_precip_ds_full = read_wrf_data(region).clip(min=0)
     msg("==> WRF downscaled precipitation data retrieved")
 
     ds_lst: list[xr.DataArray] = []
