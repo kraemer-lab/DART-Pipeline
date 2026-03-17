@@ -69,7 +69,7 @@ def process_precip(
     gid_lookup = hcmc_geom[f"GID_{region.admin}"].astype(str).to_numpy()
 
     # use WorldPop data as weights
-    weights = get_worldpop(region, year)
+    weights = get_worldpop(region, year).fillna(0)
 
     # crop WorldPop data by HCMC geom extent
     geom_bounds = hcmc_geom.union_all().bounds
@@ -79,7 +79,7 @@ def process_precip(
         & (weights.longitude > geom_bounds[0])
         & (weights.longitude < geom_bounds[2]),
         drop=True,
-    ).fillna(0)
+    )
 
     with resampled_dataset(
         "remapdis", wrf_precip_ds, cropped_weights
