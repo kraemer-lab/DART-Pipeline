@@ -2,7 +2,6 @@ import logging
 from pathlib import Path
 from typing import Literal
 
-import geopandas as gpd
 import xarray as xr
 from geoglue import AdministrativeLevel
 from geoglue.resample import resampled_dataset
