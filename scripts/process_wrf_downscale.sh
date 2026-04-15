@@ -18,4 +18,4 @@ if [ "$_res" != "daily" ] &&  [ "$_res" != "weekly" ]; then
 fi
 
 uv run dart-pipeline process wrf_downscale.precip "$ISO3-$ADMIN" \
-  "${START_YEAR}-${END_YEAR}" temporal_resolution="$TEMPORAL_RESOLUTION"
+  "${START_YEAR}-${END_YEAR}" temporal_resolution="${TEMPORAL_RESOLUTION}"
