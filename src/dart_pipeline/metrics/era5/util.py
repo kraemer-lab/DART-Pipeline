@@ -3,29 +3,28 @@ Common methods to calculate standardised precipitation index and
 standardised precipitation-evaporation index
 """
 
+import datetime
+import functools
+import logging
 import os
 import sys
-import logging
-import functools
-import datetime
 import warnings
-from typing import Literal
 from pathlib import Path
+from typing import Literal
 
-import xclim
-import scipy.stats
-import numpy as np
-import xarray as xr
 import metpy.calc as mp
-from metpy.units import units
-from geoglue.util import find_unique_time_coord
+import numpy as np
+import scipy.stats
+import xarray as xr
+import xclim
 from geoglue.cds import (
     CdsDataset,
-    ReanalysisSingleLevels,
     DatasetPool,
+    ReanalysisSingleLevels,
 )
-from geoglue.util import get_first_monday
 from geoglue.region import ZonedBaseRegion
+from geoglue.util import find_unique_time_coord, get_first_monday
+from metpy.units import units
 
 from ...paths import get_path
 from .list_metrics import VARIABLES
@@ -154,7 +153,8 @@ def assert_data_available_for_weekly_reduce(
     else:
         ystart -= 1  # time shifting requires data from preceding year
     pool = get_dataset_pool(region, data_path)
-    if missing := set(range(ystart, yend + 1)) - set(pool.years):
+    pool_years = pool.years + pool.part_years
+    if missing := set(range(ystart, yend + 1)) - set(pool_years):
         raise FileNotFoundError(f"""Missing data for {region.name} for years: {missing}
 For methods requiring weekly aggregations, we require a year before and
 after the end of the requested period as weeks do not overlap 1:1 with years.
@@ -473,4 +473,3 @@ def standardized_precipitation(
             return norm_spi[tp].rename(var)
         case "spei":
             return norm_spi.rename(var)
-
