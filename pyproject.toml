@@ -25,7 +25,7 @@ dependencies = [
     "rasterio==1.*",
     "requests>=2.32.4",
     "shapely>2.0.5",
-    "urllib3>=2.6.3",
+    "urllib3>=2.7.0",
     "xclim>=0.56.0",
 ]
 scripts = { dart-pipeline = "dart_pipeline:main" }
