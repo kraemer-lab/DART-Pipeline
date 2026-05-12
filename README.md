@@ -123,10 +123,10 @@ Then, create a `launch.json` profile with the following configuration
     "args": [
       // put CLI args here
     ],
-    "env": {
-        "DART_PIPELINE_LOGLEVEL": "DEBUG"
-    },
-    // "justMyCode": true
+    // "env": {
+    //     "DART_PIPELINE_LOGLEVEL": "DEBUG"
+    // },
+    "justMyCode": false
 }
 ```
 
