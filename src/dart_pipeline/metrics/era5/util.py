@@ -3,29 +3,28 @@ Common methods to calculate standardised precipitation index and
 standardised precipitation-evaporation index
 """
 
+import datetime
+import functools
+import logging
 import os
 import sys
-import logging
-import functools
-import datetime
 import warnings
-from typing import Literal
 from pathlib import Path
+from typing import Literal
 
-import xclim
-import scipy.stats
-import numpy as np
-import xarray as xr
 import metpy.calc as mp
-from metpy.units import units
-from geoglue.util import find_unique_time_coord
+import numpy as np
+import scipy.stats
+import xarray as xr
+import xclim
 from geoglue.cds import (
     CdsDataset,
-    ReanalysisSingleLevels,
     DatasetPool,
+    ReanalysisSingleLevels,
 )
-from geoglue.util import get_first_monday
 from geoglue.region import ZonedBaseRegion
+from geoglue.util import find_unique_time_coord, get_first_monday
+from metpy.units import units
 
 from ...paths import get_path
 from .list_metrics import VARIABLES
@@ -154,7 +153,8 @@ def assert_data_available_for_weekly_reduce(
     else:
         ystart -= 1  # time shifting requires data from preceding year
     pool = get_dataset_pool(region, data_path)
-    if missing := set(range(ystart, yend + 1)) - set(pool.years):
+    pool_years = pool.years + pool.part_years
+    if missing := set(range(ystart, yend + 1)) - set(pool_years):
         raise FileNotFoundError(f"""Missing data for {region.name} for years: {missing}
 For methods requiring weekly aggregations, we require a year before and
 after the end of the requested period as weeks do not overlap 1:1 with years.
@@ -181,12 +181,19 @@ def parse_year_range(date: str, warn_duration_less_than_years: int) -> tuple[int
 
 def temperature_stat_daily(cds: CdsDataset) -> xr.Dataset:
     "Daily statistics for temperature from CdsDataset"
+
+    t2m: xr.DataArray = cds.instant.t2m
+    t2m_da_lst = [
+        t2m.resample(valid_time="D").mean("valid_time"),
+        t2m.resample(valid_time="D").min("valid_time"),
+        t2m.resample(valid_time="D").max("valid_time"),
+    ]
+
+    for da in t2m_da_lst:
+        da.attrs["standard_name"] = "air_temperature"
+
     return xr.Dataset(
-        {
-            "t2m": cds.instant.t2m.resample(valid_time="D").mean("valid_time"),
-            "mn2t24": cds.instant.t2m.resample(valid_time="D").min("valid_time"),
-            "mx2t24": cds.instant.t2m.resample(valid_time="D").max("valid_time"),
-        },
+        {"t2m": t2m_da_lst[0], "mn2t24": t2m_da_lst[1], "mx2t24": t2m_da_lst[2]}
     )
 
 
@@ -377,7 +384,7 @@ def balance_weekly_dataarray(
         data_path=data_path,
     ).rename({"valid_time": "time"})
     pevt = (
-        xclim.indicators.atmos.potential_evapotranspiration(
+        xclim.indicators.convert.potential_evapotranspiration(
             tasmin=temp.mn2t24, tasmax=temp.mx2t24, tas=temp.t2m
         )
         # closed and label MUST be identical with that obtained from

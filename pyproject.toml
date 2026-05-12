@@ -25,7 +25,7 @@ dependencies = [
     "rasterio==1.*",
     "requests>=2.32.4",
     "shapely>2.0.5",
-    "urllib3>=2.6.3",
+    "urllib3>=2.7.0",
     "xclim>=0.56.0",
 ]
 scripts = { dart-pipeline = "dart_pipeline:main" }
@@ -53,11 +53,8 @@ dev = [
     "sphinxcontrib-mermaid>=1.0.0",
 ]
 
-[project.optional-dependencies]
-gui = ["streamlit", "tree-sitter>=0.25.2", "tree-sitter-bash>=0.25.1"]
-
 [tool.uv.sources]
-geoglue = { git = "https://github.com/kraemer-lab/geoglue", rev = "3db42f48a519c6fe85837609c27a36033e9d753d" }
+geoglue = { git = "https://github.com/kraemer-lab/geoglue", rev = "59a760644be7532cb6a3fe19ac4b1a49fb1cafdf" }
 
 [tool.coverage.run]
 omit = ["tests/*"]

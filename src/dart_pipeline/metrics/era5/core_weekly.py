@@ -102,15 +102,17 @@ def zonal_stats(var: str, ds: xr.Dataset, region: AdministrativeLevel) -> xr.Dat
         if var in ["tp", "tp_bc", "hb", "hb_bc"]
         else "mean(coverage_weight=area_spherical_km2)"
     )
-    da = (
-        zonalstats(ds[var], geom, operation, weights)
-        .astype("float32")
-        .rename({"date": "time"})
-        .rename(var)
-    )
+    da = zonalstats(ds[var], geom, operation, weights).astype("float32").rename(var)
+
+    for dt_name in ("date", "valid_time"):
+        if (dt_name in da.dims) or (dt_name in da.coords):
+            da = da.rename({dt_name: "time"})
+            break
+
     if var in ["r", "mxr24", "mnr24"]:
         da = da.clip(0, 100)
     da.assign_attrs(get_cfattrs(var))
+
     return da
 
 
