@@ -60,7 +60,7 @@ def era5_fetch(region: ZonedBaseRegion, date: str) -> CdsPath | list[CdsPath] | 
     year = int(date)
     prompt_cdsapi_key()
     data = ReanalysisSingleLevels(
-        region, VARIABLES, path=get_path("sources", region.name, "era5")
+        region, VARIABLES, path=get_path("sources", region.iso3, "era5")
     )
     if year == cur_year:
         return data.get_current_year(
