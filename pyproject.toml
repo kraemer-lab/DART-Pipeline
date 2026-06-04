@@ -9,8 +9,8 @@ dependencies = [
     "cdsapi==0.7.5",
     "contextily==1.6.0",
     "ecmwf-opendata>=0.3.19",
-    "filelock>=3.20.3", # required by xclim
-    "fonttools>=4.60.2", # required by matplotlib
+    "filelock>=3.20.3",       # required by xclim
+    "fonttools>=4.60.2",      # required by matplotlib
     "geoglue",
     "geopandas>=1.1.2",
     "lxml>4",
@@ -46,7 +46,7 @@ dev = [
     "requests-mock>=1.12.1",
     "sphinx-book-theme>=1.1.3",
     "sphinx>=8.1.3",
-    "jinja2>=3.1.6",  # required by myst-parser
+    "jinja2>=3.1.6",                # required by myst-parser
     "pytest-xdist>=3.6.1",
     "freezegun>=1.5",
     "ipykernel>=6.29.5",
@@ -54,7 +54,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-geoglue = { git = "https://github.com/kraemer-lab/geoglue", rev = "59a760644be7532cb6a3fe19ac4b1a49fb1cafdf" }
+geoglue = { git = "https://github.com/kraemer-lab/geoglue", rev = "f8057fdd95f6e08307daec8bbef54ea61da4642e" }
 
 [tool.coverage.run]
 omit = ["tests/*"]
