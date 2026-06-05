@@ -17,7 +17,6 @@ dependencies = [
     "matplotlib>=3",
     "metpy>=1.6.3",
     "netCDF4>=1.7.2",
-    "numpy<2.4.0",
     "openpyxl==3.1.*",
     "pandas>=2.2",
     "pycountry==24.6.1",
