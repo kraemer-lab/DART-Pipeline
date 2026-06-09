@@ -173,11 +173,11 @@ def prepare_weekly_data(region: AdministrativeLevel, year: int) -> xr.Dataset:
     accum = pool.weekly_reduce(year, "accum")[accum_vars]
     ds = xr.merge([t2m, mx2t24, mn2t24, q, mxq24, mnq24, r, mxr24, mnr24, accum])
     try:
-        tp_bc = get_weekly_tp_corrected(region.name, year)
+        tp_bc = get_weekly_tp_corrected(region.iso3, year)
         ds = xr.merge([ds, tp_bc])
     except FileNotFoundError:
         logger.warning(
-            f"tp_corrected file not found, not adding tp_bc for ({region.name}, {year})"
+            f"tp_corrected file not found, not adding tp_bc for ({region.iso3}, {year})"
         )
 
     # Calculate derived metrics
