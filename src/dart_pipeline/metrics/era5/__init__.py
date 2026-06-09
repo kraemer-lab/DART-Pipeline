@@ -113,7 +113,9 @@ def prep_bias_correct(region: ZonedBaseRegion, date: str) -> xr.Dataset:
         ds = xr.concat([ds, _prep_year(y)], dim="time")
     return ds
 
-
+# TODO: make sure that
+# - data is retrieved by region.iso3
+# - output is indexed by region.name
 def run_task(task: str, overwrite: bool = True) -> Path:
     """Runs task definition
 
@@ -247,7 +249,7 @@ def process_era5(
     Use `uv run dart-pipeline get era5 {region} <year>` to download data for <year>"""
         )
     if not skip_correction and (
-        missing_tp_corrected := missing_tp_corrected_files(region.name, required_years)
+        missing_tp_corrected := missing_tp_corrected_files(region.iso3, required_years)
     ):
         raise FileNotFoundError(
             "Calculation for bias corrected metrics requested, but missing tp_corrected_files:"
