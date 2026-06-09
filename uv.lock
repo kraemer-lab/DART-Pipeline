@@ -1241,7 +1241,7 @@ wheels = [
 [[package]]
 name = "geoglue"
 version = "0.1.0"
-source = { git = "https://github.com/kraemer-lab/geoglue?branch=use-iso3-for-data-fetching#cb7d439acb2b733e8c6033fa589af0ed016e57d4" }
+source = { git = "https://github.com/kraemer-lab/geoglue?branch=use-iso3-for-data-fetching#1cef684682ade7b5aeefb6b85ef9a36e1961fddd" }
 dependencies = [
     { name = "cdo" },
     { name = "cdsapi" },
