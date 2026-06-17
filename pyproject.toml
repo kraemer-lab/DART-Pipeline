@@ -27,6 +27,7 @@ dependencies = [
     "shapely>2.0.5",
     "urllib3>=2.7.0",
     "xclim>=0.56.0",
+    "numpy"
 ]
 scripts = { dart-pipeline = "dart_pipeline:main" }
 
@@ -54,7 +55,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-geoglue = { git = "https://github.com/kraemer-lab/geoglue", branch = "use-iso3-for-data-fetching" }
+geoglue = { git = "https://github.com/kraemer-lab/geoglue", rev = "e83cf4e8bc73e8621caea3dbcfeedd4ce4f0bc1c" }
 
 [tool.coverage.run]
 omit = ["tests/*"]
