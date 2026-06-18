@@ -132,9 +132,9 @@ def process_forecast(region: AdministrativeLevel, date: str) -> list[Path]:
 
     corrected_forecast_file = get_path(
         "sources",
-        region.name,
+        region.iso3,
         "ecmwf",
-        f"{region.name}-{date}-ecmwf.forecast.corrected.nc",
+        f"{region.iso3}-{date}-ecmwf.forecast.corrected.nc",
     )
     if not corrected_forecast_file.exists():
         raise FileNotFoundError(f"""Corrected forecast file not found at expected location:
