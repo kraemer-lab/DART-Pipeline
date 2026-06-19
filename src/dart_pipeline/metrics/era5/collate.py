@@ -22,7 +22,7 @@ GLOB_WEEKLY = "*-20*-era5.*[._]weekly*.nc"
 class MetricCollection:
     """Represents a collection of output metrics"""
 
-    def __init__(self, region: str, data_path: Path | None = None, weekly: bool = True):
+    def __init__(self, region: str, data_path: Path | None = None, weekly: bool = True, skip_correction: bool = False):
         self.region_without_admin = region.split("-")[0]
         self.region = region
         root_path = data_path or get_path("output", self.region_without_admin, "era5")
@@ -52,6 +52,12 @@ class MetricCollection:
             raise ValueError(
                 f"No match found for {region=}, might be missing admin level like VNM-2, or set weekly=False to get daily data"
             )
+        # Drop corrected metrics if skip_correction
+        if skip_correction:
+            self.data = self.data[
+                ~self.data.metric.str.contains("_corrected", na=False)
+            ]
+
         self.min_year = self.data.year.min()
         self.max_year = self.data.year.max()
 
