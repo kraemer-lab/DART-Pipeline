@@ -11,6 +11,7 @@ import sys
 import warnings
 from pathlib import Path
 from typing import Literal
+import pandas as pd
 
 import metpy.calc as mp
 import numpy as np
@@ -23,7 +24,7 @@ from geoglue.cds import (
     ReanalysisSingleLevels,
 )
 from geoglue.region import ZonedBaseRegion
-from geoglue.util import find_unique_time_coord, get_first_monday
+from geoglue.util import find_unique_time_coord, get_first_monday, get_last_sunday
 from metpy.units import units
 
 from ...paths import get_path
@@ -145,15 +146,19 @@ def assert_data_available_for_weekly_reduce(
     "Asserts that sufficient data is available for weekly_reduce() call"
     negative_longitude = "-" in region.tz
 
-    # Always get one year around requested range as weeks may overlap contiguous years
-    ystart -= 1
-    yend += 1
-    if negative_longitude:
-        yend += 1  # time shifting requires data from succeeding year
-    else:
-        ystart -= 1  # time shifting requires data from preceding year
     pool = get_dataset_pool(region, data_path)
     pool_years = pool.years + pool.part_years
+
+    # Always get one year around requested range as weeks may overlap contiguous years
+    ystart -= 1
+    if yend not in pool.part_years:
+        yend += 1
+
+    # if negative_longitude:
+    #     yend += 1  # time shifting requires data from succeeding year
+    # else:
+    #     ystart -= 1  # time shifting requires data from preceding year
+    
     if missing := set(range(ystart, yend + 1)) - set(pool_years):
         raise FileNotFoundError(f"""Missing data for {region.name} for years: {missing}
 For methods requiring weekly aggregations, we require a year before and
@@ -231,6 +236,18 @@ def get_date_range_for_years(
         yend + 1
     ) - datetime.timedelta(days=1)
 
+def get_date_range_for_partial_yend(
+        ystart: int, end_date: datetime.date, 
+    window: int=0, align_weeks: bool = False
+    )-> tuple[datetime.date, datetime.date]:
+    if align_weeks and window % 7 != 0:
+        raise ValueError("When align_weeks=True, window must be a multiple of 7")
+    if not align_weeks:
+        return datetime.date(ystart, 1, 1) - datetime.timedelta(
+            days=window
+        ), end_date
+    
+    return get_first_monday(ystart) - datetime.timedelta(days=window), get_last_sunday(end_date) 
 
 def temperature_daily_dataset(
     region: ZonedBaseRegion,
@@ -258,7 +275,14 @@ def temperature_daily_dataset(
         cdsy = pool[year]
         ds_y = temperature_stat_daily(cdsy)
         ds = xr.concat([ds, ds_y], dim="valid_time")
-    start_date, end_date = get_date_range_for_years(ystart, yend, window, align_weeks)
+
+    if yend in pool.part_years:
+        last_timepoint = cdsy.instant.valid_time.values.max()
+        tend = get_last_sunday(pd.Timestamp(last_timepoint).date())
+        start_date, end_date = get_date_range_for_partial_yend(ystart, tend, window, align_weeks)
+    else:
+        start_date, end_date = get_date_range_for_years(ystart, yend, window, align_weeks)
+
     return ds.sel(valid_time=slice(start_date.isoformat(), end_date.isoformat()))
 
 
@@ -277,7 +301,7 @@ def precipitation_weekly_dataset(
     - tp: weekly sum of the total daily precipitation
     """
     pool = get_dataset_pool(region, data_path)
-    avail_years = set(pool.years)
+    avail_years = set(pool.years + pool.part_years) # allow partial years here also
     required_years = set(
         range(ystart - 1, yend + 1)
     )  # one extra year required for windowed data
