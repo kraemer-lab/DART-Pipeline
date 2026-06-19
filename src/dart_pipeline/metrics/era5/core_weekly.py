@@ -9,7 +9,7 @@ import xarray as xr
 import pandas as pd
 
 from geoglue import AdministrativeLevel
-from geoglue.util import get_first_monday
+from geoglue.util import get_first_monday, get_last_sunday
 from geoglue.resample import resampled_dataset
 from geoglue.zonalstats import zonalstats
 
@@ -73,11 +73,13 @@ def get_weekly_tp_corrected(region: str, year: int) -> xr.DataArray:
     )
     if path.exists() and path_next_year.exists():
         start_date = get_first_monday(year)
-        end_date = get_first_monday(year + 1) - datetime.timedelta(days=1)
+
         da = xr.concat(
             [xr.open_dataarray(path), xr.open_dataarray(path_next_year)],
             dim="valid_time",
         )
+        end_date = get_first_monday(year + 1) - datetime.timedelta(days=1)
+        
         da = da.sel(
             valid_time=slice(start_date.isoformat(), end_date.isoformat())
         ).astype("float32")
@@ -146,16 +148,28 @@ def weekly_mean_daily_min(da: xr.DataArray) -> xr.DataArray:
 def prepare_weekly_data(region: AdministrativeLevel, year: int) -> xr.Dataset:
     accum_vars = ["e", "tp"]
     pool = get_dataset_pool(region)
-    h = xr.concat(
-        [
-            pool[year].instant[["t2m", "d2m", "sp"]],
-            pool[year + 1].instant[["t2m", "d2m", "sp"]],
-        ],
-        dim="valid_time",
-    )
-    tstart = get_first_monday(year).isoformat()
-    tend = (get_first_monday(year + 1) - datetime.timedelta(days=1)).isoformat()
-    h = h.sel(valid_time=slice(tstart, tend))
+
+    is_partial = year == max(pool.part_years)
+
+    if not is_partial:
+        h = xr.concat(
+            [
+                pool[year].instant[["t2m", "d2m", "sp"]],
+                pool[year + 1].instant[["t2m", "d2m", "sp"]],
+            ],
+            dim="valid_time",
+        )
+        tend = get_first_monday(year + 1) - datetime.timedelta(days=1)
+    else:
+        h = pool[year].instant
+        last_timepoint = h.valid_time.values.max()
+        tend = get_last_sunday(pd.Timestamp(last_timepoint).date())
+
+    tstart = get_first_monday(year)  
+    if tend < tstart:
+        raise ValueError(f"Data has not covered at least 1 week for {year} yet, use {year-1} as end year instead")
+    
+    h = h.sel(valid_time=slice(tstart.isoformat(), tend.isoformat()))
 
     t2m = weekly_mean(h.t2m)
     mx2t24 = weekly_mean_daily_max(h.t2m).rename("mx2t24")
