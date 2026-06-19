@@ -199,7 +199,8 @@ def run_tasks(
         logger.info("[%s] processed %d tasks", task_group, len(tasks))
     return paths
 
-
+# - Fetch for era5 always get latest week available (via ReanalysisSingleLevels.get_current_year)
+# - Make sure to always re-process with the newest data as well
 @register_process("era5", multiple_years=True)
 def process_era5(
     region: AdministrativeLevel,
@@ -241,7 +242,8 @@ def process_era5(
     for year in range(ystart, yend + 1):
         get_worldpop(region, year)
     pool = get_dataset_pool(region)
-    required_years = set(range(ystart, yend + 1))
+
+    required_years = set(range(ystart, yend))
     present_years = set(pool.years)
     if not required_years < present_years:
         raise FileNotFoundError(
@@ -301,15 +303,19 @@ def process_era5(
                     "era5",
                     f"{region.name}-{region.admin}-{year}-era5.core_weekly.nc",
                 )
-                if overwrite or not y_output.exists():
+                # re-process file for the whole year if it is in pool.part_years
+                if overwrite or not y_output.exists() or (year in pool.part_years):
                     y_zs = era5_process_core_weekly(region, str(year))
                     y_zs.to_netcdf(y_output)
                 paths.append(y_output)
 
             msg("==> Collating metrics:", yrange_str)
-            ds = MetricCollection(f"{region.name}-{region.admin}").collate(
-                (ystart, yend)
-            )
+            ds = MetricCollection(
+                    f"{region.name}-{region.admin}",
+                    skip_correction=skip_correction
+                ).collate(
+                    (ystart, yend)
+                )
             output = get_path(
                 "output",
                 region.name,
@@ -332,7 +338,8 @@ def process_era5(
                     f"{region.name}-{region.admin}-{year}-era5.core_daily.nc",
                 )
                 gen_paths = []
-                if overwrite or not y_output.exists():
+                 # re-process file for the whole year if it is in pool.part_years
+                if overwrite or not y_output.exists() or (year in pool.part_years):
                     gen_paths = era5_process_core_daily(region, str(year))
                     # y_zs.to_netcdf(y_output)
                 paths.extend(gen_paths)
