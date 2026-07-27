@@ -74,10 +74,10 @@ def process_precip(
     # crop WorldPop data by HCMC geom extent
     geom_bounds = hcmc_geom.union_all().bounds
     cropped_weights = weights.where(
-        (weights.latitude > geom_bounds[1])
-        & (weights.latitude < geom_bounds[3])
-        & (weights.longitude > geom_bounds[0])
-        & (weights.longitude < geom_bounds[2]),
+        (weights.longitude > geom_bounds[0])
+        & (weights.latitude > geom_bounds[1])
+        & (weights.longitude < geom_bounds[2])
+        & (weights.latitude < geom_bounds[3]),
         drop=True,
     )
 
