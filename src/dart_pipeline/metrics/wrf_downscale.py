@@ -65,10 +65,8 @@ def process_precip(
     wrf_precip_ds: xr.Dataset,
     temporal_resolution: Literal["weekly", "daily"] = "daily",
 ) -> xr.DataArray:
-    # setup gpd for HCMC
-    geom = region.read()
-    hcmc_geom = geom[geom.GID_1 == "VNM.25_1"].reset_index(drop=True)
-    gid_lookup = hcmc_geom[f"GID_{region.admin}"].astype(str).to_numpy()
+    hcmc_geom = region.read()
+    gid_lookup = hcmc_geom[region.pk].astype(str).to_numpy()
 
     # use WorldPop data as weights
     weights = get_worldpop(region, year).fillna(0)
