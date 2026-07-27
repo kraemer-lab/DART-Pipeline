@@ -46,7 +46,7 @@ def parse_year_range(date: str) -> tuple[int, int]:
 def read_wrf_data(region: AdministrativeLevel) -> xr.Dataset:
     ds_list: list[xr.Dataset | xr.DataArray] = []
 
-    parent_dir = get_path("sources", region.name, "wrf_downscale")
+    parent_dir = get_path("sources", region.iso3, "wrf_downscale")
 
     ds_2000_2024 = read_raster(parent_dir / "HCM_precip_2000_2024.nc")
     ds_2025 = read_raster(parent_dir / "HCM_precip_2025.nc")
