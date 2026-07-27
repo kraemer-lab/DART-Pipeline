@@ -6,6 +6,7 @@ from typing import Literal
 import xarray as xr
 from geoglue import AdministrativeLevel
 from geoglue.resample import resampled_dataset
+from geoglue.types import Bbox
 from geoglue.util import read_raster
 from geoglue.zonalstats import zonalstats
 from tqdm import tqdm
@@ -72,12 +73,12 @@ def process_precip(
     weights = get_worldpop(region, year).fillna(0)
 
     # crop WorldPop data by HCMC geom extent
-    geom_bounds = hcmc_geom.union_all().bounds
+    geom_bbox = Bbox.from_string(",".join(hcmc_geom.total_bounds.astype(str)))
     cropped_weights = weights.where(
-        (weights.longitude > geom_bounds[0])
-        & (weights.latitude > geom_bounds[1])
-        & (weights.longitude < geom_bounds[2])
-        & (weights.latitude < geom_bounds[3]),
+        (weights.longitude > geom_bbox.minx)
+        & (weights.latitude > geom_bbox.miny)
+        & (weights.longitude < geom_bbox.maxx)
+        & (weights.latitude < geom_bbox.maxy),
         drop=True,
     )
 
