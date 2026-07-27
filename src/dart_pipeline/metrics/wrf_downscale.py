@@ -56,7 +56,7 @@ def read_wrf_data(region: AdministrativeLevel) -> xr.Dataset:
     ds_list.append(ds_2025)
     ds_list.append(ds_2026)
 
-    return xr.merge(ds_list)
+    return xr.merge(ds_list, join="outer", compat="no_conflicts")
 
 
 def process_precip(
