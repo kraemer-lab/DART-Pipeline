@@ -3,6 +3,7 @@
 import functools
 import logging
 import multiprocessing
+import operator
 from functools import cache
 from pathlib import Path
 from typing import Literal
@@ -218,7 +219,8 @@ def era5_process_core_daily(
 
     generated_paths = []
     if not overwrite and n_already_existing_metrics:
-        generated_paths = sum(
+        generated_paths = functools.reduce(
+            operator.iadd,
             [
                 [
                     metric_path_daily(region.name, region.admin, year, m, s)

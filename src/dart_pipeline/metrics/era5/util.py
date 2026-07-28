@@ -6,6 +6,7 @@ standardised precipitation-evaporation index
 import datetime
 import functools
 import logging
+import operator
 import os
 import sys
 import warnings
@@ -80,7 +81,8 @@ def pprint_ms(
     "Pretty print metric statistic combinations"
     if existing_ms is None:
         return "\n\t" + "\n\t".join(
-            sum(
+            functools.reduce(
+                operator.iadd,
                 [
                     [f"[make] era5.{metric}.daily_{stat}" for metric in ms[stat]]
                     for stat in ms
@@ -90,8 +92,8 @@ def pprint_ms(
         )
     else:
         out = []
-        for stat in ms:
-            for metric in ms[stat]:
+        for stat, value in ms.items():
+            for metric in value:
                 if metric in existing_ms[stat]:
                     out.append(f"[skip] era5.{metric}.daily_{stat}")
                 else:

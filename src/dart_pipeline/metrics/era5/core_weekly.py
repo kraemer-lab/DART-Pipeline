@@ -204,7 +204,7 @@ def era5_process_core_weekly(region: AdministrativeLevel, date: str) -> xr.Datas
     logger.info(f"Processing {region.name}-{region.admin}-{year}-era5.core [weekly]")
     ds = prepare_weekly_data(region, year)
     weights = get_worldpop(region, year)
-    fmt_region = " ".join([region.name, region.pk, region.tz])
+    fmt_region = f"{region.name} {region.pk} {region.tz}"
     instant_vars = [
         "mn2t24",
         "t2m",

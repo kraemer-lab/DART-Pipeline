@@ -33,7 +33,7 @@ class PartialDate(NamedTuple):
         if re.match(r"^[12]\d\d\d$", date):
             return PartialDate(int(date))
         if re.match(r"^[12]\d\d\d-[01]\d$", date):
-            dt = datetime.strptime(date, "%Y-%m")
+            dt = datetime.strptime(date, "%Y-%m").astimezone()
             return PartialDate(dt.year, dt.month)
         dt = datetime.fromisoformat(date)
         return PartialDate(dt.year, dt.month, dt.day)

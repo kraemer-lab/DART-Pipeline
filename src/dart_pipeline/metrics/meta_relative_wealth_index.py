@@ -143,8 +143,8 @@ def get_geo_id(x: dict[str, float], polygons: dict) -> str:
         str: The ID of the region containing the point, or 'null' if not found.
     """
     point = Point(x["longitude"], x["latitude"])
-    for geo_id in polygons:
-        polygon = polygons[geo_id]
+    for geo_id, value in polygons.items():
+        polygon = value
         if polygon.contains(point):
             return geo_id
     return "null"

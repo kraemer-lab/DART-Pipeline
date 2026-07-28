@@ -167,7 +167,7 @@ def plot_timeseries(df, title, path):
     plt.xlabel("Year", fontsize=12)
     plt.ylabel("Cases", fontsize=12)
     plt.xticks(rotation=30)
-    ymin, ymax = plt.ylim()
+    _, ymax = plt.ylim()
     plt.ylim(0, ymax)
     plt.xlim(date(df["year"].min(), 1, 1), date(df["year"].max(), 12, 31))
     plt.legend()

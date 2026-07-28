@@ -415,7 +415,7 @@ def print_metrics(filter_by: str | None = None):
     filtered_sources = (
         METRICS.keys()
         if filter_by is None
-        else set(m.split(".")[0] for m in filtered_metrics)
+        else {m.split(".")[0] for m in filtered_metrics}
     )
     for s in filtered_sources:
         print()
@@ -475,7 +475,7 @@ def print_metrics_rst(filter_by: str | None = None):
     filtered_sources = (
         METRICS.keys()
         if filter_by is None
-        else set(m.split(".")[0] for m in filtered_metrics)
+        else {m.split(".")[0] for m in filtered_metrics}
     )
     for s in filtered_sources:
         source = METRICS[s]

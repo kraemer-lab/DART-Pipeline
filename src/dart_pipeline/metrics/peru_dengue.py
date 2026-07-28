@@ -6,7 +6,7 @@ import base64
 import logging
 import os
 import re
-from datetime import date
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
@@ -178,6 +178,6 @@ def process_dengueperu(
     master["month"] = ""
     master["day"] = ""
     master["unit"] = "cases"
-    master["creation_date"] = date.today()
+    master["creation_date"] = datetime.now(tz=UTC)
 
     return master
