@@ -215,7 +215,7 @@ def get(
         abort(metric, f"missing required parameters {missing_params}")
 
     region = kwargs.get("region")
-    region_name = region.name if region is not None else "WLD"
+    region_name = region.iso3 if region is not None else "WLD"
     path = get_path("sources", region_name)
     links = FETCHERS[metric](**kwargs)
     links = links if isinstance(links, list) else [links]

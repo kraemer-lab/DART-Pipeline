@@ -103,7 +103,7 @@ def get_dataset_pool(
     region: ZonedBaseRegion, data_path: Path | None = None
 ) -> DatasetPool:
     return ReanalysisSingleLevels(
-        region, VARIABLES, path=data_path or get_path("sources", region.name, "era5")
+        region, VARIABLES, path=data_path or get_path("sources", region.iso3, "era5")
     ).get_dataset_pool()
 
 
@@ -316,14 +316,14 @@ def corrected_precipitation_weekly_dataset(
     - tp_bc: weekly sum of the total daily precipitation
     """
     # Need to get the previous year in case of window > 1
-    da = xr.open_dataarray(tp_corrected_path(region.name, ystart - 1))
+    da = xr.open_dataarray(tp_corrected_path(region.iso3, ystart - 1))
 
     # Create daily dataset from all years
     # We go up to yend + 1 to bring in some days from the succeeding year
     # for cases when Sundays are not 31 December (end of week aligns
     # with end of year)
     for y in range(ystart, yend + 2):
-        da_y = xr.open_dataarray(tp_corrected_path(region.name, y))
+        da_y = xr.open_dataarray(tp_corrected_path(region.iso3, y))
         da = xr.concat([da, da_y], dim="valid_time")
 
     # Crop to start timeseries on Mondays, with appropriate offset if window > 1

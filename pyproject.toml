@@ -27,6 +27,7 @@ dependencies = [
     "shapely>2.0.5",
     "urllib3>=2.7.0",
     "xclim>=0.56.0",
+    "numpy"
 ]
 scripts = { dart-pipeline = "dart_pipeline:main" }
 

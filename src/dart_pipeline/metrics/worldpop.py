@@ -102,8 +102,14 @@ def get_worldpop(
     xr.DataArray
         xr.DataArray representing the population data
     """
-    iso3 = region.name.upper()
+    # TODO:
+    # - Use iso3 field for data fetching from worldpop
+    # - Name should be the name of the custom shapefile
+    # iso3 = region.name.upper()
+    # iso3_lower = iso3.lower()
+    iso3 = region.iso3.upper()
     iso3_lower = iso3.lower()
+
     if dataset is None:
         if 2000 <= year <= 2020:
             dataset = "default"
@@ -125,7 +131,7 @@ def get_worldpop(
             f"get_worldpop(): dataset 'future' selected for {year=}, consider using actual data using dataset='default'"
         )
 
-    path_population = get_path("sources", region.name, "worldpop")
+    path_population = get_path("sources", region.iso3, "worldpop")
     template = (
         string.Template(WORLDPOP_DATASETS[dataset])
         if dataset in WORLDPOP_DATASETS

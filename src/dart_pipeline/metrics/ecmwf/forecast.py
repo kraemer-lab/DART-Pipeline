@@ -117,12 +117,16 @@ def zonal_stats(
 def forecast_zonal_stats(
     region: CountryAdministrativeLevel, date: str, ensemble_median: bool = True
 ) -> xr.Dataset:
+    # source/fetched data is alw indexed by iso3
     corrected_forecast_file = get_path(
         "sources",
-        region.name,
+        region.iso3,
         "ecmwf",
-        f"{region.name}-{date}-ecmwf.forecast.corrected.nc",
+        f"{region.iso3}-{date}-ecmwf.forecast.corrected.nc",
     )
+
+    # scratch/intermediate data is indexed by region.name 
+    # (i.e. could be a sub region of ISO3)
     corrected_forecast_instant = get_path(
         "scratch",
         region.name,

@@ -194,10 +194,10 @@ def process_popdensity_rwi(region: CountryAdministrativeLevel) -> xr.DataArray:
     shapefile = region.read()
     population_path = get_path(
         "sources",
-        region.name,
+        region.iso3,
         "meta",
         "pop_density",
-        f"{region.name.lower()}_general_2020.csv",
+        f"{region.iso3.lower()}_general_2020.csv",
     )
     print("POPULATION PATH", population_path)
     if not population_path.exists():
@@ -211,13 +211,13 @@ Run `uv run dart-pipeline get meta.pop_density {region.iso3}` to fetch data""")
 
     logger.info(
         "Reading meta.relative_wealth_index [%s] %r",
-        region.name,
+        region.iso3,
         path := get_path(
             "sources",
-            region.name,
+            region.iso3,
             "meta",
             "relative_wealth_index",
-            f"{region.name.lower()}_relative_wealth_index.csv",
+            f"{region.iso3.lower()}_relative_wealth_index.csv",
         ),
     )
     print("RWI PATH", path)
