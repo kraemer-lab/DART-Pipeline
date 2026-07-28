@@ -344,7 +344,7 @@ def fit_gamma_distribution(
     ds_ma = ds.rolling({dimension: window}, center=False).mean().dropna(dimension)
     # Nat log of moving averages
     ds_In = np.log(ds_ma)
-    ds_In = ds_In.where(not np.isinf(ds_In))
+    ds_In = ds_In.where(np.isinf(ds_In) == False)  # noqa
     ds_mu = ds_ma.mean(dimension)
 
     # Overall mean of moving averages
