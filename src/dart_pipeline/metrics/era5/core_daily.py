@@ -82,7 +82,7 @@ def population_weighted_aggregation_daily(
         ds[variable],
         region,
         operation=operation,
-        weights=get_worldpop(region, year, nodata_impute=0),
+        weights=get_worldpop(region, year),
     )
     # clamp relative_humidity to 100%
     if "relative_humidity" in metric:
@@ -260,10 +260,7 @@ def era5_process_core_daily(
             f"Resampling using CDO for {stat=} using {resampling=}: {paths[stat]} -> {resampled_paths[stat]}"
         )
         resample(
-            resampling,
-            paths[stat],
-            get_worldpop(region, year, nodata_impute=0),
-            resampled_paths[stat],
+            resampling, paths[stat], get_worldpop(region, year), resampled_paths[stat]
         )
         with multiprocessing.Pool() as p:
             new_paths = list(

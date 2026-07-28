@@ -57,10 +57,7 @@ register_metrics(
 
 @cache
 def get_worldpop(
-    region: BaseCountry,
-    year: int,
-    dataset: str | None = None,
-    nodata_impute: None | int = None,
+    region: BaseCountry, year: int, dataset: str | None = None
 ) -> xr.DataArray:
     """
     Downloads and returns WorldPop population raster (1km resolution)
@@ -110,7 +107,6 @@ def get_worldpop(
     # - Name should be the name of the custom shapefile
     # iso3 = region.name.upper()
     # iso3_lower = iso3.lower()
-    assert region.iso3 is not None
     iso3 = region.iso3.upper()
     iso3_lower = iso3.lower()
 
@@ -149,11 +145,7 @@ def get_worldpop(
     url = urljoin(WORLDPOP_ROOT, url_fragment)
     output_path = path_population / url.split("/")[-1]
     if output_path.exists() or download_file(url, output_path):
-        gtiff = read_geotiff(output_path)
-        if nodata_impute is not None:
-            return gtiff.fillna(nodata_impute)
-        else:
-            return gtiff
+        return read_geotiff(output_path)
     else:
         raise requests.ConnectionError(f"Failed to download {url=}")
 
