@@ -2,7 +2,6 @@
 
 import string
 import warnings
-from functools import cache
 from typing import Literal
 from urllib.parse import urljoin
 
@@ -55,7 +54,7 @@ register_metrics(
 )
 
 
-@cache
+# @cache
 def get_worldpop(
     region: BaseCountry,
     year: int,
