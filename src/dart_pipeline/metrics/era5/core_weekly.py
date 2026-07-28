@@ -94,7 +94,7 @@ def get_weekly_tp_corrected(region: str, year: int) -> xr.DataArray:
 def zonal_stats(var: str, ds: xr.Dataset, region: AdministrativeLevel) -> xr.DataArray:
     geom = region.read()
     year = pd.to_datetime(ds.valid_time.min().values).year
-    weights = get_worldpop(region, year).fillna(0)
+    weights = get_worldpop(region, year, nodata_impute=0)
     operation = (
         "area_weighted_sum"
         if var in ["tp", "tp_bc", "hb", "hb_bc"]
@@ -203,7 +203,7 @@ def era5_process_core_weekly(region: AdministrativeLevel, date: str) -> xr.Datas
     year = int(date)
     logger.info(f"Processing {region.name}-{region.admin}-{year}-era5.core [weekly]")
     ds = prepare_weekly_data(region, year)
-    weights = get_worldpop(region, year).fillna(0)
+    weights = get_worldpop(region, year, nodata_impute=0)
     fmt_region = f"{region.name} {region.pk} {region.tz}"
     instant_vars = [
         "mn2t24",
