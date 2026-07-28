@@ -4,18 +4,17 @@ import logging
 import tempfile
 from pathlib import Path
 
-from geoglue.region import CountryAdministrativeLevel
 import numpy as np
 import xarray as xr
 from geoglue import AdministrativeLevel
-from geoglue.types import Bbox, CdoGriddes
+from geoglue.region import CountryAdministrativeLevel
 from geoglue.resample import resample
+from geoglue.types import Bbox, CdoGriddes
 from geoglue.zonalstats import zonalstats
 from tqdm import tqdm
 
-from ...paths import get_path
-
 from ...metrics.worldpop import get_worldpop
+from ...paths import get_path
 
 logger = logging.getLogger(__name__)
 
@@ -125,7 +124,7 @@ def forecast_zonal_stats(
         f"{region.iso3}-{date}-ecmwf.forecast.corrected.nc",
     )
 
-    # scratch/intermediate data is indexed by region.name 
+    # scratch/intermediate data is indexed by region.name
     # (i.e. could be a sub region of ISO3)
     corrected_forecast_instant = get_path(
         "scratch",

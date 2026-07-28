@@ -2,20 +2,20 @@
 
 import string
 import warnings
+from functools import cache
 from typing import Literal
 from urllib.parse import urljoin
 
+import pandas as pd
 import requests
 import xarray as xr
-import pandas as pd
+from geoglue.region import BaseCountry, CountryAdministrativeLevel
 from geoglue.util import read_geotiff
 from geoglue.zonalstats import zonalstats
-from geoglue.region import BaseCountry, CountryAdministrativeLevel
-from functools import cache
 
+from ..metrics import register_fetch, register_metrics, register_process
 from ..paths import get_path
 from ..util import download_file
-from ..metrics import register_metrics, register_fetch, register_process
 
 WORLDPOP_ROOT = "https://data.worldpop.org/GIS/Population/"
 

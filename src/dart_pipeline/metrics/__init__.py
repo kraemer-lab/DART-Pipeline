@@ -1,25 +1,25 @@
-import re
-import json
 import inspect
+import json
 import logging
+import re
 import textwrap
 from pathlib import Path
 from typing import TypedDict, Unpack, cast
 
+import geoglue.util
+import pandas as pd
+import xarray as xr
 from geoglue.region import ZonedBaseRegion
 from geoglue.zonalstats import zonalstats
-import xarray as xr
-import pandas as pd
-import geoglue.util
 
 from ..paths import get_path
+from ..types import DataFile, InvalidCounts, URLCollection
 from ..util import (
     abort,
+    determine_netcdf_filename,
     download_files,
     logfmt,
-    determine_netcdf_filename,
 )
-from ..types import DataFile, URLCollection, InvalidCounts
 
 logger = logging.getLogger(__name__)
 

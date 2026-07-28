@@ -1,10 +1,10 @@
 import warnings
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from geoglue.region import BaseCountry
-from geoglue.types import Bbox
 import pytest
 import xarray as xr
+from geoglue.region import BaseCountry
+from geoglue.types import Bbox
 
 from dart_pipeline.metrics.worldpop import get_worldpop
 

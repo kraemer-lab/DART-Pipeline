@@ -1,17 +1,17 @@
 """Plot data."""
 
-from pathlib import Path
-from datetime import date
-from typing import Literal
 import logging
 import re
+from datetime import date
+from pathlib import Path
+from typing import Literal
 
-import matplotlib
-import pandas as pd
-from matplotlib import pyplot as plt
-from geoglue.region import gadm
 import geopandas as gpd
+import matplotlib
 import numpy as np
+import pandas as pd
+from geoglue.region import gadm
+from matplotlib import pyplot as plt
 
 LONGITUDE_LABEL = "Longitude [degrees_east]"
 LATITUDE_LABEL = "Latitude [degrees_north]"

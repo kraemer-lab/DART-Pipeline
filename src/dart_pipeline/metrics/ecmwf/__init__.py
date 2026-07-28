@@ -1,16 +1,15 @@
 """Module to process ECMWF Forecast Open Data"""
 
 import logging
+from datetime import date, datetime
 from pathlib import Path
-from datetime import datetime, date
 
 import ecmwf.opendata
 import requests.exceptions
 from geoglue.region import AdministrativeLevel, BaseRegion
 
+from ...metrics import MetricInfo, register_fetch, register_metrics, register_process
 from ...paths import get_path
-from ...metrics import register_metrics, register_fetch, register_process, MetricInfo
-
 from .forecast import VARIABLES, forecast_grib_to_netcdf, forecast_zonal_stats
 
 METRICS: dict[str, MetricInfo] = {

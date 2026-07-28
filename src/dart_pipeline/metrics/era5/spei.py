@@ -2,28 +2,24 @@
 Standardised precipitation evapotranspiration index (SPEI)
 """
 
-import re
 import logging
-import xarray as xr
+import re
 
-from geoglue.region import ZonedBaseRegion, AdministrativeLevel
+import xarray as xr
+from geoglue.region import AdministrativeLevel, ZonedBaseRegion
 from geoglue.resample import resampled_dataset
 from geoglue.util import find_unique_time_coord, set_lonlat_attrs
 
-from ...paths import get_path
-from ...metrics import register_process, get_gamma_params, zonal_stats_xarray
+from ...metrics import get_gamma_params, register_process, zonal_stats_xarray
 from ...metrics.worldpop import get_worldpop
-
+from ...paths import get_path
 from .util import (
+    assert_data_available_for_weekly_reduce,
+    balance_weekly_dataarray,
     fit_gamma_distribution,
     gamma_func,
     norminv,
-)
-
-from .util import (
-    balance_weekly_dataarray,
     parse_year_range,
-    assert_data_available_for_weekly_reduce,
 )
 
 logger = logging.getLogger(__name__)

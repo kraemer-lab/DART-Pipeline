@@ -3,15 +3,15 @@
 from datetime import date
 from pathlib import Path
 
-import pytest
 import numpy as np
 import numpy.testing as npt
+import pytest
 
 from dart_pipeline.metrics.era5.util import (
-    temperature_daily_dataset,
-    precipitation_weekly_dataset,
     balance_weekly_dataarray,
     get_date_range_for_years,
+    precipitation_weekly_dataset,
+    temperature_daily_dataset,
 )
 
 params = {"ystart": 2020, "yend": 2020, "data_path": Path("tests/data")}

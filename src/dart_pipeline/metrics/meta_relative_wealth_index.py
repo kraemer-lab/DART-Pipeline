@@ -11,19 +11,18 @@ Originally adapted by Prathyush Sambaturu.
 import logging
 from typing import Final
 
+import pandas as pd
+import requests
 import xarray as xr
+from bs4 import BeautifulSoup
+from geoglue.region import BaseCountry, CountryAdministrativeLevel
 from pyquadkey2 import quadkey
 from shapely.geometry import Point
-import requests
-import pandas as pd
-from bs4 import BeautifulSoup
 
-from geoglue.region import BaseCountry, CountryAdministrativeLevel
-
+from ..metrics import register_fetch, register_metrics, register_process
+from ..paths import get_path
 from ..types import URLCollection
 from ..util import get_country_name
-from ..paths import get_path
-from ..metrics import register_metrics, register_fetch, register_process
 
 logger = logging.getLogger(__name__)
 

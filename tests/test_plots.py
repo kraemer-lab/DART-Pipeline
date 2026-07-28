@@ -1,23 +1,23 @@
 """Test the plotting functions."""
 
+import tempfile
 from datetime import date
 from pathlib import Path
-from unittest.mock import patch, MagicMock
-import tempfile
+from unittest.mock import MagicMock, patch
 
-from matplotlib import pyplot as plt
-from shapely.geometry import Polygon, box
 import geopandas as gpd
 import numpy as np
 import pandas as pd
+from matplotlib import pyplot as plt
+from shapely.geometry import Polygon, box
 
 from dart_pipeline.plots import (
-    plot_heatmap,
-    plot_gadm_micro_heatmap,
     plot_gadm_macro_heatmap,
-    plot_timeseries,
-    plot_scatter,
+    plot_gadm_micro_heatmap,
     plot_gadm_scatter,
+    plot_heatmap,
+    plot_scatter,
+    plot_timeseries,
 )
 
 

@@ -1,41 +1,39 @@
-import logging
 import functools
+import logging
 import multiprocessing
 from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
-from geoglue.region import AdministrativeLevel, ZonedBaseRegion
-import xarray as xr
 import numpy as np
-
-from geoglue.cds import ReanalysisSingleLevels, CdsPath
+import xarray as xr
+from geoglue.cds import CdsPath, ReanalysisSingleLevels
+from geoglue.region import AdministrativeLevel, ZonedBaseRegion
 from tqdm import trange
 
 from ...metrics import (
-    register_metrics,
-    register_fetch,
-    register_process,
     print_paths,
+    register_fetch,
+    register_metrics,
+    register_process,
 )
 from ...metrics.worldpop import get_worldpop
-from ...util import get_region, msg, recode_region
 from ...paths import get_path
-
-from .util import (
-    get_dataset_pool,
-    prompt_cdsapi_key,
-    relative_humidity_from_arrays,
-    parse_year_range,
-    missing_tp_corrected_files,
-)
+from ...util import get_region, msg, recode_region
+from .collate import MetricCollection
+from .core_daily import era5_process_core_daily
+from .core_weekly import era5_process_core_weekly
 from .list_metrics import (
     METRICS,
     VARIABLES,
 )
-from .collate import MetricCollection
-from .core_weekly import era5_process_core_weekly
-from .core_daily import era5_process_core_daily
+from .util import (
+    get_dataset_pool,
+    missing_tp_corrected_files,
+    parse_year_range,
+    prompt_cdsapi_key,
+    relative_humidity_from_arrays,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +111,7 @@ def prep_bias_correct(region: ZonedBaseRegion, date: str) -> xr.Dataset:
         ds = xr.concat([ds, _prep_year(y)], dim="time")
     return ds
 
+
 # TODO: make sure that
 # - data is retrieved by region.iso3
 # - output is indexed by region.name
@@ -123,8 +122,8 @@ def run_task(task: str, overwrite: bool = True) -> Path:
     VNM-2-2000-era5.spi -- SPI
     """
 
-    from .spi import process_spi, process_spi_corrected, gamma_spi
-    from .spei import process_spei_uncorrected, process_spei_corrected, gamma_spei
+    from .spei import gamma_spei, process_spei_corrected, process_spei_uncorrected
+    from .spi import gamma_spi, process_spi, process_spi_corrected
 
     parts = task.split("-")
     ystart = None

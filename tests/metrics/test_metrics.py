@@ -1,15 +1,15 @@
-import pytest
 import numpy as np
+import pytest
 import xarray as xr
 
-from dart_pipeline.types import InvalidCounts
 from dart_pipeline.metrics import (
     MetricInfo,
     get_cell_methods,
-    subset_cfattrs,
-    get_name_cfattrs,
     get_invalid_counts,
+    get_name_cfattrs,
+    subset_cfattrs,
 )
+from dart_pipeline.types import InvalidCounts
 
 
 def test_get_invalid_counts():

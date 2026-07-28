@@ -2,21 +2,21 @@
 Peru Dengue data
 """
 
-import os
-import re
 import base64
 import logging
+import os
+import re
 from datetime import date
 from pathlib import Path
 from typing import Literal
 
-import requests
 import pandas as pd
+import requests
 from bs4 import BeautifulSoup
 
 from ..constants import OUTPUT_COLUMNS
-from ..plots import plot_timeseries
 from ..paths import get_path
+from ..plots import plot_timeseries
 from ..types import DataFile
 
 logger = logging.getLogger(__name__)

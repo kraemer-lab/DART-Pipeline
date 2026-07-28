@@ -1,27 +1,26 @@
 """Utility library for DART pipeline."""
 
-import copy
-import json
-
-import os
-import sys
-import shutil
-import datetime
 import calendar
+import copy
+import datetime
+import gzip
+import json
 import logging
+import os
+import shutil
+import sys
+from collections.abc import Generator
 from datetime import timedelta
-from typing import Generator, Literal
 from functools import cache
 from pathlib import Path
+from typing import Literal
 
-import gzip
+import geoglue.region
+import geoglue.types
 import pandas as pd
 import pycountry
 import requests
 import xarray as xr
-import geoglue.region
-import geoglue.types
-
 
 from .constants import (
     COMPRESSED_FILE_EXTS,
@@ -145,7 +144,7 @@ def only_one_from_collection(coll: URLCollection) -> URLCollection:
     return coll_copy
 
 
-def use_range(value: int | float, min: int | float, max: int | float, message: str):
+def use_range(value: float, min: float, max: float, message: str):
     if not min <= value <= max:
         raise ValueError(f"{message}: {min}-{max}")
 
@@ -229,8 +228,7 @@ def download_file(
     """Download a file from a given URL to a given path."""
     if (r := requests.get(url, auth=auth)).status_code == 200:
         with open(path, "wb") as out:
-            for bits in r.iter_content():
-                out.write(bits)
+            out.writelines(r.iter_content())
         # Unpack file
         if unpack and any(str(path).endswith(ext) for ext in COMPRESSED_FILE_EXTS):
             logger.info(f"Unpacking downloaded file {path}")
@@ -290,6 +288,7 @@ def unpack_file(path: Path | str, same_folder: bool = False):
         case _:
             extract_dir = path.parent if same_folder else path.parent / path.stem
             shutil.unpack_archive(path, str(extract_dir))
+
 
 def recode_region(
     ds: xr.Dataset | xr.DataArray, region: geoglue.region.AdministrativeLevel
