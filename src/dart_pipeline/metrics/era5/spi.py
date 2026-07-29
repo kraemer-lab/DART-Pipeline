@@ -2,30 +2,28 @@
 Standardised precipitation index (SPI)
 """
 
-import re
 import logging
+import re
 
-from geoglue import AdministrativeLevel
 import xarray as xr
-
+from geoglue import AdministrativeLevel
 from geoglue.region import ZonedBaseRegion
 from geoglue.resample import resampled_dataset
 from geoglue.util import set_lonlat_attrs
 
-from ...paths import get_path
-from ...metrics import register_process, get_gamma_params, zonal_stats_xarray
+from ...metrics import get_gamma_params, register_process, zonal_stats_xarray
 from ...metrics.worldpop import get_worldpop
-
+from ...paths import get_path
+from . import get_dataset_pool
 from .util import (
-    fit_gamma_distribution,
-    parse_year_range,
-    precipitation_weekly_dataset,
-    corrected_precipitation_weekly_dataset,
     assert_data_available_for_weekly_reduce,
+    corrected_precipitation_weekly_dataset,
+    fit_gamma_distribution,
     gamma_func,
     norminv,
+    parse_year_range,
+    precipitation_weekly_dataset,
 )
-from . import get_dataset_pool
 
 logger = logging.getLogger(__name__)
 

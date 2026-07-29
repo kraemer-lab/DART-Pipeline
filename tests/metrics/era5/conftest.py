@@ -1,5 +1,4 @@
 import pytest
-
 from geoglue.region import Country
 from geoglue.types import Bbox
 

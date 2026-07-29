@@ -3,13 +3,13 @@
 Takes existing processed metrics as netCDF and concatenates them into one file
 """
 
-import logging
 import itertools
+import logging
 from pathlib import Path
 
 import pandas as pd
 import xarray as xr
-from geoglue.util import get_first_monday, get_last_sunday, find_unique_time_coord
+from geoglue.util import find_unique_time_coord, get_first_monday, get_last_sunday
 
 from ...paths import get_path
 

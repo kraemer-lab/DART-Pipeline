@@ -3,9 +3,8 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 import freezegun
-
+import pytest
 from geoglue.region import BaseCountry
 from geoglue.types import Bbox
 

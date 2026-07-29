@@ -1,25 +1,25 @@
-import re
-import json
 import inspect
+import json
 import logging
+import re
 import textwrap
 from pathlib import Path
 from typing import TypedDict, Unpack, cast
 
+import geoglue.util
+import pandas as pd
+import xarray as xr
 from geoglue.region import ZonedBaseRegion
 from geoglue.zonalstats import zonalstats
-import xarray as xr
-import pandas as pd
-import geoglue.util
 
 from ..paths import get_path
+from ..types import DataFile, InvalidCounts, URLCollection
 from ..util import (
     abort,
+    determine_netcdf_filename,
     download_files,
     logfmt,
-    determine_netcdf_filename,
 )
-from ..types import DataFile, URLCollection, InvalidCounts
 
 logger = logging.getLogger(__name__)
 
@@ -415,7 +415,7 @@ def print_metrics(filter_by: str | None = None):
     filtered_sources = (
         METRICS.keys()
         if filter_by is None
-        else set(m.split(".")[0] for m in filtered_metrics)
+        else {m.split(".")[0] for m in filtered_metrics}
     )
     for s in filtered_sources:
         print()
@@ -475,7 +475,7 @@ def print_metrics_rst(filter_by: str | None = None):
     filtered_sources = (
         METRICS.keys()
         if filter_by is None
-        else set(m.split(".")[0] for m in filtered_metrics)
+        else {m.split(".")[0] for m in filtered_metrics}
     )
     for s in filtered_sources:
         source = METRICS[s]

@@ -1,8 +1,8 @@
 import re
-from typing import NamedTuple, Literal, Protocol
-from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
+from typing import Literal, NamedTuple, Protocol
 
 Credentials = tuple[str, str]
 AdminLevel = Literal["0", "1", "2"]
@@ -33,7 +33,7 @@ class PartialDate(NamedTuple):
         if re.match(r"^[12]\d\d\d$", date):
             return PartialDate(int(date))
         if re.match(r"^[12]\d\d\d-[01]\d$", date):
-            dt = datetime.strptime(date, "%Y-%m")
+            dt = datetime.strptime(date, "%Y-%m").astimezone()
             return PartialDate(dt.year, dt.month)
         dt = datetime.fromisoformat(date)
         return PartialDate(dt.year, dt.month, dt.day)

@@ -2,17 +2,17 @@
 
 from pathlib import Path
 
-from geoglue.region import BaseCountry
-from geoglue.types import Bbox
+import pandas as pd
 import pytest
 import requests_mock
-import pandas as pd
+from geoglue.region import BaseCountry
+from geoglue.types import Bbox
 
 from dart_pipeline.util import (
-    detect_region_col,
-    download_file,
-    determine_netcdf_filename,
     days_in_year,
+    detect_region_col,
+    determine_netcdf_filename,
+    download_file,
     get_country_name,
     use_range,
 )

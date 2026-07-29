@@ -1,16 +1,15 @@
 """Module to process ECMWF Forecast Open Data"""
 
 import logging
+from datetime import UTC, date, datetime
 from pathlib import Path
-from datetime import datetime, date
 
 import ecmwf.opendata
 import requests.exceptions
 from geoglue.region import AdministrativeLevel, BaseRegion
 
+from ...metrics import MetricInfo, register_fetch, register_metrics, register_process
 from ...paths import get_path
-from ...metrics import register_metrics, register_fetch, register_process, MetricInfo
-
 from .forecast import VARIABLES, forecast_grib_to_netcdf, forecast_zonal_stats
 
 METRICS: dict[str, MetricInfo] = {
@@ -74,14 +73,14 @@ def get_forecast_open_data(
         file each for instant (named ``*.instant.nc``), and accumulative
         variables (``*.accum.nc``).
     """
-    date = date or datetime.today().date().isoformat()
+    date = date or datetime.now(tz=UTC).date().isoformat()
     if start_hour not in VALID_START_HOURS:
         raise ValueError(
             f"start_hour must be one of {VALID_START_HOURS}, got {start_hour=}"
         )
     if step_hours % 6 or step_hours < 6:
         raise ValueError(f"{step_hours=} must be a multiple of 6, with a minimum of 6")
-    offset = (datetime.fromisoformat(date).date() - datetime.today().date()).days
+    offset = (datetime.fromisoformat(date).date() - datetime.now(tz=UTC).date()).days
     if offset > 0:
         raise ValueError("Can't fetch a forecast from the future")
     if offset < -4:

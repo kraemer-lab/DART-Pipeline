@@ -1,6 +1,6 @@
-from dart_pipeline.metrics.era5.core_weekly import get_cfattrs
-
 import pytest
+
+from dart_pipeline.metrics.era5.core_weekly import get_cfattrs
 
 hb_bc = {
     "long_name": "Weekly hydrological balance (bias corrected)",

@@ -2,11 +2,11 @@
 Tests for collate functions in collate.py
 """
 
-from dart_pipeline.types import URLCollection
 from dart_pipeline.collate import (
     gadm_data,
     worldpop_pop_density_data,
 )
+from dart_pipeline.types import URLCollection
 
 
 def test_gadm_data():

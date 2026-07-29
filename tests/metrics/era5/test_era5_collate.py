@@ -1,7 +1,8 @@
-import pytest
 from pathlib import Path
 
 import numpy as np
+import pytest
+
 from dart_pipeline.metrics.era5.collate import MetricCollection
 
 

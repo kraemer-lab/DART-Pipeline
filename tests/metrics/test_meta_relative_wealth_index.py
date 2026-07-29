@@ -1,22 +1,22 @@
 """Tests for functions in population-weighted/relative-wealth-index.py."""
 
 import os
-from unittest import mock
 from pathlib import Path
+from unittest import mock
 
-import xarray as xr
-import shapely.geometry
 import requests_mock
+import shapely.geometry
+import xarray as xr
 from geoglue.region import Country
 from geoglue.types import Bbox
 
-from dart_pipeline.types import URLCollection
 from dart_pipeline.metrics.meta_relative_wealth_index import (
-    get_admin_region,
     fetch_relative_wealth_index,
+    get_admin_region,
     meta_pop_density_data,
     process_popdensity_rwi,
 )
+from dart_pipeline.types import URLCollection
 
 VNM = Country(
     "VNM",

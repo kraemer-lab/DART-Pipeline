@@ -1,14 +1,14 @@
 """Tests for Peru dengue metrics"""
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-import pytest
 import pandas as pd
+import pytest
 from bs4 import BeautifulSoup
 
 from dart_pipeline.metrics.peru_dengue import (
-    process_dengueperu,
     ministerio_de_salud_peru_data,
+    process_dengueperu,
 )
 
 # Smallest single-precision floating-point number

@@ -1,5 +1,8 @@
 """List of ERA5 metrics"""
 
+import functools
+import operator
+
 from .. import MetricInfo
 
 ACCUM_METRICS = [
@@ -163,7 +166,13 @@ METRICS: dict[str, MetricInfo] = {
     },
 }
 
-VARIABLES = sorted(set(sum([METRICS[m].get("depends", []) for m in METRICS], [])))
+VARIABLES = sorted(
+    set(
+        functools.reduce(
+            operator.iadd, [METRICS[m].get("depends", []) for m in METRICS], []
+        )
+    )
+)
 
 INSTANT_METRICS = [m for m in METRICS if m not in ACCUM_METRICS]
 DERIVED_METRICS_SEPARATE_IMPL = [
