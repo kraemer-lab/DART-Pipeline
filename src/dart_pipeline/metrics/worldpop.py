@@ -55,7 +55,7 @@ register_metrics(
 )
 
 
-# @cache
+@cache
 def get_worldpop(
     region: BaseCountry,
     year: int,

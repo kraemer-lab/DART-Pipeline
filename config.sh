@@ -1,7 +1,7 @@
 # Configuration file to be passed to scripts
 
-ISO3=VNM
-ADMIN=2  # can be 1, 2, or 3
+ISO3=HCM
+ADMIN=1  # can be 1, 2, or 3
 
 # Scale at which core parameters (t2m, r, mx2t24 ...) are processed
 # SPI and SPEI are always calculated weekly
@@ -11,8 +11,8 @@ TEMPORAL_RESOLUTION=weekly
 
 # Note that data will be downloaded one year before and after the study
 # period to align with ISO weeks
-START_YEAR=2001
-END_YEAR=2019
+START_YEAR=2002
+END_YEAR=2020
 
 # Change this if you want SPI and SPEI gamma parameters to be calculated
 # for a different range. Usually a range of 15 years is enough for estimation
