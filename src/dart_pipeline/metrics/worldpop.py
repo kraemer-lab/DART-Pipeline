@@ -105,7 +105,6 @@ def get_worldpop(
     xr.DataArray
         xr.DataArray representing the population data
     """
-    # TODO:
     # - Use iso3 field for data fetching from worldpop
     # - Name should be the name of the custom shapefile
     # iso3 = region.name.upper()

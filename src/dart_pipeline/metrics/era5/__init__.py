@@ -112,7 +112,6 @@ def prep_bias_correct(region: ZonedBaseRegion, date: str) -> xr.Dataset:
     return ds
 
 
-# TODO: make sure that
 # - data is retrieved by region.iso3
 # - output is indexed by region.name
 def run_task(task: str, overwrite: bool = True) -> Path:
@@ -238,7 +237,6 @@ def process_era5(
 
     # Get population data for year range
     msg("==> Retrieving Worldpop population:", yrange_str)
-    # TODO: check cache size after each loop here
     for year in range(ystart, yend + 1):
         get_worldpop(region, year, nodata_impute=0)
     pool = get_dataset_pool(region)
@@ -272,7 +270,6 @@ def process_era5(
         ]
 
     # Run gamma parameter estimation first, required for SPI and SPEI index calculations later
-    # TODO: check cache size before and after multiprocessing here
     msg("==> Estimating gamma parameters:", yrange_str)
     paths = run_tasks("GAMMA", gamma_tasks, overwrite=overwrite)
 
