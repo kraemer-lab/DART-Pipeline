@@ -12,10 +12,10 @@ import sys
 import warnings
 from pathlib import Path
 from typing import Literal
-import pandas as pd
 
 import metpy.calc as mp
 import numpy as np
+import pandas as pd
 import scipy.stats
 import xarray as xr
 import xclim
@@ -146,7 +146,7 @@ def assert_data_available_for_weekly_reduce(
     region: ZonedBaseRegion, ystart: int, yend: int, data_path: Path | None = None
 ) -> None:
     "Asserts that sufficient data is available for weekly_reduce() call"
-    negative_longitude = "-" in region.tz
+    negative_longitude = "-" in region.tz  # noqa: F841
 
     pool = get_dataset_pool(region, data_path)
     pool_years = pool.years + pool.part_years
@@ -160,7 +160,7 @@ def assert_data_available_for_weekly_reduce(
     #     yend += 1  # time shifting requires data from succeeding year
     # else:
     #     ystart -= 1  # time shifting requires data from preceding year
-    
+
     if missing := set(range(ystart, yend + 1)) - set(pool_years):
         raise FileNotFoundError(f"""Missing data for {region.name} for years: {missing}
 For methods requiring weekly aggregations, we require a year before and
@@ -238,18 +238,19 @@ def get_date_range_for_years(
         yend + 1
     ) - datetime.timedelta(days=1)
 
+
 def get_date_range_for_partial_yend(
-        ystart: int, end_date: datetime.date, 
-    window: int=0, align_weeks: bool = False
-    )-> tuple[datetime.date, datetime.date]:
+    ystart: int, end_date: datetime.date, window: int = 0, align_weeks: bool = False
+) -> tuple[datetime.date, datetime.date]:
     if align_weeks and window % 7 != 0:
         raise ValueError("When align_weeks=True, window must be a multiple of 7")
     if not align_weeks:
-        return datetime.date(ystart, 1, 1) - datetime.timedelta(
-            days=window
-        ), end_date
-    
-    return get_first_monday(ystart) - datetime.timedelta(days=window), get_last_sunday(end_date) 
+        return datetime.date(ystart, 1, 1) - datetime.timedelta(days=window), end_date
+
+    return get_first_monday(ystart) - datetime.timedelta(days=window), get_last_sunday(
+        end_date
+    )
+
 
 def temperature_daily_dataset(
     region: ZonedBaseRegion,
@@ -281,9 +282,13 @@ def temperature_daily_dataset(
     if yend in pool.part_years:
         last_timepoint = cdsy.instant.valid_time.values.max()
         tend = get_last_sunday(pd.Timestamp(last_timepoint).date())
-        start_date, end_date = get_date_range_for_partial_yend(ystart, tend, window, align_weeks)
+        start_date, end_date = get_date_range_for_partial_yend(
+            ystart, tend, window, align_weeks
+        )
     else:
-        start_date, end_date = get_date_range_for_years(ystart, yend, window, align_weeks)
+        start_date, end_date = get_date_range_for_years(
+            ystart, yend, window, align_weeks
+        )
 
     return ds.sel(valid_time=slice(start_date.isoformat(), end_date.isoformat()))
 
@@ -303,7 +308,7 @@ def precipitation_weekly_dataset(
     - tp: weekly sum of the total daily precipitation
     """
     pool = get_dataset_pool(region, data_path)
-    avail_years = set(pool.years + pool.part_years) # allow partial years here also
+    avail_years = set(pool.years + pool.part_years)  # allow partial years here also
     required_years = set(
         range(ystart - 1, yend + 1)
     )  # one extra year required for windowed data
@@ -368,7 +373,7 @@ def fit_gamma_distribution(
     ds_ma = ds.rolling({dimension: window}, center=False).mean().dropna(dimension)
     # Nat log of moving averages
     ds_In = np.log(ds_ma)
-    ds_In = ds_In.where(~ np.isinf(ds_In))
+    ds_In = ds_In.where(~np.isinf(ds_In))
     ds_mu = ds_ma.mean(dimension)
 
     # Overall mean of moving averages

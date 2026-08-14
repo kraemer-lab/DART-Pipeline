@@ -8,9 +8,8 @@ from concurrent.futures import ProcessPoolExecutor
 import pandas as pd
 import xarray as xr
 from geoglue import AdministrativeLevel
-from geoglue.util import get_first_monday, get_last_sunday
 from geoglue.resample import resampled_dataset
-from geoglue.util import get_first_monday
+from geoglue.util import get_first_monday, get_last_sunday
 from geoglue.zonalstats import zonalstats
 
 from ...metrics import CFAttributes, register_process
@@ -78,7 +77,7 @@ def get_weekly_tp_corrected(region: str, year: int) -> xr.DataArray:
             dim="valid_time",
         )
         end_date = get_first_monday(year + 1) - datetime.timedelta(days=1)
-        
+
         da = da.sel(
             valid_time=slice(start_date.isoformat(), end_date.isoformat())
         ).astype("float32")
@@ -164,10 +163,12 @@ def prepare_weekly_data(region: AdministrativeLevel, year: int) -> xr.Dataset:
         last_timepoint = h.valid_time.values.max()
         tend = get_last_sunday(pd.Timestamp(last_timepoint).date())
 
-    tstart = get_first_monday(year)  
+    tstart = get_first_monday(year)
     if tend < tstart:
-        raise ValueError(f"Data has not covered at least 1 week for {year} yet, use {year-1} as end year instead")
-    
+        raise ValueError(
+            f"Data has not covered at least 1 week for {year} yet, use {year-1} as end year instead"
+        )
+
     h = h.sel(valid_time=slice(tstart.isoformat(), tend.isoformat()))
 
     t2m = weekly_mean(h.t2m)

@@ -2,19 +2,20 @@
 
 import string
 import warnings
-# from functools import cache
-from cachetools import LRUCache, cached
-from pympler import asizeof
-import psutil
 from typing import Literal
 from urllib.parse import urljoin
 
 import pandas as pd
+import psutil
 import requests
 import xarray as xr
+
+# from functools import cache
+from cachetools import LRUCache, cached
 from geoglue.region import BaseCountry, CountryAdministrativeLevel
 from geoglue.util import read_geotiff
 from geoglue.zonalstats import zonalstats
+from pympler import asizeof
 
 from ..metrics import register_fetch, register_metrics, register_process
 from ..paths import get_path
@@ -31,7 +32,7 @@ WORLDPOP_YEAR_RANGE: dict[str, tuple[int, int]] = {
     "future": (2015, 2030),
 }
 MAX_MEMORY = psutil.virtual_memory().total
-CACHE_MAXSIZE = .8*MAX_MEMORY
+CACHE_MAXSIZE = 0.8 * MAX_MEMORY
 
 register_metrics(
     "worldpop",
@@ -59,11 +60,12 @@ register_metrics(
     },
 )
 
-get_worlpop_cache=LRUCache(
+get_worlpop_cache = LRUCache(
     maxsize=CACHE_MAXSIZE,
     # asizeof here handle nested size instead of shallow (which is the case for sys.getsizeof)
-    getsizeof = asizeof.asizeof
+    getsizeof=asizeof.asizeof,
 )
+
 
 # TODO: check the hash of 2 get_worldpop calls with the same arguments
 @cached(get_worlpop_cache)
