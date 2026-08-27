@@ -313,7 +313,7 @@ def process_era5(
                 "output",
                 region.name,
                 "era5",
-                f"{region.name}-{region.admin}-{ystart}-{yend}-era5.nc",
+                f"{region.name}-{region.admin}-{ystart}-{yend}-era5.core_weekly.nc",
             )
             ds.attrs["DART_region"] = (
                 f"{region.name} {region.pk} {region.tz} {region.bbox.int()}"
