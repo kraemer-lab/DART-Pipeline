@@ -290,70 +290,49 @@ def process_era5(
     # Run core metrics -- there is already parallelisation within each year, so
     # we don't parallelise processing further
     # TODO: insert hook to run weekly agg
+    label=None
+    process_func = None
+    weekly = True
     match temporal_resolution:
         case "weekly":
-            msg("==> Calculating core metrics (weekly):", yrange_str)
-            for year in trange(ystart, yend + 1, desc="era5.core_weekly"):
-                y_output = get_path(
-                    "output",
-                    region.name,
-                    "era5",
-                    f"{region.name}-{region.admin}-{year}-era5.core_weekly.nc",
-                )
-                if overwrite or not y_output.exists():
-                    y_zs = era5_process_core_weekly(region, str(year))
-                    y_zs.to_netcdf(y_output)
-                paths.append(y_output)
-
-            msg("==> Collating metrics:", yrange_str)
-            ds = MetricCollection(f"{region.name}-{region.admin}").collate(
-                (ystart, yend)
-            )
-            output = get_path(
-                "output",
-                region.name,
-                "era5",
-                f"{region.name}-{region.admin}-{ystart}-{yend}-era5.core_weekly.nc",
-            )
-            ds.attrs["DART_region"] = (
-                f"{region.name} {region.pk} {region.tz} {region.bbox.int()}"
-            )
-            ds = recode_region(ds, region)
-            ds.to_netcdf(output)
-
-            paths.append(output)
-            # return [output]
-            return paths
+            label="weekly"
+            process_func = era5_process_core_weekly
+            weekly = True
         case "daily":
-            msg("==> Calculating core metrics (daily):", yrange_str)
-            for year in trange(ystart, yend + 1, desc="era5.core_daily"):
-                y_output = get_path(
-                    "output",
-                    region.name,
-                    "era5",
-                    f"{region.name}-{region.admin}-{year}-era5.core_daily.nc",
-                )
-                gen_paths = []
-                if overwrite or not y_output.exists():
-                    y_zs = era5_process_core_daily(region, str(year))
-                    y_zs.to_netcdf(y_output)
-                paths.append(y_output)
-
-            msg("==> Collating metrics (daily):", yrange_str)
-            ds = MetricCollection(f"{region.name}-{region.admin}", weekly=False).collate(
-                (ystart, yend)
-            )
-            output = get_path(
-                "output",
-                region.name,
-                "era5",
-                f"{region.name}-{region.admin}-{ystart}-{yend}-era5.core_daily.nc",
-            )
-            ds.attrs["DART_region"] = (
-                f"{region.name} {region.pk} {region.tz} {region.bbox.int()}"
-            )
-            ds = recode_region(ds, region)
-            ds.to_netcdf(output)
+            label="daily"
+            process_func = era5_process_core_daily
+            weekly = False
+        case _:
+            raise ValueError(f"Unsupported temporal_resolution: {temporal_resolution!r}")
             
-            paths.append(output)
-            return paths
+    msg(f"==> Calculating core metrics ({label}):", yrange_str)
+    for year in trange(ystart, yend + 1, desc=f"era5.core_{label}"):
+        y_output = get_path(
+            "output",
+            region.name,
+            "era5",
+            f"{region.name}-{region.admin}-{year}-era5.core_{label}.nc",
+        )
+        if overwrite or not y_output.exists():
+            y_zs = process_func(region, str(year))
+            y_zs.to_netcdf(y_output)
+        paths.append(y_output)
+
+    msg(f"==> Collating metrics ({label}):", yrange_str)
+    ds = MetricCollection(f"{region.name}-{region.admin}", weekly=weekly).collate(
+        (ystart, yend)
+    )
+    output = get_path(
+        "output",
+        region.name,
+        "era5",
+        f"{region.name}-{region.admin}-{ystart}-{yend}-era5.core_{label}.nc",
+    )
+    ds.attrs["DART_region"] = (
+        f"{region.name} {region.pk} {region.tz} {region.bbox.int()}"
+    )
+    ds = recode_region(ds, region)
+    ds.to_netcdf(output)
+    
+    paths.append(output)
+    return paths
