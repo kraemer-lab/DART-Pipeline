@@ -320,7 +320,10 @@ def process_era5(
             )
             ds = recode_region(ds, region)
             ds.to_netcdf(output)
-            return [output]
+
+            paths.append(output)
+            # return [output]
+            return paths
         case "daily":
             msg("==> Calculating core metrics (daily):", yrange_str)
             for year in trange(ystart, yend + 1, desc="era5.core_daily"):
@@ -336,4 +339,21 @@ def process_era5(
                     y_zs.to_netcdf(y_output)
                 paths.append(y_output)
 
+            msg("==> Collating metrics (daily):", yrange_str)
+            ds = MetricCollection(f"{region.name}-{region.admin}", weekly=False).collate(
+                (ystart, yend)
+            )
+            output = get_path(
+                "output",
+                region.name,
+                "era5",
+                f"{region.name}-{region.admin}-{ystart}-{yend}-era5.core_daily.nc",
+            )
+            ds.attrs["DART_region"] = (
+                f"{region.name} {region.pk} {region.tz} {region.bbox.int()}"
+            )
+            ds = recode_region(ds, region)
+            ds.to_netcdf(output)
+            
+            paths.append(output)
             return paths
