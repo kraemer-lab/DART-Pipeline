@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pandas as pd
 import xarray as xr
-from geoglue.util import find_unique_time_coord, get_first_monday, get_last_sunday
+from geoglue.util import find_unique_time_coord
 
 from ...paths import get_path
 
