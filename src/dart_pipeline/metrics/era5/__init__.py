@@ -332,7 +332,8 @@ def process_era5(
                 )
                 gen_paths = []
                 if overwrite or not y_output.exists():
-                    gen_paths = era5_process_core_daily(region, str(year))
-                    # y_zs.to_netcdf(y_output)
-                paths.extend(gen_paths)
+                    y_zs = era5_process_core_daily(region, str(year))
+                    y_zs.to_netcdf(y_output)
+                paths.append(y_output)
+
             return paths
