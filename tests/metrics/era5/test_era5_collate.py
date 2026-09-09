@@ -113,7 +113,7 @@ def test_old_collate_metric(name, metric, cell_methods, old_metric_collection):
     assert da[name].attrs["cell_methods"] == cell_methods
 
 
-def test_collate_metric_errors(old_metric_collection):
+def test_old_collate_metric_errors(old_metric_collection):
     with pytest.raises(
         ValueError,
         match="No data found for metric='era5.2m_temperature.daily_median' from 2020-2020 in VNM-2",
@@ -126,7 +126,7 @@ def test_collate_metric_errors(old_metric_collection):
         old_metric_collection.collate_metric("era5.2m_temperature.daily_mean", (2019, 2020))
 
 
-def test_collate(old_metric_collection):
+def test_old_collate(old_metric_collection):
     ds = old_metric_collection.collate()
     # fmt: off
     assert set(ds.data_vars).issubset({
