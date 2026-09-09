@@ -111,12 +111,32 @@ def metric_path_daily(
     region_name: str, admin: int, year: int, metric: str, statistic: str
 ) -> Path:
     assert statistic in STATS
+    # save the data array for daily metrics+stats combination in scratch instead
     return get_path(
-        "output",
+        "scratch",
         region_name,
         "era5",
         f"{region_name}-{admin}-{year}-era5.{metric}.daily_{statistic}.nc",
     )
+
+
+def build_merged_daily_dataset(
+    region: AdministrativeLevel,
+    year: int,
+    metric_stat_combis: dict[str, list[str]],
+) -> xr.Dataset:
+    """Merge all the daily (metrics, stats) combis into a single Dataset"""
+    arrays = []
+    for stat, metrics in metric_stat_combis.items():
+        for m in metrics:
+            path = metric_path_daily(region.name, region.admin, year, m, stat)
+            da = xr.open_dataarray(path)
+            # rename to match that of core weekly
+            if stat in ("min", "max") and not da.name.endswith("24"):
+                da = da.rename(da.name + "24")
+            arrays.append(da)
+    ds = xr.merge(arrays)
+    return ds
 
 
 @register_process("era5.core")
@@ -193,9 +213,9 @@ def era5_process_core_daily(
     ds.daily_min().to_netcdf(paths["min"])
 
     instant_metrics = [
-        m for m in INSTANT_METRICS if m not in DERIVED_METRICS_SEPARATE_IMPL
+        m for m in INSTANT_METRICS if m not in (DERIVED_METRICS_SEPARATE_IMPL + ["core_weekly"])
     ]
-    accum_metrics = [m for m in ACCUM_METRICS if m not in DERIVED_METRICS_SEPARATE_IMPL]
+    accum_metrics = [m for m in ACCUM_METRICS if m not in (DERIVED_METRICS_SEPARATE_IMPL + ["core_weekly"]) ]
     if not is_bias_corrected:
         instant_metrics = [m for m in instant_metrics if not m.endswith("_corrected")]
         accum_metrics = [m for m in accum_metrics if not m.endswith("_corrected")]
@@ -203,8 +223,9 @@ def era5_process_core_daily(
     metric_statistic_combinations: dict[str, list[str]] = {
         s: instant_metrics for s in ["min", "max", "mean"]
     }
-    metric_statistic_combinations = {"sum": accum_metrics}
+    metric_statistic_combinations.update({"sum": accum_metrics})
 
+    # check number of metrics already existed 
     already_existing_metrics: dict[str, list[str]] = {
         s: [
             m
@@ -217,6 +238,7 @@ def era5_process_core_daily(
         len(already_existing_metrics[s]) for s in already_existing_metrics
     )
 
+    # get (metrics, stats) combinations to be computed
     generated_paths = []
     if not overwrite and n_already_existing_metrics:
         generated_paths = functools.reduce(
@@ -235,7 +257,7 @@ def era5_process_core_daily(
             pprint_ms(metric_statistic_combinations, already_existing_metrics),
         )
         # filter to keep only metrics that need to be calculated
-        metric_statistic_combinations = {
+        to_compute_metric_statistic = {
             s: [
                 m
                 for m in metric_statistic_combinations[s]
@@ -248,10 +270,12 @@ def era5_process_core_daily(
             "Metric statistic combinations: %s",
             pprint_ms(metric_statistic_combinations),
         )
+        to_compute_metric_statistic = metric_statistic_combinations
 
-    for stat in metric_statistic_combinations:
+    # compute metric + statistic combinations that haven't been computed b4 
+    for stat in to_compute_metric_statistic:
         # skip if no metrics are requested to be generated for statistic
-        metrics = metric_statistic_combinations[stat]
+        metrics = to_compute_metric_statistic[stat]
         if not metrics:
             continue
         logger.info("Computing zonal aggregation for statistic=%s", stat)
@@ -269,6 +293,7 @@ def era5_process_core_daily(
             new_paths = list(
                 p.map(
                     functools.partial(
+                        # note that this func already renamed
                         population_weighted_aggregation_daily,
                         statistic=stat,
                         region=region,
@@ -281,4 +306,13 @@ def era5_process_core_daily(
             resampled_paths[stat].unlink()
         generated_paths += new_paths
 
-    return generated_paths
+    # Generate a core_daily dataset for current (region, year) dataset
+    ds = build_merged_daily_dataset(region, year, metric_statistic_combinations)
+    ds.attrs = {
+        "DART_population": str(get_worldpop(region, year)),
+        "DART_region": f"{region.name} {region.pk} {region.tz}",
+    }
+        
+    # returned value is the Dataset with all the core_variables instead
+    return ds
+    # return generated_paths

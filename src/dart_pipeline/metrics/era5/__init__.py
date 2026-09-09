@@ -291,54 +291,49 @@ def process_era5(
     # Run core metrics -- there is already parallelisation within each year, so
     # we don't parallelise processing further
     # TODO: insert hook to run weekly agg
+    label=None
+    process_func = None
+    weekly = True
     match temporal_resolution:
         case "weekly":
-            msg("==> Calculating core metrics (weekly):", yrange_str)
-            for year in trange(ystart, yend + 1, desc="era5.core_weekly"):
-                y_output = get_path(
-                    "output",
-                    region.name,
-                    "era5",
-                    f"{region.name}-{region.admin}-{year}-era5.core_weekly.nc",
-                )
-                # re-process file for the whole year if it is in pool.part_years
-                if overwrite or not y_output.exists() or (year in pool.part_years):
-                    y_zs = era5_process_core_weekly(region, str(year))
-                    y_zs.to_netcdf(y_output)
-                paths.append(y_output)
-
-            msg("==> Collating metrics:", yrange_str)
-            ds = MetricCollection(
-                    f"{region.name}-{region.admin}",
-                    skip_correction=skip_correction
-                ).collate(
-                    (ystart, yend)
-                )
-            output = get_path(
-                "output",
-                region.name,
-                "era5",
-                f"{region.name}-{region.admin}-{ystart}-{yend}-era5.nc",
-            )
-            ds.attrs["DART_region"] = (
-                f"{region.name} {region.pk} {region.tz} {region.bbox.int()}"
-            )
-            ds = recode_region(ds, region)
-            ds.to_netcdf(output)
-            return [output]
+            label="weekly"
+            process_func = era5_process_core_weekly
+            weekly = True
         case "daily":
-            msg("==> Calculating core metrics (daily):", yrange_str)
-            for year in trange(ystart, yend + 1, desc="era5.core_daily"):
-                y_output = get_path(
-                    "output",
-                    region.name,
-                    "era5",
-                    f"{region.name}-{region.admin}-{year}-era5.core_daily.nc",
-                )
-                gen_paths = []
-                 # re-process file for the whole year if it is in pool.part_years
-                if overwrite or not y_output.exists() or (year in pool.part_years):
-                    gen_paths = era5_process_core_daily(region, str(year))
-                    # y_zs.to_netcdf(y_output)
-                paths.extend(gen_paths)
-            return paths
+            label="daily"
+            process_func = era5_process_core_daily
+            weekly = False
+        case _:
+            raise ValueError(f"Unsupported temporal_resolution: {temporal_resolution!r}")
+            
+    msg(f"==> Calculating core metrics ({label}):", yrange_str)
+    for year in trange(ystart, yend + 1, desc=f"era5.core_{label}"):
+        y_output = get_path(
+            "output",
+            region.name,
+            "era5",
+            f"{region.name}-{region.admin}-{year}-era5.core_{label}.nc",
+        )
+        if overwrite or not y_output.exists():
+            y_zs = process_func(region, str(year))
+            y_zs.to_netcdf(y_output)
+        paths.append(y_output)
+
+    msg(f"==> Collating metrics ({label}):", yrange_str)
+    ds = MetricCollection(f"{region.name}-{region.admin}", weekly=weekly).collate(
+        (ystart, yend)
+    )
+    output = get_path(
+        "output",
+        region.name,
+        "era5",
+        f"{region.name}-{region.admin}-{ystart}-{yend}-era5.core_{label}.nc",
+    )
+    ds.attrs["DART_region"] = (
+        f"{region.name} {region.pk} {region.tz} {region.bbox.int()}"
+    )
+    ds = recode_region(ds, region)
+    ds.to_netcdf(output)
+    
+    paths.append(output)
+    return paths
