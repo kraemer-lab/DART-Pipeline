@@ -9,13 +9,13 @@ from pathlib import Path
 
 import pandas as pd
 import xarray as xr
-from geoglue.util import find_unique_time_coord, get_first_monday, get_last_sunday
+from geoglue.util import find_unique_time_coord
 
 from ...paths import get_path
 
 logger = logging.getLogger(__name__)
 
-GLOB_DAILY = "*-20*-era5.*.daily*.nc"
+GLOB_DAILY = "*-20*-era5.*[._]daily*.nc"
 GLOB_WEEKLY = "*-20*-era5.*[._]weekly*.nc"
 
 
@@ -45,9 +45,10 @@ class MetricCollection:
         if weekly:
             self.data = self.data[~self.data.is_daily]  # drop daily data
         else:
-            self.data = self.data[
-                self.data.metric != "era5.core_weekly"
-            ]  # drop core_weekly data
+            self.data = self.data[ # keep daily only
+                # self.data.metric != "era5.core_weekly"
+                self.data.is_daily
+            ] 
         if self.data.empty:
             raise ValueError(
                 f"No match found for {region=}, might be missing admin level like VNM-2, or set weekly=False to get daily data"
@@ -86,26 +87,29 @@ class MetricCollection:
         for i in range(1, len(df)):
             da_y = xr.open_dataset(df.iloc[i].path).rename({time_dim: "time"})
             da = xr.concat([da, da_y], dim="time")
-        if not df.iloc[0].is_daily:
-            return da.astype("float32")  # already aggregated to weekly timestep
-        da = da.sel(time=slice(str(get_first_monday(ymin)), str(get_last_sunday(ymax))))
-        if "sum" in metric:
-            logger.info("Resampling %s to weekly timestep (sum)", metric)
-            da_w = da.resample(time="W-MON", closed="left", label="left").sum()
-            da_w.attrs["cell_methods"] = "time: sum (interval: 7 days)"
-        else:
-            logger.info("Resampling %s to weekly timestep (mean)", metric)
-            da_w = da.resample(time="W-MON", closed="left", label="left").mean()
-            if metric.endswith("_max"):
-                agg = "maximum"
-            elif metric.endswith("_min"):
-                agg = "minimum"
-            else:
-                agg = "mean"
-            da_w.attrs["cell_methods"] = (
-                f"time: {agg} within days (interval: 1 day) time: mean over days (interval: 7 days)"
-            )
-        return da_w.astype("float32")
+        
+        # Collate data
+        # if weekly=True in constructor, return collated weekly dataset
+        # if weekly=False, return collated daily dataset
+        return da.astype("float32")  
+
+        # da = da.sel(time=slice(str(get_first_monday(ymin)), str(get_last_sunday(ymax))))
+        # if "sum" in metric:
+        #     logger.info("Resampling %s to weekly timestep (sum)", metric)
+        #     da_w = da.resample(time="W-MON", closed="left", label="left").sum()
+        #     da_w.attrs["cell_methods"] = "time: sum (interval: 7 days)"
+        # else:
+        #     logger.info("Resampling %s to weekly timestep (mean)", metric)
+        #     da_w = da.resample(time="W-MON", closed="left", label="left").mean()
+        #     if metric.endswith("_max"):
+        #         agg = "maximum"
+        #     elif metric.endswith("_min"):
+        #         agg = "minimum"
+        #     else:
+        #         agg = "mean"
+        #     da_w.attrs["cell_methods"] = (
+        #         f"time: {agg} within days (interval: 1 day) time: mean over days (interval: 7 days)"
+        #     )
 
     def collate(self, yrange: tuple[int, int] | None = None) -> xr.Dataset:
         metrics = set(self.data.metric)
