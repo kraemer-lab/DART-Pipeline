@@ -112,7 +112,6 @@ def prep_bias_correct(region: ZonedBaseRegion, date: str) -> xr.Dataset:
     return ds
 
 
-# TODO: make sure that
 # - data is retrieved by region.iso3
 # - output is indexed by region.name
 def run_task(task: str, overwrite: bool = True) -> Path:
@@ -198,7 +197,8 @@ def run_tasks(
         logger.info("[%s] processed %d tasks", task_group, len(tasks))
     return paths
 
-
+# - Fetch for era5 always get latest week available (via ReanalysisSingleLevels.get_current_year)
+# - Make sure to always re-process with the newest data as well
 @register_process("era5", multiple_years=True)
 def process_era5(
     region: AdministrativeLevel,
@@ -238,9 +238,10 @@ def process_era5(
     # Get population data for year range
     msg("==> Retrieving Worldpop population:", yrange_str)
     for year in range(ystart, yend + 1):
-        get_worldpop(region, year)
+        get_worldpop(region, year, nodata_impute=0)
     pool = get_dataset_pool(region)
-    required_years = set(range(ystart, yend + 1))
+
+    required_years = set(range(ystart, yend))
     present_years = set(pool.years)
     if not required_years < present_years:
         raise FileNotFoundError(

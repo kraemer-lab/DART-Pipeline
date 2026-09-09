@@ -2,16 +2,20 @@
 
 import string
 import warnings
-from functools import cache
 from typing import Literal
 from urllib.parse import urljoin
 
 import pandas as pd
+import psutil
 import requests
 import xarray as xr
+
+# from functools import cache
+from cachetools import LRUCache, cached
 from geoglue.region import BaseCountry, CountryAdministrativeLevel
 from geoglue.util import read_geotiff
 from geoglue.zonalstats import zonalstats
+from pympler import asizeof
 
 from ..metrics import register_fetch, register_metrics, register_process
 from ..paths import get_path
@@ -27,6 +31,8 @@ WORLDPOP_YEAR_RANGE: dict[str, tuple[int, int]] = {
     "default": (2000, 2020),
     "future": (2015, 2030),
 }
+MAX_MEMORY = psutil.virtual_memory().total
+CACHE_MAXSIZE = 0.8 * MAX_MEMORY
 
 register_metrics(
     "worldpop",
@@ -54,10 +60,20 @@ register_metrics(
     },
 )
 
+get_worlpop_cache = LRUCache(
+    maxsize=CACHE_MAXSIZE,
+    # asizeof here handle nested size instead of shallow (which is the case for sys.getsizeof)
+    getsizeof=asizeof.asizeof,
+)
 
-@cache
+
+# TODO: check the hash of 2 get_worldpop calls with the same arguments
+@cached(get_worlpop_cache)
 def get_worldpop(
-    region: BaseCountry, year: int, dataset: str | None = None
+    region: BaseCountry,
+    year: int,
+    dataset: str | None = None,
+    nodata_impute: None | int = None,
 ) -> xr.DataArray:
     """
     Downloads and returns WorldPop population raster (1km resolution)
@@ -102,11 +118,11 @@ def get_worldpop(
     xr.DataArray
         xr.DataArray representing the population data
     """
-    # TODO:
     # - Use iso3 field for data fetching from worldpop
     # - Name should be the name of the custom shapefile
     # iso3 = region.name.upper()
     # iso3_lower = iso3.lower()
+    assert region.iso3 is not None
     iso3 = region.iso3.upper()
     iso3_lower = iso3.lower()
 
@@ -145,7 +161,11 @@ def get_worldpop(
     url = urljoin(WORLDPOP_ROOT, url_fragment)
     output_path = path_population / url.split("/")[-1]
     if output_path.exists() or download_file(url, output_path):
-        return read_geotiff(output_path)
+        gtiff = read_geotiff(output_path)
+        if nodata_impute is not None:
+            return gtiff.fillna(nodata_impute)
+        else:
+            return gtiff
     else:
         raise requests.ConnectionError(f"Failed to download {url=}")
 

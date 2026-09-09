@@ -9,3 +9,11 @@ iso3 = "VNM"
 tz = "+07:00"
 admin_files = { 1 = "data/HCM/geoboundaries/HCM-1.shp", 2 = "data/HCM/geoboundaries/HCM-2.shp" }
 pk = { 1 = "ma_tinh", 2 = "ma_xa" }
+
+[HCM_OLD]
+bbox = [106.2, 10.2, 107.2, 11.3]
+url = "https://gadm.org"
+iso3 = "VNM"
+tz = "+07:00"
+admin_files = { 1 = "data/HCM_OLD/geoboundaries/HCM-1.shp", 2 = "data/HCM_OLD/geoboundaries/HCM-2.shp", 3 = "data/HCM_OLD/geoboundaries/HCM-3.shp" }
+pk = { 1 = "gid_1", 2 = "gid_2", 3="gid_3"}

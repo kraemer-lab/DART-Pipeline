@@ -115,9 +115,9 @@ def get_forecast_open_data(
         logger.info("Using already retrieved forecast file: %s", output_path)
     extents = region.bbox.int()
     instant, accum = forecast_grib_to_netcdf(forecast_path(date), extents)
-    sources_path = get_path("sources", region.name, "ecmwf")
-    instant_file = sources_path / f"{region.name}-{date}-ecmwf.forecast.instant.nc"
-    accum_file = sources_path / f"{region.name}-{date}-ecmwf.forecast.accum.nc"
+    sources_path = get_path("sources", region.iso3, "ecmwf")
+    instant_file = sources_path / f"{region.iso3}-{date}-ecmwf.forecast.instant.nc"
+    accum_file = sources_path / f"{region.iso3}-{date}-ecmwf.forecast.accum.nc"
     instant.to_netcdf(instant_file)
     logger.info("Wrote %s", instant_file)
     accum.to_netcdf(accum_file)
