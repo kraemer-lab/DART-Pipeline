@@ -15,7 +15,7 @@ from cachetools import LRUCache, cached
 from geoglue.region import BaseCountry, CountryAdministrativeLevel
 from geoglue.util import read_geotiff
 from geoglue.zonalstats import zonalstats
-from pympler import asizeof
+# from pympler import asizeof
 
 from ..metrics import register_fetch, register_metrics, register_process
 from ..paths import get_path
@@ -60,10 +60,13 @@ register_metrics(
     },
 )
 
+def sizeof_dataarray(da: xr.DataArray) -> int:
+    return da.nbytes
+
 get_worlpop_cache = LRUCache(
     maxsize=CACHE_MAXSIZE,
     # asizeof here handle nested size instead of shallow (which is the case for sys.getsizeof)
-    getsizeof=asizeof.asizeof,
+    getsizeof=sizeof_dataarray,
 )
 
 
