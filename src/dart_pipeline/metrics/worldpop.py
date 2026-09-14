@@ -15,7 +15,6 @@ from cachetools import LRUCache, cached
 from geoglue.region import BaseCountry, CountryAdministrativeLevel
 from geoglue.util import read_geotiff
 from geoglue.zonalstats import zonalstats
-# from pympler import asizeof
 
 from ..metrics import register_fetch, register_metrics, register_process
 from ..paths import get_path
