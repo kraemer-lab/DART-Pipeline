@@ -18,7 +18,9 @@ GBR = BaseCountry(
 
 @pytest.fixture
 def mock_raster():
-    return MagicMock(spec=xr.DataArray)
+    mock_raster =  MagicMock(spec=xr.DataArray)
+    mock_raster.nbytes = 1024
+    return mock_raster
 
 
 @pytest.fixture
