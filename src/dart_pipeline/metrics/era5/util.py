@@ -256,7 +256,7 @@ def temperature_daily_dataset(
     region: ZonedBaseRegion,
     ystart: int,
     yend: int,
-    window: int = 0,
+    window: int = 1,
     align_weeks: bool = False,
     data_path: Path | None = None,
 ) -> xr.Dataset:
@@ -283,11 +283,11 @@ def temperature_daily_dataset(
         last_timepoint = cdsy.instant.valid_time.values.max()
         tend = get_last_sunday(pd.Timestamp(last_timepoint).date())
         start_date, end_date = get_date_range_for_partial_yend(
-            ystart, tend, window, align_weeks
+            ystart, tend, 7 * (window - 1), align_weeks
         )
     else:
         start_date, end_date = get_date_range_for_years(
-            ystart, yend, window, align_weeks
+            ystart, yend, 7 * (window - 1), align_weeks
         )
 
     return ds.sel(valid_time=slice(start_date.isoformat(), end_date.isoformat()))
@@ -410,7 +410,7 @@ def balance_weekly_dataarray(
         region,
         ystart,
         yend,
-        window=7 * (window - 1),
+        window=window,
         align_weeks=True,
         data_path=data_path,
     ).rename({"valid_time": "time"})
