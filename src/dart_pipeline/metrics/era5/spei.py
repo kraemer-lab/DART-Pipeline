@@ -112,8 +112,10 @@ def process_spei(
         .mean(dim="valid_time")
         .dropna(dim="valid_time")
     )
-    gamma = xr.apply_ufunc(gamma_func, ds_ma, gamma_params.alpha, gamma_params.beta)
-    norm_spei = xr.apply_ufunc(norminv, gamma)
+    gamma = xr.apply_ufunc(gamma_func, ds_ma, gamma_params.alpha, gamma_params.beta,
+                           join="outer")
+    norm_spei = xr.apply_ufunc(norminv, gamma,
+                               join="outer")
     spei_name = "spei_bc" if bias_correct else "spei"
     spei = xr.Dataset({spei_name: norm_spei.clip(MIN_SPEI, MAX_SPEI)})
     set_lonlat_attrs(spei)

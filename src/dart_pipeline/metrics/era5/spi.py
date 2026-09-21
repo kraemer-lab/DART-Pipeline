@@ -118,8 +118,8 @@ def process_spi(region: AdministrativeLevel, date: str) -> xr.DataArray:
         .dropna(dim="valid_time")
     )
 
-    gamma = xr.apply_ufunc(gamma_func, ds_ma, gamma_params.alpha, gamma_params.beta)
-    norm_spi = xr.apply_ufunc(norminv, gamma)
+    gamma = xr.apply_ufunc(gamma_func, ds_ma, gamma_params.alpha, gamma_params.beta,join="outer")
+    norm_spi = xr.apply_ufunc(norminv, gamma,join="outer")
     spi = norm_spi.rename({"tp": "spi"}).drop_vars(["e", "ssrd"], errors="ignore")
     spi["spi"] = spi.spi.clip(MIN_SPI, MAX_SPI)
     set_lonlat_attrs(spi)
@@ -160,7 +160,7 @@ def process_spi_corrected(region: AdministrativeLevel, date: str) -> xr.DataArra
         .dropna(dim="valid_time")
     )
 
-    gamma = xr.apply_ufunc(gamma_func, ds_ma, gamma_params.alpha, gamma_params.beta)
+    gamma = xr.apply_ufunc(gamma_func, ds_ma, gamma_params.alpha, gamma_params.beta,join="outer")
     norm_spi_corrected = xr.apply_ufunc(norminv, gamma)
     spi_corrected = norm_spi_corrected.rename({"tp_bc": "spi_bc"})
     spi_corrected["spi_bc"] = spi_corrected.spi_bc.clip(MIN_SPI, MAX_SPI)
