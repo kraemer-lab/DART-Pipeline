@@ -320,7 +320,8 @@ def process_era5(
         paths.append(y_output)
 
     msg(f"==> Collating metrics ({label}):", yrange_str)
-    ds = MetricCollection(f"{region.name}-{region.admin}", weekly=weekly).collate(
+    ds = MetricCollection(f"{region.name}-{region.admin}", weekly=weekly, 
+                          skip_correction=skip_correction).collate(
         (ystart, yend)
     )
     output = get_path(
