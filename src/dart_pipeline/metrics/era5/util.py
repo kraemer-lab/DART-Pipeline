@@ -350,15 +350,28 @@ def corrected_precipitation_weekly_dataset(
     da = xr.open_dataarray(tp_corrected_path(region.iso3, ystart - 1))
 
     # Create daily dataset from all years
-    # We go up to yend + 1 to bring in some days from the succeeding year
-    # for cases when Sundays are not 31 December (end of week aligns
-    # with end of year)
-    for y in range(ystart, yend + 2):
+    for y in range(ystart, yend + 1):
         da_y = xr.open_dataarray(tp_corrected_path(region.iso3, y))
         da = xr.concat([da, da_y], dim="valid_time")
+    
+    # Create daily dataset from all years
+    # Optionally go up to yend + 1 to bring in some days from the succeeding year
+    # for cases when Sundays are not 31 December (end of week aligns
+    # with end of year)
+    get_date_range = None
+    spillover_path = tp_corrected_path(region.iso3, yend + 1)
+    if spillover_path.exists():
+        da_spillover = xr.open_dataarray(spillover_path)
+        da = xr.concat([da, da_spillover], dim="valid_time")
+        get_date_range = get_date_range_for_years
+    else:
+        # if spill over does not exists -> yend is a partial year
+        last_timepoint = da.valid_time.values.max()
+        get_date_range = get_date_range_for_partial_yend
+        yend = get_last_sunday(pd.Timestamp(last_timepoint).date())
 
     # Crop to start timeseries on Mondays, with appropriate offset if window > 1
-    start_date, end_date = get_date_range_for_years(
+    start_date, end_date = get_date_range(
         ystart, yend, 7 * (window - 1), align_weeks=True
     )
     ds = xr.Dataset({"tp_bc": da}).sel(
@@ -493,10 +506,10 @@ def standardized_precipitation(
     def gamma_func(data, a, scale):
         return scipy.stats.gamma.cdf(data, a=a, scale=scale)
 
-    gamma = xr.apply_ufunc(gamma_func, ds_ma, params.alpha, params.beta)  # type: ignore
+    gamma = xr.apply_ufunc(gamma_func, ds_ma, params.alpha, params.beta,join="outer")  # type: ignore
     # standardized precipitation index (inverse of CDF)
     norminv = functools.partial(scipy.stats.norm.ppf, loc=0, scale=1)
-    norm_spi = xr.apply_ufunc(norminv, gamma)
+    norm_spi = xr.apply_ufunc(norminv, gamma, join="outer")
 
     var_without_suffix: Literal["spi", "spei"] = var.removesuffix("_corrected")  # type: ignore
     match var_without_suffix:
