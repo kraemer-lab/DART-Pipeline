@@ -29,7 +29,7 @@ dependencies = [
     "xclim>=0.56.0",
     "numpy",
     "cachetools",
-    "pympler"
+    "pympler",
 ]
 scripts = { dart-pipeline = "dart_pipeline:main" }
 
@@ -57,7 +57,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-geoglue = { git = "https://github.com/kraemer-lab/geoglue", branch="weekly-reduce-partial-year" }
+geoglue = { git = "https://github.com/kraemer-lab/geoglue", branch = "weekly-reduce-partial-year" }
 
 [tool.coverage.run]
 omit = ["tests/*"]
