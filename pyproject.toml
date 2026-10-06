@@ -53,11 +53,12 @@ dev = [
     "pytest-xdist>=3.6.1",
     "freezegun>=1.5",
     "ipykernel>=6.29.5",
-    "sphinxcontrib-mermaid>=1.0.0",
+    "sphinxcontrib-mermaid>=1.0.0"
 ]
 
 [tool.uv.sources]
 geoglue = { git = "https://github.com/kraemer-lab/geoglue", branch="weekly-reduce-partial-year" }
+dart-bias-correct = { git = "https://github.com/DART-Vietnam/dart-bias-correct", branch="partial-year" }
 
 [tool.coverage.run]
 omit = ["tests/*"]

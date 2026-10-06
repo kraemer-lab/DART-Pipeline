@@ -1406,7 +1406,7 @@ wheels = [
 [[package]]
 name = "geoglue"
 version = "0.1.0"
-source = { git = "https://github.com/kraemer-lab/geoglue?branch=weekly-reduce-partial-year#a910a0e1d52614716353ee4f7b51d98e52cee0d5" }
+source = { git = "https://github.com/kraemer-lab/geoglue?branch=weekly-reduce-partial-year#d5635a124b2f698787b77adbbd03d28ccf7d2896" }
 dependencies = [
     { name = "cdo" },
     { name = "cdsapi" },

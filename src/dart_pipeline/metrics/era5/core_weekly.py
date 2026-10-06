@@ -61,35 +61,51 @@ def get_cfattrs(var: str, time_col: str = "time") -> CFAttributes | None:
     return out_attrs
 
 
-def get_weekly_tp_corrected(region: str, year: int) -> xr.DataArray:
+def get_weekly_tp_corrected(region: str, year: int, is_partial: bool) -> xr.DataArray:
     path = get_path(
         "sources", region, "era5", f"{region}-{year}-era5.accum.tp_corrected.nc"
     )
-    # need next year path to get the last Sunday
-    path_next_year = get_path(
-        "sources", region, "era5", f"{region}-{year + 1}-era5.accum.tp_corrected.nc"
-    )
-    if path.exists() and path_next_year.exists():
-        start_date = get_first_monday(year)
+    start_date = get_first_monday(year)
 
+    if is_partial:
+        # partial year -> only the current year's file is needed
+        if not path.exists():
+            raise FileNotFoundError(f"Current year tp_corrected file not available:\n{path}")
+
+        da = xr.open_dataarray(path)
+        last_timepoint = da.valid_time.values.max()
+        end_date = get_last_sunday(pd.Timestamp(last_timepoint).date())
+
+        if end_date < start_date:
+            raise ValueError(
+                f"Data has not covered at least 1 week for {year} yet, use {year - 1} as end year instead"
+            )
+    else:
+        # otherwise, need next year's file to cover the last Sunday
+        path_next_year = get_path(
+            "sources", region, "era5", f"{region}-{year + 1}-era5.accum.tp_corrected.nc"
+        )
+        if not (path.exists() and path_next_year.exists()):
+            raise FileNotFoundError(
+                f"""Current year or next year tp_corrected file not available:
+            {path}
+            {path_next_year}"""
+            )
         da = xr.concat(
             [xr.open_dataarray(path), xr.open_dataarray(path_next_year)],
             dim="valid_time",
         )
         end_date = get_first_monday(year + 1) - datetime.timedelta(days=1)
 
-        da = da.sel(
-            valid_time=slice(start_date.isoformat(), end_date.isoformat())
-        ).astype("float32")
-        return (
-            da.resample(valid_time="W-MON", closed="left", label="left")
-            .sum()
-            .rename("tp_bc")
-        )
-    else:
-        raise FileNotFoundError(f"""Current year or next year tp_corrected file not available:
-    {path}
-    {path_next_year}""")
+    da = da.sel(
+        valid_time=slice(start_date.isoformat(), end_date.isoformat())
+    ).astype("float32")
+
+    return (
+        da.resample(valid_time="W-MON", closed="left", label="left")
+        .sum()
+        .rename("tp_bc")
+    )
 
 
 # TODO: add cfattrs
@@ -187,7 +203,7 @@ def prepare_weekly_data(region: AdministrativeLevel, year: int) -> xr.Dataset:
     accum = pool.weekly_reduce(year, "accum")[accum_vars]
     ds = xr.merge([t2m, mx2t24, mn2t24, q, mxq24, mnq24, r, mxr24, mnr24, accum])
     try:
-        tp_bc = get_weekly_tp_corrected(region.iso3, year)
+        tp_bc = get_weekly_tp_corrected(region = region.iso3, year = year, is_partial=is_partial)
         ds = xr.merge([ds, tp_bc])
     except FileNotFoundError:
         logger.warning(
