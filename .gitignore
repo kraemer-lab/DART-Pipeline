@@ -160,3 +160,5 @@ credentials.json
 # Obsidian
 *.canvas
 .obsidian/
+
+.coverage
