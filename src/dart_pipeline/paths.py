@@ -10,8 +10,8 @@ if platform.system() == "Windows":
 else:
     DATA_HOME = Path(os.getenv("XDG_DATA_HOME", Path.home() / ".local" / "share"))
 
-CONFIG_HOME = Path(os.getenv("DART_PIPELINE_DATA_HOME") or DATA_HOME)
-CONFIG_REGION = CONFIG_HOME / "dart-pipeline" / "regions.toml"
+CONFIG_HOME = Path(os.getenv("DART_PIPELINE_DATA_HOME")) or (DATA_HOME / "dart-pipeline")
+CONFIG_REGION = CONFIG_HOME / "regions.toml"
 
 
 def get_path(section: Literal["sources", "output", "scratch"], *args) -> Path:
@@ -38,7 +38,7 @@ def get_path(section: Literal["sources", "output", "scratch"], *args) -> Path:
     Path to folder for a particular ISO3 source combination in a section
     """
 
-    root = Path(os.getenv("DART_PIPELINE_DATA_HOME") or DATA_HOME) / "dart-pipeline"
+    root = Path(os.getenv("DART_PIPELINE_DATA_HOME")) or (DATA_HOME / "dart-pipeline")
     args = list(args)
     last = args.pop() if args and "." in args[-1] else None
     if not (path := Path(root, section, *args)).exists():
