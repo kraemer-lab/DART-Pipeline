@@ -83,7 +83,7 @@ def zonal_stats(
     da = ds[var]
     geom = region.read()
     operation = (
-        "mean(coverage_weight=area_spherical_km2)"
+        "weighted_mean(coverage_weight=area_spherical_km2)"
         if da.name not in ZONAL_STATS_ACCUM_VARS
         else "area_weighted_sum"
     )

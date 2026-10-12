@@ -69,7 +69,7 @@ def population_weighted_aggregation_daily(
     logger = logging.getLogger(__name__)
     logger.info(f"START {message}")
     operation = (
-        "mean(coverage_weight=area_spherical_km2)"
+        "weighted_mean(coverage_weight=area_spherical_km2)"
         if metric not in ACCUM_METRICS
         else "area_weighted_sum"
     )
@@ -213,9 +213,15 @@ def era5_process_core_daily(
     ds.daily_min().to_netcdf(paths["min"])
 
     instant_metrics = [
-        m for m in INSTANT_METRICS if m not in (DERIVED_METRICS_SEPARATE_IMPL + ["core_weekly"])
+        m
+        for m in INSTANT_METRICS
+        if m not in (DERIVED_METRICS_SEPARATE_IMPL + ["core_weekly"])
     ]
-    accum_metrics = [m for m in ACCUM_METRICS if m not in (DERIVED_METRICS_SEPARATE_IMPL + ["core_weekly"]) ]
+    accum_metrics = [
+        m
+        for m in ACCUM_METRICS
+        if m not in (DERIVED_METRICS_SEPARATE_IMPL + ["core_weekly"])
+    ]
     if not is_bias_corrected:
         instant_metrics = [m for m in instant_metrics if not m.endswith("_corrected")]
         accum_metrics = [m for m in accum_metrics if not m.endswith("_corrected")]
@@ -225,7 +231,7 @@ def era5_process_core_daily(
     }
     metric_statistic_combinations.update({"sum": accum_metrics})
 
-    # check number of metrics already existed 
+    # check number of metrics already existed
     already_existing_metrics: dict[str, list[str]] = {
         s: [
             m
@@ -272,7 +278,7 @@ def era5_process_core_daily(
         )
         to_compute_metric_statistic = metric_statistic_combinations
 
-    # compute metric + statistic combinations that haven't been computed b4 
+    # compute metric + statistic combinations that haven't been computed b4
     for stat in to_compute_metric_statistic:
         # skip if no metrics are requested to be generated for statistic
         metrics = to_compute_metric_statistic[stat]
@@ -312,7 +318,7 @@ def era5_process_core_daily(
         "DART_population": str(get_worldpop(region, year)),
         "DART_region": f"{region.name} {region.pk} {region.tz}",
     }
-        
+
     # returned value is the Dataset with all the core_variables instead
     return ds
     # return generated_paths
