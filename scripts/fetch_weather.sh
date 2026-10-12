@@ -10,6 +10,11 @@ fi
 # shellcheck disable=SC1090
 . "$1"
 
+# Special if-check for HCM/VNM region
+if [ "$ISO3" = "HCM" ]; then
+  ISO3=VNM
+fi
+
 # Get current year and subtract 2
 _current_year=$(date +%Y)
 _last_supported_year=$((_current_year))
@@ -22,6 +27,7 @@ fi
 
 if [ "$_fetch_end_year" -gt "$_last_supported_year" ]; then
   echo error: end year must not be in future
+  exit 1
 fi
 
 if [ "$_fetch_end_year" -eq "$_last_supported_year" ]; then
