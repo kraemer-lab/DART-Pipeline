@@ -30,10 +30,33 @@ fi
 
 command -v uv > /dev/null || die "==> uv not installed, visit https://astral.sh/uv for installation instructions"
 
+BC_REPO="https://github.com/DART-Vietnam/dart-bias-correct"
+
 command -v dart-bias-correct > /dev/null || {
     echo "==> dart-bias-correct not found, will attempt installation..."
-    uv tool install git+https://github.com/DART-Vietnam/dart-bias-correct
+    uv tool install "git+$BC_REPO"
 }
+
+# Commit that uv tool installed dart-bias-correct from (PEP 610 direct_url.json),
+# empty if it was not installed from git
+bc_installed_commit() {
+    "$(uv tool dir)/dart-bias-correct/bin/python" - <<'EOF'
+import importlib.metadata, json
+d = json.loads(importlib.metadata.distribution("dart-bias-correct").read_text("direct_url.json") or "{}")
+print(d.get("vcs_info", {}).get("commit_id", ""))
+EOF
+}
+
+bc_installed=$(bc_installed_commit 2>/dev/null || true)
+bc_latest=$(git ls-remote "$BC_REPO" refs/heads/main 2>/dev/null | cut -f1 || true)
+if [ -z "$bc_installed" ]; then
+    echo "==> dart-bias-correct not installed from git, skipping version check"
+elif [ -z "$bc_latest" ]; then
+    echo "==> Could not fetch latest dart-bias-correct commit, skipping version check"
+elif [ "$bc_installed" != "$bc_latest" ]; then
+    echo "==> dart-bias-correct is at ${bc_installed:0:7}, main is at ${bc_latest:0:7}, upgrading..."
+    uv tool install --reinstall "git+$BC_REPO@main"
+fi
 
 if [ -z "$BC_PRECIP_REF" ]; then
     echo "PRECIP_REF (precipitation reference dataset) is not set, cannot perform bias correction"
