@@ -35,7 +35,8 @@ do
   uv run dart-pipeline get worldpop.pop_count "$ISO3-$ADMIN" "$i"
 done
 
-for ((i=_fetch_start_year;i<=_fetch_end_year;i++))
+# starts at `_fetch_start_year-1` for bias correction shifting
+for ((i=_fetch_start_year-1;i<=_fetch_end_year;i++))
 do
   echo -e "\033[1m==> Fetching weather data for $i\033[0m"
   uv run dart-pipeline get era5 "$ISO3" "$i"
