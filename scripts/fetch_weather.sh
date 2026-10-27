@@ -10,11 +10,6 @@ fi
 # shellcheck disable=SC1090
 . "$1"
 
-# Special if-check for HCM/VNM region
-if [ "$ISO3" = "HCM" ]; then
-  ISO3=VNM
-fi
-
 # Get current year and subtract 2
 _current_year=$(date +%Y)
 _last_supported_year=$((_current_year))
