@@ -70,6 +70,8 @@ fi
 test -f "$BC_HISTORICAL_OBS" || die "==> Historical observation file not found: $BC_HISTORICAL_OBS"
 test -f "$BC_PRECIP_REF" || die "==> Reference precipitation file not found: $BC_PRECIP_REF"
 
+"$(dirname "$0")/remove_superseded_part_files.sh" "$1"
+
 echo -e "\033[1m==> Performing bias correction\033[0m"
 # shellcheck disable=SC2154
 for ((i=_fetch_start_year;i<=_fetch_end_year;i++))

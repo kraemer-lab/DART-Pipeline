@@ -25,6 +25,8 @@ if [ "$_res" != "daily" ] &&  [ "$_res" != "weekly" ]; then
     exit 1
 fi
 
+"$(dirname "$0")/remove_superseded_part_files.sh" "$1"
+
 if [ "$BC_ENABLE" -eq 1 ]; then
     uv run dart-pipeline process era5 "$ISO3-$ADMIN" "${START_YEAR}-${END_YEAR}" \
         temporal_resolution="$TEMPORAL_RESOLUTION" overwrite
