@@ -30,6 +30,7 @@ dependencies = [
     "numpy",
     "cachetools",
     "pympler",
+    "eccodeslib>=2.42 ; sys_platform != 'win32'",
 ]
 scripts = { dart-pipeline = "dart_pipeline:main" }
 
@@ -59,6 +60,9 @@ dev = [
 [tool.uv.sources]
 geoglue = { git = "https://github.com/kraemer-lab/geoglue", branch = "main" }
 dart-bias-correct = { git = "https://github.com/DART-Vietnam/dart-bias-correct", branch = "main" }
+
+# geoglue = { path = "../geoglue/", editable = true }
+
 
 [tool.coverage.run]
 omit = ["tests/*"]
