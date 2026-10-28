@@ -25,6 +25,6 @@ for _part_file in "$_era5_dir"/*_part-*; do
     _name="${_part_file##*/}"
     if [ -e "$_era5_dir/${_name/_part-/-}" ]; then
         echo "removing superseded partial file: $_part_file"
-        rm "$_part_file"
+        rm -f "$_part_file"  # -f: parallel jobs may race on the same file
     fi
 done

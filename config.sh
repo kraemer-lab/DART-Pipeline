@@ -1,7 +1,8 @@
 # Configuration file to be passed to scripts
 
-ISO3=HCM
-ADMIN=1  # can be 1, 2, or 3
+# ISO3 and ADMIN can be overridden from the environment
+ISO3="${ISO3:-HCM}"
+ADMIN="${ADMIN:-1}"  # can be 1, 2, or 3
 
 # Scale at which core parameters (t2m, r, mx2t24 ...) are processed
 # SPI and SPEI are always calculated weekly
@@ -46,7 +47,10 @@ BC_HISTORICAL_OBS=T2m_r_tp_Vietnam_ERA5.nc
 _fetch_start_year=$((START_YEAR - 1))
 _fetch_end_year=$((END_YEAR + 1))
 
-# Special if-check for HCM/VNM region
+# Special reassignment for HCM/VNM region
+# _region is passed to `scripts/process_weather.sh`
+# ISO3 is used for mostly everything else
+_region="$ISO3"
 if [[ "$ISO3" == HCM* ]]; then
   ISO3=VNM
 fi
