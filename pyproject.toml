@@ -30,7 +30,6 @@ dependencies = [
     "numpy",
     "cachetools",
     "pympler",
-    "eccodeslib>=2.42 ; sys_platform != 'win32'",
 ]
 scripts = { dart-pipeline = "dart_pipeline:main" }
 
