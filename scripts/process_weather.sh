@@ -27,6 +27,8 @@ fi
 
 "$(dirname "$0")/remove_superseded_part_files.sh" "$1"
 
+echo "Processing ERA5 weather for $_region-$ADMIN (ISO3: $ISO3) ${START_YEAR}-${END_YEAR}"
+
 # shellcheck disable=SC2154
 if [ "$BC_ENABLE" -eq 1 ]; then
     uv run dart-pipeline process era5 "$_region-$ADMIN" "${START_YEAR}-${END_YEAR}" \
