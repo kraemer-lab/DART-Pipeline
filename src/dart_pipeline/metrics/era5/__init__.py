@@ -53,13 +53,19 @@ foregoing.""",
 
 
 @register_fetch("era5")
-def era5_fetch(region: ZonedBaseRegion, date: str) -> CdsPath | list[CdsPath] | None:
+def era5_fetch(
+    region: ZonedBaseRegion, date: str, year_end: bool = False
+) -> CdsPath | list[CdsPath] | None:
     cur_year = datetime.now(tz=UTC).year
     year = int(date)
     prompt_cdsapi_key()
     data = ReanalysisSingleLevels(
         region, VARIABLES, path=get_path("sources", region.iso3, "era5")
     )
+    if year_end:
+        # Timeshifting the following year to local time only needs the last
+        # few hours of this year, so download the last week of December
+        return data.get(year, months=12, days=range(25, 32))
     if year == cur_year:
         return data.get_current_year(
             datetime.strptime(f"{year}/01/01", "%Y/%m/%d").astimezone().date(),

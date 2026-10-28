@@ -35,8 +35,13 @@ do
   uv run dart-pipeline get worldpop.pop_count "$ISO3-$ADMIN" "$i"
 done
 
-# starts at `_fetch_start_year-1` for bias correction shifting
-for ((i=_fetch_start_year-1;i<=_fetch_end_year;i++))
+# starts at `_fetch_start_year-1` with `year_end` for bias correction time shift with 1 week
+if [ "${BC_ENABLE:-0}" -eq 1 ]; then
+  echo -e "\033[1m==> Fetching weather data for last week of $((_fetch_start_year-1))\033[0m"
+  uv run dart-pipeline get era5 "$ISO3" "$((_fetch_start_year-1))" year_end
+fi
+
+for ((i=_fetch_start_year;i<=_fetch_end_year;i++))
 do
   echo -e "\033[1m==> Fetching weather data for $i\033[0m"
   uv run dart-pipeline get era5 "$ISO3" "$i"
