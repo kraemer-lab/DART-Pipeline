@@ -70,7 +70,9 @@ def get_weekly_tp_corrected(region: str, year: int, is_partial: bool) -> xr.Data
     if is_partial:
         # partial year -> only the current year's file is needed
         if not path.exists():
-            raise FileNotFoundError(f"Current year tp_corrected file not available:\n{path}")
+            raise FileNotFoundError(
+                f"Current year tp_corrected file not available:\n{path}"
+            )
 
         da = xr.open_dataarray(path)
         last_timepoint = da.valid_time.values.max()
@@ -97,9 +99,9 @@ def get_weekly_tp_corrected(region: str, year: int, is_partial: bool) -> xr.Data
         )
         end_date = get_first_monday(year + 1) - datetime.timedelta(days=1)
 
-    da = da.sel(
-        valid_time=slice(start_date.isoformat(), end_date.isoformat())
-    ).astype("float32")
+    da = da.sel(valid_time=slice(start_date.isoformat(), end_date.isoformat())).astype(
+        "float32"
+    )
 
     return (
         da.resample(valid_time="W-MON", closed="left", label="left")
@@ -116,7 +118,7 @@ def zonal_stats(var: str, ds: xr.Dataset, region: AdministrativeLevel) -> xr.Dat
     operation = (
         "area_weighted_sum"
         if var in ["tp", "tp_bc", "hb", "hb_bc"]
-        else "mean(coverage_weight=area_spherical_km2)"
+        else "weighted_mean(coverage_weight=area_spherical_km2)"
     )
     da = zonalstats(ds[var], geom, operation, weights).astype("float32").rename(var)
 
@@ -182,7 +184,7 @@ def prepare_weekly_data(region: AdministrativeLevel, year: int) -> xr.Dataset:
     tstart = get_first_monday(year)
     if tend < tstart:
         raise ValueError(
-            f"Data has not covered at least 1 week for {year} yet, use {year-1} as end year instead"
+            f"Data has not covered at least 1 week for {year} yet, use {year - 1} as end year instead"
         )
 
     h = h.sel(valid_time=slice(tstart.isoformat(), tend.isoformat()))
@@ -203,7 +205,9 @@ def prepare_weekly_data(region: AdministrativeLevel, year: int) -> xr.Dataset:
     accum = pool.weekly_reduce(year, "accum")[accum_vars]
     ds = xr.merge([t2m, mx2t24, mn2t24, q, mxq24, mnq24, r, mxr24, mnr24, accum])
     try:
-        tp_bc = get_weekly_tp_corrected(region = region.iso3, year = year, is_partial=is_partial)
+        tp_bc = get_weekly_tp_corrected(
+            region=region.iso3, year=year, is_partial=is_partial
+        )
         ds = xr.merge([ds, tp_bc])
     except FileNotFoundError:
         logger.warning(

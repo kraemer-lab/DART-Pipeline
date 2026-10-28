@@ -542,7 +542,7 @@ def zonal_stats(
     metric: str,
     da: xr.DataArray,
     region: geoglue.region.Region,
-    operation: str = "mean(coverage_weight=area_spherical_km2)",
+    operation: str = "weighted_mean(coverage_weight=area_spherical_km2)",
     weights: xr.DataArray | None = None,
     fix_array: bool = False,
 ) -> pd.DataFrame:
@@ -604,7 +604,7 @@ def zonal_stats_xarray(
     metric: str,
     da: xr.DataArray,
     region: geoglue.AdministrativeLevel,
-    operation: str = "mean(coverage_weight=area_spherical_km2)",
+    operation: str = "weighted_mean(coverage_weight=area_spherical_km2)",
     weights: xr.DataArray | None = None,
     fix_array: bool = False,
 ) -> xr.DataArray:
