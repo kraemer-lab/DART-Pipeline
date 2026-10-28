@@ -57,6 +57,9 @@ def era5_fetch(region: ZonedBaseRegion, date: str) -> CdsPath | list[CdsPath] | 
     cur_year = datetime.now(tz=UTC).year
     year = int(date)
     prompt_cdsapi_key()
+    # fetch the country extent even for a subregion
+    if region.iso3 and region.name != region.iso3:
+        region = get_region(region.iso3)
     data = ReanalysisSingleLevels(
         region, VARIABLES, path=get_path("sources", region.iso3, "era5")
     )
