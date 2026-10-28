@@ -10,6 +10,7 @@ import operator
 import os
 import sys
 import warnings
+from collections import Counter
 from pathlib import Path
 from typing import Literal
 
@@ -25,7 +26,12 @@ from geoglue.cds import (
     ReanalysisSingleLevels,
 )
 from geoglue.region import ZonedBaseRegion
-from geoglue.util import find_unique_time_coord, get_first_monday, get_last_sunday
+from geoglue.util import (
+    find_unique_time_coord,
+    get_first_monday,
+    get_last_sunday,
+    read_ncdf,
+)
 from metpy.units import units
 
 from ...paths import get_path
@@ -102,12 +108,65 @@ def pprint_ms(
         return "\n\t" + "\n\t".join(out)
 
 
+Grid = tuple[int, float, float, int, float, float]
+
+
+@functools.cache
+def _read_grid(path: Path, mtime_ns: int) -> Grid:
+    """
+    Latitude/longitude sizes and endpoints, cached until the file changes.
+    `mtime_ns` is used as cache key
+    """
+    with read_ncdf(path) as ds:
+        lat, lon = ds.latitude.values, ds.longitude.values
+    return (
+        lat.size,
+        float(lat[0]),
+        float(lat[-1]),
+        lon.size,
+        float(lon[0]),
+        float(lon[-1]),
+    )
+
+
+def _pprint_grid(grid: Grid) -> str:
+    nlat, lat0, lat1, nlon, lon0, lon1 = grid
+    return f"{nlat}x{nlon}, latitude {lat0} to {lat1}, longitude {lon0} to {lon1}"
+
+
+def assert_consistent_grid(pool: DatasetPool) -> None:
+    """Raises ValueError if files in the pool are not all on the same grid
+
+    xarray outer-joins mismatched grids when concatenating years, which pads
+    them with NaN, so fail early and name the files that need fetching again
+    """
+    grids = {
+        datafile: _read_grid(datafile, datafile.stat().st_mtime_ns)
+        for datafile in pool.paths
+    }
+    if not grids:
+        return
+    most_common_grid = Counter(grids.values()).most_common(1)[0][0]
+    if mismatched := sorted(
+        (p.name, g) for p, g in grids.items() if g != most_common_grid
+    ):
+        files = "\n".join(f"\t{name}: {_pprint_grid(g)}" for name, g in mismatched)
+        raise ValueError(
+            f"ERA5 files in {pool.folder} are not all on the same grid, "
+            f"expected {_pprint_grid(most_common_grid)}, found:\n{files}\n"
+            "\tDelete these files and fetch them again with "
+            "`uv run dart-pipeline get era5 <ISO3> <year>`"
+        )
+
+
 def get_dataset_pool(
     region: ZonedBaseRegion, data_path: Path | None = None
 ) -> DatasetPool:
-    return ReanalysisSingleLevels(
+    dataset_pool = ReanalysisSingleLevels(
         region, VARIABLES, path=data_path or get_path("sources", region.iso3, "era5")
     ).get_dataset_pool()
+    assert_consistent_grid(dataset_pool)
+    return dataset_pool
 
 
 def gamma_func(data, a, scale):
