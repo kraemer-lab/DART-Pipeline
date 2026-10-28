@@ -114,11 +114,13 @@ def prep_bias_correct(region: ZonedBaseRegion, date: str) -> xr.Dataset:
 
 # - data is retrieved by region.iso3
 # - output is indexed by region.name
-def run_task(task: str, overwrite: bool = True) -> Path:
+def run_task(
+    task: str, overwrite: bool = True, gamma_yrange: tuple[int, int] | None = None
+) -> Path:
     """Runs task definition
 
     VNM-2000-2020-era5.spi.gamma -- gamma parameters
-    VNM-2-2000-era5.spi -- SPI
+    VNM-2-2000-era5.spi -- SPI, using gamma parameters from `gamma_yrange`
     """
 
     from .spei import gamma_spei, process_spei_corrected, process_spei_uncorrected
@@ -168,16 +170,16 @@ def run_task(task: str, overwrite: bool = True) -> Path:
             ds = gamma_spei(region, f"{ystart}-{year}", bias_correct=bias_correct)
         case ("spi", False):
             assert isinstance(region, AdministrativeLevel)
-            ds = process_spi(region, str(year))
+            ds = process_spi(region, str(year), gamma_yrange)
         case ("spi", True):
             assert isinstance(region, AdministrativeLevel)
-            ds = process_spi_corrected(region, str(year))
+            ds = process_spi_corrected(region, str(year), gamma_yrange)
         case ("spei", False):
             assert isinstance(region, AdministrativeLevel)
-            ds = process_spei_uncorrected(region, str(year))
+            ds = process_spei_uncorrected(region, str(year), gamma_yrange)
         case ("spei", True):
             assert isinstance(region, AdministrativeLevel)
-            ds = process_spei_corrected(region, str(year))
+            ds = process_spei_corrected(region, str(year), gamma_yrange)
     if ds is None:
         raise RuntimeError(f"Task processing failed for {task}")
     ds.to_netcdf(output)
@@ -185,12 +187,23 @@ def run_task(task: str, overwrite: bool = True) -> Path:
 
 
 def run_tasks(
-    task_group: str, tasks: list[str], show_paths: bool = True, overwrite: bool = True
+    task_group: str,
+    tasks: list[str],
+    show_paths: bool = True,
+    overwrite: bool = True,
+    gamma_yrange: tuple[int, int] | None = None,
 ) -> list[Path]:
     "Runs a list of tasks"
 
     with multiprocessing.Pool() as pool:
-        paths = list(pool.map(functools.partial(run_task, overwrite=overwrite), tasks))
+        paths = list(
+            pool.map(
+                functools.partial(
+                    run_task, overwrite=overwrite, gamma_yrange=gamma_yrange
+                ),
+                tasks,
+            )
+        )
     if show_paths:
         logger.info("[%s] processed tasks: %s", task_group, ", ".join(tasks))
     else:
@@ -286,8 +299,11 @@ def process_era5(
             for index in ["spi", "spei"]
         ]
 
+    # Use the gamma parameters estimated above, other year ranges may exist
     msg("==> Calculating SPI and SPEI:", yrange_str)
-    paths += run_tasks("INDEX", index_tasks, overwrite=overwrite)
+    paths += run_tasks(
+        "INDEX", index_tasks, overwrite=overwrite, gamma_yrange=(ystart, yend)
+    )
 
     # Run core metrics -- there is already parallelisation within each year, so
     # we don't parallelise processing further

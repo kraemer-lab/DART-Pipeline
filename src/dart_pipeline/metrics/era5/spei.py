@@ -76,7 +76,10 @@ def gamma_spei(
 
 
 def process_spei(
-    region: AdministrativeLevel, date: str, bias_correct: bool = False
+    region: AdministrativeLevel,
+    date: str,
+    bias_correct: bool = False,
+    gamma_yrange: tuple[int, int] | None = None,
 ) -> xr.DataArray:
     """Determines SPEI for a particular year
 
@@ -89,6 +92,9 @@ def process_spei(
     bias_correct : bool
         Whether to use bias corrected precipitation when determining gamma params
         (default=False)
+    gamma_yrange : tuple[int, int] | None
+        Year range of the gamma parameters to use. If not specified, the first
+        matching gamma parameters file is used
 
     Returns
     -------
@@ -97,7 +103,7 @@ def process_spei(
     """
     year = int(date)
     index = "spei_corrected" if bias_correct else "spei"
-    gamma_params = get_gamma_params(region, index)
+    gamma_params = get_gamma_params(region, index, gamma_yrange)
     re_matches = re.match(r".*window=(\d+)", gamma_params.attrs["DART_history"])
     if re_matches is None:
         raise ValueError("No window option found in gamma parameters file")
@@ -158,12 +164,20 @@ def gamma_spei_corrected(
 
 
 @register_process("era5.spei")
-def process_spei_uncorrected(region: AdministrativeLevel, date: str) -> xr.DataArray:
+def process_spei_uncorrected(
+    region: AdministrativeLevel,
+    date: str,
+    gamma_yrange: tuple[int, int] | None = None,
+) -> xr.DataArray:
     "Processes SPEI with uncorrected precipitation"
-    return process_spei(region, date, bias_correct=False)
+    return process_spei(region, date, bias_correct=False, gamma_yrange=gamma_yrange)
 
 
 @register_process("era5.spei_corrected")
-def process_spei_corrected(region: AdministrativeLevel, date: str) -> xr.DataArray:
+def process_spei_corrected(
+    region: AdministrativeLevel,
+    date: str,
+    gamma_yrange: tuple[int, int] | None = None,
+) -> xr.DataArray:
     "Processes SPEI with uncorrected precipitation"
-    return process_spei(region, date, bias_correct=True)
+    return process_spei(region, date, bias_correct=True, gamma_yrange=gamma_yrange)

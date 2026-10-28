@@ -101,11 +101,15 @@ def gamma_spi_corrected(
 
 
 @register_process("era5.spi")
-def process_spi(region: AdministrativeLevel, date: str) -> xr.DataArray:
+def process_spi(
+    region: AdministrativeLevel,
+    date: str,
+    gamma_yrange: tuple[int, int] | None = None,
+) -> xr.DataArray:
     year = int(date)
     pool = get_dataset_pool(region)
 
-    gamma_params = get_gamma_params(region, "spi")
+    gamma_params = get_gamma_params(region, "spi", gamma_yrange)
     re_matches = re.match(r".*window=(\d+)", gamma_params.attrs["DART_history"])
     if re_matches is None:
         raise ValueError("No window option found in gamma parameters file")
@@ -142,10 +146,14 @@ def process_spi(region: AdministrativeLevel, date: str) -> xr.DataArray:
 
 
 @register_process("era5.spi_corrected")
-def process_spi_corrected(region: AdministrativeLevel, date: str) -> xr.DataArray:
+def process_spi_corrected(
+    region: AdministrativeLevel,
+    date: str,
+    gamma_yrange: tuple[int, int] | None = None,
+) -> xr.DataArray:
     year = int(date)
 
-    gamma_params = get_gamma_params(region, "spi_corrected")
+    gamma_params = get_gamma_params(region, "spi_corrected", gamma_yrange)
     re_matches = re.match(r".*window=(\d+)", gamma_params.attrs["DART_history"])
     if re_matches is None:
         raise ValueError("No window option found in gamma parameters file")
