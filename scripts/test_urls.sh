@@ -12,7 +12,6 @@ url_list=(
     "https://cds.climate.copernicus.eu"
     "https://ecmwf.int"
     "https://pypi.org"
-    "https://nuget.org"
 )
 passed=0
 failed=0

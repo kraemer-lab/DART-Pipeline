@@ -197,6 +197,7 @@ def run_tasks(
         logger.info("[%s] processed %d tasks", task_group, len(tasks))
     return paths
 
+
 # - Fetch for era5 always get latest week available (via ReanalysisSingleLevels.get_current_year)
 # - Make sure to always re-process with the newest data as well
 @register_process("era5", multiple_years=True)
@@ -291,21 +292,23 @@ def process_era5(
     # Run core metrics -- there is already parallelisation within each year, so
     # we don't parallelise processing further
     # TODO: insert hook to run weekly agg
-    label=None
+    label = None
     process_func = None
     weekly = True
     match temporal_resolution:
         case "weekly":
-            label="weekly"
+            label = "weekly"
             process_func = era5_process_core_weekly
             weekly = True
         case "daily":
-            label="daily"
+            label = "daily"
             process_func = era5_process_core_daily
             weekly = False
         case _:
-            raise ValueError(f"Unsupported temporal_resolution: {temporal_resolution!r}")
-            
+            raise ValueError(
+                f"Unsupported temporal_resolution: {temporal_resolution!r}"
+            )
+
     msg(f"==> Calculating core metrics ({label}):", yrange_str)
     for year in trange(ystart, yend + 1, desc=f"era5.core_{label}"):
         y_output = get_path(
@@ -320,10 +323,9 @@ def process_era5(
         paths.append(y_output)
 
     msg(f"==> Collating metrics ({label}):", yrange_str)
-    ds = MetricCollection(f"{region.name}-{region.admin}", weekly=weekly, 
-                          skip_correction=skip_correction).collate(
-        (ystart, yend)
-    )
+    ds = MetricCollection(
+        f"{region.name}-{region.admin}", weekly=weekly, skip_correction=skip_correction
+    ).collate((ystart, yend))
     output = get_path(
         "output",
         region.name,
@@ -335,6 +337,6 @@ def process_era5(
     )
     ds = recode_region(ds, region)
     ds.to_netcdf(output)
-    
+
     paths.append(output)
     return paths
