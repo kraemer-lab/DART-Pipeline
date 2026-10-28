@@ -115,7 +115,7 @@ def process_spei(
     )
     ds_ma = (
         ds.rolling(valid_time=window, center=False)
-        .mean(dim="valid_time")
+        .mean()
         .dropna(dim="valid_time")
     )
     gamma = xr.apply_ufunc(gamma_func, ds_ma, gamma_params.alpha, gamma_params.beta,

@@ -353,7 +353,7 @@ def corrected_precipitation_weekly_dataset(
     for y in range(ystart, yend + 1):
         da_y = xr.open_dataarray(tp_corrected_path(region.iso3, y))
         da = xr.concat([da, da_y], dim="valid_time")
-    
+
     # Create daily dataset from all years
     # Optionally go up to yend + 1 to bring in some days from the succeeding year
     # for cases when Sundays are not 31 December (end of week aligns
@@ -501,12 +501,12 @@ def standardized_precipitation(
             )
         case "spei":
             params = fit_gamma_distribution(ds_ref, window=window, dimension=dimension)
-    ds_ma = ds.rolling(time=window, center=False).mean(dim=dimension)
+    ds_ma = ds.rolling(time=window, center=False).mean()
 
     def gamma_func(data, a, scale):
         return scipy.stats.gamma.cdf(data, a=a, scale=scale)
 
-    gamma = xr.apply_ufunc(gamma_func, ds_ma, params.alpha, params.beta,join="outer")  # type: ignore
+    gamma = xr.apply_ufunc(gamma_func, ds_ma, params.alpha, params.beta, join="outer")  # type: ignore
     # standardized precipitation index (inverse of CDF)
     norminv = functools.partial(scipy.stats.norm.ppf, loc=0, scale=1)
     norm_spi = xr.apply_ufunc(norminv, gamma, join="outer")

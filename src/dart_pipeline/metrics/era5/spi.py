@@ -118,7 +118,7 @@ def process_spi(
     ds = pool.weekly_reduce(year, "accum", window=window - 1)
     ds_ma = (
         ds.rolling(valid_time=window, center=False)
-        .mean(dim="valid_time")
+        .mean()
         .dropna(dim="valid_time")
     )
 
@@ -164,7 +164,7 @@ def process_spi_corrected(
     ds = corrected_precipitation_weekly_dataset(region, year, year, window=window)
     ds_ma = (
         ds.rolling(valid_time=window, center=False)
-        .mean(dim="valid_time")
+        .mean()
         .dropna(dim="valid_time")
     )
 
