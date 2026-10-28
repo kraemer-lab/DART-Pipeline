@@ -57,7 +57,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-geoglue = { git = "https://github.com/kraemer-lab/geoglue", branch = "main" }
+geoglue = { git = "https://github.com/kraemer-lab/geoglue", branch = "partial-era5-fetch" }
 dart-bias-correct = { git = "https://github.com/DART-Vietnam/dart-bias-correct", branch = "main" }
 
 [tool.coverage.run]
