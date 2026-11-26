@@ -29,11 +29,7 @@ if [ "$_fetch_end_year" -eq "$_last_supported_year" ]; then
   echo warn: data for the current year will be partial
 fi
 
-echo -e "\033[1m==> Fetching and processing population data\033[0m"
-for ((i=_fetch_start_year;i<=_fetch_end_year;i++))
-do
-  uv run dart-pipeline get worldpop.pop_count "$ISO3-$ADMIN" "$i"
-done
+"$(dirname "$0")/fetch_population.sh" "$1"
 
 # starts at `_fetch_start_year-1` for bias correction shifting
 for ((i=_fetch_start_year-1;i<=_fetch_end_year;i++))
