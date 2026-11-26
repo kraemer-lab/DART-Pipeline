@@ -9,7 +9,9 @@ The script fetches and prepares population and weather data for a specified ISO 
 
 This script is designed to automate the retrieval of:
 
-- **Population data** using the `worldpop.pop_count` dataset.
+- **Population data** using the `worldpop.pop_count` dataset. This step is in
+  `scripts/fetch_population.sh`, which can also be run on its own with the same
+  configuration file.
 - **Weather data** from the ERA5 dataset.
 
 The script determines the year range based on the configuration and ensures all required years (including padding years for ISO week alignment) are available.
