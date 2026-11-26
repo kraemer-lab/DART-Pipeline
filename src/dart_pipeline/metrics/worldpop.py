@@ -214,14 +214,14 @@ def get_worldpop(
     path_population.mkdir(parents=True, exist_ok=True)
     url = urljoin(WORLDPOP_ROOT, url_fragment)
     output_path = path_population / url.split("/")[-1]
-    if output_path.exists() or download_file(url, output_path):
-        gtiff = read_geotiff(output_path)
-        if nodata_impute is not None:
-            return gtiff.fillna(nodata_impute)
-        else:
-            return gtiff
-    else:
-        raise requests.ConnectionError(f"Failed to download {url=}")
+    if not output_path.exists():
+        logger.info("Downloading %s", url)
+        if not download_file(url, output_path):
+            raise requests.ConnectionError(f"Failed to download {url=}")
+    gtiff = read_geotiff(output_path)
+    if nodata_impute is not None:
+        return gtiff.fillna(nodata_impute)
+    return gtiff
 
 
 @register_fetch("worldpop.pop_count")
@@ -229,6 +229,7 @@ def worldpop_pop_count_fetch(region: BaseCountry, date: str) -> Literal[False]:
     "Fetch worldpop count data"
 
     year = int(date)
+    logger.info("Fetching worldpop.pop_count for %s, year %s", region.iso3, year)
     _ = get_worldpop(region, year)
 
     return False  # ensures that dart-pipeline get skips processing
@@ -239,6 +240,12 @@ def worldpop_pop_count_process(
     region: CountryAdministrativeLevel, date: str
 ) -> xr.DataArray:
     year = int(date)
+    logger.info(
+        "Processing worldpop.pop_count for %s-%s, year %s",
+        region.name,
+        region.admin,
+        year,
+    )
     population = get_worldpop(region, year)
     geom = region.read()
     df = (
@@ -314,7 +321,6 @@ def parse_sexes(sex: str | None) -> list[str]:
             f"separated list of {valid}, such as sex=f,m or sex=t"
         )
     return [s for s in WORLDPOP_SEXES if s in codes]
-
 
 
 def _parse_age_range(item: str) -> tuple[int, int | None]:
@@ -502,8 +508,18 @@ def worldpop_age_sex_structure_fetch(
     ``age`` parameters are the same as for processing.
     """
     year = worldpop_age_sex_year(date)
-    for s in parse_sexes(sex):
-        for a in parse_age_groups(age):
+    sexes = parse_sexes(sex)
+    ages = parse_age_groups(age)
+    logger.info(
+        "Fetching worldpop.age_sex_structure for %s, year %s: %s rasters (sex=%s, %s age groups)",
+        region.iso3,
+        year,
+        len(sexes) * len(ages),
+        ",".join(sexes),
+        len(ages),
+    )
+    for s in sexes:
+        for a in ages:
             get_worldpop_age_sex_path(region, year, s, a)
     return False
 
@@ -547,6 +563,14 @@ def worldpop_age_sex_structure_process(
     year = worldpop_age_sex_year(date)
     sexes = parse_sexes(sex)
     ages = parse_age_groups(age)
+    logger.info(
+        "Processing worldpop.age_sex_structure for %s-%s, year %s (sex=%s, %s age groups)",
+        region.name,
+        region.admin,
+        year,
+        ",".join(sexes),
+        len(ages),
+    )
     geom = region.read()
     by_sex = []
     for s in sexes:

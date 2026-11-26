@@ -19,12 +19,15 @@ from dart_pipeline.metrics.worldpop import (
     age_group_label,
     age_groups_covering,
     get_worldpop,
+    get_worlpop_cache,
     parse_age_groups,
     parse_sexes,
     worldpop_age_sex_structure_fetch,
     worldpop_age_sex_structure_process,
     worldpop_age_sex_url,
     worldpop_age_sex_year,
+    worldpop_pop_count_fetch,
+    worldpop_pop_count_process,
 )
 
 NGA = BaseCountry(
@@ -415,6 +418,69 @@ def test_worldpop_age_sex_structure_process(admin_region, mock_age_sex_rasters):
     # rasters are looked up by the region's ISO3 code
     assert all(c.args[0].iso3 == "VNM" for c in mock_age_sex_rasters.call_args_list)
     assert mock_age_sex_rasters.call_count == 2 * len(WORLDPOP_AGE_GROUPS)
+
+
+def test_worldpop_age_sex_structure_logs_year(
+    admin_region, mock_age_sex_rasters, caplog
+):
+    with caplog.at_level(logging.INFO, logger="dart_pipeline.metrics.worldpop"):
+        worldpop_age_sex_structure_fetch(admin_region, "2021", sex="t", age="0-5")
+        worldpop_age_sex_structure_process(admin_region, "2021", sex="t", age="0-5")
+    fetched, processed = [
+        r.getMessage() for r in caplog.records if r.levelno == logging.INFO
+    ]
+    assert fetched == (
+        "Fetching worldpop.age_sex_structure for VNM, year 2021: "
+        "3 rasters (sex=t, 3 age groups)"
+    )
+    assert processed == (
+        "Processing worldpop.age_sex_structure for HCM-1, year 2021 "
+        "(sex=t, 3 age groups)"
+    )
+
+
+@pytest.fixture
+def empty_worldpop_cache():
+    "get_worldpop() is cached, so a cache hit would skip the download"
+    get_worlpop_cache.clear()
+    yield
+    get_worlpop_cache.clear()
+
+
+def test_worldpop_pop_count_logs_year(
+    tmp_path, admin_region, empty_worldpop_cache, caplog
+):
+    population = xr.DataArray(
+        np.ones((4, 4), dtype="float32"),
+        coords={
+            "latitude": [3.5, 2.5, 1.5, 0.5],
+            "longitude": [0.5, 1.5, 2.5, 3.5],
+            "band": 1,
+            "spatial_ref": 0,
+        },
+        dims=("latitude", "longitude"),
+        name="band_data",
+    )
+    with (
+        patch("dart_pipeline.metrics.worldpop.get_path", return_value=tmp_path),
+        patch(
+            "dart_pipeline.metrics.worldpop.download_file", side_effect=fake_download
+        ) as mock_download,
+        patch("dart_pipeline.metrics.worldpop.read_geotiff", return_value=population),
+        caplog.at_level(logging.INFO, logger="dart_pipeline.metrics.worldpop"),
+    ):
+        worldpop_pop_count_fetch(admin_region, "2019")
+        worldpop_pop_count_process(admin_region, "2019")
+    # processing reuses the raster that was just fetched
+    mock_download.assert_called_once()
+    assert [r.getMessage() for r in caplog.records] == [
+        "Fetching worldpop.pop_count for VNM, year 2019",
+        (
+            "Downloading https://data.worldpop.org/GIS/Population/"
+            "Global_2000_2020_1km_UNadj/2019/VNM/vnm_ppp_2019_1km_Aggregated_UNadj.tif"
+        ),
+        "Processing worldpop.pop_count for HCM-1, year 2019",
+    ]
 
 
 def test_worldpop_age_sex_structure_netcdf(
