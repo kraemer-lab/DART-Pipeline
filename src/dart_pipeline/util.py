@@ -89,7 +89,8 @@ def determine_netcdf_filename(metric: str, **kwargs) -> str:
         out += "-" + kwargs.pop("date")
     out += "-" + metric
     if kwargs:
-        out += "." + ".".join(kwargs.values())
+        # CLI parameters can be int (e.g. age=5) or bool (bare flags)
+        out += "." + ".".join(map(str, kwargs.values()))
     return out + ".nc"
 
 

@@ -47,6 +47,23 @@ worldpop.pop_count
       Bill and Melinda Gates Foundation (OPP1134076).
       https://dx.doi.org/10.5258/SOTON/WP00671
 
+worldpop.age_sex_structure
+    WorldPop population count by sex and age group [1]
+
+    :URL: https://hub.worldpop.org/geodata/listing?id=139
+    :License: CC-BY-4.0
+    :Citation:
+      Bondarenko M., Priyatikanto R., Tejedor-Garavito N., Zhang W.,
+      McKeen T., Cunningham A., Woods T., Hilton J., Cihan D., Nosatiuk
+      B., Brinkhoff T., Tatem A., Sorichetta A. (2025). Estimates of
+      2015-2030 total number of people per grid square broken down by
+      gender and age groupings at a resolution of 30 arc (approximately
+      1km at the equator) R2025A version v1. Global Demographic Data
+      Project - Funded by The Bill and Melinda Gates Foundation
+      (INV-045237). WorldPop - School of Geography and Environmental
+      Science, University of Southampton.
+      https://dx.doi.org/10.5258/SOTON/WP00842
+
 Sociodemographic indicators from Meta - ``meta``
 ===========================================================
 

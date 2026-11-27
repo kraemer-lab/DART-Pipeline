@@ -36,6 +36,10 @@ def test_region_col():
             {"region": VNM, "date": "2020", "param1": "hello", "param2": "there"},
             "VNM-2020-era5.a_b.hello.there.nc",
         ),
+        (
+            {"region": VNM, "date": "2020", "age": 5, "overwrite": True},
+            "VNM-2020-era5.a_b.5.True.nc",
+        ),
     ],
 )
 def test_determine_netcdf_filename(kwargs, expected):
