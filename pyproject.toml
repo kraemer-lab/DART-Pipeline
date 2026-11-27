@@ -3,7 +3,7 @@ name = "dart-pipeline"
 version = "0.1.0"
 description = "Dengue Advanced Readiness Tools (DART) pipeline"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11.5"
 dependencies = [
     "beautifulsoup4==4.*",
     "cdsapi==0.7.5",
@@ -26,8 +26,8 @@ dependencies = [
     "requests>=2.32.4",
     "shapely>2.0.5",
     "urllib3>=2.7.0",
-    "xclim>=0.56.0",
-    "numpy",
+    "xclim>=1.0.0",
+    "numpy>=2.0",
     "cachetools",
     "pympler",
 ]
