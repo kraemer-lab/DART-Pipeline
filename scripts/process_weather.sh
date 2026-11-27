@@ -27,6 +27,12 @@ fi
 
 "$(dirname "$0")/remove_superseded_part_files.sh" "$1"
 
+# Special reassignment for HCM/VNM region
+_region="$ISO3"
+if [[ "$ISO3" == HCM* ]]; then
+  ISO3=VNM
+fi
+
 echo "Processing ERA5 weather for $_region-$ADMIN (ISO3: $ISO3) ${START_YEAR}-${END_YEAR}"
 
 # shellcheck disable=SC2154
