@@ -228,15 +228,19 @@ def main():
     args, unknownargs = parser.parse_known_args()
     kwargs = parse_params(unknownargs).as_dict()
 
+    # Uses force=True because some dependencies log to the root logger when they
+    # are imported (xclim calls logging.info()), which adds a WARNING level
+    # handler. Without force=True, basicConfig() does nothing and INFO messages
+    # are dropped.
     match os.getenv("DART_PIPELINE_LOGLEVEL", "INFO"):
         case "DEBUG":
-            logging.basicConfig(format=LOG_FORMAT, level=logging.DEBUG)
+            logging.basicConfig(format=LOG_FORMAT, level=logging.DEBUG, force=True)
         case "INFO":
-            logging.basicConfig(format=LOG_FORMAT, level=logging.INFO)
+            logging.basicConfig(format=LOG_FORMAT, level=logging.INFO, force=True)
         case "ERROR":
-            logging.basicConfig(format=LOG_FORMAT, level=logging.ERROR)
+            logging.basicConfig(format=LOG_FORMAT, level=logging.ERROR, force=True)
         case "CRITICAL":
-            logging.basicConfig(format=LOG_FORMAT, level=logging.CRITICAL)
+            logging.basicConfig(format=LOG_FORMAT, level=logging.CRITICAL, force=True)
 
     match args.command:
         case "list":

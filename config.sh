@@ -46,11 +46,3 @@ BC_HISTORICAL_OBS=T2m_r_tp_Vietnam_ERA5.nc
 # Do not change -- used by other scripts
 _fetch_start_year=$((START_YEAR - 1))
 _fetch_end_year=$((END_YEAR + 1))
-
-# Special reassignment for HCM/VNM region
-# _region is passed to `scripts/process_weather.sh`
-# ISO3 is used for mostly everything else
-_region="$ISO3"
-if [[ "$ISO3" == HCM* ]]; then
-  ISO3=VNM
-fi
