@@ -486,16 +486,13 @@ def balance_weekly_dataarray(
         align_weeks=True,
         data_path=data_path,
     ).rename({"valid_time": "time"})
-    pevt = (
-        xclim.indicators.convert.potential_evapotranspiration(
-            tasmin=temp.mn2t24, tasmax=temp.mx2t24, tas=temp.t2m
-        )
-        # closed and label MUST be identical with that obtained from
-        # precipitation_weekly_dataset, which in turn must be aligned
-        # with geoglue.cds.weekly_reduce
-        .resample(time="W-MON", closed="left", label="left")
-        .sum()
-    )
+    pevt = xclim.indicators.convert.potential_evapotranspiration(
+        tasmin=temp.mn2t24, tasmax=temp.mx2t24, tas=temp.t2m
+    )["evspsblpot"]
+    # closed and label MUST be identical with that obtained from
+    # precipitation_weekly_dataset, which in turn must be aligned
+    # with geoglue.cds.weekly_reduce
+    pevt = pevt.resample(time="W-MON", closed="left", label="left").sum()
 
     # Resample precipitation to weekly sum
     precipitation_weekly_func = (
